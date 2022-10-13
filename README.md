@@ -1,1 +1,1 @@
-Matrytsya is intended to be a secure distributed computation environment.
+Matrytsya is intended to be a secure, distributed, computation environment.
