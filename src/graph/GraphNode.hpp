@@ -1,0 +1,103 @@
+#ifndef GRAPH_NODE_H
+#define GRAPH_NODE_H
+
+class GraphEdge;
+
+#include "GraphAction.hpp"
+#include "../util/RefCounted.hpp"
+#include "../thread/thread.hpp"
+
+#define EDGE_ARRAY_SIZE 32
+
+/** Node of a graph */
+class GraphNode : private RefCounted
+{
+	friend GraphEdge;
+
+    public:
+
+        GraphNode();
+
+		/**
+		 * Form and edge from this node to another node.
+		 * ie The edge is directed from this node to another node.
+		 * @param node Node to form edge to.
+		 * @param traversalFlags Flags that control what can traverse the edge.
+		 * @returns True if edge could be formed. False otherwise.
+		 */
+		bool formEdgeTo(GraphNode* node, unsigned long traversalFlags);
+
+        /**
+		 * Apply an action to this node.
+		 * @param action Action to apply.
+		 */
+        void applyAction(GraphAction& action);
+
+		/**
+		 * Get the edge a particular action should traverse.
+		 * @param action Action to propogate.
+		 * @returns Edge to traverse. This will have had its refcount incremented and _must_ be decremented when pointer is no
+		 *          longer required.
+		 */
+		GraphEdge* getEdgeToTraverse(GraphAction* action);
+
+    protected:
+
+		virtual ~GraphNode();
+
+		/**
+		 * Determine if an action can target this node.
+		 * ie This node has the target interface required of the action.
+		 */
+		virtual bool canActionTarget(GraphAction&) = 0;
+
+    private:
+
+        /// All edges directed either from or to this node.
+        GraphEdge* _edges[EDGE_ARRAY_SIZE];
+
+		/// Number of edges currently present.
+		unsigned _edgeCount;
+
+		/// Helper for allocating edges without having to search for spare spots.
+		/// This count allows edges to be initially allocated right up to the end of the edge array before having to start
+		/// searching the array for empty slots.
+		unsigned _linearEdgeAllocCount;
+
+        // Generic lock.
+        ThreadMutex _lock;
+
+		/**
+		 * The number of energy units this node currently contains.
+		 * Energy units can be recieved from actions and can also be passed to actions.
+		 */
+		unsigned _energy;
+
+        // Do not allow copying.
+        GraphNode(const GraphNode& copyFrom);
+        GraphNode& operator= (const GraphNode& copyFrom);
+
+		/**
+		 * Helper function to form an edge between two nodes.
+		 * @param fromNode Node to form edge from.
+		 * @param toNode Node to form edge to.
+		 * @param traversalFlags Flags that determine if action can traverse an edge.
+		 * @returns True if edge could be formed. False otherwise.
+		 */
+		bool formEdge(GraphNode* fromNode, GraphNode* toNode, unsigned long traversalFlags);
+
+		/**
+         * Add edge which is directed either from or to this node.
+         * @param edge Edge to add.
+         * @returns Handle to use to refer to edge with respect to this node. -1 if could not be attached.
+         */
+        int attachEdge(GraphEdge* edge);
+
+		/**
+		 * Detach edge from this node.
+		 * @param handle Handle of edge to remove.
+		 */
+        void detachEdge(int handle);
+};
+
+#endif

@@ -1,0 +1,9 @@
+unitTests.o: unitTests.cpp thread/ThreadModuleUnitTests.hpp \
+ thread/ThreadConditionUnitTest.hpp thread/TestThread.hpp \
+ thread/../../thread/thread.hpp thread/../../thread/Thread.hpp \
+ thread/../../thread/ThreadCondition.hpp \
+ thread/../../thread/ThreadMutex.hpp thread/../../thread/ThreadLock.hpp \
+ thread/../../thread/ThreadException.hpp \
+ thread/../../thread/ThreadCondition.hpp thread/../UnitTest.hpp \
+ thread/ThreadUnitTest.hpp
+UnitTest.o: UnitTest.cpp UnitTest.hpp
