@@ -144,7 +144,7 @@ bool Thread::getRunning()
 unsigned int Thread::sleep(unsigned int seconds)
 {
 	// Standard unix call.
-	return sleep(seconds);
+	return ::sleep(seconds);
 }
 
 void Thread::nanoSleep(int seconds, long nanoSeconds)

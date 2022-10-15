@@ -14,7 +14,7 @@ ThreadLock::ThreadLock(ThreadMutex* mutex) : _mutex(mutex)
 	{
 		_locked = mutex -> lock();
 	}
-	catch(const ThreadException ex)
+	catch(const ThreadException& ex)
 	{
 		LOG(Logger::LogLevel::DEBUG, "Could not obtain thread lock.")
 	}
