@@ -7,6 +7,7 @@ class GraphEdge;
 #include "../util/RefCounted.hpp"
 #include "../thread/thread.hpp"
 
+// The number of edges a node can have is fixed.
 #define EDGE_ARRAY_SIZE 32
 
 /** Node of a graph */
@@ -16,11 +17,22 @@ class GraphNode : private RefCounted
 
     public:
 
+		/**
+		 * Create new graph node.
+		 * @note Because this is refcounted it will require the automatic initial refcount to be released before it can
+		 * be deleted.
+		 */
         GraphNode();
+
+		/**
+		 * Get the maximum number edges that can be attached to this node.
+		 */
+		int getMaxNumAttachedEdges();
 
 		/**
 		 * Form and edge from this node to another node.
 		 * ie The edge is directed from this node to another node.
+		 * @note At this stage only nodes can create edges.
 		 * @param node Node to form edge to.
 		 * @param traversalFlags Flags that control what can traverse the edge.
 		 * @returns True if edge could be formed. False otherwise.
@@ -31,7 +43,7 @@ class GraphNode : private RefCounted
 		 * Apply an action to this node.
 		 * @param action Action to apply.
 		 */
-        void applyAction(GraphAction& action);
+        void applyAction(GraphAction* action);
 
 		/**
 		 * Get the edge a particular action should traverse.
@@ -41,15 +53,22 @@ class GraphNode : private RefCounted
 		 */
 		GraphEdge* getEdgeToTraverse(GraphAction* action);
 
+		/**
+		 * Decouple from the graph.
+		 * This essentially detaches all edges and stops the node from having any new edges attached to it.
+		 */
+		void decouple();
+
     protected:
 
+		// Must be virtual for reference counting auto-delete.
 		virtual ~GraphNode();
 
 		/**
 		 * Determine if an action can target this node.
 		 * ie This node has the target interface required of the action.
 		 */
-		virtual bool canActionTarget(GraphAction&) = 0;
+		virtual bool canActionTarget(GraphAction*) = 0;
 
     private:
 
@@ -66,6 +85,9 @@ class GraphNode : private RefCounted
 
         // Generic lock.
         ThreadMutex _lock;
+
+		// Whether this node is decoupling from the graph.
+		bool _decoupling;
 
 		/**
 		 * The number of energy units this node currently contains.

@@ -5,12 +5,6 @@
 
 /** Simple logging mechanism */
 
-// Global for speed of query.
-extern Logger* defaultLogger;
-
-// Error messages should always get through.
-#define LOG(logLevel, text) defaultLogger -> log(logLevel, text);
-
 class Logger
 {
 	public:
@@ -39,5 +33,11 @@ class Logger
 
 		enum LogLevel _logLevel;
 };
+
+// Global for speed of query.
+extern Logger* defaultLogger;
+
+// Error messages should always get through.
+#define LOG(logLevel, text) defaultLogger -> log(logLevel, text);
 
 #endif

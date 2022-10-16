@@ -21,6 +21,7 @@ class GraphEdge final : private RefCounted
 
 	protected:
 
+		// Must be virtual for reference counting auto-delete.
 		virtual ~GraphEdge();
 
     private:
@@ -44,6 +45,7 @@ class GraphEdge final : private RefCounted
 
 		/**
 		 * Create directed link between two nodes.
+		 * @note Because this is refcounted it will require the automatic initial refcount to be released before being deleted.
 		 * @param fromNode Node link is from.
 		 * @param toNode Node link is to.
 		 * @param traversalFlags Flags that control what can traverse the edge.

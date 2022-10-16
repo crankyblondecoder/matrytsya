@@ -15,7 +15,17 @@ void Graph::addNode(GraphNode* node)
 {
     { SYNC(lock)
 
-        nodes.append(node, true);
+        // TODO ...
+    }
+}
+
+void Graph::removeNode(GraphNode* node)
+{
+	node -> decouple();
+
+    { SYNC(lock)
+
+		// TODO ...
     }
 }
 

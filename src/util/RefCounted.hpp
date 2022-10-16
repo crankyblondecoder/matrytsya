@@ -8,6 +8,9 @@
  * Used to reference count and auto-delete class instances.
  * @note References are _not_ automatically inferred and have to be managed manually.
  * @note Every occurance where a pointer to a subclass of this is stored must have obtained a ref incr prior to storing it.
+ * With the exeception of the creating class which can use the automatic reference count added during construction.
+ * @note For this to successfully delete when the reference count goes to zero, the destructor of the implementing class must
+ * be virtual.
  */
 class RefCounted
 {

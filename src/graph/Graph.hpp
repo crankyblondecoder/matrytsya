@@ -4,6 +4,7 @@
 #include "GraphEdge.hpp"
 #include "GraphNode.hpp"
 #include "../thread/thread.hpp"
+#include "../util/ptrList.hpp"
 
 /**
  * Represents entire graph.
@@ -25,6 +26,12 @@ class Graph
          * @param node Node to add. Graph owns node.
          */
         void addNode(GraphNode*);
+
+		/**
+         * Add remove node from the graph.
+         * @param node Node to remove.
+         */
+        void removeNode(GraphNode*);
 
         /**
          * Apply action to the graph.

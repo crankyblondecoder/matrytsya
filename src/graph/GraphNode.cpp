@@ -14,8 +14,14 @@ GraphNode::GraphNode()
 {
 	_edgeCount = 0;
 	_linearEdgeAllocCount = 0;
+	_decoupling = false;
 
 	for(int index = 0; index < EDGE_ARRAY_SIZE; index++) _edges[index] = 0;
+}
+
+int GraphNode::getMaxNumAttachedEdges()
+{
+	return EDGE_ARRAY_SIZE;
 }
 
 bool GraphNode::formEdgeTo(GraphNode* toNode, unsigned long traversalFlags)
@@ -60,7 +66,7 @@ int GraphNode::attachEdge(GraphEdge* edge)
 
 		{ SYNC(_lock)
 
-			if(_edgeCount < EDGE_ARRAY_SIZE)
+			if(!_decoupling && _edgeCount < EDGE_ARRAY_SIZE)
 			{
 				// Short circuit an exhastive search if not needed.
 				if(_linearEdgeAllocCount < EDGE_ARRAY_SIZE)
@@ -101,11 +107,14 @@ void GraphNode::detachEdge(int edgeHandle)
 
 		if(edgeHandle < EDGE_ARRAY_SIZE && edgeHandle >= 0)
 		{
-			edge = _edges[edgeHandle];
+			if(_edges[edgeHandle])
+			{
+				edge = _edges[edgeHandle];
 
-			// Edge array never shrinks.
-			_edges[edgeHandle] = 0;
-			_edgeCount--;
+				// Edge array never shrinks.
+				_edges[edgeHandle] = 0;
+				_edgeCount--;
+			}
 		}
 		else
 		{
@@ -117,13 +126,13 @@ void GraphNode::detachEdge(int edgeHandle)
 	if(edge) edge -> decrRef();
 }
 
-void GraphNode::applyAction(GraphAction& action)
+void GraphNode::applyAction(GraphAction* action)
 {
 	// TODO Energy transaction accounting ...
 
 	if(canActionTarget(action))
 	{
-		action.apply(this);
+		action -> apply(this);
 	}
 }
 
@@ -145,14 +154,36 @@ GraphEdge* GraphNode::getEdgeToTraverse(GraphAction* action)
 
 				if(curEdge && curEdge -> canTraverse(action))
 				{
-					if(curEdge -> incrRef()) foundEdge = curEdge;
-
-					// Regardless of whether ref could be incremented. Break anyway.
-					break;
+					if(curEdge -> incrRef())
+					{
+						foundEdge = curEdge;
+						break;
+					}
 				}
 			}
 		}
 	}
 
 	return foundEdge;
+}
+
+void GraphNode::decouple()
+{
+	unsigned maxEdgeCount;
+
+	{ SYNC(_lock)
+
+		_decoupling = true;
+		maxEdgeCount = _linearEdgeAllocCount;
+	}
+
+	// Assume that once the decoupling flag is set to true that the edges array won't gain additional entries but only
+	// possibly loose some from other threads.
+
+	for(unsigned index = 0; index < maxEdgeCount; index++)
+	{
+		// Index is the same as the edge handle.
+		// It shouldn't matter if the edge at the index is empty.
+		detachEdge(index);
+	}
 }
