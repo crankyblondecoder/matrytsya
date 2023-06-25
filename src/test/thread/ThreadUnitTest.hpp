@@ -12,7 +12,7 @@ class ThreadUnitTest : public UnitTest
 
 		virtual void runTests()
 		{
-			// Standard start/stop.
+			// Standard start / stop.
 
 			try
 			{
