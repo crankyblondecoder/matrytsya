@@ -7,6 +7,8 @@ GraphAction::~GraphAction()
 GraphAction::GraphAction()
 {
 	_edgeTraversalFlags = 0;
+
+	_energy = 255;
 }
 
 void GraphAction::setEdgeTraversalFlags(unsigned long flags)

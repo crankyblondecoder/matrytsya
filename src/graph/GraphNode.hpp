@@ -89,12 +89,6 @@ class GraphNode : private RefCounted
 		// Whether this node is decoupling from the graph.
 		bool _decoupling;
 
-		/**
-		 * The number of energy units this node currently contains.
-		 * Energy units can be recieved from actions and can also be passed to actions.
-		 */
-		unsigned _energy;
-
         // Do not allow copying.
         GraphNode(const GraphNode& copyFrom);
         GraphNode& operator= (const GraphNode& copyFrom);

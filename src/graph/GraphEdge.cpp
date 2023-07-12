@@ -13,6 +13,8 @@ GraphEdge::GraphEdge(GraphNode* fromNode, GraphNode* toNode, unsigned long trave
 	_fromNodeHandle = -1;
 	_toNodeHandle = -1;
 
+	_energyCost = 1;
+
 	if(fromNode -> incrRef())
 	{
 		if(toNode -> incrRef())

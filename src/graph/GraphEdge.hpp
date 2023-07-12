@@ -40,6 +40,12 @@ class GraphEdge final : private RefCounted
 		/// Flags that allow edge traversal of an action.
 		unsigned long _traversalFlags;
 
+		/**
+		 * The number of energy units it costs an action to traverse this edge.
+		 * This is part of the mechanism that prevents infinite loops.
+		 */
+		unsigned _energyCost;
+
 		// Generic lock.
         ThreadMutex _lock;
 

@@ -20,18 +20,7 @@ template <unsigned long ActionFlag> class GraphActionTarget : public virtual Gra
 
 	protected:
 
-		/**
-		 * Set the energy cost required to run an action on this target.
-		 */
-		void setEnergyCost(int energyCost);
-
     private:
-
-		/**
-		 * Energy cost of applying an action to this target.
-		 * Negative indicates it will give energy to the action.
-		 */
-		int _energyCost;
 };
 
 template <unsigned long ActionFlag> unsigned long GraphActionTarget<ActionFlag>::ACTION_FLAG = ActionFlag;
@@ -43,12 +32,6 @@ template <unsigned long ActionFlag> GraphActionTarget<ActionFlag>::~GraphActionT
 template <unsigned long ActionFlag> GraphActionTarget<ActionFlag>::GraphActionTarget()
 {
 	addActionFlag(ActionFlag);
-	_energyCost = 0;
-}
-
-template <unsigned long ActionFlag> void GraphActionTarget<ActionFlag>::setEnergyCost(int energyCost)
-{
-	_energyCost = energyCost;
 }
 
 #endif

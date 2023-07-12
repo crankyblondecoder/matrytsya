@@ -54,14 +54,11 @@ class GraphAction
 		/// See graphEdgeFlagRegister.hpp
 		unsigned long _edgeTraversalFlags;
 
-		/// The number of energy units this action currently contains.
-		unsigned _energy;
-
 		/**
-		 * The maximum amount of energy this action is willing to expend on being applied to a node.
-		 * This value can be negative which implies it expects to be given energy to apply itself to a node.
+		 * The number of energy units this action currently contains.
+		 * This is part of the mechanism that prevents infinite loops.
 		 */
-		int _maxEnergyCost;
+		unsigned _energy;
 };
 
 #endif
