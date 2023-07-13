@@ -33,16 +33,16 @@ GraphEdge::GraphEdge(GraphNode* fromNode, GraphNode* toNode, unsigned long trave
 	{
 		// Will only get to here if from and to node refs could be obtained.
 
-		_fromNodeHandle = fromNode -> attachEdge(this);
+		_fromNodeHandle = fromNode -> __attachEdge(this);
 
 		if(_fromNodeHandle != -1)
 		{
-			_toNodeHandle = toNode -> attachEdge(this);
+			_toNodeHandle = toNode -> __attachEdge(this);
 
 			if(_toNodeHandle == -1)
 			{
 				// To node edge attachment failed.
-				_fromNode -> detachEdge(_fromNodeHandle);
+				_fromNode -> __detachEdge(_fromNodeHandle);
 				_fromNodeHandle = -1;
 			}
 		}
@@ -56,7 +56,7 @@ GraphEdge::GraphEdge(GraphNode* fromNode, GraphNode* toNode, unsigned long trave
 	}
 }
 
-void GraphEdge::detach()
+void GraphEdge::__detach()
 {
 	GraphNode* fromNode = 0;
 	GraphNode* toNode = 0;
@@ -86,18 +86,18 @@ void GraphEdge::detach()
 
 	if(fromNode)
 	{
-		if(fromNodeHandle != -1) fromNode -> detachEdge(fromNodeHandle);
+		if(fromNodeHandle != -1) fromNode -> __detachEdge(fromNodeHandle);
 		fromNode -> decrRef();
 	}
 
 	if(toNode)
 	{
-		if(toNodeHandle != -1) toNode -> detachEdge(toNodeHandle);
+		if(toNodeHandle != -1) toNode -> __detachEdge(toNodeHandle);
 		toNode -> decrRef();
 	}
 }
 
-bool GraphEdge::isComplete()
+bool GraphEdge::__isComplete()
 {
 	bool complete;
 
@@ -109,8 +109,10 @@ bool GraphEdge::isComplete()
 	return complete;
 }
 
-bool GraphEdge::canTraverse(GraphAction* action)
+bool GraphEdge::__canTraverse(GraphNode* origin, GraphAction* action)
 {
+	// Actions can only traverse edges in the one direction. From the from node to the to node.
+
 	// Check action traversal flags against edge traversal flags.
-	return action -> getEdgeTraversalFlags() & _traversalFlags;
+	return origin == _fromNode && action -> getEdgeTraversalFlags() & _traversalFlags;
 }

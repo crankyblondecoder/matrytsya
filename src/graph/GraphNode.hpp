@@ -39,20 +39,6 @@ class GraphNode : private RefCounted
 		 */
 		bool formEdgeTo(GraphNode* node, unsigned long traversalFlags);
 
-        /**
-		 * Apply an action to this node.
-		 * @param action Action to apply.
-		 */
-        void applyAction(GraphAction* action);
-
-		/**
-		 * Get the edge a particular action should traverse.
-		 * @param action Action to propogate.
-		 * @returns Edge to traverse. This will have had its refcount incremented and _must_ be decremented when pointer is no
-		 *          longer required.
-		 */
-		GraphEdge* getEdgeToTraverse(GraphAction* action);
-
 		/**
 		 * Decouple from the graph.
 		 * This essentially detaches all edges and stops the node from having any new edges attached to it.
@@ -68,7 +54,7 @@ class GraphNode : private RefCounted
 		 * Determine if an action can target this node.
 		 * ie This node has the target interface required of the action.
 		 */
-		virtual bool canActionTarget(GraphAction*) = 0;
+		virtual bool _canActionTarget(GraphAction*) = 0;
 
     private:
 
@@ -100,20 +86,29 @@ class GraphNode : private RefCounted
 		 * @param traversalFlags Flags that determine if action can traverse an edge.
 		 * @returns True if edge could be formed. False otherwise.
 		 */
-		bool formEdge(GraphNode* fromNode, GraphNode* toNode, unsigned long traversalFlags);
+		bool __formEdge(GraphNode* fromNode, GraphNode* toNode, unsigned long traversalFlags);
 
 		/**
          * Add edge which is directed either from or to this node.
          * @param edge Edge to add.
          * @returns Handle to use to refer to edge with respect to this node. -1 if could not be attached.
          */
-        int attachEdge(GraphEdge* edge);
+        int __attachEdge(GraphEdge* edge);
 
 		/**
 		 * Detach edge from this node.
 		 * @param handle Handle of edge to remove.
 		 */
-        void detachEdge(int handle);
+        void __detachEdge(int handle);
+
+		/**
+		 * Get the edge a particular action should traverse.
+		 * @param action Action to propogate.
+		 * @returns Edge to traverse. This will have had its refcount incremented and _must_ be decremented when pointer is no
+		 *          longer required.
+		 * @note This should only be called by an action on its own thread.
+		 */
+		GraphEdge* __getEdgeToTraverse(GraphAction* action);
 };
 
 #endif

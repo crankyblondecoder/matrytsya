@@ -20,7 +20,7 @@ template <class ActionTargetClass> class GraphActionTargetBinding : public Graph
 
 	protected:
 
-		virtual void apply(ActionTargetClass*) = 0;
+		virtual void _apply(ActionTargetClass*) = 0;
 
     private:
 };
@@ -41,7 +41,7 @@ template <class ActionTargetClass> unsigned long GraphActionTargetBinding<Action
 template <class ActionTargetClass> void GraphActionTargetBinding<ActionTargetClass>::apply(GraphNode* targetable)
 {
 	// This just marshals the action target into the required subclass that the action implementation can deal with.
-	apply((ActionTargetClass*) targetable);
+	_apply((ActionTargetClass*) targetable);
 }
 
 #endif

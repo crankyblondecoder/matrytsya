@@ -15,7 +15,9 @@ class TestAction : public GraphActionTargetBinding<TestActionTarget>
 
 		TestAction();
 
-		virtual void apply(TestActionTarget*);
+	protected:
+
+		virtual void _apply(TestActionTarget*);
 
     private:
 };

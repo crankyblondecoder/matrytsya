@@ -28,12 +28,6 @@ class Graph
          */
         void removeNode(GraphNode*);
 
-        /**
-         * Apply action to the graph.
-         * @param action Action to apply to graph.
-         */
-        void applyAction(GraphAction*);
-
     private:
 
         GraphNode* rootNode;

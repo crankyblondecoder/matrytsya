@@ -28,8 +28,3 @@ void Graph::removeNode(GraphNode* node)
 		// TODO ...
     }
 }
-
-void Graph::applyAction(GraphAction* action)
-{
-    rootNode -> applyAction(action);
-}

@@ -62,19 +62,20 @@ class GraphEdge final : private RefCounted
 		 * Detach this edge from the nodes it is associated with.
 		 * Will block until full detached.
 		 */
-		void detach();
+		void __detach();
 
 		/**
 		 * Whether this edge is fully formed.
 		 * @returns {bool} True if complete. False otherwise.
 		 */
-		bool isComplete();
+		bool __isComplete();
 
 		/**
 		 * Determine if action can traverse edge.
+		 * @param origin The node that the action is "leaving from".
 		 * @param action Graph action to traverse the edge.
 		 */
-		bool canTraverse(GraphAction* action);
+		bool __canTraverse(GraphNode* origin, GraphAction* action);
 };
 
 #endif

@@ -26,10 +26,10 @@ int GraphNode::getMaxNumAttachedEdges()
 
 bool GraphNode::formEdgeTo(GraphNode* toNode, unsigned long traversalFlags)
 {
-	return formEdge(this, toNode, traversalFlags);
+	return __formEdge(this, toNode, traversalFlags);
 }
 
-bool GraphNode::formEdge(GraphNode* fromNode, GraphNode* toNode, unsigned long traversalFlags)
+bool GraphNode::__formEdge(GraphNode* fromNode, GraphNode* toNode, unsigned long traversalFlags)
 {
 	GraphEdge* edge = 0;
 
@@ -47,7 +47,7 @@ bool GraphNode::formEdge(GraphNode* fromNode, GraphNode* toNode, unsigned long t
 
 	if(edge)
 	{
-		success = edge -> isComplete();
+		success = edge -> __isComplete();
 
 		// Release automatic construction reference. Nodes will ref the edge again if successfully attached.
 		// If edge was incomplete and subsequently detached, it should be automatically deleted at this point.
@@ -57,7 +57,7 @@ bool GraphNode::formEdge(GraphNode* fromNode, GraphNode* toNode, unsigned long t
 	return success;
 }
 
-int GraphNode::attachEdge(GraphEdge* edge)
+int GraphNode::__attachEdge(GraphEdge* edge)
 {
 	int retHandle = -1;
 
@@ -99,7 +99,7 @@ int GraphNode::attachEdge(GraphEdge* edge)
     return retHandle;
 }
 
-void GraphNode::detachEdge(int edgeHandle)
+void GraphNode::__detachEdge(int edgeHandle)
 {
 	GraphEdge* edge = 0;
 
@@ -126,17 +126,7 @@ void GraphNode::detachEdge(int edgeHandle)
 	if(edge) edge -> decrRef();
 }
 
-void GraphNode::applyAction(GraphAction* action)
-{
-	// TODO Energy transaction accounting ...
-
-	if(canActionTarget(action))
-	{
-		action -> apply(this);
-	}
-}
-
-GraphEdge* GraphNode::getEdgeToTraverse(GraphAction* action)
+GraphEdge* GraphNode::__getEdgeToTraverse(GraphAction* action)
 {
 	GraphEdge* curEdge;
 	GraphEdge* foundEdge = 0;
@@ -152,7 +142,7 @@ GraphEdge* GraphNode::getEdgeToTraverse(GraphAction* action)
 			{
 				curEdge = _edges[index];
 
-				if(curEdge && curEdge -> canTraverse(action))
+				if(curEdge && curEdge -> __canTraverse(this, action))
 				{
 					if(curEdge -> incrRef())
 					{
@@ -184,6 +174,6 @@ void GraphNode::decouple()
 	{
 		// Index is the same as the edge handle.
 		// It shouldn't matter if the edge at the index is empty.
-		detachEdge(index);
+		__detachEdge(index);
 	}
 }
