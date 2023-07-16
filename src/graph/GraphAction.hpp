@@ -46,19 +46,19 @@ class GraphAction
 		 * @sa graphEdgeFlagRegister.hpp
 		 * @param flags Bitfield representing the traversal flags.
 		 */
-		void setEdgeTraversalFlags(unsigned long flags);
+		void _setEdgeTraversalFlags(unsigned long flags);
 
     private:
 
 		/// The bitwise AND of this and the edge's traversal flags determines if the edge can be traversed.
 		/// See graphEdgeFlagRegister.hpp
-		unsigned long _edgeTraversalFlags;
+		unsigned long __edgeTraversalFlags;
 
 		/**
 		 * The number of energy units this action currently contains.
 		 * This is part of the mechanism that prevents infinite loops.
 		 */
-		unsigned _energy;
+		unsigned __energy;
 };
 
 #endif

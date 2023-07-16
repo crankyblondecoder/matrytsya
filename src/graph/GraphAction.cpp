@@ -6,17 +6,17 @@ GraphAction::~GraphAction()
 
 GraphAction::GraphAction()
 {
-	_edgeTraversalFlags = 0;
+	__edgeTraversalFlags = 0;
 
-	_energy = 255;
+	__energy = 255;
 }
 
-void GraphAction::setEdgeTraversalFlags(unsigned long flags)
+void GraphAction::_setEdgeTraversalFlags(unsigned long flags)
 {
-	_edgeTraversalFlags = flags;
+	__edgeTraversalFlags = flags;
 }
 
 unsigned long GraphAction::getEdgeTraversalFlags()
 {
-	return _edgeTraversalFlags;
+	return __edgeTraversalFlags;
 }
