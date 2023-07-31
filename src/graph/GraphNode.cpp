@@ -193,6 +193,9 @@ void GraphNode::decouple()
 	{
 		if(_edges[index]) _edges[index] -> __detach();
 	}
+
+	// Finally decrement the ref so that it can be deleted if no longer required.
+	decrRef();
 }
 
 GraphNode* GraphNode::traverse(GraphAction* action)
@@ -200,6 +203,8 @@ GraphNode* GraphNode::traverse(GraphAction* action)
 	GraphNode* retNode = 0;
 
 	// Assume this was referenced.
+	// TODO There has to be some kind of safe guard here to stop it completely being deRef'd by multiple spurious calls to this ...
+	blah
 	decrRef();
 
 	bool decoupling;
@@ -248,5 +253,7 @@ void GraphNode::_emitAction(GraphAction* action)
 
 void GraphNode::wontTraverse()
 {
+	// TODO There has to be some kind of safe guard here to stop it completely being deRef'd by multiple spurious calls to this ...
+	blah
 	decrRef();
 }

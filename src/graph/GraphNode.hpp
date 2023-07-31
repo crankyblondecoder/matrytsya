@@ -40,7 +40,7 @@ class GraphNode : private RefCounted
 		bool formEdgeTo(GraphNode* node, unsigned long traversalFlags);
 
 		/**
-		 * Decouple from the graph.
+		 * Decouple from the graph and decrRef to allow it to be deleted.
 		 * This essentially detaches all edges and stops the node from having any new edges attached to it.
 		 */
 		void decouple();
