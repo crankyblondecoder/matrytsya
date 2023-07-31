@@ -6,6 +6,26 @@
 #include "ThreadException.hpp"
 #include "ThreadPoolWorkThread.hpp"
 
+ThreadPool* threadPool = 0;
+
+void startThreadPool(unsigned numThreads)
+{
+	if(!threadPool)
+	{
+		threadPool = new ThreadPool(numThreads);
+	}
+}
+
+void stopThreadPool()
+{
+	if(threadPool)
+	{
+		threadPool -> shutdown();
+
+		delete threadPool;
+	}
+}
+
 ThreadPool::~ThreadPool()
 {
 	unsigned index;
@@ -276,6 +296,17 @@ void ThreadPool::shutdown()
 	}
 
 	// Mutex is now locked.
+
+	// Any uninvoked work units should be aborted.
+	ThreadPoolWorkUnit* workUnit = _workUnitQueue.first();;
+
+	while(workUnit)
+	{
+		workUnit -> abort();
+
+		_workUnitQueue.remove();
+		workUnit = _workUnitQueue.first();
+	}
 
 	// Try and gracefully shutdown the worker threads.
 	for(unsigned index = 0; index < _numThreads; index++)

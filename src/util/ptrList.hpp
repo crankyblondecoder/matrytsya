@@ -732,11 +732,11 @@ template < class T > void ptrList<T>::remove ( T* ptr )
     }
 }
 
+/**
+ * Remove current item from list
+ */
 template < class T > void ptrList<T>::remove()
 {
-    // Remove current item from list
-    // -----------------------------
-
     if ( ! cItem ) return;
 
     ptrListItem<T>* prevItem = cItem -> prev();

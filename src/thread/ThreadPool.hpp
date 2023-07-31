@@ -89,4 +89,16 @@ class ThreadPool : private Thread
 		void workUnitAllocPass();
 };
 
+/**
+ * Start the thread pool.
+ * If an existing thread pool exists, this function just exits gracefully.
+ * @param numThreads Number of threads pool should have.
+ */
+void startThreadPool(int numThreads);
+
+/**
+ * Stop and release the current thread pool.
+ */
+void stopThreadPool();
+
 #endif

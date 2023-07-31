@@ -10,7 +10,11 @@ class ThreadPoolWorkUnit
 
         virtual ~ThreadPoolWorkUnit();
 
+		/** Worker thread entry point. */
 		virtual void work() = 0;
+
+		/** Worker thread won't be assigned to this work unit. */
+		virtual void abort() = 0;
 
     protected:
 

@@ -1,17 +1,17 @@
 #ifndef GRAPH_ACTION_H
 #define GRAPH_ACTION_H
 
+#include "../util/RefCounted.hpp"
+
 class GraphNode;
 
 /**
  * Base class of all actions that traverses the graph and invoke operations on a node, as per a pre-defined action
  * specific interface.
  */
-class GraphAction
+class GraphAction : private RefCounted
 {
     public:
-
-        virtual ~GraphAction();
 
 		GraphAction();
 
@@ -34,9 +34,23 @@ class GraphAction
 		 */
 		void start(GraphNode* origin);
 
+		/**
+		 * Worker thread entry point.
+		 * @note Will decrement ref count on this after work is complete so do NOT use the pointer to this after returning from
+		 * this function.
+		 */
+		void work();
+
+		/**
+		 * Worker thread will not be entering this action.
+		 * Action will decrRef.
+		 */
+		void abortWork();
+
 	protected:
 
-		virtual GraphAction* clone() = 0;
+		// This is ref counted.
+		virtual ~GraphAction();
 
 		/**
 		 * Subclass hook to apply this action to a node.
