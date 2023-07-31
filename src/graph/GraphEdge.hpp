@@ -76,6 +76,13 @@ class GraphEdge final : private RefCounted
 		 * @param action Graph action to traverse the edge.
 		 */
 		bool __canTraverse(GraphNode* origin, GraphAction* action);
+
+		/**
+		 * Traverse this edge.
+		 * @param origin The node that the action is "leaving from".
+		 * @param action Graph action to traverse the edge.
+		 */
+		GraphNode* __traverse(GraphNode* origin, GraphAction* action);
 };
 
 #endif

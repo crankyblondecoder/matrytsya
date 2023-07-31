@@ -45,10 +45,31 @@ class GraphNode : private RefCounted
 		 */
 		void decouple();
 
+		/**
+		 * Traverse edges attached to this node and return the next node to apply an action.
+		 * @note Make sure this is called on the actions own thread.
+		 * @note Once an action calls this it should _not_ keep any pointer to this node.
+		 * @param action Action that wants to traverse edge. It is assumed this action currently holds a reference to the node.
+		 * @returns A ref counted node pointer or null if could not traverse.
+		 */
+		GraphNode* traverse(GraphAction* action);
+
+		/**
+		 * Must be called by an action when it is bound to this node but won't traverse it.
+		 */
+		void wontTraverse();
+
     protected:
 
 		// Must be virtual for reference counting auto-delete.
 		virtual ~GraphNode();
+
+		/**
+		 * Emit an action by making its origin this node.
+		 * @note All subclasses must use this function to emit actions so that correct binding to the node occurs.
+		 * @param action Action to emit.
+		 */
+		void _emitAction(GraphAction* action);
 
 		/**
 		 * Determine if an action can target this node.
@@ -91,15 +112,16 @@ class GraphNode : private RefCounted
 		/**
          * Add edge which is directed either from or to this node.
          * @param edge Edge to add.
-         * @returns Handle to use to refer to edge with respect to this node. -1 if could not be attached.
+         * @returns Handle to use to refer to edge with respect to this node. -1 if could not be added.
          */
-        int __attachEdge(GraphEdge* edge);
+        int __addEdge(GraphEdge* edge);
 
 		/**
-		 * Detach edge from this node.
+		 * Remove edge from this node.
+		 * Assume this is called as part of edge detachment.
 		 * @param handle Handle of edge to remove.
 		 */
-        void __detachEdge(int handle);
+        void __removeEdge(int handle);
 
 		/**
 		 * Get the edge a particular action should traverse.
@@ -108,7 +130,7 @@ class GraphNode : private RefCounted
 		 *          longer required.
 		 * @note This should only be called by an action on its own thread.
 		 */
-		GraphEdge* __getEdgeToTraverse(GraphAction* action);
+		GraphEdge* __findEdgeToTraverse(GraphAction* action);
 };
 
 #endif

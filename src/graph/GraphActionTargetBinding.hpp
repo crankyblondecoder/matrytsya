@@ -16,7 +16,7 @@ template <class ActionTargetClass> class GraphActionTargetBinding : public Graph
 
 		virtual unsigned long getFlag();
 
-		virtual void apply(GraphNode*);
+		virtual void _apply(GraphNode*);
 
 	protected:
 
@@ -38,7 +38,7 @@ template <class ActionTargetClass> unsigned long GraphActionTargetBinding<Action
 	return ActionTargetClass::ACTION_FLAG;
 }
 
-template <class ActionTargetClass> void GraphActionTargetBinding<ActionTargetClass>::apply(GraphNode* targetable)
+template <class ActionTargetClass> void GraphActionTargetBinding<ActionTargetClass>::_apply(GraphNode* targetable)
 {
 	// This just marshals the action target into the required subclass that the action implementation can deal with.
 	_apply((ActionTargetClass*) targetable);

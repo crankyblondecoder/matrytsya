@@ -6,10 +6,6 @@ class GraphNode;
 /**
  * Base class of all actions that traverses the graph and invoke operations on a node, as per a pre-defined action
  * specific interface.
- * This is a light weight mechanism because, practically, if an action had to understand the interface of
- * a large number of node types it would have to be updated to take into account every new node type added
- * to a graph that it wanted to act on. A node, however, will only be acted on by a small number of actions so
- * it is better for a node to hold the logic to act on a particular action.
  */
 class GraphAction
 {
@@ -26,20 +22,26 @@ class GraphAction
         virtual unsigned long getFlag() = 0;
 
 		/**
-		 * Apply this action to an action targetable instance.
-		 * Only the subclass will know which specific GraphActionTarget to apply to.
-		 */
-		virtual void apply(GraphNode*) = 0;
-
-		/**
 		 * Get the edge traversal flags for this action.
 		 * @returns Flag bitfield.
 		 */
 		unsigned long getEdgeTraversalFlags();
 
+		/**
+		 * Start traversal of graph from the given node.
+		 * @param origin The starting point in the graph of the action. The action will NOT be applied to this node. This node
+		 *        is immediately traversed.
+		 */
+		void start(GraphNode* origin);
+
 	protected:
 
 		virtual GraphAction* clone() = 0;
+
+		/**
+		 * Subclass hook to apply this action to a node.
+		 */
+		virtual void _apply(GraphNode*) = 0;
 
 		/**
 		 * Set the edge traversal flags.
@@ -49,6 +51,8 @@ class GraphAction
 		void _setEdgeTraversalFlags(unsigned long flags);
 
     private:
+
+		GraphNode* __boundNode;
 
 		/// The bitwise AND of this and the edge's traversal flags determines if the edge can be traversed.
 		/// See graphEdgeFlagRegister.hpp

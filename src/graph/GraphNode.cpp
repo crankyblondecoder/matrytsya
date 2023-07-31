@@ -31,33 +31,43 @@ bool GraphNode::formEdgeTo(GraphNode* toNode, unsigned long traversalFlags)
 
 bool GraphNode::__formEdge(GraphNode* fromNode, GraphNode* toNode, unsigned long traversalFlags)
 {
-	GraphEdge* edge = 0;
+	bool decoupling;
 
-	try
-	{
-		// Edges should be treated as immutable and should not exist if not fully connected.
-		edge = new GraphEdge(fromNode, toNode, traversalFlags);
-	}
-	catch(std::bad_alloc& ex)
-	{
-		throw GraphException(GraphException::EDGE_BAD_ALLOC);
+	{ SYNC(_lock)
+
+		decoupling = _decoupling;
 	}
 
 	bool success = false;
 
-	if(edge)
+	if(!decoupling)
 	{
-		success = edge -> __isComplete();
+		GraphEdge* edge = 0;
 
-		// Release automatic construction reference. Nodes will ref the edge again if successfully attached.
-		// If edge was incomplete and subsequently detached, it should be automatically deleted at this point.
-		edge -> decrRef();
+		try
+		{
+			// Edges should be treated as immutable and should not exist if not fully connected.
+			edge = new GraphEdge(fromNode, toNode, traversalFlags);
+		}
+		catch(std::bad_alloc& ex)
+		{
+			throw GraphException(GraphException::EDGE_BAD_ALLOC);
+		}
+
+		if(edge)
+		{
+			success = edge -> __isComplete();
+
+			// Release automatic construction reference. Nodes will ref the edge again if successfully attached.
+			// If edge was incomplete and subsequently detached, it should be automatically deleted at this point.
+			edge -> decrRef();
+		}
 	}
 
 	return success;
 }
 
-int GraphNode::__attachEdge(GraphEdge* edge)
+int GraphNode::__addEdge(GraphEdge* edge)
 {
 	int retHandle = -1;
 
@@ -99,7 +109,7 @@ int GraphNode::__attachEdge(GraphEdge* edge)
     return retHandle;
 }
 
-void GraphNode::__detachEdge(int edgeHandle)
+void GraphNode::__removeEdge(int edgeHandle)
 {
 	GraphEdge* edge = 0;
 
@@ -126,14 +136,14 @@ void GraphNode::__detachEdge(int edgeHandle)
 	if(edge) edge -> decrRef();
 }
 
-GraphEdge* GraphNode::__getEdgeToTraverse(GraphAction* action)
+GraphEdge* GraphNode::__findEdgeToTraverse(GraphAction* action)
 {
 	GraphEdge* curEdge;
 	GraphEdge* foundEdge = 0;
 
 	{ SYNC(_lock)
 
-		if(_edgeCount > 0)
+		if(!_decoupling && _edgeCount > 0)
 		{
 			// Don't traverse whole edge array if we really don't need to.
 			// _linearEdgeAllocCount never goes above EDGE_ARRAY_SIZE.
@@ -160,20 +170,83 @@ GraphEdge* GraphNode::__getEdgeToTraverse(GraphAction* action)
 void GraphNode::decouple()
 {
 	unsigned maxEdgeCount;
+	bool abort = false;
 
 	{ SYNC(_lock)
 
-		_decoupling = true;
-		maxEdgeCount = _linearEdgeAllocCount;
+		if(_decoupling)
+		{
+			abort = true;
+		}
+		else
+		{
+			_decoupling = true;
+			maxEdgeCount = _linearEdgeAllocCount;
+		}
 	}
 
-	// Assume that once the decoupling flag is set to true that the edges array won't gain additional entries but only
-	// possibly loose some from other threads.
+	if(abort) return;
+
+	// Assume that once the decoupling flag is set to true that the edges array won't be modified other than by this thread.
 
 	for(unsigned index = 0; index < maxEdgeCount; index++)
 	{
-		// Index is the same as the edge handle.
-		// It shouldn't matter if the edge at the index is empty.
-		__detachEdge(index);
+		if(_edges[index]) _edges[index] -> __detach();
 	}
+}
+
+GraphNode* GraphNode::traverse(GraphAction* action)
+{
+	GraphNode* retNode = 0;
+
+	// Assume this was referenced.
+	decrRef();
+
+	bool decoupling;
+
+	{ SYNC(_lock)
+
+		decoupling = _decoupling;
+	}
+
+	if(!decoupling)
+	{
+		GraphEdge* foundEdge = __findEdgeToTraverse(action);
+
+		if(foundEdge)
+		{
+			// Get a ref counted node from the edge.
+			retNode = foundEdge -> __traverse(this, action);
+
+			// The edge will have had its ref count increased when passed from find to traverse.
+			foundEdge -> decrRef();
+		}
+	}
+
+	return retNode;
+}
+
+void GraphNode::_emitAction(GraphAction* action)
+{
+	bool decoupling;
+
+	{ SYNC(_lock)
+
+		decoupling = _decoupling;
+	}
+
+	// There is no point is going any further if this is in the process of decoupling.
+
+	if(!decoupling)
+	{
+		if(incrRef())
+		{
+			action -> start(this);
+		}
+	}
+}
+
+void GraphNode::wontTraverse()
+{
+	decrRef();
 }

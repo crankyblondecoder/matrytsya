@@ -14,21 +14,7 @@
  */
 class RefCounted
 {
-	protected:
-
-		/**
-		 * The ref count is incremented during construction to automatically account for the pointer created.
-		 * This is done here so that there is a safeguard against delete being invoked in the constructor of a subclass.
-		 */
-		RefCounted()
-		{
-			_refCount = 1;
-			_deleting = false;
-		}
-
-		virtual ~RefCounted(){}
-
-		// Incr/decr ref are protected for a reason. They should be externally synced.
+	public:
 
 		/**
 		 * Attempt to obtain a reference lock.
@@ -68,6 +54,20 @@ class RefCounted
 
 			if(invokeDelete) delete(this);
 		}
+
+	protected:
+
+		/**
+		 * The ref count is incremented during construction to automatically account for the pointer created.
+		 * This is done here so that there is a safeguard against delete being invoked in the constructor of a subclass.
+		 */
+		RefCounted()
+		{
+			_refCount = 1;
+			_deleting = false;
+		}
+
+		virtual ~RefCounted(){}
 
 	private:
 
