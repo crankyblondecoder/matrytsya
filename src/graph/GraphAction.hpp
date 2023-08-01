@@ -1,9 +1,11 @@
 #ifndef GRAPH_ACTION_H
 #define GRAPH_ACTION_H
 
+#include "GraphActionThreadPoolWorkUnit.hpp"
 #include "../util/RefCounted.hpp"
 
 class GraphNode;
+class GraphEdge;
 
 /**
  * Base class of all actions that traverses the graph and invoke operations on a node, as per a pre-defined action
@@ -11,6 +13,9 @@ class GraphNode;
  */
 class GraphAction : private RefCounted
 {
+	friend GraphActionThreadPoolWorkUnit;
+	friend GraphEdge;
+
     public:
 
 		GraphAction();
@@ -34,19 +39,6 @@ class GraphAction : private RefCounted
 		 */
 		void start(GraphNode* origin);
 
-		/**
-		 * Worker thread entry point.
-		 * @note Will decrement ref count on this after work is complete so do NOT use the pointer to this after returning from
-		 * this function.
-		 */
-		void work();
-
-		/**
-		 * Worker thread will not be entering this action.
-		 * Action will decrRef.
-		 */
-		void abortWork();
-
 	protected:
 
 		// This is ref counted.
@@ -66,7 +58,7 @@ class GraphAction : private RefCounted
 
     private:
 
-		GraphNode* __boundNode;
+		GraphNode* _boundNode;
 
 		/// The bitwise AND of this and the edge's traversal flags determines if the edge can be traversed.
 		/// See graphEdgeFlagRegister.hpp
@@ -76,7 +68,25 @@ class GraphAction : private RefCounted
 		 * The number of energy units this action currently contains.
 		 * This is part of the mechanism that prevents infinite loops.
 		 */
-		unsigned __energy;
+		int _energy;
+
+		/**
+		 * Consume some of the energy this action contains.
+		 */
+		void __consumeEnergy(int energyAmount);
+
+		/**
+		 * Worker thread entry point.
+		 * @note Will decrement ref count on this after work is complete so do NOT use the pointer to this after returning from
+		 * this function.
+		 */
+		void __work();
+
+		/**
+		 * Worker thread will not be entering this action.
+		 * Action will decrRef.
+		 */
+		void __abortWork();
 };
 
 #endif

@@ -146,5 +146,8 @@ GraphNode* GraphEdge::__traverse(GraphNode* origin, GraphAction* action)
 		}
 	}
 
+	// Do energy accounting. Remember this is a cyclic graph and the energy accounting system helps mitigate infinite cycles.
+	if(retNode) action -> __consumeEnergy(_energyCost);
+
 	return retNode;
 }

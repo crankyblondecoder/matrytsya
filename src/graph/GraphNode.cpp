@@ -14,6 +14,7 @@ GraphNode::GraphNode()
 {
 	_edgeCount = 0;
 	_linearEdgeAllocCount = 0;
+	_initialRefRemoved = false;
 	_decoupling = false;
 
 	for(int index = 0; index < EDGE_ARRAY_SIZE; index++) _edges[index] = 0;
@@ -72,8 +73,8 @@ int GraphNode::__addEdge(GraphEdge* edge)
 	int retHandle = -1;
 
 	// Before trying to add edge to array of edges. Make sure ref count can be increased to it.
-	if(edge -> incrRef()) {
-
+	if(edge -> incrRef())
+	{
 		{ SYNC(_lock)
 
 			if(!_decoupling && _edgeCount < EDGE_ARRAY_SIZE)
@@ -134,6 +135,13 @@ void GraphNode::__removeEdge(int edgeHandle)
 
 	// Don't do this inside sync block!!!
 	if(edge) edge -> decrRef();
+
+	if(_edgeCount == 0 && !_initialRefRemoved)
+	{
+		// When the edge count goes back to zero make sure this node can't be orphaned.
+		decrRef();
+		_initialRefRemoved = true;
+	}
 }
 
 GraphEdge* GraphNode::__findEdgeToTraverse(GraphAction* action)
@@ -194,18 +202,17 @@ void GraphNode::decouple()
 		if(_edges[index]) _edges[index] -> __detach();
 	}
 
-	// Finally decrement the ref so that it can be deleted if no longer required.
-	decrRef();
+	if(!_initialRefRemoved)
+	{
+		// Have to make sure this node can be deleted.
+		decrRef();
+		_initialRefRemoved = true;
+	}
 }
 
-GraphNode* GraphNode::traverse(GraphAction* action)
+GraphNode* GraphNode::__traverse(GraphAction* action)
 {
 	GraphNode* retNode = 0;
-
-	// Assume this was referenced.
-	// TODO There has to be some kind of safe guard here to stop it completely being deRef'd by multiple spurious calls to this ...
-	blah
-	decrRef();
 
 	bool decoupling;
 
@@ -228,7 +235,19 @@ GraphNode* GraphNode::traverse(GraphAction* action)
 		}
 	}
 
+	// Assume this node was referenced. This assumption can only be made because this function is private and should only be
+	// called by GraphAction. Also this is called at the end because it may very well instigate the deletion of this node in
+	// the circumstance where this node has no edges.
+	decrRef();
+
 	return retNode;
+}
+
+void GraphNode::__wontTraverse()
+{
+	// Assume this was referenced. This assumption can only be made because this function is private and should only be
+	// called by GraphAction.
+	decrRef();
 }
 
 void GraphNode::_emitAction(GraphAction* action)
@@ -249,11 +268,4 @@ void GraphNode::_emitAction(GraphAction* action)
 			action -> start(this);
 		}
 	}
-}
-
-void GraphNode::wontTraverse()
-{
-	// TODO There has to be some kind of safe guard here to stop it completely being deRef'd by multiple spurious calls to this ...
-	blah
-	decrRef();
 }

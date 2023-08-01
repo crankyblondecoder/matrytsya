@@ -1,15 +1,14 @@
 #include "GraphAction.hpp"
 #include "GraphNode.hpp"
 #include "../thread/ThreadPool.hpp"
-#include "../thread/ThreadPoolWorkUnit.hpp"
 
 extern ThreadPool* threadPool;
 
 GraphAction::~GraphAction()
 {
-	if(__boundNode) {
+	if(_boundNode) {
 
-		__boundNode -> wontTraverse();
+		_boundNode -> __wontTraverse();
 	}
 }
 
@@ -17,9 +16,9 @@ GraphAction::GraphAction()
 {
 	__edgeTraversalFlags = 0;
 
-	__energy = 255;
+	_energy = 255;
 
-	__boundNode = 0;
+	_boundNode = 0;
 }
 
 void GraphAction::_setEdgeTraversalFlags(unsigned long flags)
@@ -34,14 +33,12 @@ unsigned long GraphAction::getEdgeTraversalFlags()
 
 void GraphAction::start(GraphNode* origin)
 {
-	__boundNode = origin;
+	_boundNode = origin;
 
-	if(incrRef()) {
+	if(threadPool) {
 
-		// TODO Request to start a thread somehow ...
-		blah
-
-		// Make sure work unit is deleted if it could not be executed!!! ???
+		// Ask threadpool to execute action work unit.
+		threadPool -> executeWorkUnit(new GraphActionThreadPoolWorkUnit(this));
 	}
 	else
 	{
@@ -50,21 +47,35 @@ void GraphAction::start(GraphNode* origin)
 	}
 }
 
-void GraphAction::work()
+void GraphAction::__work()
 {
-	// TODO make sure this action can still be applied to the node. There is no point is going any further if it can't ...
-	blah
+	if(_boundNode)
+	{
+		_apply(_boundNode);
 
-	// TODO start work ...
-	blah
+		if(_energy > 0)
+		{
+			_boundNode = _boundNode -> __traverse(this);
 
-	// Actions are designed to be "one shots" in terms of threads assigned to them. So decrRef which should cause this
-	// to be deleted. It would be abnormal behaviour if it didn't.
+			if(_boundNode)
+			{
+				// Create and schedule another work unit for the newly bound node. This makes sure
+				// actions don't hog thread time.
+				threadPool -> executeWorkUnit(new GraphActionThreadPoolWorkUnit(this));
+			}
+		}
+	}
 
-	decrRef();
+	if(!_boundNode)
+	{
+		// No more nodes to traverse so allow this action to be deleted.
+		decrRef();
+	}
 }
 
-void GraphAction::abortWork()
+void GraphAction::__abortWork()
 {
+	// Action is no longer required.
+	// Assume this will make the work units pointer invalid.
 	decrRef();
 }

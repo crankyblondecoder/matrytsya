@@ -2,7 +2,7 @@
 
 GraphActionThreadPoolWorkUnit::~GraphActionThreadPoolWorkUnit()
 {
-	if(_graphAction) _graphAction -> abortWork();
+	if(_graphAction) _graphAction -> __abortWork();
 }
 
 GraphActionThreadPoolWorkUnit::GraphActionThreadPoolWorkUnit(GraphAction* graphAction)
@@ -12,7 +12,7 @@ GraphActionThreadPoolWorkUnit::GraphActionThreadPoolWorkUnit(GraphAction* graphA
 
 void GraphActionThreadPoolWorkUnit::work()
 {
-	if(_graphAction) _graphAction -> work();
+	if(_graphAction) _graphAction -> __work();
 
 	// Action point can NOT be used after this point because the action will have automatically decrRef on it.
 	_graphAction = 0;
@@ -20,7 +20,7 @@ void GraphActionThreadPoolWorkUnit::work()
 
 void GraphActionThreadPoolWorkUnit::abort()
 {
-	if(_graphAction) _graphAction -> abortWork();
+	if(_graphAction) _graphAction -> __abortWork();
 
 	// Action point can NOT be used after this point because the action will have automatically decrRef on it.
 	_graphAction = 0;

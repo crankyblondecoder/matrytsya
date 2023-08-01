@@ -14,13 +14,15 @@ class GraphEdge;
 class GraphNode : private RefCounted
 {
 	friend GraphEdge;
+	friend GraphAction;
 
     public:
 
 		/**
 		 * Create new graph node.
 		 * @note Because this is refcounted it will require the automatic initial refcount to be released before it can
-		 * be deleted.
+		 * 		 be deleted. Doing this explicitly is only required if no edges were attached to this node and can be done by
+		 *       calling decouple().
 		 */
         GraphNode();
 
@@ -30,7 +32,7 @@ class GraphNode : private RefCounted
 		int getMaxNumAttachedEdges();
 
 		/**
-		 * Form and edge from this node to another node.
+		 * Form an edge from this node to another node.
 		 * ie The edge is directed from this node to another node.
 		 * @note At this stage only nodes can create edges.
 		 * @param node Node to form edge to.
@@ -42,22 +44,10 @@ class GraphNode : private RefCounted
 		/**
 		 * Decouple from the graph and decrRef to allow it to be deleted.
 		 * This essentially detaches all edges and stops the node from having any new edges attached to it.
+		 * @note If a node is constructed but never attached to any edges then this will have to be called on it regardless
+		 *       otherwise an orphaned node will result.
 		 */
 		void decouple();
-
-		/**
-		 * Traverse edges attached to this node and return the next node to apply an action.
-		 * @note Make sure this is called on the actions own thread.
-		 * @note Once an action calls this it should _not_ keep any pointer to this node.
-		 * @param action Action that wants to traverse edge. It is assumed this action currently holds a reference to the node.
-		 * @returns A ref counted node pointer or null if could not traverse.
-		 */
-		GraphNode* traverse(GraphAction* action);
-
-		/**
-		 * Must be called by an action when it is bound to this node but won't traverse it.
-		 */
-		void wontTraverse();
 
     protected:
 
@@ -81,6 +71,9 @@ class GraphNode : private RefCounted
 
         /// All edges directed either from or to this node.
         GraphEdge* _edges[EDGE_ARRAY_SIZE];
+
+		/// Flag to indicate that the initial reference created during construction has been removed.
+		bool _initialRefRemoved;
 
 		/// Number of edges currently present.
 		unsigned _edgeCount;
@@ -131,6 +124,20 @@ class GraphNode : private RefCounted
 		 * @note This should only be called by an action on its own thread.
 		 */
 		GraphEdge* __findEdgeToTraverse(GraphAction* action);
+
+		/**
+		 * Traverse edges attached to this node and return the next node to apply an action.
+		 * @note Make sure this is only called on the actions own thread.
+		 * @note Once an action calls this it should _not_ keep any pointer to _this_ node.
+		 * @param action Action that wants to traverse edge. It is assumed this action currently holds a reference to the node.
+		 * @returns A ref counted node pointer or null if could not traverse.
+		 */
+		GraphNode* __traverse(GraphAction* action);
+
+		/**
+		 * Must be called by an action when it is bound to this node but won't traverse it.
+		 */
+		void __wontTraverse();
 };
 
 #endif
