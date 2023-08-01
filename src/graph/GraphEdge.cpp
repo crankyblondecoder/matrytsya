@@ -61,8 +61,8 @@ void GraphEdge::__detach()
 {
 	GraphNode* fromNode = 0;
 	GraphNode* toNode = 0;
-	unsigned fromNodeHandle;
-	unsigned toNodeHandle;
+	int fromNodeHandle;
+	int toNodeHandle;
 
 	{ SYNC(_lock)
 

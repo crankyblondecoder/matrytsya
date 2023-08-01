@@ -1,4 +1,5 @@
 #include "GraphAction.hpp"
+#include "GraphActionThreadPoolWorkUnit.hpp"
 #include "GraphNode.hpp"
 #include "../thread/ThreadPool.hpp"
 

@@ -2,7 +2,6 @@
 
 Graph::~Graph()
 {
-    nodes.clear();
 }
 
 Graph::Graph(GraphNode* rootNode)

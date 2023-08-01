@@ -4,7 +4,6 @@
 #include "GraphEdge.hpp"
 #include "GraphNode.hpp"
 #include "../thread/thread.hpp"
-#include "../util/ptrList.hpp"
 
 /**
  * Represents entire graph.
@@ -31,7 +30,6 @@ class Graph
     private:
 
         GraphNode* rootNode;
-        ptrList<GraphNode> nodes;
         ThreadMutex lock;
 };
 

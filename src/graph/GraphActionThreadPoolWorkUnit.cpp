@@ -1,3 +1,4 @@
+#include "GraphAction.hpp"
 #include "GraphActionThreadPoolWorkUnit.hpp"
 
 GraphActionThreadPoolWorkUnit::~GraphActionThreadPoolWorkUnit()

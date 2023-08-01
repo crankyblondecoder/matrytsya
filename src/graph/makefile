@@ -1,11 +1,10 @@
-srcFiles = Graph.cpp GraphAction.cpp GraphActionTargetable.cpp GraphEdge.cpp GraphNode.cpp\
-./actions/TestAction.cpp\
-./actionTargets/TestActionTarget.cpp\
+srcFiles = Graph.cpp GraphAction.cpp GraphActionTargetable.cpp GraphActionThreadPoolWorkUnit.cpp GraphEdge.cpp GraphNode.cpp \
+./actions/PingAction.cpp \
 ./nodes/TestNode.cpp
-hdrFiles = Graph.hpp GraphAction.hpp GraphActionTarget.hpp GraphActionTargetable.hpp graphActionFlagRegister.hpp GraphEdge.hpp \
-GraphNode.hpp\
-./actions/TestAction.hpp\
-./actionTargets/TestActionTarget.hpp\
+hdrFiles = Graph.hpp GraphAction.hpp GraphActionTarget.hpp GraphActionTargetable.hpp graphActionFlagRegister.hpp \
+GraphActionThreadPoolWorkUnit.hpp GraphEdge.hpp GraphNode.hpp \
+./actions/PingAction.hpp \
+./actionTargets/PingActionTarget.hpp \
 ./nodes/TestNode.cpp
 
 objFiles = $(srcFiles:.cpp=.o)

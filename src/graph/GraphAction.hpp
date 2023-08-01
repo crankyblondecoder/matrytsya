@@ -1,17 +1,18 @@
 #ifndef GRAPH_ACTION_H
 #define GRAPH_ACTION_H
 
-#include "GraphActionThreadPoolWorkUnit.hpp"
 #include "../util/RefCounted.hpp"
 
-class GraphNode;
+class GraphActionThreadPoolWorkUnit;
 class GraphEdge;
+class GraphNode;
 
 /**
  * Base class of all actions that traverses the graph and invoke operations on a node, as per a pre-defined action
  * specific interface.
  */
 class GraphAction : private RefCounted
+
 {
 	friend GraphActionThreadPoolWorkUnit;
 	friend GraphEdge;

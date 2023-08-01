@@ -34,8 +34,8 @@ class GraphEdge final : private RefCounted
 		// Node supplied handles that are used to speed up the handling of edges by nodes.
 		// The idea is to not have to search for pointers and that these handles are indexes into an array of edges contained
 		// on the node. A value of -1 means this edge is not attached to the node.
-		unsigned _fromNodeHandle;
-		unsigned _toNodeHandle;
+		int _fromNodeHandle;
+		int _toNodeHandle;
 
 		/// Flags that allow edge traversal of an action.
 		unsigned long _traversalFlags;

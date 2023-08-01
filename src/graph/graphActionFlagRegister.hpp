@@ -4,7 +4,7 @@
 // This needs to be a bit field so that the corresponding actions a node can bind to can be easily checked against
 // an action using logical AND.
 
-#define TEST_GRAPH_ACTION 0x00000001
+#define PING_GRAPH_ACTION 0x00000001
 
 //#define _GRAPH_ACTION 0x00000002
 //#define _GRAPH_ACTION 0x00000004

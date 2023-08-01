@@ -1,7 +1,7 @@
 #ifndef GRAPH_ACTION_THREAD_POOL_WORK_UNIT_H
 #define GRAPH_ACTION_THREAD_POOL_WORK_UNIT_H
 
-#include "GraphAction.hpp"
+class GraphAction;
 
 #include "../thread/ThreadPoolWorkUnit.hpp"
 
