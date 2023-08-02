@@ -8,6 +8,11 @@
 
 ThreadPool* threadPool = 0;
 
+// TODO How can threads be pre-empted if they run for too long?
+//      Maybe there is a way to downgrade a threads priority while it is running?
+//      Maybe there is a way to kill a thread from outside the thread?
+//      Needs to be some way of notifying work units so that any associated resources can be released.
+
 void startThreadPool(unsigned numThreads)
 {
 	if(!threadPool)
