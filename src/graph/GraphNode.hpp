@@ -10,7 +10,11 @@ class GraphEdge;
 // The number of edges a node can have is fixed.
 #define EDGE_ARRAY_SIZE 32
 
-/** Node of a graph */
+/**
+ * Node of a graph
+ * @note Nodes self delete when no longer referenced. They keep a self reference until either decoupled or all edges have
+ *       been removed that refer to the node.
+ */
 class GraphNode : private RefCounted
 {
 	friend GraphEdge;
