@@ -6,7 +6,8 @@
 #include "../thread/thread.hpp"
 
 /**
- * Represents entire graph.
+ * Central place to handle common graph operations.
+ * Manages node handle related functionality.
  */
 class Graph
 {
@@ -14,6 +15,13 @@ class Graph
 
         virtual ~Graph();
         Graph(GraphNode* rootNode);
+
+		// TODO Some kind of paged array that indexes of are also the nodes' handles ...
+		blah;
+
+		// TODO Some kind of dictionary that can associate nodes with identifiers ...
+		// Dictionary keys are the handle and the values are also just unsigned ...
+		blah;
 
         /**
          * Add node to the graph.
