@@ -4,25 +4,25 @@ Graph::~Graph()
 {
 }
 
-Graph::Graph(GraphNode* rootNode)
-    : rootNode(rootNode)
+Graph::Graph()
 {
-    addNode(rootNode);
+	_numNodeListPages = 1;
+	_numNodeListAllocCurPage = 0;
+
+	_nodeListPages.append(new GraphNode*[NODE_LIST_PAGE_SIZE], true);
 }
 
-void Graph::addNode(GraphNode* node)
+unsigned Graph::__addNode(GraphNode* node)
 {
-    { SYNC(lock)
+    { SYNC(_lock)
 
         // TODO ...
     }
 }
 
-void Graph::removeNode(GraphNode* node)
+void Graph::__removeNode(unsigned handle)
 {
-	node -> decouple();
-
-    { SYNC(lock)
+    { SYNC(_lock)
 
 		// TODO ...
     }
