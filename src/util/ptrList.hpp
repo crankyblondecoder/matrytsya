@@ -93,12 +93,28 @@ template < class T > class ptrList
         T* prev();
         T* next();
         T* current();
-        T* atIndex ( int index );
 
+		/**
+	 	 * Make item at index current and return it.
+     	 * @param index Index of pointer to find. Index 0 is first item in list.
+	 	 */
+        T* atIndex(int index);
+
+		/**
+		 * Delete all items at once.
+		 */
         virtual void clear();
-        virtual void truncate();
+
+		virtual void truncate();
+
+		/**
+		 * Append pointer to list
+		 * @param ptr Pointer to append.
+		 * @param delObj Delete object ptr points to when list item is deleted.
+		*/
         virtual void append ( T* ptr, bool delObj );
-        virtual void insert ( T* ptr, int index, bool delObj );
+
+		virtual void insert ( T* ptr, int index, bool delObj );
         virtual void replace ( T* ptr, bool delObj );
         virtual void move ( T* ptr, int toIndex );
         virtual void move ( int fromIndex, int toIndex ); //!< Move item from one index to another.
@@ -557,11 +573,9 @@ template < class T > void ptrList<T>::copyFrom ( const ptrList<T>& list )
     // Point new list to same position.
     cItem = newCItem;
 }
+
 template < class T > void ptrList<T>::clear()
 {
-    // Delete all items at once
-    // ------------------------
-
     if ( ! cItem ) return;
 
     ptrListItem<T>* delItem = cItem -> last();
@@ -588,11 +602,6 @@ template < class T > void ptrList<T>::truncate()
 
 template < class T > void ptrList<T>::append ( T* ptr, bool delObj )
 {
-    // Append pointer to list
-    // ----------------------
-    // ptr:     Pointer to append.
-    // delObj:  Delete object ptr points to when list item is deleted.
-
     ptrListItem<T>* item = new ptrListItem<T> ( ptr, cItem, delObj );
 
     cItem = item;
@@ -836,12 +845,8 @@ template < class T > T* ptrList<T>::current()
     return 0;
 }
 
-template < class T > T* ptrList<T>::atIndex ( int index )
+template < class T > T* ptrList<T>::atIndex(int index)
 {
-    // Make item at index current and return it.
-    // -----------------------------------------
-    // index:    Index of pointer to find. Index 0 is first item in list.
-
     if ( cItem )
     {
         ptrListItem<T>* item = cItem -> atIndex ( index );

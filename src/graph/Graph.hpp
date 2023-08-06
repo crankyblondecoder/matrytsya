@@ -14,6 +14,8 @@
  */
 class Graph
 {
+	friend GraphNode;
+
     public:
 
         virtual ~Graph();
@@ -40,6 +42,7 @@ class Graph
          * Add node to the graph.
          * @param node Node to add.
 		 * @returns Node handle.
+		 * @throws TODO Some kind of exception if could not be added.
          */
         unsigned __addNode(GraphNode* node);
 
@@ -84,6 +87,9 @@ class NodeListPage
 
 		/// Number of entries currently used in the page.
 		unsigned _entriesUsed;
+
+		/// The next entry to search for an available entry from.
+		unsigned _nextEntry;
 
 		/// This number is added to the array index to get the node handle.
 		unsigned _handleOffset;
