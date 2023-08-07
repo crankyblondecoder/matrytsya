@@ -21,13 +21,6 @@ class Graph
         virtual ~Graph();
         Graph();
 
-		// TODO Some kind of paged array that indexes of are also the nodes' handles ...
-		blah;
-
-		// TODO Some kind of dictionary that can associate nodes with identifiers ...
-		// Dictionary keys are the handle and the values are also just unsigned ...
-		blah;
-
     private:
 
         ThreadMutex _lock;
@@ -42,15 +35,21 @@ class Graph
          * Add node to the graph.
          * @param node Node to add.
 		 * @returns Node handle.
-		 * @throws TODO Some kind of exception if could not be added.
+		 * @throws GraphException.
          */
         unsigned __addNode(GraphNode* node);
 
 		/**
          * Remove node from the graph.
          * @param handle Handle of node to remove.
+		 * @throws GraphException.
          */
         void __removeNode(unsigned handle);
+
+		/**
+		 * Get a pointer to a node given its handle.
+		 */
+		GraphNode* __getNode(unsigned handle);
 };
 
 class NodeListPage
@@ -69,13 +68,21 @@ class NodeListPage
 		/**
 		 * Add an entry to the page.
 		 * @returns Handle for entry.
+		 * @throws GraphException.
 		 */
 		unsigned addEntry(GraphNode* node);
 
 		/**
 		 * Remove an entry from the page.
+		 * @throws GraphException.
 		 */
 		void removeEntry(unsigned handle);
+
+		/**
+		 * Get an entry from the page.
+		 * @throws GraphException.
+		 */
+		GraphNode* getEntry(unsigned handle);
 
 	private:
 

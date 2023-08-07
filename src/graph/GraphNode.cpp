@@ -25,8 +25,10 @@ int GraphNode::getMaxNumAttachedEdges()
 	return EDGE_ARRAY_SIZE;
 }
 
-bool GraphNode::formEdgeTo(GraphNode* toNode, unsigned long traversalFlags)
+bool GraphNode::formEdgeTo(unsigned handle, unsigned long traversalFlags)
 {
+	// TODO Get node from graph ...
+
 	return __formEdge(this, toNode, traversalFlags);
 }
 

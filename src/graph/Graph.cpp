@@ -1,4 +1,5 @@
 #include "Graph.hpp"
+#include "GraphException.hpp"
 
 Graph::~Graph()
 {
@@ -20,15 +21,29 @@ unsigned Graph::__addNode(GraphNode* node)
 
 		if(_numNodes >= maxNumNodes)
 		{
-			// TODO check for memory allocation error and throw exception if a problem ...
+			try
+			{
+				curPage = new NodeListPage(NODE_LIST_PAGE_SIZE, _nodeListPages.count() * NODE_LIST_PAGE_SIZE);
+			}
+			catch(const std::bad_alloc& ex)
+			{
+				throw GraphException(GraphException::NODE_LIST_PAGE_BAD_ALLOC);
+			}
 
-			curPage = new NodeListPage(NODE_LIST_PAGE_SIZE, _nodeListPages.count() * NODE_LIST_PAGE_SIZE);
-
-			_nodeListPages.append(curPage, true);
+			// Ptrlist doesn't do out of memory exception handling.
+			try
+			{
+				_nodeListPages.append(curPage, true);
+			}
+			catch(const std::bad_alloc& ex)
+			{
+				throw GraphException(GraphException::NODE_LIST_PAGE_BAD_ALLOC);
+			}
 		}
 		else
 		{
-			curPage = _nodeListPages.current();
+			// The last page added is most likely to contain unallocated entries.
+			curPage = _nodeListPages.last();
 
 			if(!curPage -> canAddEntry())
 			{
@@ -43,10 +58,19 @@ unsigned Graph::__addNode(GraphNode* node)
 
 		if(!curPage)
 		{
-			// TODO should not have ever made it to here with a null current page ...
+			// Should not have ever made it to here with a null current page.
+			throw GraphException(GraphException::NODE_LIST_PAGE_UNEXPECTED);
 		}
 
-		curPage -> addEntry(node);
+		try
+		{
+			curPage -> addEntry(node);
+		}
+		catch(const GraphException& ex)
+		{
+			// Should never get to here if code is correct.
+			throw GraphException(GraphException::NODE_LIST_PAGE_UNEXPECTED);
+		}
 
 		_numNodes++;
     }
@@ -56,8 +80,47 @@ void Graph::__removeNode(unsigned handle)
 {
     { SYNC(_lock)
 
-		// TODO ...
+		// Assume pages are a fixed size of NODE_LIST_PAGE_SIZE.
+		NodeListPage* curPage = _nodeListPages.atIndex(handle / NODE_LIST_PAGE_SIZE);
+
+		if(curPage)
+		{
+			curPage -> removeEntry(handle);
+		}
+		else
+		{
+			throw GraphException(GraphException::INVALID_NODE_HANDLE);
+		}
     }
+}
+
+GraphNode* Graph::__getNode(unsigned handle)
+{
+	GraphNode* retNode = 0;
+
+	{ SYNC(_lock)
+
+		// Assume pages are a fixed size of NODE_LIST_PAGE_SIZE.
+		NodeListPage* curPage = _nodeListPages.atIndex(handle / NODE_LIST_PAGE_SIZE);
+
+		if(curPage)
+		{
+			try
+			{
+				retNode = curPage -> getEntry(handle);
+			}
+			catch(const GraphException& ex)
+			{
+				throw GraphException(GraphException::NODE_NOT_FOUND);
+			}
+		}
+		else
+		{
+			throw GraphException(GraphException::INVALID_NODE_HANDLE);
+		}
+    }
+
+	return retNode;
 }
 
 // *** NodeListPage ***
@@ -102,6 +165,10 @@ unsigned NodeListPage::addEntry(GraphNode* node)
 
 		_entriesUsed++;
 	}
+	else
+	{
+		throw GraphException(GraphException::NODE_LIST_PAGE_FULL);
+	}
 
 	return _handleOffset + _nextEntry;
 }
@@ -110,7 +177,27 @@ void NodeListPage::removeEntry(unsigned handle)
 {
 	unsigned entryIndex = handle - _handleOffset;
 
-	_nodeList[entryIndex] = 0;
+	if(entryIndex < _pageSize)
+	{
+		_nodeList[entryIndex] = 0;
+		_entriesUsed--;
+	}
+	else
+	{
+		throw GraphException(GraphException::NODE_LIST_PAGE_ITEM_NOT_FOUND);
+	}
+}
 
-	_entriesUsed--;
+GraphNode* NodeListPage::getEntry(unsigned handle)
+{
+	unsigned entryIndex = handle - _handleOffset;
+
+	if(entryIndex < _pageSize)
+	{
+		return _nodeList[entryIndex];
+	}
+	else
+	{
+		throw GraphException(GraphException::NODE_LIST_PAGE_ITEM_NOT_FOUND);
+	}
 }

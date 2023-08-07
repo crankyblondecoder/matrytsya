@@ -39,11 +39,11 @@ class GraphNode : private RefCounted
 		 * Form an edge from this node to another node.
 		 * ie The edge is directed from this node to another node.
 		 * @note At this stage only nodes can create edges.
-		 * @param node Node to form edge to.
+		 * @param handle Handle of node to form edge to.
 		 * @param traversalFlags Flags that control what can traverse the edge.
 		 * @returns True if edge could be formed. False otherwise.
 		 */
-		bool formEdgeTo(GraphNode* node, unsigned long traversalFlags);
+		bool formEdgeTo(unsigned handle, unsigned long traversalFlags);
 
 		/**
 		 * Decouple from the graph and decrRef to allow it to be deleted.
