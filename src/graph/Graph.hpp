@@ -50,6 +50,12 @@ class Graph
 		 * Get a pointer to a node given its handle.
 		 */
 		GraphNode* __getNode(unsigned handle);
+
+		/**
+		 * Decouple all nodes from the graph.
+		 * @note Should really only be used upon shutdown.
+		 */
+		void __decoupleAllNodes();
 };
 
 class NodeListPage

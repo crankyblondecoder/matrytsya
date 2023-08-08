@@ -1,6 +1,7 @@
 #ifndef GRAPH_NODE_H
 #define GRAPH_NODE_H
 
+class Graph;
 class GraphEdge;
 
 #include "GraphAction.hpp"
@@ -24,11 +25,12 @@ class GraphNode : private RefCounted
 
 		/**
 		 * Create new graph node.
+		 * @param graph Graph node is part of.
 		 * @note Because this is refcounted it will require the automatic initial refcount to be released before it can
 		 * 		 be deleted. Doing this explicitly is only required if no edges were attached to this node and can be done by
 		 *       calling decouple().
 		 */
-        GraphNode();
+        GraphNode(Graph& graph);
 
 		/**
 		 * Get the maximum number edges that can be attached to this node.

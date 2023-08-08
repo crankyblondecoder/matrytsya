@@ -10,7 +10,7 @@ GraphNode::~GraphNode()
 	// Therefore it should _not_ have any edges when deleted because the edges will keep references to the node.
 }
 
-GraphNode::GraphNode()
+GraphNode::GraphNode(Graph& graph)
 {
 	_edgeCount = 0;
 	_linearEdgeAllocCount = 0;
