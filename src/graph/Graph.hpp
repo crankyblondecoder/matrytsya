@@ -90,6 +90,11 @@ class NodeListPage
 		 */
 		GraphNode* getEntry(unsigned handle);
 
+		/**
+		 * Decouple all nodes present in this page.
+		 */
+		void __decoupleAllNodes();
+
 	private:
 
 		/// Array of nodes this page contains.

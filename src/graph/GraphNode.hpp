@@ -25,12 +25,12 @@ class GraphNode : private RefCounted
 
 		/**
 		 * Create new graph node.
-		 * @param graph Graph node is part of.
+		 * @param graph Graph node is to be part of.
 		 * @note Because this is refcounted it will require the automatic initial refcount to be released before it can
 		 * 		 be deleted. Doing this explicitly is only required if no edges were attached to this node and can be done by
 		 *       calling decouple().
 		 */
-        GraphNode(Graph& graph);
+        GraphNode(Graph* graph);
 
 		/**
 		 * Get the maximum number edges that can be attached to this node.
@@ -75,11 +75,14 @@ class GraphNode : private RefCounted
 
     private:
 
+		/// Graph this node is part of.
+		Graph* _graph;
+
+		/// Graph handle assigned to this node.
+		unsigned _handle;
+
         /// All edges directed either from or to this node.
         GraphEdge* _edges[EDGE_ARRAY_SIZE];
-
-		/// Flag to indicate that the initial reference created during construction has been removed.
-		bool _initialRefRemoved;
 
 		/// Number of edges currently present.
 		unsigned _edgeCount;

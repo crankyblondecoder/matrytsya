@@ -1,6 +1,7 @@
 #include "GraphNode.hpp"
 
 #include <new>
+#include "Graph.hpp"
 #include "GraphEdge.hpp"
 #include "GraphException.hpp"
 
@@ -10,14 +11,16 @@ GraphNode::~GraphNode()
 	// Therefore it should _not_ have any edges when deleted because the edges will keep references to the node.
 }
 
-GraphNode::GraphNode(Graph& graph)
+GraphNode::GraphNode(Graph* graph)
 {
+	_graph = graph;
 	_edgeCount = 0;
 	_linearEdgeAllocCount = 0;
-	_initialRefRemoved = false;
 	_decoupling = false;
 
 	for(int index = 0; index < EDGE_ARRAY_SIZE; index++) _edges[index] = 0;
+
+	_handle = graph -> __addNode(this);
 }
 
 int GraphNode::getMaxNumAttachedEdges()
@@ -27,9 +30,16 @@ int GraphNode::getMaxNumAttachedEdges()
 
 bool GraphNode::formEdgeTo(unsigned handle, unsigned long traversalFlags)
 {
-	// TODO Get node from graph ...
+	bool edgeFormed = false;
 
-	return __formEdge(this, toNode, traversalFlags);
+	GraphNode* linkTo = _graph -> __getNode(handle);
+
+	if(linkTo)
+	{
+		edgeFormed = __formEdge(this, linkTo, traversalFlags);
+	}
+
+	return edgeFormed;
 }
 
 bool GraphNode::__formEdge(GraphNode* fromNode, GraphNode* toNode, unsigned long traversalFlags)
@@ -137,13 +147,6 @@ void GraphNode::__removeEdge(int edgeHandle)
 
 	// Don't do this inside sync block!!!
 	if(edge) edge -> decrRef();
-
-	if(_edgeCount == 0 && !_initialRefRemoved)
-	{
-		// When the edge count goes back to zero make sure this node can't be orphaned.
-		decrRef();
-		_initialRefRemoved = true;
-	}
 }
 
 GraphEdge* GraphNode::__findEdgeToTraverse(GraphAction* action)
@@ -204,12 +207,9 @@ void GraphNode::decouple()
 		if(_edges[index]) _edges[index] -> __detach();
 	}
 
-	if(!_initialRefRemoved)
-	{
-		// Have to make sure this node can be deleted.
-		decrRef();
-		_initialRefRemoved = true;
-	}
+	_graph -> __removeNode(_handle);
+
+	decrRef();
 }
 
 GraphNode* GraphNode::__traverse(GraphAction* action)

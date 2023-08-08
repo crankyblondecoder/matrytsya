@@ -3,7 +3,19 @@
 
 Graph::~Graph()
 {
+	__decoupleAllNodes();
 	_nodeListPages.clear();
+}
+
+void Graph::__decoupleAllNodes()
+{
+	NodeListPage* page = _nodeListPages.first();
+
+	while(page)
+	{
+		page -> __decoupleAllNodes();
+		page = _nodeListPages.next();
+	}
 }
 
 Graph::Graph()
@@ -142,6 +154,14 @@ NodeListPage::NodeListPage(unsigned pageSize, unsigned handleOffset)
 	for(unsigned index = 0; index < pageSize; index++)
 	{
 		_nodeList[index] = 0;
+	}
+}
+
+void NodeListPage::__decoupleAllNodes()
+{
+	for(unsigned index = 0; index < _pageSize; index++)
+	{
+		if(_nodeList[index]) _nodeList[index] -> decouple();
 	}
 }
 
