@@ -1,16 +1,20 @@
 srcFiles = Graph.cpp GraphAction.cpp GraphActionTargetable.cpp GraphActionThreadPoolWorkUnit.cpp GraphEdge.cpp GraphNode.cpp \
 ./actions/PingAction.cpp \
 ./nodes/TestNode.cpp
+
 hdrFiles = Graph.hpp GraphAction.hpp GraphActionTarget.hpp GraphActionTargetable.hpp graphActionFlagRegister.hpp \
 GraphActionThreadPoolWorkUnit.hpp GraphEdge.hpp GraphNode.hpp \
 ./actions/PingAction.hpp \
 ./actionTargets/PingActionTarget.hpp \
 ./nodes/TestNode.cpp
 
-objFiles = $(srcFiles:.cpp=.o)
+objFiles = $(patsubst %.cpp, ./$(outputdir)/%.o, $(srcFiles))
 
 CXX = $(cname)
 CXXFLAGS = $(cflags)
+
+# Tell make to search other paths. Separate multiple with ":"
+VPATH = ../src/graph/
 
 graph.a : $(objFiles)
 	@ echo

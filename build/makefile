@@ -11,6 +11,7 @@ module_libs = $(foreach module, $(modules), $(module).a)
 module_makefiles = $(foreach module, $(modules), makefile_$(module))
 
 execName = matrytsya
+execName_debug = matrytsya_debug
 
 cflags_debug = -std=c++11 -Wall -g -pthread
 cflags_release = -std=c++11 -Wall -fPIC -O3 -pthread
@@ -28,7 +29,7 @@ debug : subdirs
 	@ echo "*** Building - debug ***"
 	@ echo
 	for makeFile in $(module_makefiles); do $(MAKE) -C $$makeFile cflags=$(cflags_debug) outputdir=debug; done
-
+	$(cname) $(cflags_debug) -o $(execName_debug) $(execName).cpp $(module_libs)
 
 .PHONY : release
 release : subdirs $(module_libs) $(execName).cpp
