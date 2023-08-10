@@ -22,26 +22,17 @@ graph.a : $(objFiles)
 	@ echo
 	ar rcs graph.a $(objFiles)
 
-# During clean ignore make.dep being rebuilt during only to be removed again.
+# GNU Make will automatically update included files.
 ifneq ($(MAKECMDGOALS),clean)
-   include make.dep
+    include $(objFiles:.o=.dep)
 endif
 
-PHONY : dep
-dep : make.dep
-
-make.dep : $(srcFiles) $(hdrFiles)
-	@ echo
-	@ echo "*** Building Graph Dependencies ***"
-	@ echo
-	  $(cname) $(sdl_cflags) $(depflags) -MM $(srcFiles) > make.dep
-	@ echo
-	@ echo "*** Graph Dependencies Built Okay ***"
-	@ echo
+%.dep : %.cpp %.h
+	$(cname) -MM $< > $@
 
 PHONY : clean
 clean :
 	@ echo
 	@ echo "*** Cleaning Graph Module ***"
 	@ echo
-	-rm -f *.o make.dep graph.a
+	-rm -f ./$(outputdir)/*.o ./$(outputdir)/*.dep graph.a
