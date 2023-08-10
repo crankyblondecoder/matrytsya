@@ -25,6 +25,8 @@ Graph::Graph()
 
 unsigned Graph::__addNode(GraphNode* node)
 {
+	unsigned retHandle = 0;
+
     { SYNC(_lock)
 
 		unsigned maxNumNodes = _nodeListPages.count() * NODE_LIST_PAGE_SIZE;
@@ -76,7 +78,7 @@ unsigned Graph::__addNode(GraphNode* node)
 
 		try
 		{
-			curPage -> addEntry(node);
+			retHandle = curPage -> addEntry(node);
 		}
 		catch(const GraphException& ex)
 		{
@@ -86,6 +88,8 @@ unsigned Graph::__addNode(GraphNode* node)
 
 		_numNodes++;
     }
+
+	return retHandle;
 }
 
 void Graph::__removeNode(unsigned handle)

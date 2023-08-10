@@ -8,6 +8,8 @@
 
 #define NODE_LIST_PAGE_SIZE 65535
 
+class NodeListPage;
+
 /**
  * Central place to handle common graph operations.
  * Manages node handle related functionality.
