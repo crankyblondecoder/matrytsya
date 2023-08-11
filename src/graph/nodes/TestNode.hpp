@@ -11,7 +11,7 @@ class TestNode : public GraphNode, public PingActionTarget
 
         virtual ~TestNode();
 
-        TestNode();
+        TestNode(Graph* graph);
 
 		virtual bool testPing();
 

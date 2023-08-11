@@ -1,20 +1,21 @@
 srcFiles = Graph.cpp GraphAction.cpp GraphActionTargetable.cpp GraphActionThreadPoolWorkUnit.cpp GraphEdge.cpp GraphNode.cpp \
-./actions/PingAction.cpp \
-./nodes/TestNode.cpp
+actions/PingAction.cpp \
+nodes/TestNode.cpp
 
 hdrFiles = Graph.hpp GraphAction.hpp GraphActionTarget.hpp GraphActionTargetable.hpp graphActionFlagRegister.hpp \
 GraphActionThreadPoolWorkUnit.hpp GraphEdge.hpp GraphNode.hpp \
-./actions/PingAction.hpp \
-./actionTargets/PingActionTarget.hpp \
-./nodes/TestNode.cpp
+actions/PingAction.hpp \
+actionTargets/PingActionTarget.hpp \
+nodes/TestNode.cpp
 
-objFiles = $(patsubst %.cpp, ./$(outputdir)/%.o, $(srcFiles))
+#objFiles = $(patsubst %.cpp, $(outputDir)/%.o, $(srcFiles))
+objFiles = $(srcFiles:.cpp=.o)
 
 CXX = $(cname)
 CXXFLAGS = $(cflags)
 
 # Tell make to search other paths. Separate multiple with ":"
-VPATH = ../src/graph/
+VPATH = ../../src/graph
 
 graph.a : $(objFiles)
 	@ echo
@@ -27,12 +28,6 @@ ifneq ($(MAKECMDGOALS),clean)
     include $(objFiles:.o=.dep)
 endif
 
-%.dep : %.cpp %.h
+%.dep : %.cpp %.hpp
+	mkdir -p $$(dirname $@)
 	$(cname) -MM $< > $@
-
-PHONY : clean
-clean :
-	@ echo
-	@ echo "*** Cleaning Graph Module ***"
-	@ echo
-	-rm -f ./$(outputdir)/*.o ./$(outputdir)/*.dep graph.a
