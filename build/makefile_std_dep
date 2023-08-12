@@ -5,8 +5,8 @@ endif
 
 %.dep : %.cpp
 	@ mkdir -p $$(dirname $@)
-	@ $(cname) -MM $< > $@
-	@ $(cname) -MM -MT $@ $< > $@Make
+	$(cname) -MM $< > $@
+	$(cname) -MM -MT $@ $< > $@Make
     # Build the depMake include file.
 	@ echo -e "\t\$$(cname) -MM $$< > \$$@" >> $@Make
 	@ echo -e "\t\$$(cname) -MM -MT \$$@ $$< > \$$@Make" >> $@Make
