@@ -2,13 +2,6 @@ srcFiles = Graph.cpp GraphAction.cpp GraphActionTargetable.cpp GraphActionThread
 actions/PingAction.cpp \
 nodes/TestNode.cpp
 
-hdrFiles = Graph.hpp GraphAction.hpp GraphActionTarget.hpp GraphActionTargetable.hpp graphActionFlagRegister.hpp \
-GraphActionThreadPoolWorkUnit.hpp GraphEdge.hpp GraphNode.hpp \
-actions/PingAction.hpp \
-actionTargets/PingActionTarget.hpp \
-nodes/TestNode.cpp
-
-#objFiles = $(patsubst %.cpp, $(outputDir)/%.o, $(srcFiles))
 objFiles = $(srcFiles:.cpp=.o)
 
 CXX = $(cname)
@@ -19,15 +12,8 @@ VPATH = ../../src/graph
 
 graph.a : $(objFiles)
 	@ echo
-	@ echo "*** Building Graph Module ***"
+	@ echo "*** Building - Graph Module ***"
 	@ echo
 	ar rcs graph.a $(objFiles)
 
-# GNU Make will automatically update included files.
-ifneq ($(MAKECMDGOALS),clean)
-    include $(objFiles:.o=.dep)
-endif
-
-%.dep : %.cpp %.hpp
-	mkdir -p $$(dirname $@)
-	$(cname) -MM $< > $@
+-include ../makefile_std_dep

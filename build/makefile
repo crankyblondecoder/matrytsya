@@ -5,7 +5,7 @@
 modules = graph
 
 # The name of the static library (.a file) should be modulename.a
-module_libs = $(foreach module, $(modules), $(module).a)
+export module_libs = $(foreach module, $(modules), $(module).a)
 
 # Module make file names.
 module_makefiles = $(foreach module, $(modules), makefile_$(module))
@@ -15,7 +15,8 @@ execName_debug = matrytsya_debug
 
 cflags_debug = -std=c++11 -Wall -g -pthread
 cflags_release = -std=c++11 -Wall -fPIC -O3 -pthread
-cflags_test = -std=c++11 -Wall -g -pthread
+cflags_test = -std=c++11 -Wall -g -pthrehdrFiles = ./thread/ThreadModuleUnitTests.hpp ./thread/TestThread.hpp ./thread/ThreadUnitTest.hpp \
+	UnitTest.hpp
 
 export depflags = -std=c++11
 export cname = g++
@@ -29,16 +30,24 @@ VPATH = ../src
 .PHONY : debug
 debug : subDirs
 	@ echo
-	@ echo "*** Building - debug ***"
+	@ echo "*** Building - Debug ***"
 	@ echo
 	for makeFile in $(module_makefiles); do cd debug;$(MAKE) --makefile=../$$makeFile cflags="$(cflags_debug)"; done
+	@ echo
+	@ echo "*** Building - Debug Executable ***"
+	@ echo
 	$(cname) $(cflags_debug) -o $(execName_debug) $(execName).cpp $(foreach module_lib, $(module_libs), debug/$(module_lib))
 
 .PHONY : release
-release : subDirs $(module_libs) $(execName).cpp
+release : subDirs
 	@ echo
-	@ echo "*** Building - release ***"
+	@ echo "*** Building - Release ***"
 	@ echo
+	for makeFile in $(module_makefiles); do cd release;$(MAKE) --makefile=../$$makeFile cflags="$(cflags_release)"; done
+	@ echo
+	@ echo "*** Building - Release Executable ***"
+	@ echo
+	$(cname) $(cflags_release) -o $(execName) $(execName).cpp $(foreach module_lib, $(module_libs), release/$(module_lib))
 
 .PHONY : clean
 clean : subDirs
@@ -51,17 +60,17 @@ clean : subDirs
 	-rm -rf ./debug/*
 	-rm -rf ./release/*
 	-rm -rf ./test/*
-	$(MAKE) -C test clean
 
 .PHONY : test
 test : subDirs $(modules)
 	@ echo
 	@ echo "*** Building and Running Tests ***"
 	@ echo
-	$(MAKE) -C test test
+	for makeFile in $(module_makefiles); do cd test;$(MAKE) --makefile=../$$makeFile cflags="$(cflags_test)"; done
+	cd test; $(MAKE) --makefile=../makefile_test cflags="$(cflags_test)"
 
 .PHONY : subDirs
-subdirs :
+subDirs :
 	@ mkdir -p debug
 	@ mkdir -p release
 	@ mkdir -p test
