@@ -72,7 +72,7 @@ unsigned Graph::__addNode(GraphNode* node)
 
 		if(!curPage)
 		{
-			// Should not have ever made it to here with a null current page.
+			//  Should not have ever made it to here with a null current page.
 			throw GraphException(GraphException::NODE_LIST_PAGE_UNEXPECTED);
 		}
 

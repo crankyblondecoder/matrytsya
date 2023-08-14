@@ -1,7 +1,5 @@
-ifneq ($(MAKECMDGOALS),clean)
-    include $(objFiles:.o=.dep)
-    -include $(objFiles:.o=.depMake)
-endif
+# Empty recipes for cpp files so they don't cause make to look for implicit rules to build them when they are prerequisites.
+$(srcFiles) : ;
 
 %.dep : %.cpp
 	@ mkdir -p $$(dirname $@)
@@ -10,3 +8,8 @@ endif
     # Build the depMake include file.
 	@ echo -e "\t\$$(cname) -MM $$< > \$$@" >> $@Make
 	@ echo -e "\t\$$(cname) -MM -MT \$$@ $$< > \$$@Make" >> $@Make
+
+ifneq ($(MAKECMDGOALS),clean)
+    include $(objFiles:.o=.dep)
+    -include $(objFiles:.o=.depMake)
+endif
