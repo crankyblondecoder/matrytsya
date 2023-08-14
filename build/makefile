@@ -36,7 +36,7 @@ debug : subDirs
 	@ echo
 	@ echo "*** Building - Debug Executable ***"
 	@ echo
-	$(cname) $(cflags_debug) -o $(execName_debug) $(execName).cpp $(foreach module_lib, $(module_libs), debug/$(module_lib))
+	$(cname) $(cflags_debug) -o $(execName_debug) ../src/$(execName).cpp $(foreach module_lib, $(module_libs), debug/$(module_lib))
 
 .PHONY : release
 release : subDirs
@@ -47,7 +47,7 @@ release : subDirs
 	@ echo
 	@ echo "*** Building - Release Executable ***"
 	@ echo
-	$(cname) $(cflags_release) -o $(execName) $(execName).cpp $(foreach module_lib, $(module_libs), release/$(module_lib))
+	$(cname) $(cflags_release) -o $(execName) ../src/$(execName).cpp $(foreach module_lib, $(module_libs), release/$(module_lib))
 
 .PHONY : clean
 clean : subDirs
