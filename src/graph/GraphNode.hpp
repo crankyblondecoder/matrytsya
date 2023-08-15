@@ -73,6 +73,12 @@ class GraphNode : private RefCounted
 		 */
 		virtual bool _canActionTarget(GraphAction*) = 0;
 
+		/**
+		 * Subclass hook to indicate this node has been completely detached from the graph.
+		 * ie It has not attached edges.
+		 */
+		virtual void _detached() = 0;
+
     private:
 
 		/// Graph this node is part of.

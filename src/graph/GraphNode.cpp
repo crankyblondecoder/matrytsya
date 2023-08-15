@@ -147,6 +147,8 @@ void GraphNode::__removeEdge(int edgeHandle)
 
 	// Don't do this inside sync block!!!
 	if(edge) edge -> decrRef();
+
+	if(_edgeCount == 0) _detached();
 }
 
 GraphEdge* GraphNode::__findEdgeToTraverse(GraphAction* action)

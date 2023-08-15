@@ -166,8 +166,6 @@ void ThreadPool::threadEntry()
 
 					// Allocate work unit to thread in round robin fashion.
 
-					// TODO Make sure unit tests check for correct load balancing across threads ...
-
 					numAllocTrys = 0;
 					allocated = false;
 					nextAllocThreadIndex = _lastAllocThreadIndex + 1;
