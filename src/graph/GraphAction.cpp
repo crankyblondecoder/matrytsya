@@ -69,6 +69,9 @@ void GraphAction::__work()
 
 	if(!_boundNode)
 	{
+		// Action has completed.
+		_complete();
+
 		// No more nodes to traverse so allow this action to be deleted.
 		decrRef();
 	}

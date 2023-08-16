@@ -19,7 +19,11 @@ class PingAction : public GraphActionTargetBinding<PingActionTarget>
 
 		void _apply(PingActionTarget*);
 
+		void _complete();
+
     private:
+
+		unsigned _pingCount;
 };
 
 #endif

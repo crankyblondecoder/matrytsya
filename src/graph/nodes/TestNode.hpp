@@ -15,6 +15,10 @@ class TestNode : public GraphNode, public PingActionTarget
 
 		virtual bool testPing();
 
+	protected:
+
+		void _detached();
+
     private:
 };
 

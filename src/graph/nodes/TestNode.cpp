@@ -13,3 +13,7 @@ bool TestNode::testPing()
 {
 	return true;
 }
+
+void TestNode::_detached()
+{
+}

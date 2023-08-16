@@ -12,7 +12,6 @@ class GraphNode;
  * specific interface.
  */
 class GraphAction : private RefCounted
-
 {
 	friend GraphActionThreadPoolWorkUnit;
 	friend GraphEdge;
@@ -56,6 +55,11 @@ class GraphAction : private RefCounted
 		 * @param flags Bitfield representing the traversal flags.
 		 */
 		void _setEdgeTraversalFlags(unsigned long flags);
+
+		/**
+		 * Action is complete, will no longer traverse edges, and will soon be deleted.
+		 */
+		virtual void _complete() = 0;
 
     private:
 

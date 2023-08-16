@@ -20,8 +20,9 @@ class PingActionTarget : public GraphActionTarget<PING_GRAPH_ACTION>
 
 	protected:
 
-    private:
+		void _complete();
 
+    private:
 };
 
 #endif
