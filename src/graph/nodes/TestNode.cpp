@@ -2,7 +2,6 @@
 
 TestNode::~TestNode()
 {
-
 }
 
 TestNode::TestNode(Graph* graph) : GraphNode(graph)
