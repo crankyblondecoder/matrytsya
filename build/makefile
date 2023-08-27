@@ -1,8 +1,7 @@
 # No object files should be present in root of src directory. Everything should be in a module.
 
 # Each module has a subdirectory where the module name and the directory name are the same.
-#modules = thread graph log
-modules = graph
+modules = thread graph log
 
 # The name of the static library (.a file) should be modulename.a
 export module_libs = $(foreach module, $(modules), $(module).a)
@@ -15,8 +14,7 @@ execName_debug = matrytsya_debug
 
 cflags_debug = -std=c++11 -Wall -g -pthread
 cflags_release = -std=c++11 -Wall -fPIC -O3 -pthread
-cflags_test = -std=c++11 -Wall -g -pthrehdrFiles = ./thread/ThreadModuleUnitTests.hpp ./thread/TestThread.hpp ./thread/ThreadUnitTest.hpp \
-	UnitTest.hpp
+cflags_test = -std=c++11 -Wall -g -pthread
 
 export depflags = -std=c++11
 export cname = g++

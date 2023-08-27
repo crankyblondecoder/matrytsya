@@ -1,4 +1,4 @@
-srcFiles = Thread.cpp ThreadCondition.cpp ThreadLock.cpp ThreadMutex.cpp
+srcFiles = Thread.cpp ThreadCondition.cpp ThreadLock.cpp ThreadMutex.cpp ThreadPool.cpp ThreadPoolWorkThread.cpp
 
 objFiles = $(srcFiles:.cpp=.o)
 

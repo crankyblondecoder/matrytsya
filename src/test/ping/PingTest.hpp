@@ -1,5 +1,5 @@
-#include "../graph/Graph.hpp"
-#include "../thread/ThreadPool.hpp"
+#include "../../graph/Graph.hpp"
+#include "../../thread/ThreadPool.hpp"
 #include "../UnitTest.hpp"
 
 class PingTest : public UnitTest

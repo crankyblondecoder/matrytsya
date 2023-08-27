@@ -1,4 +1,4 @@
-#include "./PingTest.hpp"
+#include "./ping/PingTest.hpp"
 #include "./thread/ThreadModuleUnitTests.hpp"
 
 int main()
