@@ -13,7 +13,7 @@ class ThreadPoolWorkThread : public Thread
 {
     public:
 
-        virtual ~ThreadPoolWorkThread(){}
+        virtual ~ThreadPoolWorkThread();
 
         ThreadPoolWorkThread(ThreadPool* threadPool);
 

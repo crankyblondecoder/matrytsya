@@ -94,7 +94,7 @@ class ThreadPool : private Thread
  * If an existing thread pool exists, this function just exits gracefully.
  * @param numThreads Number of threads pool should have.
  */
-void startThreadPool(int numThreads);
+void startThreadPool(unsigned numThreads);
 
 /**
  * Stop and release the current thread pool.

@@ -102,8 +102,6 @@ ThreadPool::ThreadPool(unsigned numThreads)
 	// If allocation of threads is successful. Try and start them.
 	// This is allowed to partially succeed.
 
-	ThreadPoolWorkThread* worker;
-
 	for(index = 0; index < numThreads; index++)
 	{
 		try
@@ -133,9 +131,9 @@ ThreadPool::ThreadPool(unsigned numThreads)
 
 void ThreadPool::threadEntry()
 {
-	int nextAllocThreadIndex;
+	unsigned nextAllocThreadIndex;
 	bool allocated;
-	int numAllocTrys;
+	unsigned numAllocTrys;
 	ThreadPoolWorkThread* workerThread;
 
 	try
