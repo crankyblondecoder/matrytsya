@@ -8,7 +8,7 @@ class ThreadPoolWorkUnit
 {
     public:
 
-        virtual ~ThreadPoolWorkUnit();
+        virtual ~ThreadPoolWorkUnit(){};
 
 		/** Worker thread entry point. */
 		virtual void work() = 0;

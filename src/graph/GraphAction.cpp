@@ -83,3 +83,8 @@ void GraphAction::__abortWork()
 	// Assume this will make the work units pointer invalid.
 	decrRef();
 }
+
+void GraphAction::__consumeEnergy(int energyAmount)
+{
+	_energy += energyAmount;
+}
