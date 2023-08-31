@@ -1,7 +1,8 @@
 # No object files should be present in root of src directory. Everything should be in a module.
 
 # Each module has a subdirectory where the module name and the directory name are the same.
-modules = thread graph log
+# The order is important because it sets the final linking order and if that is incorrect it causes undefined reference errors.
+modules = graph thread log
 
 # The name of the static library (.a file) should be modulename.a
 export module_libs = $(foreach module, $(modules), $(module).a)
