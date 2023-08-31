@@ -13,7 +13,7 @@ class TestNode : public GraphNode, public PingActionTarget
 
         TestNode(Graph* graph);
 
-		virtual bool testPing();
+		virtual bool ping();
 
 	protected:
 

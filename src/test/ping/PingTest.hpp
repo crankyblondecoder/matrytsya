@@ -1,4 +1,5 @@
 #include "../../graph/Graph.hpp"
+#include "../../graph/nodes/TestNode.hpp"
 #include "../../thread/ThreadPool.hpp"
 #include "../UnitTest.hpp"
 
@@ -18,6 +19,9 @@ class PingTest : public UnitTest
 
 			// Build a network of nodes and apply ping test action.
 
+			TestNode node1(graph);
+			TestNode node2(graph);
+			TestNode node3(graph);
 
 			delete graph;
 

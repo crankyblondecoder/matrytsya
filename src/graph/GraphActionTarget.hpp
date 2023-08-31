@@ -31,7 +31,7 @@ template <unsigned long ActionFlag> GraphActionTarget<ActionFlag>::~GraphActionT
 
 template <unsigned long ActionFlag> GraphActionTarget<ActionFlag>::GraphActionTarget()
 {
-	addActionFlag(ActionFlag);
+	_addActionFlag(ActionFlag);
 }
 
 #endif

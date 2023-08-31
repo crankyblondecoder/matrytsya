@@ -22,13 +22,13 @@ class GraphActionTargetable
 		 * Add an action flag to the supported action flags of this target.
 		 * @param actionFlag Action flag from action flag register.
 		 */
-		void addActionFlag(unsigned long actionFlag);
+		void _addActionFlag(unsigned long actionFlag);
 
 		/**
 		 * Determine whether an action can target this.
 		 * Intended to fullfil GraphNode pure virtual function.
 		 */
-		bool canActionTarget(GraphAction*);
+		virtual bool _canActionTarget(GraphAction*);
 
     private:
 

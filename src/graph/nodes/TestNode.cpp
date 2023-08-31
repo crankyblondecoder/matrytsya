@@ -8,7 +8,7 @@ TestNode::TestNode(Graph* graph) : GraphNode(graph)
 {
 }
 
-bool TestNode::testPing()
+bool TestNode::ping()
 {
 	return true;
 }
