@@ -11,16 +11,14 @@ class PingActionTarget : public GraphActionTarget<PING_GRAPH_ACTION>
 {
     public:
 
-        virtual ~PingActionTarget();
+        virtual ~PingActionTarget() {}
 
-		PingActionTarget();
+		PingActionTarget() {}
 
 		/** Ping the node. Should return true in the implementation. */
 		virtual bool ping() = 0;
 
 	protected:
-
-		void _complete();
 
     private:
 };

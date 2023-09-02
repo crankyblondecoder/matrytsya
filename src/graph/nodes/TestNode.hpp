@@ -19,6 +19,8 @@ class TestNode : public GraphNode, public PingActionTarget
 
 		void _detached();
 
+		bool _canActionTarget(GraphAction*);
+
     private:
 };
 

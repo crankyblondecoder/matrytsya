@@ -7,13 +7,20 @@
  * Templated base class of all interfaces that define a specific graph action target.
  * A target is the interface used for the action to invoke operations on a graph node.
  */
-template <unsigned long ActionFlag> class GraphActionTarget : public virtual GraphActionTargetable
+template <unsigned long ActionFlag> class GraphActionTarget : virtual protected GraphActionTargetable
 {
     public:
 
         virtual ~GraphActionTarget();
 
 		GraphActionTarget();
+
+		/**
+		 * Add an action flag to the supported action flags of this target.
+		 * @note This exists because any target of an action needs keep track of which actions it can action.
+		 * @param actionFlag Action flag from action flag register.
+		 */
+		virtual void _addActionFlag(unsigned long actionFlag) = 0;
 
 		/** Flag of action this target interface applies to. */
 		static unsigned long ACTION_FLAG;

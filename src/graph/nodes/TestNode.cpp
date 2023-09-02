@@ -16,3 +16,8 @@ bool TestNode::ping()
 void TestNode::_detached()
 {
 }
+
+bool TestNode::_canActionTarget(GraphAction* action)
+{
+	return GraphActionTargetable::_canActionTarget(action);
+}

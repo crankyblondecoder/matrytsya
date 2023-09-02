@@ -26,9 +26,8 @@ class GraphActionTargetable
 
 		/**
 		 * Determine whether an action can target this.
-		 * Intended to fullfil GraphNode pure virtual function.
 		 */
-		virtual bool _canActionTarget(GraphAction*);
+		bool _canActionTarget(GraphAction*);
 
     private:
 

@@ -68,16 +68,15 @@ class GraphNode : private RefCounted
 		void _emitAction(GraphAction* action);
 
 		/**
-		 * Determine if an action can target this node.
-		 * ie This node has the target interface required of the action.
-		 */
-		virtual bool _canActionTarget(GraphAction*) = 0;
-
-		/**
 		 * Subclass hook to indicate this node has been completely detached from the graph.
 		 * ie It has not attached edges.
 		 */
 		virtual void _detached() = 0;
+
+		/**
+		 * Determine whether an action can target this.
+		 */
+		virtual bool _canActionTarget(GraphAction*) = 0;
 
     private:
 

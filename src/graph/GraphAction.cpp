@@ -52,7 +52,7 @@ void GraphAction::__work()
 {
 	if(_boundNode)
 	{
-		_apply(_boundNode);
+		if(_boundNode -> _canActionTarget(this)) _apply(_boundNode);
 
 		if(_energy > 0)
 		{
