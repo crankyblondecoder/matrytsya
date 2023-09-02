@@ -15,13 +15,6 @@ template <unsigned long ActionFlag> class GraphActionTarget : virtual protected 
 
 		GraphActionTarget();
 
-		/**
-		 * Add an action flag to the supported action flags of this target.
-		 * @note This exists because any target of an action needs keep track of which actions it can action.
-		 * @param actionFlag Action flag from action flag register.
-		 */
-		virtual void _addActionFlag(unsigned long actionFlag) = 0;
-
 		/** Flag of action this target interface applies to. */
 		static unsigned long ACTION_FLAG;
 
