@@ -4,3 +4,4 @@
 *.depMake
 matrytsya
 make.dep
+runUnitTests
