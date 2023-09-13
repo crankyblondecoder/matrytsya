@@ -13,9 +13,9 @@ module_makefiles = $(foreach module, $(modules), makefile_$(module))
 execName = matrytsya
 execName_debug = matrytsya_debug
 
-cflags_debug = -std=c++11 -Wall -g -pthread
+cflags_debug = -std=c++11 -Wall -O0 -g -pthread
 cflags_release = -std=c++11 -Wall -fPIC -O3 -pthread
-cflags_test = -std=c++11 -Wall -g -pthread
+cflags_test = -std=c++11 -Wall -O0 -g -pthread
 
 export depflags = -std=c++11
 export cname = g++
