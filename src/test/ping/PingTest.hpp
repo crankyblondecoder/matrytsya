@@ -18,10 +18,11 @@ class PingTest : public UnitTest
 			Graph* graph = new Graph();
 
 			// Build a network of nodes and apply ping test action.
+			// The nodes must _not_ be allocated on the stack because of auto-delete once de-reffed.
 
-			TestNode node1(graph);
-			TestNode node2(graph);
-			TestNode node3(graph);
+			new TestNode(graph);
+			new TestNode(graph);
+			new TestNode(graph);
 
 			delete graph;
 
