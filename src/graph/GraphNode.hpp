@@ -3,6 +3,7 @@
 
 class Graph;
 class GraphEdge;
+class GraphNodeHandle;
 
 #include "GraphAction.hpp"
 #include "../util/RefCounted.hpp"
@@ -20,6 +21,7 @@ class GraphNode : private RefCounted
 {
 	friend GraphEdge;
 	friend GraphAction;
+	friend GraphNodeHandle;
 
     public:
 
@@ -84,7 +86,7 @@ class GraphNode : private RefCounted
 		Graph* _graph;
 
 		/// Graph handle assigned to this node.
-		unsigned _handle;
+		unsigned _graphHandle;
 
         /// All edges directed either from or to this node.
         GraphEdge* _edges[EDGE_ARRAY_SIZE];

@@ -20,7 +20,7 @@ GraphNode::GraphNode(Graph* graph)
 
 	for(int index = 0; index < EDGE_ARRAY_SIZE; index++) _edges[index] = 0;
 
-	_handle = graph -> __addNode(this);
+	_graphHandle = graph -> __addNode(this);
 }
 
 int GraphNode::getMaxNumAttachedEdges()
@@ -209,7 +209,7 @@ void GraphNode::decouple()
 		if(_edges[index]) _edges[index] -> __detach();
 	}
 
-	_graph -> __removeNode(_handle);
+	_graph -> __removeNode(_graphHandle);
 
 	decrRef();
 }
