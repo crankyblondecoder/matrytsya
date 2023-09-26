@@ -21,6 +21,8 @@ class GraphNodeHandle
 
 		GraphNode* getNode();
 
+		bool isValid();
+
     protected:
 
     private:

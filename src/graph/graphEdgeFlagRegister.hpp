@@ -1,7 +1,7 @@
 /** Central Edge Flag Register */
 
 // Edge flag is an unsigned long bit field (Assumed minimum 32 bits).
-// Edge flags provide the "gate" mechanism of action traversal across and edge.
+// Edge flags provide the "gate" mechanism of action traversal across an edge.
 
 #define TEST_GRAPH_EDGE 0x00000001
 

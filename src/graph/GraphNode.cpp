@@ -4,6 +4,7 @@
 #include "Graph.hpp"
 #include "GraphEdge.hpp"
 #include "GraphException.hpp"
+#include "GraphNodeHandle.hpp"
 
 GraphNode::~GraphNode()
 {
@@ -28,15 +29,18 @@ int GraphNode::getMaxNumAttachedEdges()
 	return EDGE_ARRAY_SIZE;
 }
 
-bool GraphNode::formEdgeTo(unsigned handle, unsigned long traversalFlags)
+bool GraphNode::formEdgeTo(GraphNodeHandle& handle, unsigned long traversalFlags)
 {
 	bool edgeFormed = false;
 
-	GraphNode* linkTo = _graph -> __getNode(handle);
-
-	if(linkTo)
+	if(handle.isValid())
 	{
-		edgeFormed = __formEdge(this, linkTo, traversalFlags);
+		GraphNode* linkTo = handle.getNode();
+
+		if(linkTo)
+		{
+			edgeFormed = __formEdge(this, linkTo, traversalFlags);
+		}
 	}
 
 	return edgeFormed;

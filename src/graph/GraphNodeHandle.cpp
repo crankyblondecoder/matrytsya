@@ -22,3 +22,8 @@ GraphNode* GraphNodeHandle::getNode()
 {
 	return _referencedNode;
 }
+
+bool GraphNodeHandle::isValid()
+{
+	return _referencedNode != 0;
+}

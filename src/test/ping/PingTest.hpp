@@ -1,4 +1,5 @@
 #include "../../graph/Graph.hpp"
+#include "../../graph/GraphNodeHandle.hpp"
 #include "../../graph/nodes/TestNode.hpp"
 #include "../../thread/ThreadPool.hpp"
 #include "../UnitTest.hpp"
@@ -23,6 +24,12 @@ class PingTest : public UnitTest
 			TestNode* testNode1 = new TestNode(graph);
 			TestNode* testNode2 = new TestNode(graph);
 			TestNode* testNode3 = new TestNode(graph);
+
+			GraphNodeHandle nodeHandle1(testNode1);
+			GraphNodeHandle nodeHandle2(testNode2);
+			GraphNodeHandle nodeHandle3(testNode3);
+
+			testNode1 -> formEdgeTo(nodeHandle2, );
 
 			delete graph;
 
