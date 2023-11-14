@@ -15,6 +15,9 @@ class TestNode : public GraphNode, public PingActionTarget
 
 		virtual bool ping();
 
+		/** Emit a ping action from this node. */
+		void emitPing();
+
 	protected:
 
 		void _detached();

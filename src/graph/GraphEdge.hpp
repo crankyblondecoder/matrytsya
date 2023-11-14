@@ -7,6 +7,8 @@ class GraphNode;
 #include "../thread/thread.hpp"
 #include "../util/RefCounted.hpp"
 
+#define DEFAULT_ENERGY_COST 1
+
 /**
  * Edge that describes directed link FROM one node TO another. ie It is directed.
  * An edge cannot exist without forming a link between two nodes. ie It _cannot_ dangle.

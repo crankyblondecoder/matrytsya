@@ -15,7 +15,7 @@ UnitTest::UnitTest(const char* unitTestName) : _name{unitTestName}, _result{true
 
 bool UnitTest::run()
 {
-	cout << _indentTabs << "Running:" << _name << "\n";
+	cout << "\n" << _indentTabs << "Running:" << _name << "\n";
 
 	// Run main tests first.
 	runTests();

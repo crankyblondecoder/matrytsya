@@ -3,6 +3,9 @@
 
 #include "../util/RefCounted.hpp"
 
+/** The initial energy an action is assigned. */
+#define INITIAL_ENERGY 255
+
 class GraphActionThreadPoolWorkUnit;
 class GraphEdge;
 class GraphNode;
@@ -10,6 +13,7 @@ class GraphNode;
 /**
  * Base class of all actions that traverses the graph and invoke operations on a node, as per a pre-defined action
  * specific interface.
+ * @note Ref counted and will self de-reference once the action is complete.
  */
 class GraphAction : private RefCounted
 {

@@ -17,7 +17,7 @@ GraphAction::GraphAction()
 {
 	__edgeTraversalFlags = 0;
 
-	_energy = 255;
+	_energy = INITIAL_ENERGY;
 
 	_boundNode = 0;
 }
@@ -86,5 +86,5 @@ void GraphAction::__abortWork()
 
 void GraphAction::__consumeEnergy(int energyAmount)
 {
-	_energy += energyAmount;
+	_energy -= energyAmount;
 }

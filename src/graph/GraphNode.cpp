@@ -267,7 +267,7 @@ void GraphNode::_emitAction(GraphAction* action)
 		decoupling = _decoupling;
 	}
 
-	// There is no point is going any further if this is in the process of decoupling.
+	// There is no point in going any further if this is in the process of decoupling.
 
 	if(!decoupling)
 	{
