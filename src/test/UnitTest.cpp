@@ -19,6 +19,7 @@ bool UnitTest::run()
 
 	// Run main tests first.
 	runTests();
+
 	// Post test run hook.
 	postRunTests();
 

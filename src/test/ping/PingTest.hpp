@@ -5,6 +5,9 @@
 #include "../../thread/ThreadPool.hpp"
 #include "../UnitTest.hpp"
 
+#include <iostream>
+using namespace std;
+
 class PingTest : public UnitTest
 {
 	public:

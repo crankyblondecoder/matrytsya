@@ -6,6 +6,9 @@
 #include "ThreadException.hpp"
 #include "ThreadPoolWorkThread.hpp"
 
+using namespace std;
+
+
 ThreadPool* threadPool = 0;
 
 // TODO How can threads be pre-empted if they run for too long?
@@ -289,8 +292,8 @@ void ThreadPool::shutdown()
 	// Need to obtain lock again to check thread active state.
 	_queueCond.lockMutex();
 
-	if(_poolThreadActive) {
-
+	if(_poolThreadActive)
+	{
 		// Thread loop hasn't finished yet. Wait for it to signal.
 		// This will release mutex.
 		_queueCond.wait();
@@ -299,7 +302,7 @@ void ThreadPool::shutdown()
 	// Mutex is now locked.
 
 	// Any uninvoked work units should be aborted.
-	ThreadPoolWorkUnit* workUnit = _workUnitQueue.first();;
+	ThreadPoolWorkUnit* workUnit = _workUnitQueue.first();
 
 	while(workUnit)
 	{
