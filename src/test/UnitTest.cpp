@@ -86,3 +86,8 @@ void UnitTest::setLevel(int level)
 		_indentTabs += "\t";
 	}
 }
+
+void UnitTest::handleCtrlC()
+{
+	// Do nothing as default.
+}

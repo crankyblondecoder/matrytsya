@@ -40,6 +40,12 @@ class UnitTest
 		 */
 		void addChildUnitTest(UnitTest* childUnitTest);
 
+		/**
+		 * Handle ctrl-c whic was invoked on all tests.
+		 * @note Use this to dump information.
+		 */
+		void handleCtrlC();
+
 	protected:
 
 		/**
