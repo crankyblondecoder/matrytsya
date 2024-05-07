@@ -30,12 +30,13 @@ class GraphEdge final : private RefCounted
 
 		/// Node this edge starts at.
         GraphNode* _fromNode;
+
 		/// Node this edge ends at.
         GraphNode* _toNode;
 
 		// Node supplied handles that are used to speed up the handling of edges by nodes.
 		// The idea is to not have to search for pointers and that these handles are indexes into an array of edges contained
-		// on the node. A value of -1 means this edge is not attached to the node.
+		// on the node. A value of -1 means this edge is not attached to a node.
 		int _fromNodeHandle;
 		int _toNodeHandle;
 
@@ -53,7 +54,8 @@ class GraphEdge final : private RefCounted
 
 		/**
 		 * Create directed link between two nodes.
-		 * @note Because this is refcounted it will require the automatic initial refcount to be released before being deleted.
+		 * @note Because this edge is refcounted it will require the automatic initial refcount to be released before being
+		 *       deleted.
 		 * @param fromNode Node link is from.
 		 * @param toNode Node link is to.
 		 * @param traversalFlags Flags that control what can traverse the edge.
@@ -83,6 +85,8 @@ class GraphEdge final : private RefCounted
 		 * Traverse this edge.
 		 * @param origin The node that the action is "leaving from".
 		 * @param action Graph action to traverse the edge.
+		 * @returns If traversal is possible the node at other end of edge. Because a pointer to the node is being returned
+		 *          the node is ref incr prior to being returned.
 		 */
 		GraphNode* __traverse(GraphNode* origin, GraphAction* action);
 };

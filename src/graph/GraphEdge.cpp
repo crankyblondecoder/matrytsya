@@ -16,6 +16,8 @@ GraphEdge::GraphEdge(GraphNode* fromNode, GraphNode* toNode, unsigned long trave
 
 	_energyCost = DEFAULT_ENERGY_COST;
 
+	// Attempt to ref count the nodes so that their pointers can be stored.
+
 	if(fromNode -> incrRef())
 	{
 		if(toNode -> incrRef())
@@ -25,7 +27,6 @@ GraphEdge::GraphEdge(GraphNode* fromNode, GraphNode* toNode, unsigned long trave
 		}
 		else
 		{
-			_fromNode = 0;
 			fromNode -> decrRef();
 		}
 	}
@@ -51,8 +52,12 @@ GraphEdge::GraphEdge(GraphNode* fromNode, GraphNode* toNode, unsigned long trave
 		if(_fromNodeHandle == -1)
 		{
 			// Edge attachment failed.
+
 			_fromNode -> decrRef();
 			_toNode -> decrRef();
+
+			_fromNode = 0;
+			_toNode = 0;
 		}
 	}
 }
@@ -114,12 +119,15 @@ bool GraphEdge::__canTraverse(GraphNode* origin, GraphAction* action)
 {
 	bool retVal;
 
+	// Get this here so a function isn't called in a sync block.
+	unsigned edgeTravFlags = action -> getEdgeTraversalFlags();
+
 	// Actions can only traverse edges in the one direction. From the from node to the to node.
 
 	{ SYNC(_lock)
 
 		// Check action traversal flags against edge traversal flags.
-		retVal = origin == _fromNode && action -> getEdgeTraversalFlags() & _traversalFlags;
+		retVal = _fromNode && _toNode && (origin == _fromNode) && (edgeTravFlags & _traversalFlags);
 	}
 
 	return retVal;
@@ -141,9 +149,10 @@ GraphNode* GraphEdge::__traverse(GraphNode* origin, GraphAction* action)
 			{
 				retNode = _fromNode;
 			}
-
-			if(!retNode -> incrRef()) retNode = 0;
 		}
+
+		// Don't call functions inside sync blocks.
+		if(!retNode -> incrRef()) retNode = 0;
 	}
 
 	// Do energy accounting. Remember this is a cyclic graph and the energy accounting system helps mitigate infinite cycles.

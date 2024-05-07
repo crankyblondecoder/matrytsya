@@ -94,9 +94,11 @@ class GraphNode : private RefCounted
 		/// Number of edges currently present.
 		unsigned _edgeCount;
 
-		/// Helper for allocating edges without having to search for spare spots.
-		/// This count allows edges to be initially allocated right up to the end of the edge array before having to start
-		/// searching the array for empty slots.
+		/**
+		 * Helper for allocating edges without having to search for spare spots.
+		 * This count allows edges to be initially allocated right up to the end of the edge array before having to start
+		 * searching the array for empty slots.
+		 */
 		unsigned _linearEdgeAllocCount;
 
         // Generic lock.
@@ -134,10 +136,10 @@ class GraphNode : private RefCounted
 
 		/**
 		 * Get the edge a particular action should traverse.
+		 * @note This should only be called by an action on its own thread.
 		 * @param action Action to propogate.
 		 * @returns Edge to traverse. This will have had its refcount incremented and _must_ be decremented when pointer is no
 		 *          longer required.
-		 * @note This should only be called by an action on its own thread.
 		 */
 		GraphEdge* __findEdgeToTraverse(GraphAction* action);
 
@@ -149,11 +151,6 @@ class GraphNode : private RefCounted
 		 * @returns A ref counted node pointer or null if could not traverse.
 		 */
 		GraphNode* __traverse(GraphAction* action);
-
-		/**
-		 * Must be called by an action when it is bound to this node but won't traverse it.
-		 */
-		void __wontTraverse();
 };
 
 #endif

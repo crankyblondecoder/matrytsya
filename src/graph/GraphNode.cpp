@@ -229,33 +229,24 @@ GraphNode* GraphNode::__traverse(GraphAction* action)
 		decoupling = _decoupling;
 	}
 
+	// TODO ... What if it starts decoupling here???
+
 	if(!decoupling)
 	{
+		// Get ref incr edge to traverse.
 		GraphEdge* foundEdge = __findEdgeToTraverse(action);
 
 		if(foundEdge)
 		{
-			// Get a ref counted node from the edge.
+			// Get a ref incr node from the edge.
 			retNode = foundEdge -> __traverse(this, action);
 
-			// The edge will have had its ref count increased when passed from find to traverse.
+			// Finished with edge pointer.
 			foundEdge -> decrRef();
 		}
 	}
 
-	// Assume this node was referenced. This assumption can only be made because this function is private and should only be
-	// called by GraphAction. Also this is called at the end because it may very well instigate the deletion of this node in
-	// the circumstance where this node has no edges.
-	decrRef();
-
 	return retNode;
-}
-
-void GraphNode::__wontTraverse()
-{
-	// Assume this was referenced. This assumption can only be made because this function is private and should only be
-	// called by GraphAction.
-	decrRef();
 }
 
 void GraphNode::_emitAction(GraphAction* action)
