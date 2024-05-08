@@ -13,7 +13,7 @@ void Graph::__decoupleAllNodes()
 
 	while(page)
 	{
-		page -> __decoupleAllNodes();
+		page -> decoupleAllNodes();
 		page = _nodeListPages.next();
 	}
 }
@@ -23,7 +23,7 @@ Graph::Graph()
 	_nodeListPages.append(new NodeListPage(NODE_LIST_PAGE_SIZE, 0), true);
 }
 
-unsigned Graph::__addNode(GraphNode* node)
+unsigned Graph::addNode(GraphNode* node)
 {
 	unsigned retHandle = 0;
 
@@ -92,7 +92,7 @@ unsigned Graph::__addNode(GraphNode* node)
 	return retHandle;
 }
 
-void Graph::__removeNode(unsigned handle)
+void Graph::removeNode(unsigned handle)
 {
     { SYNC(_lock)
 
@@ -110,7 +110,7 @@ void Graph::__removeNode(unsigned handle)
     }
 }
 
-GraphNode* Graph::__getNode(unsigned handle)
+GraphNode* Graph::getNode(unsigned handle)
 {
 	GraphNode* retNode = 0;
 
@@ -161,7 +161,7 @@ NodeListPage::NodeListPage(unsigned pageSize, unsigned handleOffset)
 	}
 }
 
-void NodeListPage::__decoupleAllNodes()
+void NodeListPage::decoupleAllNodes()
 {
 	for(unsigned index = 0; index < _pageSize; index++)
 	{
@@ -185,9 +185,15 @@ unsigned NodeListPage::addEntry(GraphNode* node)
 			if(_nextEntry >= _pageSize) _nextEntry = 0;
 		}
 
-		_nodeList[_nextEntry] = node;
-
-		_entriesUsed++;
+		if(node -> incrRef())
+		{
+			_nodeList[_nextEntry] = node;
+			_entriesUsed++;
+		}
+		else
+		{
+			throw GraphException(GraphException::NODE_LIST_COULDNT_REF_INCR);
+		}
 	}
 	else
 	{
@@ -203,6 +209,7 @@ void NodeListPage::removeEntry(unsigned handle)
 
 	if(entryIndex < _pageSize)
 	{
+		_nodeList[entryIndex] -> decrRef();
 		_nodeList[entryIndex] = 0;
 		_entriesUsed--;
 	}

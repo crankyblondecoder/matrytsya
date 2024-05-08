@@ -17,7 +17,7 @@ class GraphNodeHandle;
  * @note Nodes self delete when no longer referenced. They keep a self reference until either decoupled or all edges have
  *       been removed that refer to the node.
  */
-class GraphNode : private RefCounted
+class GraphNode : public RefCounted
 {
 	friend GraphEdge;
 	friend GraphAction;
@@ -50,7 +50,7 @@ class GraphNode : private RefCounted
 		bool formEdgeTo(GraphNodeHandle& handle, unsigned long traversalFlags);
 
 		/**
-		 * Decouple from the graph and decrRef to allow it to be deleted.
+		 * Decouple from the graph and ref decr to allow it to be deleted.
 		 * This essentially detaches all edges and stops the node from having any new edges attached to it.
 		 * @note If a node is constructed but never attached to any edges then this will have to be called on it regardless
 		 *       otherwise an orphaned node will result.

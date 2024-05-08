@@ -16,12 +16,31 @@ class NodeListPage;
  */
 class Graph
 {
-	friend GraphNode;
-
     public:
 
         virtual ~Graph();
         Graph();
+
+		/**
+         * Add node to the graph.
+         * @param node Node to add.
+		 * @returns Node handle.
+		 * @throws GraphException.
+         */
+        unsigned addNode(GraphNode* node);
+
+		/**
+         * Remove node from the graph.
+         * @param handle Handle of node to remove.
+		 * @throws GraphException.
+         */
+        void removeNode(unsigned handle);
+
+		/**
+		 * Get a pointer to a node given its handle.
+		 * @note This will be ref incr and must be ref decr by the caller.
+		 */
+		GraphNode* getNode(unsigned handle);
 
     private:
 
@@ -32,26 +51,6 @@ class Graph
 
 		/// Node list pages. The pages should all be the same size.
 		ptrList<NodeListPage> _nodeListPages;
-
-		/**
-         * Add node to the graph.
-         * @param node Node to add.
-		 * @returns Node handle.
-		 * @throws GraphException.
-         */
-        unsigned __addNode(GraphNode* node);
-
-		/**
-         * Remove node from the graph.
-         * @param handle Handle of node to remove.
-		 * @throws GraphException.
-         */
-        void __removeNode(unsigned handle);
-
-		/**
-		 * Get a pointer to a node given its handle.
-		 */
-		GraphNode* __getNode(unsigned handle);
 
 		/**
 		 * Decouple all nodes from the graph.
@@ -95,7 +94,7 @@ class NodeListPage
 		/**
 		 * Decouple all nodes present in this page.
 		 */
-		void __decoupleAllNodes();
+		void decoupleAllNodes();
 
 	private:
 

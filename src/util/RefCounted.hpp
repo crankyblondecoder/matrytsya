@@ -10,10 +10,10 @@
  * @note Ref Count Rules:
  *       - Every occurance where a pointer to this is stored must have obtained a ref incr prior to storing it,
  *         and once that pointer variable is cleared it must be ref decr.
- *         (With the exeception of the creating class which can use the automatic reference count added during construction.)
+ *         (Remember that this has an implicit reference count of one on construction)
  *       - When calling a function that requires a ref counted pointer, the caller must obtain a ref incr before the call
  *         and do a ref decr after the call.
- *       - Before returning a ref counted pointer from function it must be ref incr. The caller is then responsible for the
+ *       - Before returning a ref counted pointer from a function it must be ref incr. The caller is then responsible for the
  *         ref decr.
  * @note For this to successfully delete when the reference count goes to zero, the destructor of the implementing class must
  *       be virtual.

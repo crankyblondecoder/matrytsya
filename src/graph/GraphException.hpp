@@ -29,6 +29,8 @@ class GraphException : public Exception
 			NODE_LIST_PAGE_FULL,
 			/// Node list page item not found.
 			NODE_LIST_PAGE_ITEM_NOT_FOUND,
+			/// Couldn't increase reference count on node, which was unexpected.
+			NODE_LIST_COULDNT_REF_INCR,
 			/// Something shouldn't have happened. This indicates a logic error.
 			NODE_LIST_PAGE_UNEXPECTED,
 			/// The requested node was not found.

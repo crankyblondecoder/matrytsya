@@ -21,7 +21,8 @@ GraphNode::GraphNode(Graph* graph)
 
 	for(int index = 0; index < EDGE_ARRAY_SIZE; index++) _edges[index] = 0;
 
-	_graphHandle = graph -> __addNode(this);
+	// Assume the implicit ref count protects this call because it is within the constructor.
+	_graphHandle = graph -> addNode(this);
 }
 
 int GraphNode::getMaxNumAttachedEdges()
@@ -213,8 +214,9 @@ void GraphNode::decouple()
 		if(_edges[index]) _edges[index] -> __detach();
 	}
 
-	_graph -> __removeNode(_graphHandle);
+	_graph -> removeNode(_graphHandle);
 
+	// Delete implicit ref incr so that node can now be deleted.
 	decrRef();
 }
 
@@ -230,6 +232,7 @@ GraphNode* GraphNode::__traverse(GraphAction* action)
 	}
 
 	// TODO ... What if it starts decoupling here???
+	blah;
 
 	if(!decoupling)
 	{

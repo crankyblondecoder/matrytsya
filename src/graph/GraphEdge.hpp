@@ -86,7 +86,7 @@ class GraphEdge final : private RefCounted
 		 * @param origin The node that the action is "leaving from".
 		 * @param action Graph action to traverse the edge.
 		 * @returns If traversal is possible the node at other end of edge. Because a pointer to the node is being returned
-		 *          the node is ref incr prior to being returned.
+		 *          the node is ref incr prior.
 		 */
 		GraphNode* __traverse(GraphNode* origin, GraphAction* action);
 };
