@@ -34,14 +34,19 @@ bool GraphNode::formEdgeTo(GraphNodeHandle& handle, unsigned long traversalFlags
 {
 	bool edgeFormed = false;
 
-	if(handle.isValid())
-	{
-		GraphNode* linkTo = handle.getNode();
+	// Will return ref incr pointer if available.
+	GraphNode* linkTo = handle.getNode();
 
-		if(linkTo)
+	if(linkTo)
+	{
+		if(incrRef())
 		{
 			edgeFormed = __formEdge(this, linkTo, traversalFlags);
+
+			decrRef();
 		}
+
+		linkTo -> decrRef();
 	}
 
 	return edgeFormed;
@@ -49,16 +54,14 @@ bool GraphNode::formEdgeTo(GraphNodeHandle& handle, unsigned long traversalFlags
 
 bool GraphNode::__formEdge(GraphNode* fromNode, GraphNode* toNode, unsigned long traversalFlags)
 {
-	bool decoupling;
-
-	{ SYNC(_lock)
-
-		decoupling = _decoupling;
-	}
+	// Remember that fromNode and toNode are already refIncr by caller.
 
 	bool success = false;
 
-	if(!decoupling)
+	// Don't bother syncing the test of decoupling at this point because it could change between the sync and the edge
+	// generation anyway.
+
+	if(!_decoupling)
 	{
 		GraphEdge* edge = 0;
 
@@ -76,8 +79,7 @@ bool GraphNode::__formEdge(GraphNode* fromNode, GraphNode* toNode, unsigned long
 		{
 			success = edge -> __isComplete();
 
-			// Release automatic construction reference. Nodes will ref the edge again if successfully attached.
-			// If edge was incomplete and subsequently detached, it should be automatically deleted at this point.
+			// Pointer to edge isn't stored at this time so release automatic construction implicit ref incr.
 			edge -> decrRef();
 		}
 	}

@@ -20,7 +20,12 @@ GraphNodeHandle::~GraphNodeHandle()
 
 GraphNode* GraphNodeHandle::getNode()
 {
-	return _referencedNode;
+	if(_referencedNode -> incrRef())
+	{
+		return _referencedNode;
+	}
+
+	return 0;
 }
 
 bool GraphNodeHandle::isValid()

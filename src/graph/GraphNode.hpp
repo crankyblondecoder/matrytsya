@@ -113,8 +113,8 @@ class GraphNode : public RefCounted
 
 		/**
 		 * Helper function to form an edge between two nodes.
-		 * @param fromNode Node to form edge from.
-		 * @param toNode Node to form edge to.
+		 * @param fromNode Node to form edge from. Must be ref incr.
+		 * @param toNode Node to form edge to. Must be ref incr.
 		 * @param traversalFlags Flags that determine if action can traverse an edge.
 		 * @returns True if edge could be formed. False otherwise.
 		 */
