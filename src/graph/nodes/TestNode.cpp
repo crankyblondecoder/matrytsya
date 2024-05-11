@@ -21,7 +21,7 @@ void TestNode::emitPing()
 	_emitAction(new PingAction());
 }
 
-void TestNode::_detached()
+void TestNode::_decoupled()
 {
 }
 

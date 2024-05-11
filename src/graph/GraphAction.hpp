@@ -67,6 +67,7 @@ class GraphAction : private RefCounted
 
     private:
 
+		/// The curent node this action is acting upon.
 		GraphNode* _boundNode;
 
 		/// The bitwise AND of this and the edge's traversal flags determines if the edge can be traversed.

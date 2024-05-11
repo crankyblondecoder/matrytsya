@@ -31,19 +31,22 @@ unsigned long GraphAction::getEdgeTraversalFlags()
 
 void GraphAction::start(GraphNode* origin)
 {
-	// TODO ... Was the origin ref counted before being passed to this???
-	blah;
-	_boundNode = origin;
+	// Re-entrant???
 
-	if(threadPool) {
-
-		// Ask threadpool to execute action work unit.
-		threadPool -> executeWorkUnit(new GraphActionThreadPoolWorkUnit(this));
-	}
-	else
+	if(origin -> incrRef())
 	{
-		// Action can't be started so this should delete it.
-		decrRef();
+		_boundNode = origin;
+
+		if(threadPool) {
+
+			// Ask threadpool to execute action work unit.
+			threadPool -> executeWorkUnit(new GraphActionThreadPoolWorkUnit(this));
+		}
+		else
+		{
+			// Action can't be started so this should delete it.
+			decrRef();
+		}
 	}
 }
 

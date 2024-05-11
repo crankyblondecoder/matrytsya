@@ -70,10 +70,9 @@ class GraphNode : public RefCounted
 		void _emitAction(GraphAction* action);
 
 		/**
-		 * Subclass hook to indicate this node has been completely detached from the graph.
-		 * ie It has not attached edges.
+		 * Subclass hook to indicate this node has been completely decoupled from the graph and will be deleted.
 		 */
-		virtual void _detached() = 0;
+		virtual void _decoupled() = 0;
 
 		/**
 		 * Determine whether an action can target this.
@@ -144,11 +143,11 @@ class GraphNode : public RefCounted
 		GraphEdge* __findEdgeToTraverse(GraphAction* action);
 
 		/**
-		 * Traverse edges attached to this node and return the next node to apply an action.
+		 * Find next node to apply given action to.
 		 * @note Make sure this is only called on the actions own thread.
 		 * @note Once an action calls this it should _not_ keep any pointer to _this_ node.
-		 * @param action Action that wants to traverse edge. It is assumed this action currently holds a reference to the node.
-		 * @returns A ref counted node pointer or null if could not traverse.
+		 * @param action Action that wants to traverse this node.
+		 * @returns A ref incr node pointer or null if could not traverse.
 		 */
 		GraphNode* __traverse(GraphAction* action);
 };

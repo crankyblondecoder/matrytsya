@@ -79,7 +79,8 @@ bool GraphNode::__formEdge(GraphNode* fromNode, GraphNode* toNode, unsigned long
 		{
 			success = edge -> __isComplete();
 
-			// Pointer to edge isn't stored at this time so release automatic construction implicit ref incr.
+			// Pointer to edge isn't stored at this time so release automatic construction implicit ref incr. It was
+			// constructed here so this is reasonable.
 			edge -> decrRef();
 		}
 	}
@@ -154,8 +155,6 @@ void GraphNode::__removeEdge(int edgeHandle)
 
 	// Don't do this inside sync block!!!
 	if(edge) edge -> decrRef();
-
-	if(_edgeCount == 0) _detached();
 }
 
 GraphEdge* GraphNode::__findEdgeToTraverse(GraphAction* action)
@@ -218,6 +217,9 @@ void GraphNode::decouple()
 
 	_graph -> removeNode(_graphHandle);
 
+	// Must be run before the implicit decr ref (so this can be deleted).
+	_decoupled();
+
 	// Delete implicit ref incr so that node can now be deleted.
 	decrRef();
 }
@@ -226,29 +228,16 @@ GraphNode* GraphNode::__traverse(GraphAction* action)
 {
 	GraphNode* retNode = 0;
 
-	bool decoupling;
+	// Get ref incr edge to traverse.
+	GraphEdge* foundEdge = __findEdgeToTraverse(action);
 
-	{ SYNC(_lock)
-
-		decoupling = _decoupling;
-	}
-
-	// TODO ... What if it starts decoupling here???
-	blah;
-
-	if(!decoupling)
+	if(foundEdge)
 	{
-		// Get ref incr edge to traverse.
-		GraphEdge* foundEdge = __findEdgeToTraverse(action);
+		// Get a ref incr node from the edge.
+		retNode = foundEdge -> __traverse(this, action);
 
-		if(foundEdge)
-		{
-			// Get a ref incr node from the edge.
-			retNode = foundEdge -> __traverse(this, action);
-
-			// Finished with edge pointer.
-			foundEdge -> decrRef();
-		}
+		// Finished with edge pointer.
+		foundEdge -> decrRef();
 	}
 
 	return retNode;
@@ -256,20 +245,13 @@ GraphNode* GraphNode::__traverse(GraphAction* action)
 
 void GraphNode::_emitAction(GraphAction* action)
 {
-	bool decoupling;
-
-	{ SYNC(_lock)
-
-		decoupling = _decoupling;
-	}
-
-	// There is no point in going any further if this is in the process of decoupling.
-
-	if(!decoupling)
+	if(!_decoupling)
 	{
 		if(incrRef())
 		{
 			action -> start(this);
+
+			decrRef();
 		}
 	}
 }

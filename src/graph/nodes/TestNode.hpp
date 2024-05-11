@@ -20,7 +20,8 @@ class TestNode : public GraphNode, public PingActionTarget
 
 	protected:
 
-		void _detached();
+		// Impl.
+		void _decoupled();
 
 		bool _canActionTarget(GraphAction*);
 
