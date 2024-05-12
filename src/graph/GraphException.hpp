@@ -19,6 +19,8 @@ class GraphException : public Exception
 			EDGE_BAD_ALLOC,
 			/// General out of memory.
 			OUT_OF_MEMORY,
+			/// Re-entry of function is not permitted.
+			RE_ENTRY_NOT_PERMITTED,
 			/// The provided edge handle is not valid.
 			INVALID_EDGE_HANDLE,
 			/// The provided node handle is not valid.

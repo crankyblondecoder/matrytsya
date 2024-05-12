@@ -43,22 +43,22 @@ class ThreadPoolWorkThread : public Thread
 
     private:
 
-		/// Thread pool this worker belongs to.
+		/** Thread pool this worker belongs to. */
 		ThreadPool* _threadPool;
 
-		/// Condition so that this worker can block until a work unit is available for it.
+		/** Condition so that this worker can block until a work unit is available for it. */
 		ThreadCondition _cond;
 
-		/// The current unit of work that is being executed by the thread.
+		/** The current unit of work that is being executed by the thread. */
 		ThreadPoolWorkUnit* _curWorkUnit;
 
-		/// Flag to indicate that worker thread is active.
+		/** Flag to indicate that worker thread is active. */
 		bool _workerThreadActive;
 
-		/// Flag to indicate a work unit is being executed.
+		/** Flag to indicate a work unit is being executed. */
 		bool _working;
 
-		/// Flag to indicate shutdown is requested.
+		/** Flag to indicate shutdown is requested. */
 		bool _shutdown;
 
 		bool _canAcceptWorkUnit();

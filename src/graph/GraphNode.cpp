@@ -249,7 +249,7 @@ void GraphNode::_emitAction(GraphAction* action)
 	{
 		if(incrRef())
 		{
-			action -> start(this);
+			action -> __start(this);
 
 			decrRef();
 		}

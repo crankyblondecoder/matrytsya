@@ -3,26 +3,44 @@
 
 GraphActionThreadPoolWorkUnit::~GraphActionThreadPoolWorkUnit()
 {
-	if(_graphAction) _graphAction -> __abortWork();
+	if(_graphAction)
+	{
+		_graphAction -> __abortWork();
+		_graphAction -> decrRef();
+	}
 }
 
 GraphActionThreadPoolWorkUnit::GraphActionThreadPoolWorkUnit(GraphAction* graphAction)
 {
-	_graphAction = graphAction;
+	if(graphAction -> incrRef())
+	{
+		_graphAction = graphAction;
+	}
+	else
+	{
+		_graphAction = 0;
+		graphAction -> __abortWork();
+	}
 }
 
 void GraphActionThreadPoolWorkUnit::work()
 {
-	if(_graphAction) _graphAction -> __work();
+	if(_graphAction)
+	{
+		_graphAction -> __work();
 
-	// Action point can NOT be used after this point because the action will have automatically decrRef on it.
-	_graphAction = 0;
+		_graphAction -> decrRef();
+		_graphAction = 0;
+	}
 }
 
 void GraphActionThreadPoolWorkUnit::abort()
 {
-	if(_graphAction) _graphAction -> __abortWork();
+	if(_graphAction)
+	{
+		_graphAction -> __abortWork();
 
-	// Action point can NOT be used after this point because the action will have automatically decrRef on it.
-	_graphAction = 0;
+		_graphAction -> decrRef();
+		_graphAction = 0;
+	}
 }

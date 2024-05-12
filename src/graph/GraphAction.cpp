@@ -1,5 +1,6 @@
 #include "GraphAction.hpp"
 #include "GraphActionThreadPoolWorkUnit.hpp"
+#include "GraphException.hpp"
 #include "GraphNode.hpp"
 #include "../thread/ThreadPool.hpp"
 
@@ -10,13 +11,9 @@ GraphAction::~GraphAction()
 	if(_boundNode) _boundNode -> decrRef();
 }
 
-GraphAction::GraphAction()
+GraphAction::GraphAction() : _started{0}, _boundNode{0}, __edgeTraversalFlags{0}
 {
-	__edgeTraversalFlags = 0;
-
 	_energy = INITIAL_ENERGY;
-
-	_boundNode = 0;
 }
 
 void GraphAction::_setEdgeTraversalFlags(unsigned long flags)
@@ -29,9 +26,18 @@ unsigned long GraphAction::getEdgeTraversalFlags()
 	return __edgeTraversalFlags;
 }
 
-void GraphAction::start(GraphNode* origin)
+void GraphAction::__start(GraphNode* origin)
 {
-	// Re-entrant???
+	// This is deliberately not re-entrant!
+
+	if(_started)
+	{
+		throw new GraphException(GraphException::Error::RE_ENTRY_NOT_PERMITTED);
+	}
+
+	_started = true;
+
+	bool workSubmitted = false;
 
 	if(origin -> incrRef())
 	{
@@ -40,54 +46,85 @@ void GraphAction::start(GraphNode* origin)
 		if(threadPool) {
 
 			// Ask threadpool to execute action work unit.
-			threadPool -> executeWorkUnit(new GraphActionThreadPoolWorkUnit(this));
+			workSubmitted = threadPool -> executeWorkUnit(new GraphActionThreadPoolWorkUnit(this));
 		}
-		else
+	}
+
+	if(!workSubmitted)
+	{
+		if(_boundNode)
 		{
-			// Action can't be started so this should delete it.
-			decrRef();
+			_boundNode -> decrRef();
+			_boundNode = 0;
 		}
+
+		// Action can't be started so this should delete it.
+		decrRef();
 	}
 }
 
 void GraphAction::__work()
 {
-	if(_boundNode)
-	{
-		if(_boundNode -> _canActionTarget(this)) _apply(_boundNode);
+	// This is an unusually long lock because it is important that any newly scheduled work unit waits at this point for the
+	// current work unit to complete. This also means a maximum of two work units can be active for this action at any one
+	// time because a new work unit can't be scheduled until the current work unit owns the mutex.
 
-		if(_energy > 0)
+	{ SYNC(_workLock)
+
+		if(_boundNode)
 		{
-			// TODO ... passing a pointer (this), was it ref incr?
-			// TODO ... Shouldn't current bound node be ref decr.
-			blah;
-			_boundNode = _boundNode -> __traverse(this);
+			if(_boundNode -> _canActionTarget(this)) _apply(_boundNode);
 
-			if(_boundNode)
+			if(_energy > 0)
 			{
-				// Create and schedule another work unit for the newly bound node. This makes sure
-				// actions don't hog thread time.
-				threadPool -> executeWorkUnit(new GraphActionThreadPoolWorkUnit(this));
+				GraphNode* curBoundNode = _boundNode;
+
+				// Assume that if a node is returned to traverse that it has been ref incr.
+				_boundNode = curBoundNode -> __traverse(this);
+
+				// A pointer is no longer held for the just traversed node.
+				curBoundNode -> decrRef();
+
+				if(_boundNode)
+				{
+					// Create and schedule another work unit for the newly bound node. This makes sure
+					// actions don't hog thread time.
+
+					if(!threadPool -> executeWorkUnit(new GraphActionThreadPoolWorkUnit(this)))
+					{
+						// Couldn't schedule work so just trigger action being aborted.
+						_boundNode -> decrRef();
+						_boundNode = 0;
+					}
+				}
 			}
 		}
-	}
 
-	if(!_boundNode)
-	{
-		// Action has completed.
-		_complete();
+		// If bound node is non-null at this point then a new work unit was scheduled to process it.
 
-		// No more nodes to traverse so allow this action to be deleted.
-		decrRef();
+		if(!_boundNode)
+		{
+			// Action has completed.
+			_complete();
+
+			// No more nodes to traverse so allow this action to be deleted.
+			decrRef();
+		}
 	}
 }
 
 void GraphAction::__abortWork()
 {
-	// Action is no longer required.
-	// Assume this will make the work units pointer invalid.
-	// TODO ... Assumption breaks encapsulation???
-	blah;
+	// Last scheduled work unit could not be allocated.
+
+	// The bound node has to be decr ref and cleared.
+	if(_boundNode) _boundNode -> decrRef();
+	_boundNode = 0;
+
+	// Even during abort a subclass must be notified.
+	_complete();
+
+	// As this action can no longer traverse, allow this action to be deleted.
 	decrRef();
 }
 

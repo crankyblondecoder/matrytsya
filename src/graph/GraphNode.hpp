@@ -100,10 +100,10 @@ class GraphNode : public RefCounted
 		 */
 		unsigned _linearEdgeAllocCount;
 
-        // Generic lock.
+        /** Generic lock. */
         ThreadMutex _lock;
 
-		// Whether this node is decoupling from the graph.
+		/** Whether this node is decoupling from the graph. */
 		bool _decoupling;
 
         // Do not allow copying.
