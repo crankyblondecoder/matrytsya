@@ -10,7 +10,7 @@ class ThreadUnitTest : public UnitTest
 
 	protected:
 
-		virtual void runTests()
+		virtual void _runTests()
 		{
 			// Standard start / stop.
 
@@ -20,11 +20,11 @@ class ThreadUnitTest : public UnitTest
 			}
 			catch(ThreadException& except)
 			{
-				notifyTestResult("ThreadStartedOkay", false, except.getSubsystemErrorString().c_str());
+				_notifyTestResult("ThreadStartedOkay", false, except.getSubsystemErrorString().c_str());
 				return;
 			}
 
-        	notifyTestResult("ThreadStartedOkay", testThread.getRunning(), "");
+        	_notifyTestResult("ThreadStartedOkay", testThread.getRunning(), "");
 
 			try
 			{
@@ -32,11 +32,11 @@ class ThreadUnitTest : public UnitTest
 			}
 			catch(ThreadException& except)
 			{
-				notifyTestResult("ThreadStoppedOkay", false, except.getSubsystemErrorString().c_str());
+				_notifyTestResult("ThreadStoppedOkay", false, except.getSubsystemErrorString().c_str());
 				return;
 			}
 
-        	notifyTestResult("ThreadStoppedOkay", !testThread.getRunning(), "");
+        	_notifyTestResult("ThreadStoppedOkay", !testThread.getRunning(), "");
 
 			// Re-start, force stop.
 
@@ -46,11 +46,11 @@ class ThreadUnitTest : public UnitTest
 			}
 			catch(ThreadException& except)
 			{
-				notifyTestResult("ThreadReStartedOkay", false, except.getSubsystemErrorString().c_str());
+				_notifyTestResult("ThreadReStartedOkay", false, except.getSubsystemErrorString().c_str());
 				return;
 			}
 
-        	notifyTestResult("ThreadReStartedOkay - getRunning", testThread.getRunning(), "");
+        	_notifyTestResult("ThreadReStartedOkay - getRunning", testThread.getRunning(), "");
 
 			try
 			{
@@ -58,11 +58,11 @@ class ThreadUnitTest : public UnitTest
 			}
 			catch(ThreadException& except)
 			{
-				notifyTestResult("ThreadForceStoppedOkay", false, except.getSubsystemErrorString().c_str());
+				_notifyTestResult("ThreadForceStoppedOkay", false, except.getSubsystemErrorString().c_str());
 				return;
 			}
 
-        	notifyTestResult("ThreadForceStoppedOkay - getRunning", !testThread.getRunning(), "");
+        	_notifyTestResult("ThreadForceStoppedOkay - getRunning", !testThread.getRunning(), "");
 		}
 
 	private:

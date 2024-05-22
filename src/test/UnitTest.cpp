@@ -18,10 +18,10 @@ bool UnitTest::run()
 	cout << "\n" << _indentTabs << "Running:" << _name << "\n";
 
 	// Run main tests first.
-	runTests();
+	_runTests();
 
 	// Post test run hook.
-	postRunTests();
+	_postRunTests();
 
 	// Run child tests after main tests so as to give main tests a chance to test for more broader conditions.
 	bool childResult;
@@ -54,10 +54,10 @@ bool UnitTest::getResult()
 void UnitTest::addChildUnitTest(UnitTest* childUnitTest)
 {
 	_childUnitTests[_numChildUnitTests++] = childUnitTest;
-	childUnitTest -> setLevel(_level + 1);
+	childUnitTest -> _setLevel(_level + 1);
 }
 
-void UnitTest::notifyTestResult(const char* testName, bool result, const char* resultMessage)
+void UnitTest::_notifyTestResult(const char* testName, bool result, const char* resultMessage)
 {
 	_result = _result && result;
 
@@ -75,7 +75,7 @@ void UnitTest::notifyTestResult(const char* testName, bool result, const char* r
 	}
 }
 
-void UnitTest::setLevel(int level)
+void UnitTest::_setLevel(int level)
 {
 	_level = level;
 

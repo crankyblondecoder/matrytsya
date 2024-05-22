@@ -11,7 +11,7 @@ class ThreadConditionUnitTest : public UnitTest
 
 	protected:
 
-		virtual void runTests()
+		virtual void _runTests()
 		{
 			try
 			{
@@ -19,7 +19,7 @@ class ThreadConditionUnitTest : public UnitTest
 			}
 			catch(ThreadException& except)
 			{
-				notifyTestResult("Thread1 StartedOkay", false, except.getSubsystemErrorString().c_str());
+				_notifyTestResult("Thread1 StartedOkay", false, except.getSubsystemErrorString().c_str());
 				return;
 			}
 
@@ -29,7 +29,7 @@ class ThreadConditionUnitTest : public UnitTest
 			}
 			catch(ThreadException& except)
 			{
-				notifyTestResult("Thread2 StartedOkay", false, except.getSubsystemErrorString().c_str());
+				_notifyTestResult("Thread2 StartedOkay", false, except.getSubsystemErrorString().c_str());
 				return;
 			}
 
@@ -54,36 +54,36 @@ class ThreadConditionUnitTest : public UnitTest
 
 				if(testThread1.condWaitError)
 				{
-					notifyTestResult("First ThreadSignalledOkay", false, testThread1.lastCondExcept -> getSubsystemErrorString().c_str());
+					_notifyTestResult("First ThreadSignalledOkay", false, testThread1.lastCondExcept -> getSubsystemErrorString().c_str());
 					return;
 				}
 
 				if(testThread2.condWaitError)
 				{
-					notifyTestResult("First ThreadSignalledOkay", false, testThread1.lastCondExcept -> getSubsystemErrorString().c_str());
+					_notifyTestResult("First ThreadSignalledOkay", false, testThread1.lastCondExcept -> getSubsystemErrorString().c_str());
 					return;
 				}
 			}
 			catch(ThreadException& except)
 			{
-				notifyTestResult("First ThreadSignalledOkay", false, except.getSubsystemErrorString().c_str());
+				_notifyTestResult("First ThreadSignalledOkay", false, except.getSubsystemErrorString().c_str());
 				return;
 			}
 
 			// See if one thread woke up.
 			if(testThread1.condWaiting && testThread2.condWaiting)
 			{
-				notifyTestResult("First ThreadSignalledOkay", false, "Both threads are still waiting on condition.");
+				_notifyTestResult("First ThreadSignalledOkay", false, "Both threads are still waiting on condition.");
 				return;
 			}
 			else if(!testThread1.condWaiting && !testThread2.condWaiting)
 			{
-				notifyTestResult("First ThreadSignalledOkay", false, "Both threads stopped waiting on condition.");
+				_notifyTestResult("First ThreadSignalledOkay", false, "Both threads stopped waiting on condition.");
 				return;
 			}
 			else
 			{
-				notifyTestResult("First ThreadSignalledOkay", true, "");
+				_notifyTestResult("First ThreadSignalledOkay", true, "");
 			}
 
 			// Signal again and make sure the next thread woke up.
@@ -103,29 +103,29 @@ class ThreadConditionUnitTest : public UnitTest
 
 				if(testThread1.condWaitError)
 				{
-					notifyTestResult("Second ThreadSignalledOkay", false, testThread1.lastCondExcept -> getSubsystemErrorString().c_str());
+					_notifyTestResult("Second ThreadSignalledOkay", false, testThread1.lastCondExcept -> getSubsystemErrorString().c_str());
 					return;
 				}
 
 				if(testThread2.condWaitError)
 				{
-					notifyTestResult("Second ThreadSignalledOkay", false, testThread1.lastCondExcept -> getSubsystemErrorString().c_str());
+					_notifyTestResult("Second ThreadSignalledOkay", false, testThread1.lastCondExcept -> getSubsystemErrorString().c_str());
 					return;
 				}
 			}
 			catch(ThreadException& except)
 			{
-				notifyTestResult("Second ThreadSignalledOkay", false, except.getSubsystemErrorString().c_str());
+				_notifyTestResult("Second ThreadSignalledOkay", false, except.getSubsystemErrorString().c_str());
 				return;
 			}
 
 			if(testThread1.condWaiting || testThread2.condWaiting)
 			{
-				notifyTestResult("Second ThreadSignalledOkay", false, "Thread is still waiting on condition.");
+				_notifyTestResult("Second ThreadSignalledOkay", false, "Thread is still waiting on condition.");
 			}
 			else
 			{
-				notifyTestResult("Second ThreadSignalledOkay", true, "");
+				_notifyTestResult("Second ThreadSignalledOkay", true, "");
 			}
 
 			// TODO Get the two test threads to wait on the condition. Broadcast once.
@@ -133,7 +133,7 @@ class ThreadConditionUnitTest : public UnitTest
 			// TODO Get a test thread to wait timeout on the condition. Should come out of wait without having to be signalled.
 		}
 
-		virtual void postRunTests()
+		virtual void _postRunTests()
 		{
 			// Make sure no threads are waiting on condition.
 			threadWaitCond.broadcast();

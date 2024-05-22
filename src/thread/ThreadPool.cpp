@@ -8,7 +8,6 @@
 
 using namespace std;
 
-
 ThreadPool* threadPool = 0;
 
 // TODO How can threads be pre-empted if they run for too long?
@@ -32,6 +31,16 @@ void stopThreadPool()
 
 		delete threadPool;
 	}
+}
+
+bool getThreadPoolHere()
+{
+	if(threadPool)
+	{
+		return threadPool -> _here;
+	}
+
+	return false;
 }
 
 ThreadPool::~ThreadPool()
@@ -61,6 +70,7 @@ ThreadPool::~ThreadPool()
 
 ThreadPool::ThreadPool(unsigned numThreads)
 {
+	_here = false;
 	_workUnitAllocPassInProgress = false;
 	_viableWorkerThreadCount = 0;
 	_numWorkerThreadsFree = 0;
@@ -325,7 +335,7 @@ void ThreadPool::shutdown()
 				ex.getSubsystemErrorString() << "\n";
 		}
 	}
-
+_here = true;
 	// Finally unblock anything still waiting on mutex.
 	_queueCond.unlockMutex();
 }

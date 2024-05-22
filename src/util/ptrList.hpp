@@ -8,58 +8,61 @@
  */
 template <class T> class ptrListItem
 {
-    public:
+	public:
 
-        virtual ~ptrListItem();
+		virtual ~ptrListItem();
 
-        ptrListItem();
-        ptrListItem(const ptrListItem<T>& item);
+		ptrListItem();
+		ptrListItem(const ptrListItem<T>& item);
 
-        ptrListItem (T* ptr, ptrListItem<T>* chain, bool delObjPtdTo, bool insert = false);
+		ptrListItem(T* ptr, ptrListItem<T>* chain, bool delObjPtdTo, bool insert = false);
 
-        ptrListItem<T>& operator= (const ptrListItem<T>& item);
-
-        // Linked list functions.
-        ptrListItem<T>* next();
-        ptrListItem<T>* prev();
-        ptrListItem<T>* first();
-        ptrListItem<T>* last();
+		// Linked list functions.
+		ptrListItem<T>* next();
+		ptrListItem<T>* prev();
+		ptrListItem<T>* first();
+		ptrListItem<T>* last();
 
 		/** Return item at index. */
-        ptrListItem<T>* atIndex(int index);
+		ptrListItem<T>* atIndex(int index);
 
-        void replace (T* ptr, bool delObjPtdTo);
+		void replace(T* ptr, bool delObjPtdTo);
 
-        bool hasItem (T* ptr, bool traverse);
+		bool hasItem(T* ptr, bool traverse);
 
-        virtual ptrListItem<T>* getItem(T* ptr);
+		virtual ptrListItem<T>* getItem(T* ptr);
 
-        T* getPtr();
+		T* getPtr();
 
 		/// Number of items in list.
-        virtual unsigned count();
+		virtual unsigned count();
 
 		/// Link a node into chain after this one.
-        void link(ptrListItem<T>* linkTo, bool next);
+		void link(ptrListItem<T>* linkTo, bool next);
 
 		/// Unlink this node from chain.
-        void unlink();
+		void unlink();
 
 		void unlinkPrev(ptrListItem<T>* newPrev);
-        void unlinkNext(ptrListItem<T>* newNext);
+		void unlinkNext(ptrListItem<T>* newNext);
 
-        void cascadeDelete();  // Whole list is being deleted.
+		void cascadeDelete();  // Whole list is being deleted.
 
-    protected:
+	protected:
 
-        void setNext(ptrListItem<T>* next);
-        void setPrevious(ptrListItem<T>* prev);
+		void setNext(ptrListItem<T>* next);
+		void setPrevious(ptrListItem<T>* prev);
 
-        T* pointer;
-        bool delObj;  // Delete the object this item points to when item is deleted.
+		T* pointer;
+		bool delObj;  // Delete the object this item points to when item is deleted.
 
-        ptrListItem<T>* prevLnk;  // Linked list.
-        ptrListItem<T>* nextLnk;
+		ptrListItem<T>* prevLnk;  // Linked list.
+		ptrListItem<T>* nextLnk;
+
+	private:
+
+		// Assignment is not allowed.
+		ptrListItem<T>& operator= (const ptrListItem<T>& item);
 };
 
 /**
@@ -68,40 +71,40 @@ template <class T> class ptrListItem
  */
 template <class T> class ptrList
 {
-    public:
+	public:
 
-        virtual ~ptrList();
+		virtual ~ptrList();
 
-        ptrList();
-        ptrList(const ptrList<T>& list);
+		ptrList();
+		ptrList(const ptrList<T>& list);
 
-        ptrList<T>& operator= (const ptrList<T>& list);
+		ptrList<T>& operator= (const ptrList<T>& list);
 
-        void copyFrom(const ptrList<T>& list);
+		void copyFrom(const ptrList<T>& list);
 
 		/// Get the first pointer in the list.
-        T* first();
+		T* first();
 
 		/// Get the last pointer in the list.
-        T* last();
+		T* last();
 
 		/// Get the previous pointer in the list.
-        T* prev();
+		T* prev();
 
 		/// Get the next pointer in the list.
-        T* next();
+		T* next();
 
 		/// Get the current pointer in the list.
-        T* current();
+		T* current();
 
 		/**
 	 	 * Make item at index current and return it.
-     	 * @param index Index of pointer to find. Index 0 is first item in list.
+	 	 * @param index Index of pointer to find. Index 0 is first item in list.
 	 	 */
-        T* atIndex(int index);
+		T* atIndex(int index);
 
 		/// Delete all items at once.
-        virtual void clear();
+		virtual void clear();
 
 		/// Delete all pointers after current pointer.
 		virtual void truncate();
@@ -111,789 +114,793 @@ template <class T> class ptrList
 		 * @param ptr Pointer to append.
 		 * @param delObj Delete object ptr points to when list item is deleted.
 		*/
-        virtual void append ( T* ptr, bool delObj );
+		virtual void append(T* ptr, bool delObj);
 
-		virtual void insert ( T* ptr, int index, bool delObj );
-        virtual void replace ( T* ptr, bool delObj );
-        virtual void move ( T* ptr, int toIndex );
-        virtual void move ( int fromIndex, int toIndex ); //!< Move item from one index to another.
-        virtual void move ( T* ptr, T* after );
-        virtual void remove ( T* ptr );
-        virtual void remove();
+		virtual void insert(T* ptr, int index, bool delObj);
+		virtual void replace(T* ptr, bool delObj);
+		virtual void move(T* ptr, int toIndex);
+		virtual void move(int fromIndex, int toIndex); //!< Move item from one index to another.
+		virtual void move(T* ptr, T* after);
+		virtual void remove(T* ptr);
+		virtual void remove();
 
 		/** Return True if Item "ptr" is Part of List */
-        virtual bool hasItem ( T* ptr );
+		virtual bool hasItem(T* ptr);
 
 		/** Find Item's Index. */
-        virtual int itemIndex ( T* ptr );
+		virtual int itemIndex(T* ptr);
 
-        virtual unsigned count();
+		virtual unsigned count();
 
-    protected:
+	protected:
 
 		/// Current ptrListItem.
-        ptrListItem<T>* cItem;
+		ptrListItem<T>* cItem;
 
 		/// First item in list.
-        ptrListItem<T>* fItem;
+		ptrListItem<T>* fItem;
 };
 
 // *** Implementation - Appears here so any type can be used ***
 
 template <class T> ptrListItem<T>::~ptrListItem()
 {
-    // Delete object pointed to if required.
-    if ( delObj && pointer ) delete pointer;
+	// Delete object pointed to if required.
+	if (delObj && pointer) delete pointer;
 
-    // Unlink this item from chain.
-    unlink();
+	// Unlink this item from chain.
+	unlink();
 }
 
-template < class T > ptrListItem<T>::ptrListItem()
+template <class T> ptrListItem<T>::ptrListItem()
 {
-    pointer = 0;
-    prevLnk = 0;
-    nextLnk = 0;
+	pointer = 0;
+	prevLnk = 0;
+	nextLnk = 0;
 }
 
-template < class T > ptrListItem<T>::ptrListItem ( const ptrListItem<T>& item )
+template <class T> ptrListItem<T>::ptrListItem(const ptrListItem<T>& item)
 {
-    // Copy constructor.
-    // -----------------
-    // Notes:   Copies pointer NOT the object being pointed to.
+	// Copy constructor.
+	// -----------------
+	// Notes:   Copies pointer NOT the object being pointed to.
 
-    pointer = item.pointer;
+	pointer = item.pointer;
 
-    delObj = false;  // The pointer is being copied so don't mark it for deletion.
+	delObj = false;  // The pointer is being copied so don't mark it for deletion.
 
-    prevLnk = 0;
-    nextLnk = 0;
+	prevLnk = 0;
+	nextLnk = 0;
 }
 
-template < class T > ptrListItem<T>::ptrListItem ( T* ptr, ptrListItem<T>* chain, bool delObjPtdTo, bool insert )
+template <class T> ptrListItem<T>::ptrListItem(T* ptr, ptrListItem<T>* chain, bool delObjPtdTo, bool insert)
 {
-    // Constructor
-    // -----------
-    // ptr:         Pointer to store.
-    // chain:       ptrListItem to link to or to insert this item before.
-    // delObjPtdTo: Delete object this item points to when item is deleted.
-    // insert:      Insert into list instead of the default which is to append at the end.
+	// Constructor
+	// -----------
+	// ptr:         Pointer to store.
+	// chain:       ptrListItem to link to or to insert this item before.
+	// delObjPtdTo: Delete object this item points to when item is deleted.
+	// insert:      Insert into list instead of the default which is to append at the end.
 
-    pointer = ptr;
-    delObj = delObjPtdTo;
+	pointer = ptr;
+	delObj = delObjPtdTo;
 
-    // Set next link.
+	// Set next link.
 
-    if ( insert && chain )
-    {
-        nextLnk = chain;
-    }
-    else
-    {
-        // Put at end of chain.
-        nextLnk = 0;
-    }
+	if(insert && chain)
+	{
+		nextLnk = chain;
+	}
+	else
+	{
+		// Put at end of chain.
+		nextLnk = 0;
+	}
 
-    // Set previous link.
+	// Set previous link.
 
-    if ( chain )
-    {
-        if ( insert )
-        {
-            prevLnk = chain -> prev();
+	if(chain)
+	{
+		if(insert)
+		{
+			prevLnk = chain -> prev();
 
-            if ( chain -> prev() )
-                ( chain -> prev() ) -> setNext ( this );
-            else
-                chain -> setPrevious ( this );
-        }
-        else
-        {
-            prevLnk = chain -> last();
+			if(chain -> prev())
+			{
+				(chain -> prev()) -> setNext(this);
+			}
+			else
+			{
+				chain -> setPrevious(this);
+			}
+		}
+		else
+		{
+			prevLnk = chain -> last();
 
-            // Link into chain.
-            ( chain -> last() ) -> setNext ( this );
-        }
-    }
-    else
-        prevLnk = 0;
+			// Link into chain.
+			(chain -> last()) -> setNext(this);
+		}
+	}
+	else
+	{
+		prevLnk = 0;
+	}
 }
 
-template < class T > ptrListItem<T>& ptrListItem<T>::operator= ( const ptrListItem<T>& item )
+template <class T> ptrListItem<T>* ptrListItem<T>::next()
 {
-    // Assignment Operator.
-    // --------------------
-
-    if ( this != & item )
-    {
-        if ( delObj && pointer ) delete pointer;
-
-        // Assume control of the pointer but don't use items linkage.
-
-        pointer = item.pointer;
-
-        delObj = item.delObj;
-
-        item.delObj = false;
-    }
-
-    return *this;
+	return nextLnk;
 }
 
-template < class T > ptrListItem<T>* ptrListItem<T>::next()
+template <class T> ptrListItem<T>* ptrListItem<T>::prev()
 {
-    return nextLnk;
-}
-
-template < class T > ptrListItem<T>* ptrListItem<T>::prev()
-{
-    return prevLnk;
+	return prevLnk;
 }
 
 template <class T> ptrListItem<T>* ptrListItem<T>::first()
 {
-    ptrListItem* cSelect;
-    ptrListItem* rSelect = 0;
+	ptrListItem* cSelect;
+	ptrListItem* rSelect = 0;
 
-    if(prevLnk)
+	if(prevLnk)
 	{
-        cSelect = prevLnk;
+		cSelect = prevLnk;
 	}
-    else
-    {
-        cSelect = 0;
-        rSelect = this;
-    }
+	else
+	{
+		cSelect = 0;
+		rSelect = this;
+	}
 
-    while(cSelect)
-    {
-        rSelect = cSelect;
-        cSelect = cSelect -> prev();
-    }
+	while(cSelect)
+	{
+		rSelect = cSelect;
+		cSelect = cSelect -> prev();
+	}
 
-    return rSelect;
+	return rSelect;
 }
 
 template <class T> ptrListItem<T>* ptrListItem<T>::last()
 {
-    ptrListItem* cSelect;
-    ptrListItem* rSelect = 0;
+	ptrListItem* cSelect;
+	ptrListItem* rSelect = 0;
 
-    if(nextLnk)
+	if(nextLnk)
 	{
-        cSelect = nextLnk;
+		cSelect = nextLnk;
 	}
-    else
-    {
-        cSelect = 0;
-        rSelect = this;
-    }
+	else
+	{
+		cSelect = 0;
+		rSelect = this;
+	}
 
-    while(cSelect)
-    {
-        rSelect = cSelect;
-        cSelect = cSelect -> next();
-    }
+	while(cSelect)
+	{
+		rSelect = cSelect;
+		cSelect = cSelect -> next();
+	}
 
-    return rSelect;
+	return rSelect;
 }
 
 template <class T> ptrListItem<T>* ptrListItem<T>::atIndex(int index)
 {
-    ptrListItem<T>* itm = first();
-    int count = 0;
+	ptrListItem<T>* itm = first();
+	int count = 0;
 
-    while(itm && count < index)
-    {
-        count ++;
-        itm = itm -> next();
-    }
+	while(itm && count < index)
+	{
+		count ++;
+		itm = itm -> next();
+	}
 
-    return itm;
+	return itm;
 }
 
-template < class T > bool ptrListItem<T>::hasItem ( T* ptr, bool traverse )
+template <class T> bool ptrListItem<T>::hasItem(T* ptr, bool traverse)
 {
-    // Does the chain of items hold given pointer
-    // ------------------------------------------
-    // ptr:         Pointer to item.
-    // traverse:    Move forward through primSelects linked by the "next" variable.
+	// Does the chain of items hold given pointer
+	// ------------------------------------------
+	// ptr:         Pointer to item.
+	// traverse:    Move forward through primSelects linked by the "next" variable.
 
-    if ( ptr == pointer ) return true;  // Don't process anymore already found match.
+	if(ptr == pointer) return true;  // Don't process anymore already found match.
 
-    if ( ! traverse ) return false;  // No point in continuing traverse is false.
+	if(!traverse) return false;  // No point in continuing traverse is false.
 
-    bool found = false;
+	bool found = false;
 
-    ptrListItem<T>* itm = next();
+	ptrListItem<T>* itm = next();
 
-    while ( itm && ( ! found ) )
-    {
-        found =  itm -> hasItem ( ptr, false );
+	while(itm && (!found))
+	{
+		found =  itm -> hasItem(ptr, false);
 
-        itm = itm -> next();
-    }
+		itm = itm -> next();
+	}
 
-    return found;
+	return found;
 }
 
-template < class T > ptrListItem<T>* ptrListItem<T>::getItem ( T* ptr )
+template <class T> ptrListItem<T>* ptrListItem<T>::getItem(T* ptr)
 {
-    // Get item if pointer is part of list
-    // -----------------------------------
-    // ptr:     Pointer to search for.
-    //
-    // Notes:   Only a forward traversal is performed.
+	// Get item if pointer is part of list
+	// -----------------------------------
+	// ptr:     Pointer to search for.
+	//
+	// Notes:   Only a forward traversal is performed.
 
-    if ( ptr == pointer ) return this;  // Don't process anymore already found match.
+	if(ptr == pointer) return this;  // Don't process anymore already found match.
 
-    bool found = false;
+	bool found = false;
 
-    ptrListItem<T>* itemFound = 0;
+	ptrListItem<T>* itemFound = 0;
 
-    ptrListItem<T>* itm = next();
+	ptrListItem<T>* itm = next();
 
-    while ( itm && ( ! found ) )
-    {
-        found = itm -> hasItem ( ptr, false );
+	while(itm && (!found))
+	{
+		found = itm -> hasItem(ptr, false);
 
-        if ( found ) itemFound = itm;
+		if(found) itemFound = itm;
 
-        itm = itm -> next();
-    }
+		itm = itm -> next();
+	}
 
-    return itemFound;
+	return itemFound;
 }
 
-template < class T > unsigned ptrListItem<T>::count()
+template <class T> unsigned ptrListItem<T>::count()
 {
-    // Return number of nodes in list
-    // ------------------------------
+	// Return number of nodes in list
+	// ------------------------------
 
-    ptrListItem<T>* itm = first();
-    unsigned count = 0;
+	ptrListItem<T>* itm = first();
+	unsigned count = 0;
 
-    while ( itm )
-    {
-        count ++;
-        itm = itm -> next();
-    }
+	while(itm)
+	{
+		count ++;
+		itm = itm -> next();
+	}
 
-    return count;
+	return count;
 }
 
-template < class T > void ptrListItem<T>::setNext ( ptrListItem<T>* next )
+template <class T> void ptrListItem<T>::setNext(ptrListItem<T>* next)
 {
-    // Set the "next" node of this node.
-    // ---------------------------------
+	// Set the "next" node of this node.
+	// ---------------------------------
 
-    if ( next == nextLnk ) return;  // Stops recursive endless loop.
+	if(next == nextLnk) return;  // Stops recursive endless loop.
 
-    ptrListItem<T>* oldNext = nextLnk;
+	ptrListItem<T>* oldNext = nextLnk;
 
-    nextLnk = next;
+	nextLnk = next;
 
-    // If there is already a next node reset it's previous to the new node.
-    if ( oldNext ) oldNext -> setPrevious ( next );
+	// If there is already a next node reset it's previous to the new node.
+	if(oldNext) oldNext -> setPrevious(next);
 }
 
-template < class T > void ptrListItem<T>::setPrevious ( ptrListItem<T>* prev )
+template <class T> void ptrListItem<T>::setPrevious(ptrListItem<T>* prev)
 {
 
-    // Set the previous node to "prev"
-    // -------------------------------
+	// Set the previous node to "prev"
+	// -------------------------------
 
-    if ( prev == prevLnk ) return;
+	if(prev == prevLnk) return;
 
-    ptrListItem<T>* oldPrev = prevLnk;
+	ptrListItem<T>* oldPrev = prevLnk;
 
-    prevLnk = prev;
+	prevLnk = prev;
 
-    // If there is already a previous node then reset it's next to this node.
-    if ( oldPrev ) oldPrev -> setNext ( prev );
+	// If there is already a previous node then reset it's next to this node.
+	if(oldPrev) oldPrev -> setNext(prev);
 }
 
-template < class T > void ptrListItem<T>::link ( ptrListItem<T>* linkTo, bool next )
+template <class T> void ptrListItem<T>::link(ptrListItem<T>* linkTo, bool next)
 {
-    // Link a node into chain after this one.
-    // --------------------------------------
-    // linkTo:    Node to link to.
-    // next:      If true then link node after this one otherwise before this one.
+	// Link a node into chain after this one.
+	// --------------------------------------
+	// linkTo:    Node to link to.
+	// next:      If true then link node after this one otherwise before this one.
 
-    if ( next )
-    {
-        if ( nextLnk )
-        {
-            linkTo -> setNext ( nextLnk );
+	if(next)
+	{
+		if(nextLnk)
+		{
+			linkTo -> setNext(nextLnk);
 
-            nextLnk -> setPrevious ( linkTo );
-        }
+			nextLnk -> setPrevious(linkTo);
+		}
 
-        linkTo -> setPrevious ( this );
+		linkTo -> setPrevious(this);
 
-        nextLnk = linkTo;
-    }
-    else
-    {
-        if ( prevLnk )
-        {
-            linkTo -> setPrevious ( prevLnk );
+		nextLnk = linkTo;
+	}
+	else
+	{
+		if(prevLnk)
+		{
+			linkTo -> setPrevious(prevLnk);
 
-            prevLnk -> setNext ( linkTo );
-        }
+			prevLnk -> setNext(linkTo);
+		}
 
-        linkTo -> setNext ( this );
+		linkTo -> setNext(this);
 
-        prevLnk = linkTo;
-    }
+		prevLnk = linkTo;
+	}
 }
 
-template < class T > void ptrListItem<T>::unlink()
+template <class T> void ptrListItem<T>::unlink()
 {
-    // Unlink this object from chain
-    // -----------------------------
+	// Unlink this object from chain
+	// -----------------------------
 
-    if ( prevLnk ) prevLnk -> unlinkNext ( nextLnk );
-    if ( nextLnk ) nextLnk -> unlinkPrev ( prevLnk );
+	if(prevLnk) prevLnk -> unlinkNext(nextLnk);
+	if(nextLnk) nextLnk -> unlinkPrev(prevLnk);
 
-    nextLnk = 0;
-    prevLnk = 0;
+	nextLnk = 0;
+	prevLnk = 0;
 }
 
-template < class T > void ptrListItem<T>::unlinkNext ( ptrListItem<T>* newNext )
+template <class T> void ptrListItem<T>::unlinkNext(ptrListItem<T>* newNext)
 {
-    // Unlink the next object in chain
-    // -------------------------------
-    // newNext:     The object which is now being linked as next.
+	// Unlink the next object in chain
+	// -------------------------------
+	// newNext:     The object which is now being linked as next.
 
-    nextLnk = newNext;
+	nextLnk = newNext;
 }
 
-template < class T > void ptrListItem<T>::unlinkPrev ( ptrListItem<T>* newPrev )
+template <class T> void ptrListItem<T>::unlinkPrev(ptrListItem<T>* newPrev)
 {
-    // Unlink the prev object in chain
-    // -------------------------------
-    // newPrev:     The object which is now being linked as prev.
+	// Unlink the prev object in chain
+	// -------------------------------
+	// newPrev:     The object which is now being linked as prev.
 
-    prevLnk = newPrev;
+	prevLnk = newPrev;
 }
 
-template < class T > T* ptrListItem<T>::getPtr()
+template <class T> T* ptrListItem<T>::getPtr()
 {
-    return pointer;
+	return pointer;
 }
 
-template < class T > void ptrListItem<T>::cascadeDelete()
+template <class T> void ptrListItem<T>::cascadeDelete()
 {
-    // Cascade down the linked list to delete entire list.
-    // ---------------------------------------------------
+	// Cascade down the linked list to delete entire list.
+	// ---------------------------------------------------
 
-    if ( nextLnk )
-    {
-        nextLnk -> cascadeDelete();
-        delete nextLnk;
-    }
+	if(nextLnk)
+	{
+		nextLnk -> cascadeDelete();
+		delete nextLnk;
+	}
 }
 
-template < class T > void ptrListItem<T>::replace ( T* ptr, bool delObjPtdTo )
+template <class T> void ptrListItem<T>::replace(T* ptr, bool delObjPtdTo)
 {
-    // Replace object pointed to with ptr.
-    // -----------------------------------
-    // ptr:             New object to point to.
-    // delObjPtdTo:     Owns pointer and can / should delete it.
+	// Replace object pointed to with ptr.
+	// -----------------------------------
+	// ptr:             New object to point to.
+	// delObjPtdTo:     Owns pointer and can / should delete it.
 
-    if ( pointer && delObj )
-        delete pointer;
+	if(pointer && delObj) delete pointer;
 
-    pointer = ptr;
+	pointer = ptr;
 
-    delObj = delObjPtdTo;
+	delObj = delObjPtdTo;
 }
 
 // *** Pointer List Object ***
 
-template < class T > ptrList<T>::~ptrList()
+template <class T> ptrList<T>::~ptrList()
 {
-    if ( ! cItem ) return;
+	if(! cItem) return;
 
-    // Delete all associated items.
+	// Delete all associated items.
 
-    ptrListItem<T>* delItem = cItem -> last();
-    ptrListItem<T>* prevItem;
+	ptrListItem<T>* delItem = cItem -> last();
+	ptrListItem<T>* prevItem;
 
-    while ( delItem )
-    {
-        prevItem = delItem -> prev();
-        delete delItem;
-        delItem = prevItem;
-    }
+	while(delItem)
+	{
+		prevItem = delItem -> prev();
+		delete delItem;
+		delItem = prevItem;
+	}
 }
 
-template < class T > ptrList<T>::ptrList()
+template <class T> ptrList<T>::ptrList()
 {
-    cItem = 0;
-    fItem = 0;
+	cItem = 0;
+	fItem = 0;
 }
 
-template < class T > ptrList<T>::ptrList ( const ptrList<T>& list )
+template <class T> ptrList<T>::ptrList(const ptrList<T>& list)
 {
-    // Copy Constructor.
-    // -----------------
+	// Copy Constructor.
+	// -----------------
 
-    copyFrom ( list );
+	copyFrom(list);
 }
 
-template < class T > ptrList<T>& ptrList<T>::operator= ( const ptrList<T>& list )
+template <class T> ptrList<T>& ptrList<T>::operator= (const ptrList<T>& list)
 {
-    clear();
+	clear();
 
-    copyFrom ( list );
+	copyFrom(list);
 }
 
-template < class T > void ptrList<T>::copyFrom ( const ptrList<T>& list )
+template <class T> void ptrList<T>::copyFrom (const ptrList<T>& list)
 {
-    // Copy contents of list into this.
-    // --------------------------------
+	// Copy contents of list into this.
+	// --------------------------------
 
-    cItem = 0;
-    fItem = 0;
+	cItem = 0;
+	fItem = 0;
 
-    ptrListItem<T>* itemToCopy = list.fItem;
+	ptrListItem<T>* itemToCopy = list.fItem;
 
-    ptrListItem<T>* newItem;
+	ptrListItem<T>* newItem;
 
-    ptrListItem<T>* newCItem;
+	ptrListItem<T>* newCItem;
 
-    // Copy pointers across but they can't be automatically deleted.
+	// Copy pointers across but they can't be automatically deleted.
 
-    while ( itemToCopy )
-    {
-        newItem = new ptrListItem<T> ( itemToCopy -> getPtr(), cItem, false, false );
+	while(itemToCopy)
+	{
+		newItem = new ptrListItem<T>(itemToCopy -> getPtr(), cItem, false, false);
 
-        if ( ! fItem ) fItem = newItem;
+		if(!fItem) fItem = newItem;
 
-        if ( itemToCopy == list.cItem ) newCItem = newItem;
+		if(itemToCopy == list.cItem) newCItem = newItem;
 
-        itemToCopy = itemToCopy -> next();
-    }
+		itemToCopy = itemToCopy -> next();
+	}
 
-    // Point new list to same position.
-    cItem = newCItem;
+	// Point new list to same position.
+	cItem = newCItem;
 }
 
-template < class T > void ptrList<T>::clear()
+template <class T> void ptrList<T>::clear()
 {
-    if ( ! cItem ) return;
+	if(!cItem) return;
 
-    ptrListItem<T>* delItem = cItem -> last();
-    ptrListItem<T>* prevItem;
+	ptrListItem<T>* delItem = cItem -> last();
+	ptrListItem<T>* prevItem;
 
-    while ( delItem )
-    {
-        prevItem = delItem -> prev();
-        delete delItem;
-        delItem = prevItem;
-    }
+	while(delItem)
+	{
+		prevItem = delItem -> prev();
+		delete delItem;
+		delItem = prevItem;
+	}
 
-    cItem = 0;
-    fItem = 0;
+	cItem = 0;
+	fItem = 0;
 }
 
-template < class T > void ptrList<T>::truncate()
+template <class T> void ptrList<T>::truncate()
 {
-    if ( cItem )
-        cItem -> cascadeDelete();
+	if(cItem) cItem -> cascadeDelete();
 }
 
-template < class T > void ptrList<T>::append ( T* ptr, bool delObj )
+template <class T> void ptrList<T>::append(T* ptr, bool delObj)
 {
-    ptrListItem<T>* item = new ptrListItem<T> ( ptr, cItem, delObj );
+	ptrListItem<T>* item = new ptrListItem<T>(ptr, cItem, delObj);
 
-    cItem = item;
+	cItem = item;
 
-    if ( ! item -> prev() ) fItem = item;
+	if(! item -> prev()) fItem = item;
 }
 
-template < class T > void ptrList<T>::insert ( T* ptr, int index, bool delObj )
+template <class T> void ptrList<T>::insert(T* ptr, int index, bool delObj)
 {
-    // Insert pointer into list
-    // ------------------------
-    // ptr:     Pointer to append.
-    // index:   Index to insert new pointer into.
-    // delObj:  Delete object ptr points to when list item is deleted.
+	// Insert pointer into list
+	// ------------------------
+	// ptr:     Pointer to append.
+	// index:   Index to insert new pointer into.
+	// delObj:  Delete object ptr points to when list item is deleted.
 
-    ptrListItem<T>* item;
+	ptrListItem<T>* item;
 
-    if ( this -> atIndex ( index ) )  // atIndex will set the current item to the one found at the index.
-        item = new ptrListItem<T> ( ptr, cItem, delObj, true );
-    else
-        item = new ptrListItem<T> ( ptr, cItem, delObj, false );
+	// atIndex will set the current item to the one found at the index.
+	if(this -> atIndex(index))
+	{
+		item = new ptrListItem<T>(ptr, cItem, delObj, true);
+	}
+	else
+	{
+		item = new ptrListItem<T>(ptr, cItem, delObj, false);
+	}
 
-    cItem = item;
+	cItem = item;
 
-    if ( ! item -> prev() ) fItem = item;
+	if(!item -> prev()) fItem = item;
 }
 
-template < class T > void ptrList<T>::replace ( T* ptr, bool delObj )
+template <class T> void ptrList<T>::replace(T* ptr, bool delObj)
 {
-    // Replace current items pointer with ptr.
-    // ---------------------------------------
-    // ptr:         Pointer to now use.
-    // delObj:      List owns object.
+	// Replace current items pointer with ptr.
+	// ---------------------------------------
+	// ptr:         Pointer to now use.
+	// delObj:      List owns object.
 
-    if ( cItem )
-        cItem -> replace ( ptr, delObj );
+	if(cItem) cItem -> replace(ptr, delObj);
 }
 
-template < class T > void ptrList<T>::move ( T* ptr, int toIndex )
+template <class T> void ptrList<T>::move(T* ptr, int toIndex)
 {
-    // Move pointer to different position in list.
-    // -------------------------------------------
-    // ptr:        Pointer to move within list.
-    // toIndex:    Index to move item to.
+	// Move pointer to different position in list.
+	// -------------------------------------------
+	// ptr:        Pointer to move within list.
+	// toIndex:    Index to move item to.
 
-    if ( ! cItem ) return;
+	if(!cItem) return;
 
-    int fromIndex = itemIndex ( ptr );
+	int fromIndex = itemIndex(ptr);
 
-    move ( fromIndex, toIndex );
+	move(fromIndex, toIndex);
 }
 
-template < class T > void ptrList<T>::move ( int fromIndex, int toIndex )
+template <class T> void ptrList<T>::move(int fromIndex, int toIndex)
 {
-    //! @param fromIndex Index to move from.
-    //! @param toIndex Index to move to.
+	//! @param fromIndex Index to move from.
+	//! @param toIndex Index to move to.
 
-    if ( ! cItem ) return;
+	if(!cItem) return;
 
-    ptrListItem<T>* itemToMove = cItem -> atIndex ( fromIndex );
+	ptrListItem<T>* itemToMove = cItem -> atIndex(fromIndex);
 
-    if ( itemToMove )
-    {
-        ptrListItem<T>* itemAtPosition = cItem -> atIndex ( toIndex );
+	if(itemToMove)
+	{
+		ptrListItem<T>* itemAtPosition = cItem -> atIndex(toIndex);
 
-        if ( itemAtPosition && itemToMove != itemAtPosition )
-        {
-            if ( ! itemToMove -> prev() ) fItem = itemToMove -> next(); // itemToMove was the first item.
+		if(itemAtPosition && itemToMove != itemAtPosition)
+		{
+			if(!itemToMove -> prev()) fItem = itemToMove -> next(); // itemToMove was the first item.
 
-            itemToMove -> unlink();
+			itemToMove -> unlink();
 
-            if ( fromIndex < toIndex )
-                itemAtPosition -> link ( itemToMove, true ); // itemToMove was before itemAtPosition.
-            else
-                itemAtPosition -> link ( itemToMove, false );
+			if(fromIndex < toIndex)
+			{
+				// itemToMove was before itemAtPosition.
+				itemAtPosition -> link(itemToMove, true);
+			}
+			else
+			{
+				itemAtPosition -> link(itemToMove, false);
+			}
 
-            if ( ! itemToMove -> prev() ) fItem = itemToMove; // itemToMove is now the first item.
-        }
-    }
+			if(!itemToMove -> prev()) fItem = itemToMove; // itemToMove is now the first item.
+		}
+	}
 }
 
-template < class T > void ptrList<T>::move ( T* ptr, T* toPositionOf )
+template <class T> void ptrList<T>::move(T* ptr, T* toPositionOf)
 {
-    // Move pointer to different position in list.
-    // -------------------------------------------
-    // ptr:            Pointer to move within list.
-    // toPositionOf:   Move into position in list that this pointer occupies.
+	// Move pointer to different position in list.
+	// -------------------------------------------
+	// ptr:            Pointer to move within list.
+	// toPositionOf:   Move into position in list that this pointer occupies.
 
-    if ( ! cItem ) return;
+	if(!cItem) return;
 
-    if ( ptr == toPositionOf ) return;
+	if(ptr == toPositionOf) return;
 
-    ptrListItem<T>* itemToMove = cItem -> getItem ( ptr );
+	ptrListItem<T>* itemToMove = cItem -> getItem(ptr);
 
-    ptrListItem<T>* itemAtPosition = cItem -> getItem ( toPositionOf );
+	ptrListItem<T>* itemAtPosition = cItem -> getItem(toPositionOf);
 
-    if ( itemToMove && itemAtPosition )
-    {
-        if ( ! itemToMove -> prev() ) fItem = itemToMove -> next(); // itemToMove is the first item.
+	if(itemToMove && itemAtPosition)
+	{
+		if(!itemToMove -> prev()) fItem = itemToMove -> next(); // itemToMove is the first item.
 
-        itemToMove -> unlink();
+		itemToMove -> unlink();
 
-        itemAtPosition -> link ( itemToMove, false );
+		itemAtPosition -> link(itemToMove, false);
 
-        cItem = itemToMove;
+		cItem = itemToMove;
 
-        if ( ! itemToMove -> prev() ) fItem = itemToMove;
-    }
+		if (!itemToMove -> prev()) fItem = itemToMove;
+	}
 }
 
-template < class T > void ptrList<T>::remove ( T* ptr )
+template <class T> void ptrList<T>::remove(T* ptr)
 {
-    // Remove pointer from list
-    // ------------------------
-    // ptr:     Pointer to remove.
+	// Remove pointer from list
+	// ------------------------
+	// ptr:     Pointer to remove.
 
-    if ( cItem )
-    {
-        ptrListItem<T>* item = fItem -> getItem ( ptr );
+	if(cItem)
+	{
+		ptrListItem<T>* item = fItem -> getItem(ptr);
 
-        if ( item )
-        {
-            if ( cItem == item )
-            {
-                // About to delete the current item so get new cItem.
-                if ( item -> prev() )
-                    cItem = item -> prev();  // Make current item previous in list.
-                else
-                    cItem = item -> next();  // If no previous in list then make current item next in list.
-            }
+		if(item)
+		{
+			if(cItem == item)
+			{
+				// About to delete the current item so get new cItem.
+				if(item -> prev())
+				{
+					// Make current item previous in list.
+					cItem = item -> prev();
+				}
+				else
+				{
+					// If no previous in list then make current item next in list.
+					cItem = item -> next();
+				}
+			}
 
-            if ( fItem == item ) // Deleting first item so set new first item.
-                fItem = item -> next();
+			// Deleting first item so set new first item.
+			if(fItem == item) fItem = item -> next();
 
-            delete item;
-        }
-    }
+			delete item;
+		}
+	}
 }
 
 /**
  * Remove current item from list
  */
-template < class T > void ptrList<T>::remove()
+template <class T> void ptrList<T>::remove()
 {
-    if ( ! cItem ) return;
+	if(!cItem) return;
 
-    ptrListItem<T>* prevItem = cItem -> prev();
-    ptrListItem<T>* nextItem = cItem -> next();
+	ptrListItem<T>* prevItem = cItem -> prev();
+	ptrListItem<T>* nextItem = cItem -> next();
 
-    delete cItem;
+	delete cItem;
 
-    if ( nextItem )
-    {
-        cItem = nextItem;
-        if ( !prevItem ) fItem = nextItem;
-    }
-    else if ( prevItem )
-        cItem = prevItem;
-    else
-    {
-        cItem = 0;
-        fItem = 0;
-    }
+	if(nextItem)
+	{
+		cItem = nextItem;
+		if(!prevItem) fItem = nextItem;
+	}
+	else if(prevItem)
+	{
+		cItem = prevItem;
+	}
+	else
+	{
+		cItem = 0;
+		fItem = 0;
+	}
 }
 
 template <class T> T* ptrList<T>::first()
 {
-    if(cItem)
-    {
-        cItem = fItem;
-        return (cItem -> getPtr());
-    }
+	if(cItem)
+	{
+		cItem = fItem;
+		return (cItem -> getPtr());
+	}
 
-    return 0;
+	return 0;
 }
 
-template < class T > T* ptrList<T>::last()
+template <class T> T* ptrList<T>::last()
 {
-    if ( cItem )
-    {
-        ptrListItem<T>* item = cItem -> last();
-        cItem = item;
-        return ( item -> getPtr() );
-    }
+	if(cItem)
+	{
+		ptrListItem<T>* item = cItem -> last();
+		cItem = item;
+		return (item -> getPtr());
+	}
 
-    return 0;
+	return 0;
 }
 
-template < class T > T* ptrList<T>::prev()
+template <class T> T* ptrList<T>::prev()
 {
-    if ( cItem )
-    {
-        ptrListItem<T>* item = cItem -> prev();
+	if(cItem)
+	{
+		ptrListItem<T>* item = cItem -> prev();
 
-        if ( item )
-        {
-            cItem = item;
-            return ( item -> getPtr() );
-        }
-        else
-            return 0;
-    }
+		if(item)
+		{
+			cItem = item;
+			return (item -> getPtr());
+		}
+		else
+		{
+			return 0;
+		}
+	}
 
-    return 0;
+	return 0;
 }
 
-template < class T > T* ptrList<T>::next()
+template <class T> T* ptrList<T>::next()
 {
-    if ( cItem )
-    {
-        ptrListItem<T>* item = cItem -> next();
+	if(cItem)
+	{
+		ptrListItem<T>* item = cItem -> next();
 
-        if ( item )
-        {
-            cItem = item;
-            return ( item -> getPtr() );
-        }
-        else
-            return 0;
-    }
+		if(item)
+		{
+			cItem = item;
+			return (item -> getPtr());
+		}
+		else
+		{
+			return 0;
+		}
+	}
 
-    return 0;
+	return 0;
 }
 
-template < class T > unsigned ptrList<T>::count()
+template <class T> unsigned ptrList<T>::count()
 {
-    if ( cItem )
-        return ( cItem -> count() );
+	if(cItem) return ( cItem -> count() );
 
-    return 0;
+	return 0;
 }
 
-template < class T > T* ptrList<T>::current()
+template <class T> T* ptrList<T>::current()
 {
-    // Get current item
-    // ----------------
+	// Get current item
+	// ----------------
 
-    if ( cItem )
-        return ( cItem -> getPtr() );
+	if(cItem) return (cItem -> getPtr());
 
-    return 0;
+	return 0;
 }
 
-template < class T > T* ptrList<T>::atIndex(int index)
+template <class T> T* ptrList<T>::atIndex(int index)
 {
-    if ( cItem )
-    {
-        ptrListItem<T>* item = cItem -> atIndex ( index );
+	if(cItem)
+	{
+		ptrListItem<T>* item = cItem -> atIndex(index);
 
-        if ( item )
-        {
-            cItem = item;
-            return ( item -> getPtr() );
-        }
-        else
-            return 0;
-    }
+		if(item)
+		{
+			cItem = item;
+			return (item -> getPtr());
+		}
+		else
+		{
+			return 0;
+		}
+	}
 
-    return 0;
+	return 0;
 }
 
 template <class T> bool ptrList<T>::hasItem(T* ptr)
 {
-    if(fItem)
-    {
-        return fItem -> hasItem(ptr, true);
-    }
+	if(fItem)
+	{
+		return fItem -> hasItem(ptr, true);
+	}
 
-    return false;
+	return false;
 }
 
 template <class T> int ptrList<T>::itemIndex(T* ptr)
 {
-    if(!fItem) return -1;
+	if(!fItem) return -1;
 
-    ptrListItem<T>* item = fItem;
+	ptrListItem<T>* item = fItem;
 
-    int index = 0;
+	int index = 0;
 
-    while(item && (item -> getPtr() != ptr))
-    {
-        index ++;
+	while(item && (item -> getPtr() != ptr))
+	{
+		index ++;
 
-        item = item -> next();
-    }
+		item = item -> next();
+	}
 
-    return index;
+	return index;
 }
 
 #endif

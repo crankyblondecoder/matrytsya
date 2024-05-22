@@ -50,6 +50,9 @@ class ThreadPool : private Thread
 		 */
 		void shutdown();
 
+		/** For debug. */
+		bool _here;
+
     protected:
 
 		void threadEntry();
@@ -100,5 +103,8 @@ void startThreadPool(unsigned numThreads);
  * Stop and release the current thread pool.
  */
 void stopThreadPool();
+
+/** Debug marker. */
+bool getThreadPoolHere();
 
 #endif

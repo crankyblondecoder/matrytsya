@@ -44,7 +44,7 @@ class UnitTest
 		 * Handle ctrl-c whic was invoked on all tests.
 		 * @note Use this to dump information.
 		 */
-		void handleCtrlC();
+		virtual void handleCtrlC();
 
 	protected:
 
@@ -52,12 +52,12 @@ class UnitTest
 		 * Run the tests that make up this unit test.
 		 * Must be implemented by subclass.
 		 */
-		virtual void runTests() = 0;
+		virtual void _runTests() = 0;
 
 		/**
 		 * Hook to allow post processing after tests are run.
 		 */
-		virtual void postRunTests() {};
+		virtual void _postRunTests() {};
 
 		/**
 		 * Indicate pass/fail state of individual test that is part of overall unit test.
@@ -66,14 +66,14 @@ class UnitTest
 		 * @param result True for test passing. False if it didn't.
 		 * @param resultMessage Message to annotate result.
 		 */
-		void notifyTestResult(const char* testName, bool result, const char* resultMessage);
+		void _notifyTestResult(const char* testName, bool result, const char* resultMessage);
 
 		/**
 		 * Set the nested level of this unit test.
 		 * ie How far down the unit test hierachy it resides.
 		 * @param level Nested level to set.
 		 */
-		void setLevel(int level);
+		void _setLevel(int level);
 
 	private:
 

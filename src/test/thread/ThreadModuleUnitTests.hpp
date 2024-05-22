@@ -19,7 +19,7 @@ class ThreadModuleUnitTests : public UnitTest
 
 	protected:
 
-		virtual void runTests() {};
+		virtual void _runTests() {};
 
 	private:
 
