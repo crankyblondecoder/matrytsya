@@ -1,6 +1,9 @@
 #ifndef THREAD_POOL_WORK_THREAD_H
 #define THREAD_POOL_WORK_THREAD_H
 
+#include <iostream>
+using namespace std;
+
 class ThreadPool;
 
 #include "../thread/thread.hpp"
@@ -36,6 +39,9 @@ class ThreadPoolWorkThread : public Thread
 		 */
 		bool canAcceptWorkUnit();
 
+		/** Enumerate the state of this thread pool. */
+		void enumerateState(unsigned numTabs);
+
     protected:
 
         /** Entry point when thread is started */
@@ -54,6 +60,8 @@ class ThreadPoolWorkThread : public Thread
 
 		/** Flag to indicate that worker thread is active. */
 		bool _workerThreadActive;
+
+		bool _debugMarker;
 
 		/** Flag to indicate a work unit is being executed. */
 		bool _working;

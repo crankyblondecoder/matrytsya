@@ -33,14 +33,12 @@ void stopThreadPool()
 	}
 }
 
-bool getThreadPoolHere()
+void enumerateThreadPool(unsigned numTabs)
 {
 	if(threadPool)
 	{
-		return threadPool -> _here;
+		threadPool -> enumerateState(numTabs);
 	}
-
-	return false;
 }
 
 ThreadPool::~ThreadPool()
@@ -70,7 +68,7 @@ ThreadPool::~ThreadPool()
 
 ThreadPool::ThreadPool(unsigned numThreads)
 {
-	_here = false;
+	_debugMarker = false;
 	_workUnitAllocPassInProgress = false;
 	_viableWorkerThreadCount = 0;
 	_numWorkerThreadsFree = 0;
@@ -181,13 +179,15 @@ void ThreadPool::threadEntry()
 					allocated = false;
 					nextAllocThreadIndex = _lastAllocThreadIndex + 1;
 
-					while(!allocated && numAllocTrys < _numThreads)
+					while(!_shutdown && !allocated && numAllocTrys < _numThreads)
 					{
 						if(nextAllocThreadIndex >= _numThreads) nextAllocThreadIndex = 0;
 
+						_queueCond.lockMutex();
 						workerThread = _pool[nextAllocThreadIndex];
+						_queueCond.unlockMutex();
 
-						if(workerThread && workerThread -> canAcceptWorkUnit())
+						if(!_shutdown && workerThread)
 						{
 							allocated = workerThread -> executeWorkUnit(workUnit);
 						}
@@ -251,14 +251,17 @@ void ThreadPool::threadEntry()
 
 void ThreadPool::workThreadFree()
 {
-	_queueCond.lockMutex();
+	if(!_shutdown)
+	{
+		_queueCond.lockMutex();
 
-	// Just to be safe, protect this write because any thread could modify it.
-	// Not strictly necessary at the moment though. Might change later.
-	_numWorkerThreadsFree++;
+		// Just to be safe, protect this write because any thread could modify it.
+		// Not strictly necessary at the moment though. Might change later.
+		_numWorkerThreadsFree++;
 
-	_queueCond.signal();
-	_queueCond.unlockMutex();
+		_queueCond.signal();
+		_queueCond.unlockMutex();
+	}
 }
 
 bool ThreadPool::executeWorkUnit(ThreadPoolWorkUnit* workUnit)
@@ -316,13 +319,19 @@ void ThreadPool::shutdown()
 
 	while(workUnit)
 	{
+		_workUnitQueue.remove();
+		_queueCond.unlockMutex();
+
 		workUnit -> abort();
 
-		_workUnitQueue.remove();
+		_queueCond.lockMutex();
 		workUnit = _workUnitQueue.first();
 	}
 
+	_queueCond.unlockMutex();
+
 	// Try and gracefully shutdown the worker threads.
+	// Assume at this stage that _shutdown being set guards the array.
 	for(unsigned index = 0; index < _numThreads; index++)
 	{
 		try
@@ -335,7 +344,26 @@ void ThreadPool::shutdown()
 				ex.getSubsystemErrorString() << "\n";
 		}
 	}
-_here = true;
+
 	// Finally unblock anything still waiting on mutex.
 	_queueCond.unlockMutex();
+}
+
+void ThreadPool::enumerateState(unsigned numTabs)
+{
+	string indentTabs = "";
+	for(unsigned level = 0; level < numTabs; level++)
+	{
+		indentTabs += "\t";
+	}
+
+	cout << indentTabs << "thread pool debug marker: " << threadPool -> _debugMarker << "\n";
+
+	cout << indentTabs << "thread pool worker threads:\n";
+
+	for(unsigned index = 0; index < _numThreads; index++)
+	{
+		cout << indentTabs << "\tthread index:" << index << "\n";
+		if(_pool[index]) _pool[index] -> enumerateState(numTabs + 2);
+	}
 }

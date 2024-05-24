@@ -15,6 +15,7 @@ ThreadPoolWorkThread::~ThreadPoolWorkThread()
 ThreadPoolWorkThread::ThreadPoolWorkThread(ThreadPool* threadPool)
 {
 	_workerThreadActive = false;
+	_debugMarker = false;
 	_curWorkUnit = 0;
 	_threadPool = threadPool;
 	_working = false;
@@ -36,6 +37,7 @@ void ThreadPoolWorkThread::shutDown()
 	// If worker thread is still active, wait on it to exit.
 	if(_workerThreadActive)
 	{
+		// This should unlock mutex.
 		_cond.wait();
 	}
 
@@ -84,8 +86,6 @@ void ThreadPoolWorkThread::threadEntry()
 				// Invoke the work load of the work unit.
 				_curWorkUnit -> work();
 
-				// Lock conditions mutex for start of next loop to be able to safely read current work unit.
-				// This also protects the modification of critical vars.
 				_cond.lockMutex();
 
 				_working = false;
@@ -94,9 +94,14 @@ void ThreadPoolWorkThread::threadEntry()
 				delete _curWorkUnit;
 				_curWorkUnit = 0;
 
+				_cond.unlockMutex();
+
 				// Finally tell the thread pool that a worker thread is free. This may or may not allocate a new work unit
 				// to this thread.
 				_threadPool -> workThreadFree();
+
+				// Protects reading vars in while statement.
+				_cond.lockMutex();
 			}
 			else
 			{
@@ -141,4 +146,18 @@ bool ThreadPoolWorkThread::canAcceptWorkUnit()
 bool ThreadPoolWorkThread::_canAcceptWorkUnit()
 {
 	return !getQuit() && !_shutdown && _workerThreadActive && _curWorkUnit == 0;
+}
+
+void ThreadPoolWorkThread::enumerateState(unsigned numTabs)
+{
+	string indentTabs = "";
+	for(unsigned level = 0; level < numTabs; level++)
+	{
+		indentTabs += "\t";
+	}
+
+	cout << indentTabs << "_debugMarker: " << _debugMarker << "\n";
+	cout << indentTabs << "_workerThreadActive: " << _workerThreadActive << "\n";
+	cout << indentTabs << "_working: " << _working << "\n";
+	cout << indentTabs << "_shutdown: " << _shutdown << "\n";
 }

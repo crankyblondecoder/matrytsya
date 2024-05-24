@@ -25,9 +25,7 @@ class PingTest : public UnitTest
 			cout << "_harshShutdownTest_deleteGraphFinished: " << _harshShutdownTest_deleteGraphFinished << "\n";
 			cout << "_harshShutdownTest_stopThreadPoolFinished: " << _harshShutdownTest_stopThreadPoolFinished << "\n";
 
-			cout << "thread pool here: " << getThreadPoolHere() << "\n";
-
-			// TODO ... Dump mutex stats
+			enumerateThreadPool(0);
 		}
 
 	protected:

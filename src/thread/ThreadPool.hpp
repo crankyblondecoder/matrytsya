@@ -51,7 +51,10 @@ class ThreadPool : private Thread
 		void shutdown();
 
 		/** For debug. */
-		bool _here;
+		bool _debugMarker;
+
+		/** Enumerate the state of this thread pool. */
+		void enumerateState(unsigned numTabs);
 
     protected:
 
@@ -104,7 +107,9 @@ void startThreadPool(unsigned numThreads);
  */
 void stopThreadPool();
 
-/** Debug marker. */
-bool getThreadPoolHere();
+/**
+ * Enumerate threadpool status.
+ */
+void enumerateThreadPool(unsigned numTabs);
 
 #endif
