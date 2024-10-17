@@ -36,11 +36,11 @@ bool UnitTest::run()
 	// Output the overall result.
 	if(_result)
 	{
-		cout <<  _indentTabs << _name << " : " << PASS_STRING << "\n";
+		cout << "\n" <<  _indentTabs << _name << " : " << PASS_STRING << "\n";
 	}
 	else
 	{
-		cout <<  _indentTabs << _name << " : " << FAIL_STRING << "\n";
+		cout << "\n" <<  _indentTabs << _name << " : " << FAIL_STRING << "\n";
 	}
 
 	return _result;

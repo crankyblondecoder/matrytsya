@@ -2,6 +2,7 @@
 #define GRAPH_ACTION_H
 
 #include "../util/RefCounted.hpp"
+#include "../thread/ThreadCondition.hpp"
 
 /** The initial energy an action is assigned. */
 #define INITIAL_ENERGY 255
@@ -37,6 +38,11 @@ class GraphAction : private RefCounted
 		 * @returns Flag bitfield.
 		 */
 		unsigned long getEdgeTraversalFlags();
+
+		/**
+		 * Wait (block) until this action is complete.
+		 */
+		void waitUntilComplete();
 
 	protected:
 
@@ -85,6 +91,11 @@ class GraphAction : private RefCounted
 		int _energy;
 
 		/**
+		 * Condition to wait on until action is complete.
+		 */
+		ThreadCondition _completeCond;
+
+		/**
 		 * Start traversal of graph from the given node.
 		 * @note This is not re-entrant.
 		 * @param origin The starting point in the graph of the action. The action will NOT be applied to this node. This node
@@ -108,6 +119,11 @@ class GraphAction : private RefCounted
 		 * ie __work() was not called.
 		 */
 		void __abortWork();
+
+		/**
+		 * Action is complete.
+		 */
+		void __complete();
 };
 
 #endif

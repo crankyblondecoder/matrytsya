@@ -16,6 +16,24 @@ GraphAction::GraphAction() : _started{0}, _boundNode{0}, __edgeTraversalFlags{0}
 	_energy = INITIAL_ENERGY;
 }
 
+void GraphAction::waitUntilComplete()
+{
+	_completeCond.lockMutex();
+
+	if(!_complete)_completeCond.wait();
+
+	_completeCond.unlockMutex();
+}
+
+void GraphAction::__complete()
+{
+	// Notify subclass.
+	_complete();
+
+	// Notify any threads waiting on action to finish.
+	_completeCond.broadcast();
+}
+
 void GraphAction::_setEdgeTraversalFlags(unsigned long flags)
 {
 	__edgeTraversalFlags = flags;
@@ -105,7 +123,7 @@ void GraphAction::__work()
 		if(!_boundNode)
 		{
 			// Action has completed.
-			_complete();
+			__complete();
 
 			// No more nodes to traverse so allow this action to be deleted.
 			decrRef();
@@ -122,7 +140,7 @@ void GraphAction::__abortWork()
 	_boundNode = 0;
 
 	// Even during abort a subclass must be notified.
-	_complete();
+	__complete();
 
 	// As this action can no longer traverse, allow this action to be deleted.
 	decrRef();

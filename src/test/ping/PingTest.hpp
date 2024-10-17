@@ -14,17 +14,10 @@ class PingTest : public UnitTest
 
 		PingTest() : UnitTest("PingTest")
 		{
-			_harshShutdownTest_emitPingFinished = false;
-			_harshShutdownTest_deleteGraphFinished = false;
-			_harshShutdownTest_stopThreadPoolFinished = false;
 		}
 
 		void handleCtrlC()
 		{
-			cout << "_harshShutdownTest_emitPingFinished: " << _harshShutdownTest_emitPingFinished << "\n";
-			cout << "_harshShutdownTest_deleteGraphFinished: " << _harshShutdownTest_deleteGraphFinished << "\n";
-			cout << "_harshShutdownTest_stopThreadPoolFinished: " << _harshShutdownTest_stopThreadPoolFinished << "\n";
-
 			enumerateThreadPool(0);
 		}
 
@@ -37,13 +30,11 @@ class PingTest : public UnitTest
 
 	private:
 
-		bool _harshShutdownTest_emitPingFinished;
-		bool _harshShutdownTest_deleteGraphFinished;
-		bool _harshShutdownTest_stopThreadPoolFinished;
-
 		void __harshShutdownTest()
 		{
 			// This creates a graph then immediately shuts it down before an action can complete.
+
+			cout << "\nHarsh shutdown test.\n";
 
 			startThreadPool(2);
 
@@ -65,17 +56,11 @@ class PingTest : public UnitTest
 			testNode2 -> formEdgeTo(nodeHandle3, TEST_GRAPH_EDGE);
 			testNode3 -> formEdgeTo(nodeHandle1, TEST_GRAPH_EDGE);
 
-			// Run ping action and deli
+			// Run ping action.
 			testNode1 -> emitPing();
-
-			_harshShutdownTest_emitPingFinished = true;
 
 			delete graph;
 
-			_harshShutdownTest_deleteGraphFinished = true;
-
 			stopThreadPool();
-
-			_harshShutdownTest_stopThreadPoolFinished = true;
 		}
 };

@@ -38,5 +38,7 @@ int main()
 
 	threadModuleUnitTests.run();
 	pingTest.run();
+
+	cout << "\n";
 }
 
