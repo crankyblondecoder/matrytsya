@@ -63,4 +63,9 @@ class PingTest : public UnitTest
 
 			stopThreadPool();
 		}
+
+		void __waitUntilActionCompleteTest()
+		{
+
+		}
 };
