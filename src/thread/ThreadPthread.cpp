@@ -2,7 +2,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "ThreadBase.hpp"
+#include "Thread.hpp"
 #include "ThreadException.hpp"
 
 // -- Non class thread entry --
@@ -13,11 +13,11 @@ void* _threadEntry(void* thread)
     return NULL;
 }
 
-ThreadBase::~ThreadBase()
+Thread::~Thread()
 {
 }
 
-ThreadBase::ThreadBase()
+Thread::Thread()
 {
 }
 
@@ -62,7 +62,7 @@ void Thread::start()
     }
 }
 
-void ThreadBase::__threadEntry()
+void Thread::__threadEntry()
 {
     // Invoke derived class thread entry.
     threadEntry();

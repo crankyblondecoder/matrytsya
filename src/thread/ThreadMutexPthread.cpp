@@ -2,15 +2,15 @@
 
 #include "pthread_errors.hpp"
 #include "ThreadException.hpp"
-#include "ThreadMutex.hpp"
+#include "ThreadMutexPthread.hpp"
 
-ThreadMutex::~ThreadMutex()
+ThreadMutexPthread::~ThreadMutexPthread()
 {
     // Do not handle any errors because at this point there is nothing that can be done about it.
     pthread_mutex_destroy(&_mutex);
 }
 
-ThreadMutex::ThreadMutex()
+ThreadMutexPthread::ThreadMutexPthread()
 {
     int error = pthread_mutex_init(&_mutex, NULL);
 
@@ -48,7 +48,7 @@ ThreadMutex::ThreadMutex()
     }
 }
 
-bool ThreadMutex::lock()
+bool ThreadMutexPthread::lock()
 {
     int error = pthread_mutex_lock(&_mutex);
 
@@ -78,7 +78,7 @@ bool ThreadMutex::lock()
     return true;
 }
 
-bool ThreadMutex::tryLock()
+bool ThreadMutexPthread::tryLock()
 {
     int error = pthread_mutex_trylock(&_mutex);
 
@@ -107,7 +107,7 @@ bool ThreadMutex::tryLock()
     return true;
 }
 
-bool ThreadMutex::unlock()
+bool ThreadMutexPthread::unlock()
 {
     int error = pthread_mutex_unlock(&_mutex);
 

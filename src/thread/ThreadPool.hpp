@@ -5,7 +5,6 @@ class ThreadPoolWorkThread;
 
 #include "Thread.hpp"
 #include "ThreadCondition.hpp"
-#include "ThreadMutex.hpp"
 #include "ThreadPoolWorkUnit.hpp"
 #include "../util/ptrList.hpp"
 

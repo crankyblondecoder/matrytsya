@@ -1,5 +1,3 @@
-/** Copyright Scott A.E. Lanham, Australia */
-
 #ifndef THREAD_LOCK_H
 #define THREAD_LOCK_H
 

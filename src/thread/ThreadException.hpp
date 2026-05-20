@@ -1,5 +1,3 @@
-/** Copyright Scott A.E. Lanham, Australia */
-
 #ifndef THREAD_EXCEPTION_H
 #define THREAD_EXCEPTION_H
 

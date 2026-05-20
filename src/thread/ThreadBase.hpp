@@ -1,23 +1,21 @@
-#ifndef THREAD_H
-#define THREAD_H
-
-#include <pthread.h>
+#ifndef THREAD_BASE_H
+#define THREAD_BASE_H
 
 #include "ThreadCondition.hpp"
 
 /**
- * Create and invoke thread entry point.
+ * Base class for create and invoke thread entry point.
  */
-class Thread
+class ThreadBase
 {
     public:
 
-        virtual ~Thread();
-        Thread();
+        virtual ~ThreadBase();
+        ThreadBase();
 
 		/**
 		 * Start the thread.
-		 * @throw ThreadException
+		 * @throw ThreadBaseException
 		 */
         void start();
 
@@ -34,7 +32,7 @@ class Thread
         /**
          * Forcibly stop this thread.
 		 * This requires the thread to stop and will wait for it to do so for up to 2 seconds before returning.
-		 * @throw ThreadException
+		 * @throw ThreadBaseException
          */
         void forceStop();
 
@@ -49,7 +47,7 @@ class Thread
 		 * High resolution sleep.
 		 * @param seconds Number of seconds to sleep.
 		 * @param nanoSeconds Number of nanoseconds to sleep.
-		 * @throw ThreadException
+		 * @throw ThreadBaseException
 		 */
 		void nanoSleep(int seconds, long nanoSeconds);
 
@@ -62,6 +60,12 @@ class Thread
     protected:
 
 		/**
+		 * Hook so that concrete thread implementation can start the thread.
+		 * @throw ThreadBaseException
+		 */
+        virtual bool _start() = 0;
+
+		/**
 		 * Get the quit flag of this thread.
 		 * If set to true the current code running on the thread should gracefully exit.
 		 */
@@ -72,10 +76,8 @@ class Thread
         bool _quit;
 
         // It does not make sense to copy a thread so do not allow it.
-        Thread(const Thread& copyFrom);
-        Thread& operator= (const Thread& copyFrom);
-
-        pthread_t _thread;
+        ThreadBase(const ThreadBase& copyFrom);
+        ThreadBase& operator= (const ThreadBase& copyFrom);
 
         bool _threadRunning = false;
 

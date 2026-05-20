@@ -21,7 +21,7 @@ ThreadBase::ThreadBase()
 {
 }
 
-void Thread::start()
+void ThreadBase::start()
 {
     // Do not start a new thread if one is already running.
     if(!_threadRunning)
@@ -81,7 +81,7 @@ void ThreadBase::__threadEntry()
 	_stopCond.unlockMutex();
 }
 
-bool Thread::signalStop()
+bool ThreadBase::signalStop()
 {
 	// Make sure the thread can't exit before we are ready waiting for it to do so.
 	// This mutex _must_ be obtained around the test for thread running.
@@ -101,7 +101,7 @@ bool Thread::signalStop()
     return !_threadRunning;
 }
 
-void Thread::forceStop()
+void ThreadBase::forceStop()
 {
 	// Make sure the thread can't exit before we are ready waiting for it to do so.
 	// This mutex _must_ be obtained around the test for thread running.
@@ -136,18 +136,18 @@ void Thread::forceStop()
 	_stopCond.unlockMutex();
 }
 
-bool Thread::getRunning()
+bool ThreadBase::getRunning()
 {
     return _threadRunning;
 }
 
-unsigned int Thread::sleep(unsigned int seconds)
+unsigned int ThreadBase::sleep(unsigned int seconds)
 {
 	// Standard unix call.
 	return ::sleep(seconds);
 }
 
-void Thread::nanoSleep(int seconds, long nanoSeconds)
+void ThreadBase::nanoSleep(int seconds, long nanoSeconds)
 {
 	timespec sleepDuration;
 	sleepDuration.tv_sec = seconds;
@@ -180,9 +180,7 @@ void Thread::nanoSleep(int seconds, long nanoSeconds)
 	}
 }
 
-// -- Protected
-
-bool Thread::getQuit()
+bool ThreadBase::getQuit()
 {
     return _quit;
 }

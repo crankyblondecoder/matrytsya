@@ -1,0 +1,684 @@
+[
+  {
+    "file": "../../src/graph/Graph.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "../../src/graph/Graph.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/graph/Graph.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MT",
+      "Graph.dep",
+      "../../src/graph/Graph.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/graph/GraphAction.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "../../src/graph/GraphAction.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/graph/GraphAction.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MT",
+      "GraphAction.dep",
+      "../../src/graph/GraphAction.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/graph/GraphActionTargetable.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "../../src/graph/GraphActionTargetable.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/graph/GraphActionTargetable.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MT",
+      "GraphActionTargetable.dep",
+      "../../src/graph/GraphActionTargetable.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/graph/GraphActionThreadPoolWorkUnit.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "../../src/graph/GraphActionThreadPoolWorkUnit.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/graph/GraphActionThreadPoolWorkUnit.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MT",
+      "GraphActionThreadPoolWorkUnit.dep",
+      "../../src/graph/GraphActionThreadPoolWorkUnit.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/graph/GraphEdge.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "../../src/graph/GraphEdge.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/graph/GraphEdge.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MT",
+      "GraphEdge.dep",
+      "../../src/graph/GraphEdge.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/graph/GraphNodeHandle.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "../../src/graph/GraphNodeHandle.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/graph/GraphNodeHandle.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MT",
+      "GraphNodeHandle.dep",
+      "../../src/graph/GraphNodeHandle.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/graph/GraphNode.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "../../src/graph/GraphNode.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/graph/GraphNode.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MT",
+      "GraphNode.dep",
+      "../../src/graph/GraphNode.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/graph/actions/PingAction.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "../../src/graph/actions/PingAction.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/graph/actions/PingAction.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MT",
+      "actions/PingAction.dep",
+      "../../src/graph/actions/PingAction.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/graph/nodes/TestNode.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "../../src/graph/nodes/TestNode.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/graph/nodes/TestNode.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MT",
+      "nodes/TestNode.dep",
+      "../../src/graph/nodes/TestNode.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/graph/Graph.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "Graph.o",
+      "../../src/graph/Graph.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "Graph.o"
+  },
+  {
+    "file": "../../src/graph/GraphAction.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphAction.o",
+      "../../src/graph/GraphAction.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphAction.o"
+  },
+  {
+    "file": "../../src/graph/GraphActionTargetable.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphActionTargetable.o",
+      "../../src/graph/GraphActionTargetable.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphActionTargetable.o"
+  },
+  {
+    "file": "../../src/graph/GraphActionThreadPoolWorkUnit.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphActionThreadPoolWorkUnit.o",
+      "../../src/graph/GraphActionThreadPoolWorkUnit.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphActionThreadPoolWorkUnit.o"
+  },
+  {
+    "file": "../../src/graph/GraphEdge.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphEdge.o",
+      "../../src/graph/GraphEdge.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphEdge.o"
+  },
+  {
+    "file": "../../src/graph/GraphNodeHandle.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphNodeHandle.o",
+      "../../src/graph/GraphNodeHandle.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphNodeHandle.o"
+  },
+  {
+    "file": "../../src/graph/GraphNode.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphNode.o",
+      "../../src/graph/GraphNode.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphNode.o"
+  },
+  {
+    "file": "../../src/graph/actions/PingAction.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "actions/PingAction.o",
+      "../../src/graph/actions/PingAction.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "actions/PingAction.o"
+  },
+  {
+    "file": "../../src/graph/nodes/TestNode.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "nodes/TestNode.o",
+      "../../src/graph/nodes/TestNode.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "nodes/TestNode.o"
+  },
+  {
+    "file": "../../src/thread/Thread.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "../../src/thread/Thread.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/thread/Thread.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MT",
+      "Thread.dep",
+      "../../src/thread/Thread.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/thread/ThreadConditionBase.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "../../src/thread/ThreadConditionBase.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/thread/ThreadConditionBase.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MT",
+      "ThreadConditionBase.dep",
+      "../../src/thread/ThreadConditionBase.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/thread/ThreadConditionPthread.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "../../src/thread/ThreadConditionPthread.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/thread/ThreadConditionPthread.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MT",
+      "ThreadConditionPthread.dep",
+      "../../src/thread/ThreadConditionPthread.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/thread/ThreadLock.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "../../src/thread/ThreadLock.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/thread/ThreadLock.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MT",
+      "ThreadLock.dep",
+      "../../src/thread/ThreadLock.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/thread/ThreadMutexBase.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "../../src/thread/ThreadMutexBase.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/thread/ThreadMutexBase.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MT",
+      "ThreadMutexBase.dep",
+      "../../src/thread/ThreadMutexBase.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/thread/ThreadMutexPthread.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "../../src/thread/ThreadMutexPthread.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/thread/ThreadMutexPthread.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MT",
+      "ThreadMutexPthread.dep",
+      "../../src/thread/ThreadMutexPthread.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/thread/ThreadPool.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "../../src/thread/ThreadPool.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/thread/ThreadPool.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MT",
+      "ThreadPool.dep",
+      "../../src/thread/ThreadPool.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/thread/ThreadPoolWorkThread.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "../../src/thread/ThreadPoolWorkThread.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/thread/ThreadPoolWorkThread.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MT",
+      "ThreadPoolWorkThread.dep",
+      "../../src/thread/ThreadPoolWorkThread.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/thread/Thread.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "Thread.o",
+      "../../src/thread/Thread.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "Thread.o"
+  },
+  {
+    "file": "../../src/thread/ThreadConditionBase.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "ThreadConditionBase.o",
+      "../../src/thread/ThreadConditionBase.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "ThreadConditionBase.o"
+  },
+  {
+    "file": "../../src/thread/ThreadConditionPthread.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "ThreadConditionPthread.o",
+      "../../src/thread/ThreadConditionPthread.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "ThreadConditionPthread.o"
+  },
+  {
+    "file": "../../src/thread/ThreadLock.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "ThreadLock.o",
+      "../../src/thread/ThreadLock.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "ThreadLock.o"
+  },
+  {
+    "file": "../../src/thread/ThreadMutexBase.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "ThreadMutexBase.o",
+      "../../src/thread/ThreadMutexBase.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "ThreadMutexBase.o"
+  },
+  {
+    "file": "../../src/thread/ThreadMutexPthread.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "ThreadMutexPthread.o",
+      "../../src/thread/ThreadMutexPthread.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "ThreadMutexPthread.o"
+  },
+  {
+    "file": "../../src/thread/ThreadPool.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "ThreadPool.o",
+      "../../src/thread/ThreadPool.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "ThreadPool.o"
+  },
+  {
+    "file": "../../src/thread/ThreadPoolWorkThread.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "ThreadPoolWorkThread.o",
+      "../../src/thread/ThreadPoolWorkThread.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "ThreadPoolWorkThread.o"
+  },
+  {
+    "file": "../../src/log/log.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "../../src/log/log.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/log/log.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MT",
+      "log.dep",
+      "../../src/log/log.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/log/log.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "log.o",
+      "../../src/log/log.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "log.o"
+  },
+  {
+    "file": "../src/matrytsya.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-o",
+      "matrytsya_debug",
+      "../src/matrytsya.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build",
+    "output": "matrytsya_debug"
+  }
+]

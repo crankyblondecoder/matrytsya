@@ -20,7 +20,7 @@ void GraphAction::waitUntilComplete()
 {
 	_completeCond.lockMutex();
 
-	if(!_complete)_completeCond.wait();
+	//if(!__complete) _completeCond.wait();
 
 	_completeCond.unlockMutex();
 }
@@ -47,7 +47,7 @@ unsigned long GraphAction::getEdgeTraversalFlags()
 void GraphAction::__start(GraphNode* origin)
 {
 	// This is deliberately not re-entrant!
-
+	
 	if(_started)
 	{
 		throw new GraphException(GraphException::Error::RE_ENTRY_NOT_PERMITTED);
@@ -61,8 +61,8 @@ void GraphAction::__start(GraphNode* origin)
 	{
 		_boundNode = origin;
 
-		if(threadPool) {
-
+		if(threadPool)
+		{
 			// Ask threadpool to execute action work unit.
 			workSubmitted = threadPool -> executeWorkUnit(new GraphActionThreadPoolWorkUnit(this));
 		}

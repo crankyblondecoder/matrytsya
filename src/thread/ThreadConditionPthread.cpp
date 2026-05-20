@@ -1,16 +1,16 @@
 #include <errno.h>
 
 #include "pthread_errors.hpp"
-#include "ThreadCondition.hpp"
+#include "ThreadConditionPthread.hpp"
 #include "ThreadException.hpp"
 
-ThreadCondition::~ThreadCondition()
+ThreadConditionPthread::~ThreadConditionPthread()
 {
     // Do not handle any errors because at this point there is nothing that can be done about it.
     pthread_cond_destroy(&_condition);
 }
 
-ThreadCondition::ThreadCondition()
+ThreadConditionPthread::ThreadConditionPthread()
 {
     int error = pthread_cond_init(&_condition, NULL);
 
@@ -97,7 +97,7 @@ ThreadCondition::ThreadCondition()
 	}
 }
 
-void ThreadCondition::wait()
+void ThreadConditionPthread::wait()
 {
     int error = pthread_cond_wait(&_condition, &_mutex);
 
@@ -125,7 +125,7 @@ void ThreadCondition::wait()
 	}
 }
 
-bool ThreadCondition::waitTimeout(unsigned int timeOut)
+bool ThreadConditionPthread::waitTimeout(unsigned int timeOut)
 {
     // Calculate absolute wait time as required by the pthread condition.
     struct timespec absTimeOutTime;
@@ -165,7 +165,7 @@ bool ThreadCondition::waitTimeout(unsigned int timeOut)
     return false;
 }
 
-void ThreadCondition::signal()
+void ThreadConditionPthread::signal()
 {
     int error = pthread_cond_signal(&_condition);
 
@@ -187,7 +187,7 @@ void ThreadCondition::signal()
 	}
 }
 
-void ThreadCondition::broadcast()
+void ThreadConditionPthread::broadcast()
 {
    int error = pthread_cond_broadcast(&_condition);
 
@@ -209,7 +209,7 @@ void ThreadCondition::broadcast()
 	}
 }
 
-void ThreadCondition::appendPthreadMutexLockError(int errorCode, std::string& errorString)
+void ThreadConditionPthread::appendPthreadMutexLockError(int errorCode, std::string& errorString)
 {
 	switch(errorCode)
 	{
@@ -230,7 +230,7 @@ void ThreadCondition::appendPthreadMutexLockError(int errorCode, std::string& er
 	}
 }
 
-void ThreadCondition::appendPthreadMutexUnlockError(int errorCode, std::string& errorString)
+void ThreadConditionPthread::appendPthreadMutexUnlockError(int errorCode, std::string& errorString)
 {
 	 switch(errorCode)
     {
@@ -251,7 +251,7 @@ void ThreadCondition::appendPthreadMutexUnlockError(int errorCode, std::string& 
     }
 }
 
-void ThreadCondition::lockMutex()
+void ThreadConditionPthread::lockMutex()
 {
 	int error = pthread_mutex_lock(&_mutex);
 
@@ -263,7 +263,7 @@ void ThreadCondition::lockMutex()
 	}
 }
 
-void ThreadCondition::unlockMutex()
+void ThreadConditionPthread::unlockMutex()
 {
 	int error = pthread_mutex_unlock(&_mutex);
 
