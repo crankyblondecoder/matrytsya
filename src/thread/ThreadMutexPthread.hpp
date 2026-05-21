@@ -1,23 +1,25 @@
 #ifndef THREAD_MUTEX_PTHREAD_H
 #define THREAD_MUTEX_PTHREAD_H
 
+#include "ThreadMutexBase.hpp"
+
 #include <pthread.h>
 
 /**
  * Pthread version of thread mutex used for locking.
  */
-class ThreadMutexPthread
+class ThreadMutexPthread : public ThreadMutexBase
 {
     public:
 
         virtual ~ThreadMutexPthread();
         ThreadMutexPthread();
 
-        bool lock();
+        bool lock() override;
 
-        bool tryLock();
+        bool tryLock() override;
 
-        bool unlock();
+		bool unlock() override;
 
     private:
 

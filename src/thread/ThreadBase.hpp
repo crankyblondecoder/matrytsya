@@ -15,11 +15,10 @@ class ThreadBase
 
 		/**
 		 * Start the thread.
-		 * @throw ThreadBaseException
+		 * @throw ThreadException
 		 */
-        void start();
+		virtual void start() final;
 
-        bool getRunning();
 
         /**
          * Signal (request) the thread to stop.
@@ -32,9 +31,9 @@ class ThreadBase
         /**
          * Forcibly stop this thread.
 		 * This requires the thread to stop and will wait for it to do so for up to 2 seconds before returning.
-		 * @throw ThreadBaseException
+		 * @throw ThreadException
          */
-        void forceStop();
+        virtual void forceStop() final;
 
 		/**
 		 * Sleep for a specified number of whole seconds.
@@ -47,9 +46,14 @@ class ThreadBase
 		 * High resolution sleep.
 		 * @param seconds Number of seconds to sleep.
 		 * @param nanoSeconds Number of nanoseconds to sleep.
-		 * @throw ThreadBaseException
+		 * @throw ThreadException
 		 */
 		void nanoSleep(int seconds, long nanoSeconds);
+
+		/**
+		 * Get whether this thread is currently running.
+		 */
+		bool getRunning();
 
         /** Sub class thread entry point */
         virtual void threadEntry() = 0;
@@ -60,10 +64,17 @@ class ThreadBase
     protected:
 
 		/**
-		 * Hook so that concrete thread implementation can start the thread.
-		 * @throw ThreadBaseException
+		 * Subclass hook so that concrete thread implementation can start the thread.
+		 * @param threadEntry Pure c function call that is used for thread entry once thread has started.
+		 * @throw ThreadException
 		 */
-        virtual bool _start() = 0;
+        virtual bool _start(void*(*threadEntry)(void*)) = 0;
+
+		/**
+		 * Subclass hook so that concrete thread implementation can start the thread.
+		 * @throw ThreadException
+		 */
+		virtual void _forceStop() = 0;
 
 		/**
 		 * Get the quit flag of this thread.

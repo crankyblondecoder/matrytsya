@@ -333,22 +333,42 @@
     "output": "nodes/TestNode.o"
   },
   {
-    "file": "../../src/thread/Thread.cpp",
+    "file": "../../src/thread/ThreadBase.cpp",
     "arguments": [
       "/usr/bin/g++",
       "-MM",
-      "../../src/thread/Thread.cpp"
+      "../../src/thread/ThreadBase.cpp"
     ],
     "directory": "/data/devel/matrytsya/build/debug"
   },
   {
-    "file": "../../src/thread/Thread.cpp",
+    "file": "../../src/thread/ThreadBase.cpp",
     "arguments": [
       "/usr/bin/g++",
       "-MM",
       "-MT",
-      "Thread.dep",
-      "../../src/thread/Thread.cpp"
+      "ThreadBase.dep",
+      "../../src/thread/ThreadBase.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/thread/ThreadPthread.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "../../src/thread/ThreadPthread.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/thread/ThreadPthread.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MT",
+      "ThreadPthread.dep",
+      "../../src/thread/ThreadPthread.cpp"
     ],
     "directory": "/data/devel/matrytsya/build/debug"
   },
@@ -493,7 +513,7 @@
     "directory": "/data/devel/matrytsya/build/debug"
   },
   {
-    "file": "../../src/thread/Thread.cpp",
+    "file": "../../src/thread/ThreadBase.cpp",
     "arguments": [
       "/usr/bin/g++",
       "-std=c++11",
@@ -503,11 +523,28 @@
       "-pthread",
       "-c",
       "-o",
-      "Thread.o",
-      "../../src/thread/Thread.cpp"
+      "ThreadBase.o",
+      "../../src/thread/ThreadBase.cpp"
     ],
     "directory": "/data/devel/matrytsya/build/debug",
-    "output": "Thread.o"
+    "output": "ThreadBase.o"
+  },
+  {
+    "file": "../../src/thread/ThreadPthread.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++11",
+      "-Wall",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "ThreadPthread.o",
+      "../../src/thread/ThreadPthread.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "ThreadPthread.o"
   },
   {
     "file": "../../src/thread/ThreadConditionBase.cpp",

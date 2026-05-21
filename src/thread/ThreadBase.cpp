@@ -8,7 +8,7 @@
 // -- Non class thread entry --
 void* _threadEntry(void* thread)
 {
-    ((Thread*)thread) -> __threadEntry();
+	((ThreadBase*)thread) -> __threadEntry();
 
     return NULL;
 }
@@ -26,39 +26,12 @@ void ThreadBase::start()
     // Do not start a new thread if one is already running.
     if(!_threadRunning)
     {
-        int error = pthread_create(&_thread, NULL, &_threadEntry, (void*) this);
-
-        switch(error)
-        {
-            case EAGAIN:
-
-                throw ThreadException(ThreadException::THREAD_RESOURCES_EXHAUSTED, error,
-                    "EAGAIN The system lacked the necessary resources to create another thread.");
-                break;
-
-            case EINVAL:
-
-                throw ThreadException(ThreadException::THREAD_INCORRECT_PARAMETER, error,
-                    "EINVAL The value specified by attr is invalid.");
-                break;
-
-            case EPERM:
-
-                throw ThreadException(ThreadException::THREAD_INSUFFICIENT_PRIVILEGES, error,
-                    "EPERM The caller does not have appropriate permission.");
-                break;
-
-            default:
-                if(error) throw ThreadException(ThreadException::THREAD_GENERAL_ERROR, error);
-                break;
-        }
-
-        _threadRunning = true;
+		if(_start(&_threadEntry)) _threadRunning = true;
     }
     else
     {
-        // Should never have been started twice.
-        throw ThreadException(ThreadException::THREAD_ALREADY_STARTED);
+		// Should never have been started twice.
+		throw ThreadException(ThreadException::THREAD_ALREADY_STARTED);
     }
 }
 
@@ -67,7 +40,7 @@ void ThreadBase::__threadEntry()
     // Invoke derived class thread entry.
     threadEntry();
 
-	// Use stop conditions mutex to guard against a race condition where signalling/forcing stop waits on a the condition after
+	// Use stop conditions mutex to guard against a race condition where signalling/forcing stop waits on the condition after
 	// it has already been broadcast.
 	_stopCond.lockMutex();
 
@@ -109,25 +82,15 @@ void ThreadBase::forceStop()
 
     if(_threadRunning)
     {
-        int error = pthread_cancel(_thread);
-
-		if(error)
+		try
+		{
+			_forceStop();
+		}
+		catch(ThreadException &ex)
 		{
 			_stopCond.unlockMutex();
 
-			switch(error)
-			{
-				case ESRCH:
-
-					throw ThreadException(ThreadException::THREAD_INCORRECT_PARAMETER, error,
-						"ESRCH Thread ID could not be found.");
-					break;
-
-				default:
-
-					throw ThreadException(ThreadException::THREAD_GENERAL_ERROR, error);
-					break;
-			}
+			throw;
 		}
 
 		_stopCond.waitTimeout(2000);

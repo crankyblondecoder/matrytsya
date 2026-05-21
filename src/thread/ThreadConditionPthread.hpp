@@ -1,30 +1,32 @@
 #ifndef THREAD_CONDITION_PTHREAD_H
 #define THREAD_CONDITION_PTHREAD_H
 
+#include "ThreadConditionBase.hpp"
+
 #include <pthread.h>
 #include <string>
 
 /**
  * PThread version of thread condition.
  */
-class ThreadConditionPthread
+class ThreadConditionPthread : public ThreadConditionBase
 {
     public:
 
         virtual ~ThreadConditionPthread();
         ThreadConditionPthread();
 
-		void lockMutex();
+		void lockMutex() override;
 
-		void unlockMutex();
+		void unlockMutex() override;
 
-        void wait();
+        void wait() override;
 
-        bool waitTimeout(unsigned int timeOut);
+        bool waitTimeout(unsigned int timeOut) override;
 
-        void signal();
+        void signal() override;
 
-        void broadcast();
+        void broadcast() override;
 
     private:
 
