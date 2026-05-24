@@ -2,10 +2,6 @@
 #define GRAPH_ACTION_H
 
 #include "../util/RefCounted.hpp"
-#include "../thread/ThreadCondition.hpp"
-
-/** The initial energy an action is assigned. */
-#define INITIAL_ENERGY 255
 
 class GraphActionThreadPoolWorkUnit;
 class GraphEdge;
@@ -17,15 +13,14 @@ class GraphNode;
  * @note Ref counted and will self de-reference once the action is complete. An action is complete once it can no longer
  *       traverse any edges.
  */
-class GraphAction : private RefCounted
+class GraphAction : public RefCounted
 {
-	friend GraphActionThreadPoolWorkUnit;
-	friend GraphEdge;
-	friend GraphNode;
-
     public:
 
-		GraphAction();
+		/**
+		 * @param initNode Initial node the new action is bound to. This action will not be applied to this node.
+		 */
+		GraphAction(GraphNode* initNode, unsigned energy);
 
 		/**
 		 * Get flag that determines if this action is invoked on a node i.e. The node is processed.
@@ -34,15 +29,27 @@ class GraphAction : private RefCounted
         virtual unsigned long getFlag() = 0;
 
 		/**
-		 * Get the edge traversal flags for this action.
-		 * @returns Flag bitfield.
+		 * Start traversal of graph.
+		 * @note This is not re-entrant.
 		 */
-		unsigned long getEdgeTraversalFlags();
+		void start();
 
 		/**
-		 * Wait (block) until this action is complete.
+		 * Worker thread entry point.
+		 * @note Will only be called by a single thread at a time. ie It is not re-entrant.
 		 */
-		void waitUntilComplete();
+		void work();
+
+		/**
+		 * Requested work allocation was unable to be provided.
+		 * ie __work() was not called.
+		 */
+		void abortWork();
+
+		/**
+		 * Get the curent energy level of this action.
+		 */
+		unsigned getEnergyLevel();
 
 	protected:
 
@@ -54,13 +61,6 @@ class GraphAction : private RefCounted
 		 * @note This is not required to be re-entrant.
 		 */
 		virtual void _apply(GraphNode*) = 0;
-
-		/**
-		 * Set the edge traversal flags.
-		 * @sa graphEdgeFlagRegister.hpp
-		 * @param flags Bitfield representing the traversal flags.
-		 */
-		void _setEdgeTraversalFlags(unsigned long flags);
 
 		/**
 		 * Action is complete, will no longer traverse edges, and will soon be deleted.
@@ -75,55 +75,32 @@ class GraphAction : private RefCounted
 		/** Whether the action has been started. */
 		bool _started;
 
-		/** The curent node this action is acting upon. */
-		GraphNode* _boundNode;
+		/** Whether the action has stopped traversing, i.e. it will no longer be applied to any nodes */
+		bool _stopped;
 
-		/**
-		 * The bitwise AND of this and the edge's traversal flags determines if the edge can be traversed.
-		 * See graphEdgeFlagRegister.hpp
-		 */
-		unsigned long __edgeTraversalFlags;
+		/** The curent node this action is associated with. */
+		GraphNode* _boundNode;
 
 		/**
 		 * The number of energy units this action currently contains.
 		 * This is part of the mechanism that prevents infinite loops.
 		 */
-		int _energy;
+		unsigned _energy;
 
 		/**
-		 * Condition to wait on until action is complete.
+		 * Apply this action to a node.
 		 */
-		ThreadCondition _completeCond;
-
-		/**
-		 * Start traversal of graph from the given node.
-		 * @note This is not re-entrant.
-		 * @param origin The starting point in the graph of the action. The action will NOT be applied to this node. This node
-		 *        is immediately traversed.
-		 */
-		void __start(GraphNode* origin);
-
-		/**
-		 * Consume some of the energy this action contains.
-		 */
-		void __consumeEnergy(int energyAmount);
-
-		/**
-		 * Worker thread entry point.
-		 * @note Will only be called by a single thread at a time. ie It is not re-entrant.
-		 */
-		void __work();
-
-		/**
-		 * Requested work allocation was unable to be provided.
-		 * ie __work() was not called.
-		 */
-		void __abortWork();
+		void __apply(GraphNode* node);
 
 		/**
 		 * Action is complete.
 		 */
 		void __complete();
+
+		/**
+		 * Consume an amount of energy that this action has.
+		 */
+		void __consumeEnergy(unsigned amount);
 };
 
 #endif

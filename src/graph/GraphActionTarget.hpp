@@ -1,13 +1,11 @@
 #ifndef GRAPH_ACTION_TARGET_H
 #define GRAPH_ACTION_TARGET_H
 
-#include "GraphActionTargetable.hpp"
-
 /**
  * Templated base class of all interfaces that define a specific graph action target.
  * A target is the interface used for the action to invoke operations on a graph node.
  */
-template <unsigned long ActionFlag> class GraphActionTarget : virtual protected GraphActionTargetable
+template <unsigned long ActionFlag> class GraphActionTarget
 {
     public:
 
@@ -20,6 +18,17 @@ template <unsigned long ActionFlag> class GraphActionTarget : virtual protected 
 
 	protected:
 
+		/**
+		 * Add the action flag this action target corresponds to.
+		 */
+		virtual void _addActionFlag(unsigned long actionFlag) = 0;
+
+		/**
+		 * Initialise this action target.
+		 * @note Cannot be called in the sub-class constructor.
+		 */
+		void _init();
+
     private:
 };
 
@@ -31,7 +40,11 @@ template <unsigned long ActionFlag> GraphActionTarget<ActionFlag>::~GraphActionT
 
 template <unsigned long ActionFlag> GraphActionTarget<ActionFlag>::GraphActionTarget()
 {
-	_addActionFlag(ActionFlag);
+}
+
+template <unsigned long ActionFlag> void GraphActionTarget<ActionFlag>::_init()
+{
+	_addActionFlag(GraphActionTarget<ActionFlag>::ACTION_FLAG);
 }
 
 #endif

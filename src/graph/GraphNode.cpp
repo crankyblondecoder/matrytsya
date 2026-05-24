@@ -18,11 +18,22 @@ GraphNode::GraphNode(Graph* graph)
 	_edgeCount = 0;
 	_linearEdgeAllocCount = 0;
 	_decoupling = false;
+	_actionEnergyCost = 1;
 
 	for(int index = 0; index < EDGE_ARRAY_SIZE; index++) _edges[index] = 0;
 
 	// Assume the implicit ref count protects this call because it is within the constructor.
 	_graphHandle = graph -> addNode(this);
+}
+
+unsigned GraphNode::getActionEnergyCost()
+{
+	return _actionEnergyCost;
+}
+
+void GraphNode::_setActionEnergyCost(unsigned cost)
+{
+	_actionEnergyCost = cost;
 }
 
 int GraphNode::getMaxNumAttachedEdges()
@@ -224,7 +235,7 @@ void GraphNode::decouple()
 	decrRef();
 }
 
-GraphNode* GraphNode::__traverse(GraphAction* action)
+GraphNode* GraphNode::traverse(GraphAction* action)
 {
 	GraphNode* retNode = 0;
 

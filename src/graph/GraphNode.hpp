@@ -6,8 +6,8 @@ class GraphEdge;
 class GraphNodeHandle;
 
 #include "GraphAction.hpp"
+#include "GraphActionTargetable.hpp"
 #include "../util/RefCounted.hpp"
-#include "../thread/thread.hpp"
 
 // The number of edges a node can have is fixed.
 #define EDGE_ARRAY_SIZE 32
@@ -17,12 +17,8 @@ class GraphNodeHandle;
  * @note Nodes self delete when no longer referenced. They keep a self reference until either decoupled or all edges have
  *       been removed that refer to the node.
  */
-class GraphNode : public RefCounted
+class GraphNode : public RefCounted, public GraphActionTargetable
 {
-	friend GraphEdge;
-	friend GraphAction;
-	friend GraphNodeHandle;
-
     public:
 
 		/**
@@ -57,6 +53,20 @@ class GraphNode : public RefCounted
 		 */
 		void decouple();
 
+		/**
+		 * Find next node to apply given action to.
+		 * @note Make sure this is only called on the actions own thread.
+		 * @note Once an action calls this it should _not_ keep any pointer to _this_ node.
+		 * @param action Action that wants to traverse this node.
+		 * @returns A ref incr node pointer or null if could not traverse.
+		 */
+		GraphNode* traverse(GraphAction* action);
+
+		/**
+		 * Get the energy cost of an action being applied to this node.
+		 */
+		unsigned getActionEnergyCost();
+
     protected:
 
 		// Must be virtual for reference counting auto-delete.
@@ -75,9 +85,9 @@ class GraphNode : public RefCounted
 		virtual void _decoupled() = 0;
 
 		/**
-		 * Determine whether an action can target this.
+		 * Set the energy cost of an action being applied to this node.
 		 */
-		virtual bool _canActionTarget(GraphAction*) = 0;
+		void _setActionEnergyCost(unsigned cost);
 
     private:
 
@@ -105,6 +115,9 @@ class GraphNode : public RefCounted
 
 		/** Whether this node is decoupling from the graph. */
 		bool _decoupling;
+
+		/** How much energy it costs for an action to be applied to this node. */
+		unsigned _actionEnergyCost;
 
         // Do not allow copying.
         GraphNode(const GraphNode& copyFrom);
@@ -141,15 +154,6 @@ class GraphNode : public RefCounted
 		 *          longer required.
 		 */
 		GraphEdge* __findEdgeToTraverse(GraphAction* action);
-
-		/**
-		 * Find next node to apply given action to.
-		 * @note Make sure this is only called on the actions own thread.
-		 * @note Once an action calls this it should _not_ keep any pointer to _this_ node.
-		 * @param action Action that wants to traverse this node.
-		 * @returns A ref incr node pointer or null if could not traverse.
-		 */
-		GraphNode* __traverse(GraphAction* action);
 };
 
 #endif

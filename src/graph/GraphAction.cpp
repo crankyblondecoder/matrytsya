@@ -11,44 +11,59 @@ GraphAction::~GraphAction()
 	if(_boundNode) _boundNode -> decrRef();
 }
 
-GraphAction::GraphAction() : _started{0}, _boundNode{0}, __edgeTraversalFlags{0}
+GraphAction::GraphAction(GraphNode* initNode, unsigned energy)
 {
-	_energy = INITIAL_ENERGY;
+	_boundNode = initNode;
+
+	_started = false;
+	_stopped = false;
+
+	_energy = energy;
 }
 
-void GraphAction::waitUntilComplete()
+void GraphAction::__apply(GraphNode* node)
 {
-	_completeCond.lockMutex();
+	// Do any energy accounting.
+	__consumeEnergy(node -> getActionEnergyCost());
 
-	//if(!__complete) _completeCond.wait();
+	_apply(node);
+}
 
-	_completeCond.unlockMutex();
+void GraphAction::__consumeEnergy(unsigned amount)
+{
+	if(amount >= _energy)
+	{
+		_energy = 0;
+	}
+	else
+	{
+		_energy -= amount;
+	}
+}
+
+unsigned GraphAction::getEnergyLevel()
+{
+	return _energy;
 }
 
 void GraphAction::__complete()
 {
+	_stopped = true;
+
 	// Notify subclass.
 	_complete();
-
-	// Notify any threads waiting on action to finish.
-	_completeCond.broadcast();
 }
 
-void GraphAction::_setEdgeTraversalFlags(unsigned long flags)
-{
-	__edgeTraversalFlags = flags;
-}
-
-unsigned long GraphAction::getEdgeTraversalFlags()
-{
-	return __edgeTraversalFlags;
-}
-
-void GraphAction::__start(GraphNode* origin)
+void GraphAction::start()
 {
 	// This is deliberately not re-entrant!
-	
+
 	if(_started)
+	{
+		throw new GraphException(GraphException::Error::RE_ENTRY_NOT_PERMITTED);
+	}
+
+	if(_stopped)
 	{
 		throw new GraphException(GraphException::Error::RE_ENTRY_NOT_PERMITTED);
 	}
@@ -57,16 +72,16 @@ void GraphAction::__start(GraphNode* origin)
 
 	bool workSubmitted = false;
 
-	if(origin -> incrRef())
+	if(threadPool && _boundNode -> incrRef())
 	{
-		_boundNode = origin;
-
-		if(threadPool)
-		{
-			// Ask threadpool to execute action work unit.
-			workSubmitted = threadPool -> executeWorkUnit(new GraphActionThreadPoolWorkUnit(this));
-		}
+		// Bootstrap into action work cycle.
+		// Ask threadpool to execute actions work unit.
+		workSubmitted = threadPool -> executeWorkUnit(new GraphActionThreadPoolWorkUnit(this));
 	}
+
+	// Anything beyond this point should just be centered around the work cycle not being able to be established
+	// and the associated cleanup. This is because all of the startup variables should have been initialised prior
+	// to the work cycle being started.
 
 	if(!workSubmitted)
 	{
@@ -81,24 +96,26 @@ void GraphAction::__start(GraphNode* origin)
 	}
 }
 
-void GraphAction::__work()
+void GraphAction::work()
 {
-	// This is an unusually long lock because it is important that any newly scheduled work unit waits at this point for the
-	// current work unit to complete. This also means a maximum of two work units can be active for this action at any one
-	// time because a new work unit can't be scheduled until the current work unit owns the mutex.
+	// This is an unusually long lock because it is important that any newly scheduled work unit (inside this block)
+	// waits at this point for the current work unit to complete. This also means a maximum of two work units can be
+	// active for this action at any one time because a new work unit can't be scheduled until the current work unit
+	// owns the mutex.
 
 	{ SYNC(_workLock)
 
 		if(_boundNode)
 		{
-			if(_boundNode -> _canActionTarget(this)) _apply(_boundNode);
+			// Act on currently bound node.
+			if(_boundNode -> canActionTarget(this)) _apply(_boundNode);
 
 			if(_energy > 0)
 			{
 				GraphNode* curBoundNode = _boundNode;
 
 				// Assume that if a node is returned to traverse that it has been ref incr.
-				_boundNode = curBoundNode -> __traverse(this);
+				_boundNode = curBoundNode -> traverse(this);
 
 				// A pointer is no longer held for the just traversed node.
 				curBoundNode -> decrRef();
@@ -131,7 +148,7 @@ void GraphAction::__work()
 	}
 }
 
-void GraphAction::__abortWork()
+void GraphAction::abortWork()
 {
 	// Last scheduled work unit could not be allocated.
 
@@ -146,7 +163,4 @@ void GraphAction::__abortWork()
 	decrRef();
 }
 
-void GraphAction::__consumeEnergy(int energyAmount)
-{
-	_energy -= energyAmount;
-}
+

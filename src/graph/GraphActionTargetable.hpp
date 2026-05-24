@@ -11,6 +11,11 @@ class GraphActionTargetable
 {
     public:
 
+		/**
+		 * Determine whether an action can target this.
+		 */
+		bool canActionTarget(GraphAction*);
+
 	protected:
 
 		virtual ~GraphActionTargetable();
@@ -24,12 +29,7 @@ class GraphActionTargetable
 		 */
 		void _addActionFlag(unsigned long actionFlag);
 
-		/**
-		 * Determine whether an action can target this.
-		 */
-		bool _canActionTarget(GraphAction*);
-
-    private:
+	private:
 
 		unsigned long _actionFlags;
 };
