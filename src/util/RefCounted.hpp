@@ -16,7 +16,7 @@
  *       - Before returning a ref counted pointer from a function it must be ref incr. The caller is then responsible for the
  *         ref decr.
  * @note For this to successfully delete when the reference count goes to zero, the destructor of the implementing class must
- *       be virtual.
+ *       be protected and virtual.
  */
 class RefCounted
 {

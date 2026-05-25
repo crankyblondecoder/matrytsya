@@ -5,7 +5,7 @@ class Graph;
 class GraphEdge;
 class GraphNodeHandle;
 
-#include "GraphAction.hpp"
+//#include "GraphAction.hpp"
 #include "GraphActionTargetable.hpp"
 #include "../util/RefCounted.hpp"
 
@@ -23,35 +23,27 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 
 		/**
 		 * Create new graph node.
-		 * @param graph Graph node is to be part of.
 		 * @note Because this is refcounted it will require the automatic initial refcount to be released before it can
 		 * 		 be deleted. Doing this explicitly is only required if no edges were attached to this node and can be done by
 		 *       calling decouple().
 		 */
-        GraphNode(Graph* graph);
+        GraphNode();
 
 		/**
-		 * Get the maximum number edges that can be attached to this node.
-		 */
-		int getMaxNumAttachedEdges();
-
-		/**
-		 * Form an edge from this node to another node.
+		 * Create and add an edge from this node to another node.
 		 * ie The edge is directed from this node to another node.
-		 * @note At this stage only nodes can create edges.
-		 * @param handle Handle of node to form edge to. This handle must be current for the entire duration of the call.
+		 * @note Only nodes can create edges.
+		 * @param connectTo Handle of node to form edge to.
 		 * @param traversalFlags Flags that control what can traverse the edge.
-		 * @returns True if edge could be formed. False otherwise.
+         * @returns Handle to use to refer to the created edge (local to this node only). -1 if could not be added.
 		 */
-		bool formEdgeTo(GraphNodeHandle& handle, unsigned long traversalFlags);
+		int createEdge(GraphNodeHandle& connectTo, unsigned long traversalFlags);
 
 		/**
-		 * Decouple from the graph and ref decr to allow it to be deleted.
-		 * This essentially detaches all edges and stops the node from having any new edges attached to it.
-		 * @note If a node is constructed but never attached to any edges then this will have to be called on it regardless
-		 *       otherwise an orphaned node will result.
+		 * Remove edge from this node.
+		 * @param handle Handle of edge to remove. As returned by createEdge.
 		 */
-		void decouple();
+        void removeEdge(int handle);
 
 		/**
 		 * Find next node to apply given action to.
@@ -73,6 +65,12 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 		virtual ~GraphNode();
 
 		/**
+		 * Sub-class hook to do any required initialisation.
+		 * @note The sub-class _should_ register any action flags it supports during this call.
+		 */
+		virtual void _init() = 0;
+
+		/**
 		 * Emit an action by making its origin this node.
 		 * @note All subclasses must use this function to emit actions so that correct binding to the node occurs.
 		 * @param action Action to emit.
@@ -80,41 +78,17 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 		void _emitAction(GraphAction* action);
 
 		/**
-		 * Subclass hook to indicate this node has been completely decoupled from the graph and will be deleted.
-		 */
-		virtual void _decoupled() = 0;
-
-		/**
 		 * Set the energy cost of an action being applied to this node.
 		 */
 		void _setActionEnergyCost(unsigned cost);
 
-    private:
+	private:
 
-		/// Graph this node is part of.
-		Graph* _graph;
-
-		/// Graph handle assigned to this node.
-		unsigned _graphHandle;
-
-        /// All edges directed either from or to this node.
+		/** All edges directed from this node. */
         GraphEdge* _edges[EDGE_ARRAY_SIZE];
-
-		/// Number of edges currently present.
-		unsigned _edgeCount;
-
-		/**
-		 * Helper for allocating edges without having to search for spare spots.
-		 * This count allows edges to be initially allocated right up to the end of the edge array before having to start
-		 * searching the array for empty slots.
-		 */
-		unsigned _linearEdgeAllocCount;
 
         /** Generic lock. */
         ThreadMutex _lock;
-
-		/** Whether this node is decoupling from the graph. */
-		bool _decoupling;
 
 		/** How much energy it costs for an action to be applied to this node. */
 		unsigned _actionEnergyCost;
@@ -122,38 +96,6 @@ class GraphNode : public RefCounted, public GraphActionTargetable
         // Do not allow copying.
         GraphNode(const GraphNode& copyFrom);
         GraphNode& operator= (const GraphNode& copyFrom);
-
-		/**
-		 * Helper function to form an edge between two nodes.
-		 * @param fromNode Node to form edge from. Must be ref incr.
-		 * @param toNode Node to form edge to. Must be ref incr.
-		 * @param traversalFlags Flags that determine if action can traverse an edge.
-		 * @returns True if edge could be formed. False otherwise.
-		 */
-		bool __formEdge(GraphNode* fromNode, GraphNode* toNode, unsigned long traversalFlags);
-
-		/**
-         * Add edge which is directed either from or to this node.
-         * @param edge Edge to add.
-         * @returns Handle to use to refer to edge with respect to this node. -1 if could not be added.
-         */
-        int __addEdge(GraphEdge* edge);
-
-		/**
-		 * Remove edge from this node.
-		 * Assume this is called as part of edge detachment.
-		 * @param handle Handle of edge to remove.
-		 */
-        void __removeEdge(int handle);
-
-		/**
-		 * Get the edge a particular action should traverse.
-		 * @note This should only be called by an action on its own thread.
-		 * @param action Action to propogate.
-		 * @returns Edge to traverse. This will have had its refcount incremented and _must_ be decremented when pointer is no
-		 *          longer required.
-		 */
-		GraphEdge* __findEdgeToTraverse(GraphAction* action);
 };
 
 #endif

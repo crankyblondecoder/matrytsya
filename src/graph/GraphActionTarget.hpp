@@ -27,7 +27,7 @@ template <unsigned long ActionFlag> class GraphActionTarget
 		 * Initialise this action target.
 		 * @note Cannot be called in the sub-class constructor.
 		 */
-		void _init();
+		virtual void _init();
 
     private:
 };

@@ -12,18 +12,11 @@ GraphNode::~GraphNode()
 	// Therefore it should _not_ have any edges when deleted because the edges will keep references to the node.
 }
 
-GraphNode::GraphNode(Graph* graph)
+GraphNode::GraphNode()
 {
-	_graph = graph;
-	_edgeCount = 0;
-	_linearEdgeAllocCount = 0;
-	_decoupling = false;
 	_actionEnergyCost = 1;
 
 	for(int index = 0; index < EDGE_ARRAY_SIZE; index++) _edges[index] = 0;
-
-	// Assume the implicit ref count protects this call because it is within the constructor.
-	_graphHandle = graph -> addNode(this);
 }
 
 unsigned GraphNode::getActionEnergyCost()
@@ -34,11 +27,6 @@ unsigned GraphNode::getActionEnergyCost()
 void GraphNode::_setActionEnergyCost(unsigned cost)
 {
 	_actionEnergyCost = cost;
-}
-
-int GraphNode::getMaxNumAttachedEdges()
-{
-	return EDGE_ARRAY_SIZE;
 }
 
 bool GraphNode::formEdgeTo(GraphNodeHandle& handle, unsigned long traversalFlags)

@@ -25,7 +25,9 @@ void TestNode::_decoupled()
 {
 }
 
-bool TestNode::_canActionTarget(GraphAction* action)
+void TestNode::_init()
 {
-	return GraphActionTargetable::_canActionTarget(action);
+	// Do all action target initialisation here.
+	PingActionTarget::_init();
 }
+
