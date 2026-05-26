@@ -26,7 +26,7 @@ class RefCounted
 		 * Attempt to obtain a reference lock.
 		 * @returns True if reference could be obtained. False otherwise.
 		 */
-		bool incrRef()
+		virtual bool incrRef()
 		{
 			bool success = false;
 
@@ -45,7 +45,7 @@ class RefCounted
 		/**
 		 * Remove a reference lock.
 		 */
-		void decrRef()
+		virtual void decrRef()
 		{
 			bool invokeDelete = false;
 

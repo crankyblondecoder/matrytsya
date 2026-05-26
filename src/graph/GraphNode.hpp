@@ -14,8 +14,7 @@ class GraphNodeHandle;
 
 /**
  * Node of a graph
- * @note Nodes self delete when no longer referenced. They keep a self reference until either decoupled or all edges have
- *       been removed that refer to the node.
+ * @note Nodes self delete when no longer referenced by an edge.
  */
 class GraphNode : public RefCounted, public GraphActionTargetable
 {
@@ -23,21 +22,22 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 
 		/**
 		 * Create new graph node.
-		 * @note Because this is refcounted it will require the automatic initial refcount to be released before it can
-		 * 		 be deleted. Doing this explicitly is only required if no edges were attached to this node and can be done by
-		 *       calling decouple().
+		 * @note Because this is ref-counted it will require the automatic initial reference increase to be released
+		 *       before it can be deleted. Doing this explicitly is only required if this node has _not_ had its
+		 *       ref-count explicitly increased.
 		 */
         GraphNode();
+
+		virtual bool incrRef() override;
 
 		/**
 		 * Create and add an edge from this node to another node.
 		 * ie The edge is directed from this node to another node.
 		 * @note Only nodes can create edges.
 		 * @param connectTo Handle of node to form edge to.
-		 * @param traversalFlags Flags that control what can traverse the edge.
          * @returns Handle to use to refer to the created edge (local to this node only). -1 if could not be added.
 		 */
-		int createEdge(GraphNodeHandle& connectTo, unsigned long traversalFlags);
+		int createEdge(GraphNodeHandle& connectTo);
 
 		/**
 		 * Remove edge from this node.
@@ -46,18 +46,15 @@ class GraphNode : public RefCounted, public GraphActionTargetable
         void removeEdge(int handle);
 
 		/**
-		 * Find next node to apply given action to.
-		 * @note Make sure this is only called on the actions own thread.
-		 * @note Once an action calls this it should _not_ keep any pointer to _this_ node.
-		 * @param action Action that wants to traverse this node.
-		 * @returns A ref incr node pointer or null if could not traverse.
+		 * Find the next node to traverse to.
+		 * @returns Handle to next node to traverse to.
 		 */
-		GraphNode* traverse(GraphAction* action);
+		GraphNodeHandle traverse();
 
 		/**
 		 * Get the energy cost of an action being applied to this node.
 		 */
-		unsigned getActionEnergyCost();
+		unsigned getEnergyCost();
 
     protected:
 
@@ -80,7 +77,7 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 		/**
 		 * Set the energy cost of an action being applied to this node.
 		 */
-		void _setActionEnergyCost(unsigned cost);
+		void _setEnergyCost(unsigned cost);
 
 	private:
 
@@ -89,6 +86,9 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 
         /** Generic lock. */
         ThreadMutex _lock;
+
+		/** Whether the initial refcount has been removed. */
+		bool _initRefcountRemoved;
 
 		/** How much energy it costs for an action to be applied to this node. */
 		unsigned _actionEnergyCost;
