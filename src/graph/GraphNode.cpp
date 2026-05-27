@@ -1,6 +1,8 @@
 #include "GraphNode.hpp"
 
 #include <new>
+
+#include "GraphAction.hpp"
 #include "GraphEdge.hpp"
 #include "GraphException.hpp"
 #include "GraphNodeHandle.hpp"
@@ -24,21 +26,6 @@ GraphNode::GraphNode()
 	_actionEnergyCost = 1;
 
 	for(int index = 0; index < EDGE_ARRAY_SIZE; index++) _edges[index] = 0;
-}
-
-bool GraphNode::incrRef()
-{
-	bool success = RefCounted::incrRef();
-
-	if(!_initRefcountRemoved && success)
-	{
-		// The initial reference increase removal is triggered by the first explicit ref increase.
-		RefCounted::decrRef();
-
-		_initRefcountRemoved = true;
-	}
-
-	return success;
 }
 
 unsigned GraphNode::getEnergyCost()
@@ -100,6 +87,8 @@ void GraphNode::removeEdge(int edgeHandle)
 
     { SYNC(_lock)
 
+		// TODO Handle case of all edges being removed and hence initial incrref needs to be removed.
+
 		if(edgeHandle < EDGE_ARRAY_SIZE && edgeHandle >= 0 && _edges[edgeHandle])
 		{
 			edge = _edges[edgeHandle];
@@ -132,7 +121,8 @@ GraphNodeHandle GraphNode::traverse()
 	return GraphNodeHandle(0);
 }
 
-void GraphNode::_emitAction(GraphAction* action)
+void GraphNode::_emitAction(GraphAction& action)
 {
+	action.start();
 }
 

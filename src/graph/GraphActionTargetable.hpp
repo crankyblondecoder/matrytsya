@@ -1,7 +1,7 @@
 #ifndef GRAPH_ACTION_TARGETABLE_H
 #define GRAPH_ACTION_TARGETABLE_H
 
-#include "GraphAction.hpp"
+class GraphAction;
 
 /**
  * Base class of all classes that can be action targets.

@@ -1,5 +1,6 @@
 #include "GraphEdge.hpp"
 #include "GraphNode.hpp"
+#include "GraphNodeHandle.hpp"
 
 GraphEdge::~GraphEdge()
 {

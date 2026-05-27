@@ -3,9 +3,8 @@
 
 #include "../util/RefCounted.hpp"
 
-class GraphActionThreadPoolWorkUnit;
-class GraphEdge;
 class GraphNode;
+class GraphNodeHandle;
 
 /**
  * Base class of all actions that traverses the graph and invoke operations on a node, as per a pre-defined action
@@ -20,7 +19,7 @@ class GraphAction : public RefCounted
 		/**
 		 * @param initNode Initial node the new action is bound to. This action will not be applied to this node.
 		 */
-		GraphAction(GraphNode* initNode, unsigned energy);
+		GraphAction(GraphNodeHandle& initNode, unsigned energy);
 
 		/**
 		 * Get flag that determines if this action is invoked on a node i.e. The node is processed.
@@ -60,7 +59,7 @@ class GraphAction : public RefCounted
 		 * Subclass hook to apply this action to a node.
 		 * @note This is not required to be re-entrant.
 		 */
-		virtual void _apply(GraphNode*) = 0;
+		virtual void _apply(GraphNode* node) = 0;
 
 		/**
 		 * Action is complete, will no longer traverse edges, and will soon be deleted.
@@ -75,11 +74,17 @@ class GraphAction : public RefCounted
 		/** Whether the action has been started. */
 		bool _started;
 
+		/**
+		 * Whether the initial traverse has occurred.
+		 * This exists to stop the action from being applied to the initial bound node.
+		 */
+		bool _initTraverse;
+
 		/** Whether the action has stopped traversing, i.e. it will no longer be applied to any nodes */
 		bool _stopped;
 
 		/** The curent node this action is associated with. */
-		GraphNode* _boundNode;
+		GraphNodeHandle* _boundNode;
 
 		/**
 		 * The number of energy units this action currently contains.
@@ -88,7 +93,7 @@ class GraphAction : public RefCounted
 		unsigned _energy;
 
 		/**
-		 * Apply this action to a node.
+		 * Apply this action to the currently bound node.
 		 */
 		void __apply(GraphNode* node);
 

@@ -2,20 +2,26 @@
 #include "GraphActionThreadPoolWorkUnit.hpp"
 #include "GraphException.hpp"
 #include "GraphNode.hpp"
+#include "GraphNodeHandle.hpp"
 #include "../thread/ThreadPool.hpp"
 
 extern ThreadPool* threadPool;
 
 GraphAction::~GraphAction()
 {
-	if(_boundNode) _boundNode -> decrRef();
+	if(_boundNode)
+	{
+		delete _boundNode;
+		_boundNode = 0;
+	}
 }
 
-GraphAction::GraphAction(GraphNode* initNode, unsigned energy)
+GraphAction::GraphAction(GraphNodeHandle& initNode, unsigned energy)
 {
-	_boundNode = initNode;
+	_boundNode = new GraphNodeHandle(initNode);
 
 	_started = false;
+	_initTraverse = true;
 	_stopped = false;
 
 	_energy = energy;
@@ -24,8 +30,9 @@ GraphAction::GraphAction(GraphNode* initNode, unsigned energy)
 void GraphAction::__apply(GraphNode* node)
 {
 	// Do any energy accounting.
-	__consumeEnergy(node -> getActionEnergyCost());
+	__consumeEnergy(node -> getEnergyCost());
 
+	// Send to concrete sub-class.
 	_apply(node);
 }
 
@@ -52,6 +59,9 @@ void GraphAction::__complete()
 
 	// Notify subclass.
 	_complete();
+
+	// This allows initial ref count to be released.
+	decrRef();
 }
 
 void GraphAction::start()
@@ -72,7 +82,7 @@ void GraphAction::start()
 
 	bool workSubmitted = false;
 
-	if(threadPool && _boundNode -> incrRef())
+	if(threadPool && _boundNode -> isValid())
 	{
 		// Bootstrap into action work cycle.
 		// Ask threadpool to execute actions work unit.
@@ -85,12 +95,6 @@ void GraphAction::start()
 
 	if(!workSubmitted)
 	{
-		if(_boundNode)
-		{
-			_boundNode -> decrRef();
-			_boundNode = 0;
-		}
-
 		// Action can't be started so this should delete it.
 		decrRef();
 	}
@@ -105,62 +109,57 @@ void GraphAction::work()
 
 	{ SYNC(_workLock)
 
-		if(_boundNode)
+		bool complete = true;
+
+		if(_boundNode && _boundNode -> isValid())
 		{
-			// Act on currently bound node.
-			if(_boundNode -> canActionTarget(this)) _apply(_boundNode);
+			GraphNode* curBoundNode = _boundNode -> getNode();
+
+			if(!_initTraverse)
+			{
+				// Act on currently bound node.
+				if(curBoundNode -> canActionTarget(this)) __apply(curBoundNode);
+			}
+			else
+			{
+				// Don't act on first bound node.
+				_initTraverse = false;
+			}
 
 			if(_energy > 0)
 			{
-				GraphNode* curBoundNode = _boundNode;
+				delete _boundNode;
 
-				// Assume that if a node is returned to traverse that it has been ref incr.
-				_boundNode = curBoundNode -> traverse(this);
+				_boundNode = new GraphNodeHandle(curBoundNode -> traverse());
 
-				// A pointer is no longer held for the just traversed node.
-				curBoundNode -> decrRef();
-
-				if(_boundNode)
+				if(_boundNode -> isValid())
 				{
-					// Create and schedule another work unit for the newly bound node. This makes sure
+					// Create and schedule another work unit for the newly bound valid node. This makes sure
 					// actions don't hog thread time.
 
-					if(!threadPool -> executeWorkUnit(new GraphActionThreadPoolWorkUnit(this)))
+					if(threadPool -> executeWorkUnit(new GraphActionThreadPoolWorkUnit(this)))
 					{
-						// Couldn't schedule work so just trigger action being aborted.
-						_boundNode -> decrRef();
-						_boundNode = 0;
+						// Work successfully scheduled.
+						complete = false;
 					}
 				}
 			}
 		}
 
-		// If bound node is non-null at this point then a new work unit was scheduled to process it.
-
-		if(!_boundNode)
+		if(complete)
 		{
 			// Action has completed.
 			__complete();
-
-			// No more nodes to traverse so allow this action to be deleted.
-			decrRef();
 		}
 	}
 }
 
 void GraphAction::abortWork()
 {
-	// Last scheduled work unit could not be allocated.
+	// Last scheduled work unit could not be allocated. This essentially means the action is stalled so it must
+	// complete.
 
-	// The bound node has to be decr ref and cleared.
-	if(_boundNode) _boundNode -> decrRef();
-	_boundNode = 0;
-
-	// Even during abort a subclass must be notified.
 	__complete();
-
-	// As this action can no longer traverse, allow this action to be deleted.
-	decrRef();
 }
 
 

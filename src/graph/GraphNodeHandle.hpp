@@ -1,7 +1,7 @@
 #ifndef GRAPH_NODE_HANDLE_H
 #define GRAPH_NODE_HANDLE_H
 
-#include "GraphNode.hpp"
+class GraphNode;
 
 /**
  * Handle to a graph node.
@@ -29,8 +29,7 @@ class GraphNodeHandle
 
 		/**
 		 * Get the graph node contained in this handle.
-		 * Will ref incr node before returning it.
-		 * @returns Point to node. Null if not available.
+		 * @returns Pointer to node. Null if not available.
 		 */
 		GraphNode* getNode();
 

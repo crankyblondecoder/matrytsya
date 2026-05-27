@@ -1,5 +1,7 @@
 #include "GraphNodeHandle.hpp"
 
+#include "GraphNode.hpp"
+
 GraphNodeHandle::GraphNodeHandle(GraphNode* node)
 {
 	if(node && node -> incrRef())

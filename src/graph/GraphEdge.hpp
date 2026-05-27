@@ -1,7 +1,7 @@
 #ifndef GRAPH_EDGE_H
 #define GRAPH_EDGE_H
 
-#include "GraphNodeHandle.hpp"
+class GraphNodeHandle;
 
 /**
  * Edge that describes directed link to another node.

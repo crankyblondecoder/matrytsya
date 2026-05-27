@@ -28,8 +28,6 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 		 */
         GraphNode();
 
-		virtual bool incrRef() override;
-
 		/**
 		 * Create and add an edge from this node to another node.
 		 * ie The edge is directed from this node to another node.
@@ -70,9 +68,9 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 		/**
 		 * Emit an action by making its origin this node.
 		 * @note All subclasses must use this function to emit actions so that correct binding to the node occurs.
-		 * @param action Action to emit.
+		 * @param action Action to emit. This must have its refcount increased prior to the call.
 		 */
-		void _emitAction(GraphAction* action);
+		void _emitAction(GraphAction& action);
 
 		/**
 		 * Set the energy cost of an action being applied to this node.
