@@ -20,8 +20,6 @@ class TestNode : public GraphNode, public PingActionTarget
 
 	protected:
 
-		void _decoupled() override;
-
 		void _init() override;
 
     private:

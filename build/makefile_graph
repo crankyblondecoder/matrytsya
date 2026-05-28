@@ -1,4 +1,4 @@
-srcFiles = Graph.cpp GraphAction.cpp GraphActionTargetable.cpp GraphActionThreadPoolWorkUnit.cpp GraphEdge.cpp \
+srcFiles = GraphHive.cpp GraphAction.cpp GraphActionTargetable.cpp GraphActionThreadPoolWorkUnit.cpp GraphEdge.cpp \
 GraphNodeHandle.cpp GraphNode.cpp \
 actions/PingAction.cpp \
 nodes/TestNode.cpp

@@ -3,7 +3,7 @@
 
 /**
  * Templated base class of all interfaces that define a specific graph action target.
- * A target is the interface used for the action to invoke operations on a graph node.
+ * A target is the interface used for an action to invoke operations on a graph node.
  */
 template <unsigned long ActionFlag> class GraphActionTarget
 {

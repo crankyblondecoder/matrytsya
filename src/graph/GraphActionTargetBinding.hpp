@@ -12,14 +12,21 @@ template <class ActionTargetClass> class GraphActionTargetBinding : public Graph
 
         virtual ~GraphActionTargetBinding();
 
-		GraphActionTargetBinding();
+		/**
+		 * @param initNode Initial node the new action is bound to. This action will not be applied to this node.
+		 * @param energy The energy that is assigned to the action.
+		 */
+		GraphActionTargetBinding(GraphNodeHandle& initNode, unsigned energy);
 
-		virtual unsigned long getFlag();
-
-		virtual void _apply(GraphNode*);
+		virtual unsigned long getFlag() override;
 
 	protected:
 
+		virtual void _apply(GraphNode*) override;
+
+		/**
+		 * Marshal the generic node type that action is being applied to into the specific action target type.
+		 */
 		virtual void _apply(ActionTargetClass*) = 0;
 
     private:
@@ -29,7 +36,8 @@ template <class ActionTargetClass> GraphActionTargetBinding<ActionTargetClass>::
 {
 }
 
-template <class ActionTargetClass> GraphActionTargetBinding<ActionTargetClass>::GraphActionTargetBinding()
+template <class ActionTargetClass> GraphActionTargetBinding<ActionTargetClass>::GraphActionTargetBinding(
+	GraphNodeHandle& initNode, unsigned energy) : GraphAction(initNode, energy)
 {
 }
 

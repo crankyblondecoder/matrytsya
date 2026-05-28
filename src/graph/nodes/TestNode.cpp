@@ -1,12 +1,13 @@
 #include "../actions/PingAction.hpp"
 
+#include "../GraphNodeHandle.hpp"
 #include "TestNode.hpp"
 
 TestNode::~TestNode()
 {
 }
 
-TestNode::TestNode(Graph* graph) : GraphNode(graph)
+TestNode::TestNode(Graph* graph) : GraphNode()
 {
 }
 
@@ -17,12 +18,10 @@ bool TestNode::ping()
 
 void TestNode::emitPing()
 {
-	// Action will self delete once complete.
-	_emitAction(new PingAction());
-}
+	GraphNodeHandle handle(this);
 
-void TestNode::_decoupled()
-{
+	// Action will self delete once complete.
+	_emitAction(new PingAction(handle));
 }
 
 void TestNode::_init()

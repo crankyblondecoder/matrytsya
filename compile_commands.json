@@ -1,21 +1,21 @@
 [
   {
-    "file": "../../src/graph/Graph.cpp",
+    "file": "../../src/graph/GraphHive.cpp",
     "arguments": [
       "/usr/bin/g++",
       "-MM",
-      "../../src/graph/Graph.cpp"
+      "../../src/graph/GraphHive.cpp"
     ],
     "directory": "/data/devel/matrytsya/build/debug"
   },
   {
-    "file": "../../src/graph/Graph.cpp",
+    "file": "../../src/graph/GraphHive.cpp",
     "arguments": [
       "/usr/bin/g++",
       "-MM",
       "-MT",
-      "Graph.dep",
-      "../../src/graph/Graph.cpp"
+      "GraphHive.dep",
+      "../../src/graph/GraphHive.cpp"
     ],
     "directory": "/data/devel/matrytsya/build/debug"
   },
@@ -180,7 +180,7 @@
     "directory": "/data/devel/matrytsya/build/debug"
   },
   {
-    "file": "../../src/graph/Graph.cpp",
+    "file": "../../src/graph/GraphHive.cpp",
     "arguments": [
       "/usr/bin/g++",
       "-std=c++11",
@@ -190,11 +190,11 @@
       "-pthread",
       "-c",
       "-o",
-      "Graph.o",
-      "../../src/graph/Graph.cpp"
+      "GraphHive.o",
+      "../../src/graph/GraphHive.cpp"
     ],
     "directory": "/data/devel/matrytsya/build/debug",
-    "output": "Graph.o"
+    "output": "GraphHive.o"
   },
   {
     "file": "../../src/graph/GraphAction.cpp",

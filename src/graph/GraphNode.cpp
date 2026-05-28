@@ -22,6 +22,7 @@ GraphNode::~GraphNode()
 
 GraphNode::GraphNode()
 {
+	_edgeCount = 0;
 	_initRefcountRemoved = false;
 	_actionEnergyCost = 1;
 
@@ -42,11 +43,11 @@ int GraphNode::createEdge(GraphNodeHandle& connectTo)
 {
 	int retHandle = -1;
 
-	if(connectTo.isValid())
+	if(connectTo.isValid() && _edgeCount < EDGE_ARRAY_SIZE)
 	{
 		{ SYNC(_lock)
 
-			// Make sure there is a spare edge slot available.
+			// Find first available edge slot.
 			for(int index = 0; index < EDGE_ARRAY_SIZE; index++)
 			{
 				if(_edges[index] == 0)
@@ -73,6 +74,7 @@ int GraphNode::createEdge(GraphNodeHandle& connectTo)
 				if(edge && edge -> isComplete())
 				{
 					_edges[retHandle] = edge;
+					_edgeCount++;
 				}
 			}
 		}
@@ -83,16 +85,27 @@ int GraphNode::createEdge(GraphNodeHandle& connectTo)
 
 void GraphNode::removeEdge(int edgeHandle)
 {
+	// NOTE: This relies on a the ref count to be increased prior to entry to give thread safety. It is _not_ safe
+	//       to allow a delete to be triggered here.
+
 	GraphEdge* edge = 0;
 
     { SYNC(_lock)
-
-		// TODO Handle case of all edges being removed and hence initial incrref needs to be removed.
 
 		if(edgeHandle < EDGE_ARRAY_SIZE && edgeHandle >= 0 && _edges[edgeHandle])
 		{
 			edge = _edges[edgeHandle];
 			_edges[edgeHandle] = 0;
+			_edgeCount--;
+
+			if(_edgeCount == 0 && !_initRefcountRemoved)
+			{
+				// Last edge removal allows node to be deleted.
+				// This covers case of a node only having edges from this to elsewhere but nothing pointing to it.
+				decrRef();
+
+				_initRefcountRemoved = true;
+			}
 		}
 		else
 		{
@@ -100,7 +113,16 @@ void GraphNode::removeEdge(int edgeHandle)
 		}
     }
 
-	delete edge;
+	if(edge) delete edge;
+}
+
+void GraphNode::referredTo(GraphEdge* edge)
+{
+	if(!_initRefcountRemoved)
+	{
+		decrRef();
+		_initRefcountRemoved = true;
+	}
 }
 
 GraphNodeHandle GraphNode::traverse()
@@ -121,8 +143,8 @@ GraphNodeHandle GraphNode::traverse()
 	return GraphNodeHandle(0);
 }
 
-void GraphNode::_emitAction(GraphAction& action)
+void GraphNode::_emitAction(GraphAction* action)
 {
-	action.start();
+	action -> start();
 }
 

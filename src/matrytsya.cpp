@@ -1,4 +1,3 @@
-#include "graph/Graph.hpp"
 #include "thread/ThreadPool.hpp"
 
 int main(int argc, char const *argv[])

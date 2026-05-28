@@ -13,7 +13,7 @@ class PingAction : public GraphActionTargetBinding<PingActionTarget>
 
         virtual ~PingAction();
 
-		PingAction();
+		PingAction(GraphNodeHandle& initNode);
 
 	protected:
 

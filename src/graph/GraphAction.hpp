@@ -18,6 +18,7 @@ class GraphAction : public RefCounted
 
 		/**
 		 * @param initNode Initial node the new action is bound to. This action will not be applied to this node.
+		 * @param energy The energy that is assigned to the action.
 		 */
 		GraphAction(GraphNodeHandle& initNode, unsigned energy);
 

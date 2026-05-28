@@ -39,9 +39,15 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 
 		/**
 		 * Remove edge from this node.
+		 * @note It is imperitive that the ref count to this node is increased before calling this function.
 		 * @param handle Handle of edge to remove. As returned by createEdge.
 		 */
         void removeEdge(int handle);
+
+		/**
+		 * Inform this node that an edge is now pointing to it.
+		 */
+		void referredTo(GraphEdge* edge);
 
 		/**
 		 * Find the next node to traverse to.
@@ -70,7 +76,7 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 		 * @note All subclasses must use this function to emit actions so that correct binding to the node occurs.
 		 * @param action Action to emit. This must have its refcount increased prior to the call.
 		 */
-		void _emitAction(GraphAction& action);
+		void _emitAction(GraphAction* action);
 
 		/**
 		 * Set the energy cost of an action being applied to this node.
@@ -81,6 +87,9 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 
 		/** All edges directed from this node. */
         GraphEdge* _edges[EDGE_ARRAY_SIZE];
+
+		/** Count of the number of edges in the edge array. */
+		unsigned _edgeCount;
 
         /** Generic lock. */
         ThreadMutex _lock;

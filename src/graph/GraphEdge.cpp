@@ -17,6 +17,8 @@ GraphEdge::GraphEdge(GraphNodeHandle& fromNode)
 	if(newHandle -> isValid())
 	{
 		_toNode = newHandle;
+
+		(_toNode -> getNode()) -> referredTo(this);
 	}
 	else
 	{

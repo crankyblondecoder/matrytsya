@@ -7,11 +7,10 @@ PingAction::~PingAction()
 {
 }
 
-PingAction::PingAction()
+PingAction::PingAction(GraphNodeHandle& initNode)
+	: GraphActionTargetBinding<PingActionTarget>(initNode, 32)
 {
 	_pingCount = 0;
-
-	_setEdgeTraversalFlags(TEST_GRAPH_EDGE);
 }
 
 void PingAction::_apply(PingActionTarget* target)

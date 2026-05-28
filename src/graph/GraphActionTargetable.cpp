@@ -1,5 +1,7 @@
 #include "GraphActionTargetable.hpp"
 
+#include "GraphAction.hpp"
+
 GraphActionTargetable::~GraphActionTargetable()
 {
 }
