@@ -10,5 +10,3 @@
 
 - Actions are responsible for their own scheduling of thread time requests.
 
-- After any initial connection to/from a node, when the node no longer has any edges point to/from it, it is deleted.
-

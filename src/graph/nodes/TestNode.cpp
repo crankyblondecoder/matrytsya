@@ -7,7 +7,7 @@ TestNode::~TestNode()
 {
 }
 
-TestNode::TestNode(Graph* graph) : GraphNode()
+TestNode::TestNode(GraphHive& hive) : GraphNode(hive)
 {
 }
 
@@ -28,5 +28,10 @@ void TestNode::_init()
 {
 	// Do all action target initialisation here.
 	PingActionTarget::_init();
+}
+
+void TestNode::_registerActionFlag(unsigned long actionFlag)
+{
+	_addActionFlag(actionFlag);
 }
 

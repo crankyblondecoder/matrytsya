@@ -5,6 +5,7 @@
 #include "GraphAction.hpp"
 #include "GraphEdge.hpp"
 #include "GraphException.hpp"
+#include "GraphHive.hpp"
 #include "GraphNodeHandle.hpp"
 
 GraphNode::~GraphNode()
@@ -20,13 +21,24 @@ GraphNode::~GraphNode()
 	}
 }
 
-GraphNode::GraphNode()
+GraphNode::GraphNode(GraphHive& hive) : _hive(hive)
 {
 	_edgeCount = 0;
-	_initRefcountRemoved = false;
 	_actionEnergyCost = 1;
 
 	for(int index = 0; index < EDGE_ARRAY_SIZE; index++) _edges[index] = 0;
+
+	hive.addNode(this);
+}
+
+void GraphNode::decouple()
+{
+	// Add this stage simply remove all edges attached to this.
+
+	for(int index = 0; index < EDGE_ARRAY_SIZE; index++)
+	{
+		if(_edges[index]) __removeEdge(index);
+	}
 }
 
 unsigned GraphNode::getEnergyCost()
@@ -85,6 +97,11 @@ int GraphNode::createEdge(GraphNodeHandle& connectTo)
 
 void GraphNode::removeEdge(int edgeHandle)
 {
+	__removeEdge(edgeHandle);
+}
+
+void GraphNode::__removeEdge(int edgeHandle)
+{
 	// NOTE: This relies on a the ref count to be increased prior to entry to give thread safety. It is _not_ safe
 	//       to allow a delete to be triggered here.
 
@@ -97,15 +114,6 @@ void GraphNode::removeEdge(int edgeHandle)
 			edge = _edges[edgeHandle];
 			_edges[edgeHandle] = 0;
 			_edgeCount--;
-
-			if(_edgeCount == 0 && !_initRefcountRemoved)
-			{
-				// Last edge removal allows node to be deleted.
-				// This covers case of a node only having edges from this to elsewhere but nothing pointing to it.
-				decrRef();
-
-				_initRefcountRemoved = true;
-			}
 		}
 		else
 		{
@@ -118,11 +126,6 @@ void GraphNode::removeEdge(int edgeHandle)
 
 void GraphNode::referredTo(GraphEdge* edge)
 {
-	if(!_initRefcountRemoved)
-	{
-		decrRef();
-		_initRefcountRemoved = true;
-	}
 }
 
 GraphNodeHandle GraphNode::traverse()

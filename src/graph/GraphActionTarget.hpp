@@ -19,9 +19,9 @@ template <unsigned long ActionFlag> class GraphActionTarget
 	protected:
 
 		/**
-		 * Add the action flag this action target corresponds to.
+		 * Register the action flag this action target corresponds to.
 		 */
-		virtual void _addActionFlag(unsigned long actionFlag) = 0;
+		virtual void _registerActionFlag(unsigned long actionFlag) = 0;
 
 		/**
 		 * Initialise this action target.
@@ -44,7 +44,7 @@ template <unsigned long ActionFlag> GraphActionTarget<ActionFlag>::GraphActionTa
 
 template <unsigned long ActionFlag> void GraphActionTarget<ActionFlag>::_init()
 {
-	_addActionFlag(GraphActionTarget<ActionFlag>::ACTION_FLAG);
+	_registerActionFlag(GraphActionTarget<ActionFlag>::ACTION_FLAG);
 }
 
 #endif

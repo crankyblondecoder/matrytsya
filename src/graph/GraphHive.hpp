@@ -1,6 +1,13 @@
 #ifndef GRAPH_HIVE_H
 #define GRAPH_HIVE_H
 
+#include "GraphNodeHandle.hpp"
+#include "../thread/ThreadMutex.hpp"
+
+#include <vector>
+
+class GraphNode;
+
 /**
  * Types of nodes a have can create and contain.
  */
@@ -25,9 +32,28 @@ class GraphHive
         virtual ~GraphHive();
         GraphHive();
 
+		/**
+		 * Add a graph node to this hive.
+		 * @note Expects to manage the initial reference count of this node.
+		 * @returns Nodes hive index.
+		 */
+		 unsigned addNode(GraphNode* node);
+
+		 /**
+		  * Remove node from hive.
+		  */
+		 void removeNode(unsigned nodeIndex);
+
 	protected:
 
     private:
+
+		/** Nodes contained in this hive. */
+		std::vector<GraphNode*> _nodes;
+
+        /** Generic lock. */
+        ThreadMutex _lock;
+
 };
 
 #endif

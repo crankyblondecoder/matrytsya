@@ -1,11 +1,10 @@
 #ifndef GRAPH_NODE_H
 #define GRAPH_NODE_H
 
-class Graph;
 class GraphEdge;
+class GraphHive;
 class GraphNodeHandle;
 
-//#include "GraphAction.hpp"
 #include "GraphActionTargetable.hpp"
 #include "../util/RefCounted.hpp"
 
@@ -26,7 +25,7 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 		 *       before it can be deleted. Doing this explicitly is only required if this node has _not_ had its
 		 *       ref-count explicitly increased.
 		 */
-        GraphNode();
+        GraphNode(GraphHive& hive);
 
 		/**
 		 * Create and add an edge from this node to another node.
@@ -39,7 +38,6 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 
 		/**
 		 * Remove edge from this node.
-		 * @note It is imperitive that the ref count to this node is increased before calling this function.
 		 * @param handle Handle of edge to remove. As returned by createEdge.
 		 */
         void removeEdge(int handle);
@@ -59,6 +57,12 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 		 * Get the energy cost of an action being applied to this node.
 		 */
 		unsigned getEnergyCost();
+
+		/**
+		 * Does any house keeping associated with decoupling from the graph.
+		 * @note This can be assumed to be associated with being removed from a hive.
+		 */
+		void decouple();
 
     protected:
 
@@ -85,6 +89,9 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 
 	private:
 
+		/** The hive this node belongs to. */
+		GraphHive& _hive;
+
 		/** All edges directed from this node. */
         GraphEdge* _edges[EDGE_ARRAY_SIZE];
 
@@ -94,15 +101,18 @@ class GraphNode : public RefCounted, public GraphActionTargetable
         /** Generic lock. */
         ThreadMutex _lock;
 
-		/** Whether the initial refcount has been removed. */
-		bool _initRefcountRemoved;
-
 		/** How much energy it costs for an action to be applied to this node. */
 		unsigned _actionEnergyCost;
 
         // Do not allow copying.
         GraphNode(const GraphNode& copyFrom);
         GraphNode& operator= (const GraphNode& copyFrom);
+
+		/**
+		 * Remove edge from this node.
+		 * @param handle Handle of edge to remove. As returned by createEdge.
+		 */
+        void __removeEdge(int handle);
 };
 
 #endif

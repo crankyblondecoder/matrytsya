@@ -11,7 +11,7 @@ class TestNode : public GraphNode, public PingActionTarget
 
         virtual ~TestNode();
 
-        TestNode(Graph* graph);
+        TestNode(GraphHive& hive);
 
 		virtual bool ping();
 
@@ -21,6 +21,8 @@ class TestNode : public GraphNode, public PingActionTarget
 	protected:
 
 		void _init() override;
+
+		void _registerActionFlag(unsigned long actionFlag) override;
 
     private:
 };
