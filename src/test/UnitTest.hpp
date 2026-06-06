@@ -69,6 +69,11 @@ class UnitTest
 		void _notifyTestResult(const char* testName, bool result, const char* resultMessage);
 
 		/**
+		 * Output a general message that uses the current indentation level of this unit test.
+		 */
+		void _showMessage(const char* message);
+
+		/**
 		 * Set the nested level of this unit test.
 		 * ie How far down the unit test hierachy it resides.
 		 * @param level Nested level to set.

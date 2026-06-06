@@ -162,10 +162,10 @@ void ThreadPool::threadEntry()
 			{
 				ThreadPoolWorkUnit* workUnit = 0;
 
-				if(_workUnitQueue.count())
+				if(!_workUnitQueue.empty())
 				{
-					workUnit = _workUnitQueue.first();
-					_workUnitQueue.remove();
+					workUnit = _workUnitQueue.front();
+					_workUnitQueue.pop();
 				}
 
 				if(workUnit)
@@ -219,7 +219,7 @@ void ThreadPool::threadEntry()
 				}
 			}
 
-			if(!_numWorkerThreadsFree || !_workUnitQueue.count() )
+			if(!_numWorkerThreadsFree || _workUnitQueue.empty() )
 			{
 				// No worker threads are free or no work units need to be executed.
 
@@ -274,7 +274,7 @@ bool ThreadPool::executeWorkUnit(ThreadPoolWorkUnit* workUnit)
 	{
 		// Pointer list does not own work unit. This is just a queue.
 		// Rely on the worker thread deleting it.
-		_workUnitQueue.append(workUnit, false);
+		_workUnitQueue.push(workUnit);
 		_queueCond.signal();
 
 		canExecute = true;
@@ -315,17 +315,25 @@ void ThreadPool::shutdown()
 	// Mutex is now locked.
 
 	// Any uninvoked work units should be aborted.
-	ThreadPoolWorkUnit* workUnit = _workUnitQueue.first();
+	ThreadPoolWorkUnit* workUnit = _workUnitQueue.front();
 
 	while(workUnit)
 	{
-		_workUnitQueue.remove();
+		_workUnitQueue.pop();
 		_queueCond.unlockMutex();
 
 		workUnit -> abort();
 
 		_queueCond.lockMutex();
-		workUnit = _workUnitQueue.first();
+
+		if(!_workUnitQueue.empty())
+		{
+			workUnit = _workUnitQueue.front();
+		}
+		else
+		{
+			workUnit = 0;
+		}
 	}
 
 	_queueCond.unlockMutex();

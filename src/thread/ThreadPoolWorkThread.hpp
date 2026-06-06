@@ -1,11 +1,11 @@
 #ifndef THREAD_POOL_WORK_THREAD_H
 #define THREAD_POOL_WORK_THREAD_H
 
-#include "ThreadCondition.hpp"
 using namespace std;
 
 class ThreadPool;
 
+#include "ThreadCondition.hpp"
 #include "ThreadPool.hpp"
 #include "ThreadPoolWorkUnit.hpp"
 

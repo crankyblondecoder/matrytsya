@@ -4,6 +4,7 @@
 #include "GraphNode.hpp"
 #include "GraphNodeHandle.hpp"
 #include "../thread/ThreadPool.hpp"
+#include "../thread/ThreadException.hpp"
 
 extern ThreadPool* threadPool;
 
@@ -27,11 +28,50 @@ GraphAction::GraphAction(GraphNodeHandle& initNode, unsigned energy)
 	_energy = energy;
 }
 
+void GraphAction::waitOnComplete(unsigned timeOut)
+{
+	// This is required so that this can't be deleted before the condition can be completed.
+	if(incrRef())
+	{
+		try
+		{
+			_completeCond.lockMutex();
+		}
+		catch(ThreadException& ex)
+		{
+			decrRef();
+			return;
+		}
+
+		if(!_stopped)
+		{
+			try
+			{
+				if(timeOut > 0)
+				{
+					_completeCond.waitTimeout(timeOut);
+				}
+				else
+				{
+					_completeCond.wait();
+				}
+			}
+			catch(ThreadException& ex)
+			{
+				decrRef();
+				return;
+			}
+		}
+
+		// Thread is no longer waiting.
+		_completeCond.unlockMutex();
+
+		decrRef();
+	}
+}
+
 void GraphAction::__apply(GraphNode* node)
 {
-	// Do any energy accounting.
-	__consumeEnergy(node -> getEnergyCost());
-
 	// Send to concrete sub-class.
 	_apply(node);
 }
@@ -55,10 +95,19 @@ unsigned GraphAction::getEnergyLevel()
 
 void GraphAction::__complete()
 {
+	// This guards the stopped condition.
+	_completeCond.lockMutex();
+
 	_stopped = true;
 
 	// Notify subclass.
 	_complete();
+
+	// Process any threads waiting on condition.
+	// Exceptions are allowed to pass through because it is a critical situation to potentially have any threads stalled indefinitely.
+
+	_completeCond.broadcast();
+	_completeCond.unlockMutex();
 
 	// This allows initial ref count to be released.
 	decrRef();
@@ -119,6 +168,12 @@ void GraphAction::work()
 			{
 				// Act on currently bound node.
 				if(curBoundNode -> canActionTarget(this)) __apply(curBoundNode);
+
+				// Always consume energy even when action can't target the bound node. This ensures that actions
+				// "always die" with certainty. If it was only consumed upon application of a target then potentially
+				// an action can get into an infinite loop (this happened in early unit tests).
+					// Do any energy accounting.
+				__consumeEnergy(curBoundNode -> getEnergyCost());
 			}
 			else
 			{

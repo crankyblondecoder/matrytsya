@@ -20,7 +20,7 @@ unsigned GraphHive::addNode(GraphNode* node)
 {
 	{ SYNC(_lock)
 
-		for(unsigned index = 0; index < _nodes.size(); )
+		for(unsigned index = 0; index < _nodes.size(); index++)
 		{
 			if(!_nodes[index])
 			{

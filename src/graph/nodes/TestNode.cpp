@@ -16,12 +16,20 @@ bool TestNode::ping()
 	return true;
 }
 
-void TestNode::emitPing()
+PingAction* TestNode::emitPing(bool wait)
 {
 	GraphNodeHandle handle(this);
 
 	// Action will self delete once complete.
-	_emitAction(new PingAction(handle));
+	PingAction* action = new PingAction(handle);
+
+	action -> incrRef();
+
+	_emitAction(action);
+
+	action -> waitOnComplete(0);
+
+	return action;
 }
 
 void TestNode::_init()

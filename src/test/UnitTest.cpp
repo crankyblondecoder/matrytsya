@@ -75,6 +75,11 @@ void UnitTest::_notifyTestResult(const char* testName, bool result, const char* 
 	}
 }
 
+void UnitTest::_showMessage(const char* message)
+{
+	cout << "\t" << _indentTabs << message << "\n";
+}
+
 void UnitTest::_setLevel(int level)
 {
 	_level = level;

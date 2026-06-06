@@ -1,3 +1,4 @@
+#include "../../graph/actions/PingAction.hpp"
 #include "../../graph/GraphHive.hpp"
 #include "../../graph/graphEdgeFlagRegister.hpp"
 #include "../../graph/GraphNodeHandle.hpp"
@@ -5,7 +6,6 @@
 #include "../../thread/ThreadPool.hpp"
 #include "../UnitTest.hpp"
 
-#include <iostream>
 using namespace std;
 
 class PingTest : public UnitTest
@@ -34,8 +34,6 @@ class PingTest : public UnitTest
 		{
 			// This creates a hive and runs an action that should cycle until it runs out of energy.
 
-			cout << "\nAction energy rundown test.\n";
-
 			startThreadPool(2);
 
 			GraphHive* hive = new GraphHive();
@@ -57,9 +55,17 @@ class PingTest : public UnitTest
 			testNode3 -> createEdge(nodeHandle1);
 
 			// Run ping action.
-			testNode1 -> emitPing();
+ 			PingAction* action = testNode1 -> emitPing(true);
 
-			// TODO How to wait for action to complete?
+			// Ping action should have run out of energy.
+			if(action -> getEnergyLevel() != 0)
+			{
+				_notifyTestResult("Action energy rundown", false, "Energy was not zero as expected.");
+			}
+			else
+			{
+				_notifyTestResult("Action energy rundown", true, "");
+			}
 
 			delete hive;
 

@@ -2,6 +2,7 @@
 #define GRAPH_ACTION_H
 
 #include "../util/RefCounted.hpp"
+#include "../thread/ThreadCondition.hpp"
 
 class GraphNode;
 class GraphNodeHandle;
@@ -51,6 +52,12 @@ class GraphAction : public RefCounted
 		 */
 		unsigned getEnergyLevel();
 
+		/**
+		 * Wait on this action completing.
+		 * @param timeOut Maximum period in ms to wait on condition to be signalled. Use 0 for no timeout.
+		 */
+		void waitOnComplete(unsigned timeOut);
+
 	protected:
 
 		// This is ref counted.
@@ -72,6 +79,9 @@ class GraphAction : public RefCounted
 		/** Work only lock. */
         ThreadMutex _workLock;
 
+		/** For any thread that wants to wait on the action completing. */
+		ThreadCondition _completeCond;
+
 		/** Whether the action has been started. */
 		bool _started;
 
@@ -81,7 +91,10 @@ class GraphAction : public RefCounted
 		 */
 		bool _initTraverse;
 
-		/** Whether the action has stopped traversing, i.e. it will no longer be applied to any nodes */
+		/**
+		 * Whether the action has stopped traversing, i.e. it will no longer be applied to any nodes.
+		 * If true, this indicates that this action is complete.
+		 */
 		bool _stopped;
 
 		/** The curent node this action is associated with. */

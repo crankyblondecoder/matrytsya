@@ -1,10 +1,8 @@
-#include "../../thread/thread.hpp"
+#include "../../thread/Thread.hpp"
 #include "../../thread/ThreadException.hpp"
 
 #ifndef TEST_THREAD_H
 #define TEST_THREAD_H
-
-#include <string>
 
 /**
  * Create and invoke thread entry point.

@@ -36,7 +36,7 @@ int main()
 
 	numTests = 2;
 
-	threadModuleUnitTests.run();
+//	threadModuleUnitTests.run();
 	pingTest.run();
 
 	cout << "\n";

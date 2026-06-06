@@ -34,9 +34,9 @@ class ThreadConditionBase
 
         /**
          * Wait on a thread condition for up to a specified period.
+		 * @warning The conditions mutex must be locked prior to calling this and unlocked after returning from this call.
          * @param timeOut Maximum period in ms to wait on condition to be signalled.
          * @returns True if timeout was triggered. False otherwise.
-		 * @warning The conditions mutex must be locked prior to calling this and unlocked after returning from this call.
 		 * @throws ThreadException
          */
 		virtual bool waitTimeout(unsigned int timeOut) = 0;

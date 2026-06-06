@@ -1,12 +1,13 @@
 #ifndef THREAD_POOL_H
 #define THREAD_POOL_H
 
+#include <queue>
+
 class ThreadPoolWorkThread;
 
 #include "Thread.hpp"
 #include "ThreadCondition.hpp"
 #include "ThreadPoolWorkUnit.hpp"
-#include "../util/ptrList.hpp"
 
 /**
  * Pool of threads that can be allocated units of work to complete.
@@ -77,7 +78,7 @@ class ThreadPool : private Thread
 		ThreadCondition _queueCond;
 
 		/// Queue for work units that need to be executed.
-		ptrList<ThreadPoolWorkUnit> _workUnitQueue;
+		std::queue<ThreadPoolWorkUnit*> _workUnitQueue;
 
 		/// Index of last thread that was allocated a work unit. Allows for round robin style of work unit allocation.
 		unsigned _lastAllocThreadIndex;

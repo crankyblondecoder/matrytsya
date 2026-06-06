@@ -4,6 +4,8 @@
 #include "../actionTargets/PingActionTarget.hpp"
 #include "../GraphNode.hpp"
 
+class PingAction;
+
 /** Test graph node. */
 class TestNode : public GraphNode, public PingActionTarget
 {
@@ -15,8 +17,12 @@ class TestNode : public GraphNode, public PingActionTarget
 
 		virtual bool ping();
 
-		/** Emit a ping action from this node. */
-		void emitPing();
+		/**
+		 * Emit a ping action from this node.
+		 * @param wait Wait for action to complete.
+		 * @returns Ping action that was emitted. Will be refincr so caller must decref this to dispose.
+		 */
+		PingAction* emitPing(bool wait);
 
 	protected:
 
