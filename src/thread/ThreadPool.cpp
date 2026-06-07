@@ -20,6 +20,9 @@ void startThreadPool(unsigned numThreads)
 	if(!threadPool)
 	{
 		threadPool = new ThreadPool(numThreads);
+
+		// Wait for thread pool to start.
+		threadPool -> waitOnBecomingActive();
 	}
 }
 
@@ -140,6 +143,15 @@ ThreadPool::ThreadPool(unsigned numThreads)
 	}
 }
 
+void ThreadPool::waitOnBecomingActive()
+{
+	_poolThreadActiveCondition.lockMutex();
+
+	if(!_poolThreadActive) _poolThreadActiveCondition.wait();
+
+	_poolThreadActiveCondition.unlockMutex();
+}
+
 void ThreadPool::threadEntry()
 {
 	unsigned nextAllocThreadIndex;
@@ -151,7 +163,10 @@ void ThreadPool::threadEntry()
 	{
 		_queueCond.lockMutex();
 
+		_poolThreadActiveCondition.lockMutex();
 		_poolThreadActive = true;
+		_poolThreadActiveCondition.broadcast();
+		_poolThreadActiveCondition.unlockMutex();
 
 		while(!getQuit() && !_shutdown)
 		{
@@ -230,7 +245,10 @@ void ThreadPool::threadEntry()
 			}
 		}
 
+		_poolThreadActiveCondition.lockMutex();
 		_poolThreadActive = false;
+		_poolThreadActiveCondition.broadcast();
+		_poolThreadActiveCondition.unlockMutex();
 
 		// Shutdown may have waited on pool thread becoming inactive.
 		_queueCond.broadcast();
@@ -246,7 +264,10 @@ void ThreadPool::threadEntry()
 	}
 
 	// May have reached here via exception. So make sure flag is set.
+	_poolThreadActiveCondition.lockMutex();
 	_poolThreadActive = false;
+	_poolThreadActiveCondition.broadcast();
+	_poolThreadActiveCondition.unlockMutex();
 }
 
 void ThreadPool::workThreadFree()

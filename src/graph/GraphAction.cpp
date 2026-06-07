@@ -32,7 +32,6 @@ GraphAction::GraphAction(GraphNodeHandle& initNode, unsigned energy)
 
 void GraphAction::waitOnComplete(unsigned timeOut)
 {
-std::cout << "Wait on complete\n";
 	// This is required so that this can't be deleted before the condition can be completed.
 	if(incrRef())
 	{

@@ -126,6 +126,12 @@ void GraphNode::__removeEdge(int edgeHandle)
 
 void GraphNode::referredTo(GraphEdge* edge)
 {
+	if(!_initialised)
+	{
+		// Initialisation is deferred to first edge referring to this node because it can't be run in the constructor.
+		_init();
+		_initialised = true;
+	}
 }
 
 GraphNodeHandle GraphNode::traverse()

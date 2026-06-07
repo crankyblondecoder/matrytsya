@@ -89,6 +89,9 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 
 	private:
 
+		/** Whether this node has been initialised. */
+		bool _initialised;
+
 		/** The hive this node belongs to. */
 		GraphHive& _hive;
 

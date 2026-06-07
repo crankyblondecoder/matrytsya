@@ -50,6 +50,11 @@ class ThreadPool : private Thread
 		 */
 		void shutdown();
 
+		/**
+		 * Wait on the the thread pool becoming active.
+		 */
+		void waitOnBecomingActive();
+
 		/** For debug. */
 		bool _debugMarker;
 
@@ -65,7 +70,7 @@ class ThreadPool : private Thread
 		/// Number of worker threads in pool.
 		unsigned _numThreads;
 
-        // Pool of worker threads.
+        /// Pool of worker threads.
 		ThreadPoolWorkThread** _pool;
 
 		/// Essentially the number of worker threads that were started successfully.
@@ -89,6 +94,9 @@ class ThreadPool : private Thread
 		/// Flag to indicate that pool thread is active.
 		bool _poolThreadActive;
 
+		/// Guards the pool thread active flag.
+		ThreadCondition _poolThreadActiveCondition;
+
 		/// Shutdown flag. True if shutdown or in the process of shutting down.
 		bool _shutdown;
 
@@ -98,6 +106,7 @@ class ThreadPool : private Thread
 /**
  * Start the thread pool.
  * If an existing thread pool exists, this function just exits gracefully.
+ * @note This function will block until the thread pool is ready to process work units or thread pool start fails.
  * @param numThreads Number of threads pool should have.
  */
 void startThreadPool(unsigned numThreads);
