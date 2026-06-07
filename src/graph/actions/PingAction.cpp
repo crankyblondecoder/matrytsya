@@ -21,5 +21,10 @@ void PingAction::_apply(PingActionTarget* target)
 
 void PingAction::_complete()
 {
-	std::cout << "Ping count: " << _pingCount << "\n";
+//	std::cout << "Ping count: " << _pingCount << "\n";
+}
+
+unsigned PingAction::getPingCount()
+{
+	return _pingCount;
 }

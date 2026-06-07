@@ -9,6 +9,7 @@ TestNode::~TestNode()
 
 TestNode::TestNode(GraphHive& hive) : GraphNode(hive)
 {
+	_setEnergyCost(1);
 }
 
 bool TestNode::ping()

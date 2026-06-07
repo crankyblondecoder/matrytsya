@@ -15,6 +15,11 @@ class PingAction : public GraphActionTargetBinding<PingActionTarget>
 
 		PingAction(GraphNodeHandle& initNode);
 
+		/**
+		 * Get the current ping count from the action.
+		 */
+		unsigned getPingCount();
+
 	protected:
 
 		void _apply(PingActionTarget*);

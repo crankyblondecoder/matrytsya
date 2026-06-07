@@ -1,3 +1,5 @@
+#include <string>
+
 #include "../../graph/actions/PingAction.hpp"
 #include "../../graph/GraphHive.hpp"
 #include "../../graph/graphEdgeFlagRegister.hpp"
@@ -65,6 +67,20 @@ class PingTest : public UnitTest
 			else
 			{
 				_notifyTestResult("Action energy rundown", true, "");
+			}
+
+			// Assume standard energy for ping action is 32 and test node consumes 1 unit per traversal.
+			// This gives a ping count of 32.
+			unsigned pingCount = action -> getPingCount();
+
+			if(pingCount != 32)
+			{
+				string msg = "Ping count is incorrect, expected 32 found " + std::to_string(pingCount);
+				_notifyTestResult("Action ping count", false, msg.c_str());
+			}
+			else
+			{
+				_notifyTestResult("Action ping count", true, "");
 			}
 
 			delete hive;
