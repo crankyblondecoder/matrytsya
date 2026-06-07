@@ -219,7 +219,7 @@ void ThreadPool::threadEntry()
 				}
 			}
 
-			if(!_numWorkerThreadsFree || _workUnitQueue.empty() )
+			if(!_numWorkerThreadsFree || _workUnitQueue.empty())
 			{
 				// No worker threads are free or no work units need to be executed.
 
@@ -274,10 +274,15 @@ bool ThreadPool::executeWorkUnit(ThreadPoolWorkUnit* workUnit)
 	{
 		// Pointer list does not own work unit. This is just a queue.
 		// Rely on the worker thread deleting it.
+
 		_workUnitQueue.push(workUnit);
 		_queueCond.signal();
 
 		canExecute = true;
+	}
+	else
+	{
+		std::cout << "Warning: Work unit could not be executed. You probably weren't expecting this.\n";
 	}
 
 	_queueCond.unlockMutex();
@@ -315,24 +320,28 @@ void ThreadPool::shutdown()
 	// Mutex is now locked.
 
 	// Any uninvoked work units should be aborted.
-	ThreadPoolWorkUnit* workUnit = _workUnitQueue.front();
 
-	while(workUnit)
+	if(!_workUnitQueue.empty())
 	{
-		_workUnitQueue.pop();
-		_queueCond.unlockMutex();
+		ThreadPoolWorkUnit* workUnit = _workUnitQueue.front();
 
-		workUnit -> abort();
-
-		_queueCond.lockMutex();
-
-		if(!_workUnitQueue.empty())
+		while(workUnit)
 		{
-			workUnit = _workUnitQueue.front();
-		}
-		else
-		{
-			workUnit = 0;
+			_workUnitQueue.pop();
+			_queueCond.unlockMutex();
+
+			workUnit -> abort();
+
+			_queueCond.lockMutex();
+
+			if(!_workUnitQueue.empty())
+			{
+				workUnit = _workUnitQueue.front();
+			}
+			else
+			{
+				workUnit = 0;
+			}
 		}
 	}
 

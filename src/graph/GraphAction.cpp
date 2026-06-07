@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "GraphAction.hpp"
 #include "GraphActionThreadPoolWorkUnit.hpp"
 #include "GraphException.hpp"
@@ -30,6 +32,7 @@ GraphAction::GraphAction(GraphNodeHandle& initNode, unsigned energy)
 
 void GraphAction::waitOnComplete(unsigned timeOut)
 {
+std::cout << "Wait on complete\n";
 	// This is required so that this can't be deleted before the condition can be completed.
 	if(incrRef())
 	{
@@ -144,8 +147,8 @@ void GraphAction::start()
 
 	if(!workSubmitted)
 	{
-		// Action can't be started so this should delete it.
-		decrRef();
+		// Action can't be started so is considered complete.
+		__complete();
 	}
 }
 
