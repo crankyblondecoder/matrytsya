@@ -1,5 +1,5 @@
+#include "../graphActionFlagRegister.hpp"
 #include "PingAction.hpp"
-#include "../graphEdgeFlagRegister.hpp"
 
 #include <iostream>
 
@@ -8,15 +8,20 @@ PingAction::~PingAction()
 }
 
 PingAction::PingAction(GraphNodeHandle& initNode)
-	: GraphActionTargetBinding<PingActionTarget>(initNode, 32)
+	: GraphAction(initNode, 32)
 {
 	_pingCount = 0;
 }
 
-void PingAction::_apply(PingActionTarget* target)
+unsigned long PingAction::getFlag()
 {
-	// Just ignore return value for now.
-	if(target -> ping()) _pingCount++;
+	return PING_GRAPH_ACTION;
+}
+
+void PingAction::apply(PingActionTarget* target)
+{
+	bool pinged = target -> ping();
+	if(pinged) _pingCount++;
 }
 
 void PingAction::_complete()

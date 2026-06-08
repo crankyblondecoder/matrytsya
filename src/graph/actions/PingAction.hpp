@@ -1,13 +1,13 @@
 #ifndef PING_ACTION_H
 #define PING_ACTION_H
 
-#include "../GraphActionTargetBinding.hpp"
 #include "../actionTargets/PingActionTarget.hpp"
+#include "../GraphAction.hpp"
 
 /**
  * Ping graph action.
  */
-class PingAction : public GraphActionTargetBinding<PingActionTarget>
+class PingAction : public GraphAction
 {
     public:
 
@@ -15,20 +15,27 @@ class PingAction : public GraphActionTargetBinding<PingActionTarget>
 
 		PingAction(GraphNodeHandle& initNode);
 
+		unsigned long getFlag() override;
+
 		/**
 		 * Get the current ping count from the action.
 		 */
 		unsigned getPingCount();
 
+		/**
+		 * Apply this action to a ping target.
+		 */
+		void apply(PingActionTarget* target);
+
 	protected:
 
-		void _apply(PingActionTarget*);
-
-		void _complete();
+		void _complete() override;
 
     private:
 
 		unsigned _pingCount;
+
+		unsigned _debugCount = 0;
 };
 
 #endif

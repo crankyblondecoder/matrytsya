@@ -64,12 +64,6 @@ class GraphAction : public RefCounted
 		virtual ~GraphAction();
 
 		/**
-		 * Subclass hook to apply this action to a node.
-		 * @note This is not required to be re-entrant.
-		 */
-		virtual void _apply(GraphNode* node) = 0;
-
-		/**
 		 * Action is complete, will no longer traverse edges, and will soon be deleted.
 		 */
 		virtual void _complete() = 0;

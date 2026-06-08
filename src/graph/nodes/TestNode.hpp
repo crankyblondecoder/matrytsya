@@ -28,7 +28,7 @@ class TestNode : public GraphNode, public PingActionTarget
 
 		void _init() override;
 
-		void _registerActionFlag(unsigned long actionFlag) override;
+		void _applyAction(PingAction* action) override;
 
     private:
 };

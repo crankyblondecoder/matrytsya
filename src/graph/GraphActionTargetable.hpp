@@ -3,6 +3,8 @@
 
 class GraphAction;
 
+#include "./actions/PingAction.hpp"
+
 /**
  * Base class of all classes that can be action targets.
  * @note ALWAYS inherit this virtually.
@@ -14,7 +16,12 @@ class GraphActionTargetable
 		/**
 		 * Determine whether an action can target this.
 		 */
-		bool canActionTarget(GraphAction*);
+		bool canActionTarget(GraphAction* action);
+
+		/**
+		 * Apply a graph action to this target.
+		 */
+		void applyAction(GraphAction* action);
 
 	protected:
 
@@ -28,6 +35,11 @@ class GraphActionTargetable
 		 * @param actionFlag Action flag from action flag register.
 		 */
 		virtual void _addActionFlag(unsigned long actionFlag);
+
+		/**
+		 * Apply a ping action to this target.
+		 */
+		virtual void _applyAction(PingAction* action);
 
 	private:
 

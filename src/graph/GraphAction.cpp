@@ -75,7 +75,7 @@ void GraphAction::waitOnComplete(unsigned timeOut)
 void GraphAction::__apply(GraphNode* node)
 {
 	// Send to concrete sub-class.
-	_apply(node);
+	node -> applyAction(this);
 }
 
 void GraphAction::__consumeEnergy(unsigned amount)

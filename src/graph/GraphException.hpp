@@ -36,7 +36,9 @@ class GraphException : public Exception
 			/// Something shouldn't have happened. This indicates a logic error.
 			NODE_LIST_PAGE_UNEXPECTED,
 			/// The requested node was not found.
-			NODE_NOT_FOUND
+			NODE_NOT_FOUND,
+			/// Operation should have been implemented.
+			OPERATION_MISSING
         };
 
         virtual ~GraphException(){}

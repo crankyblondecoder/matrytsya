@@ -1,5 +1,5 @@
 #include "../actions/PingAction.hpp"
-
+#include "../graphActionFlagRegister.hpp"
 #include "../GraphNodeHandle.hpp"
 #include "TestNode.hpp"
 
@@ -10,6 +10,9 @@ TestNode::~TestNode()
 TestNode::TestNode(GraphHive& hive) : GraphNode(hive)
 {
 	_setEnergyCost(1);
+
+	// Supports ping action.
+	_addActionFlag(PING_GRAPH_ACTION);
 }
 
 bool TestNode::ping()
@@ -35,12 +38,10 @@ PingAction* TestNode::emitPing(bool wait)
 
 void TestNode::_init()
 {
-	// Do all action target initialisation here.
-	PingActionTarget::_init();
 }
 
-void TestNode::_registerActionFlag(unsigned long actionFlag)
+void TestNode::_applyAction(PingAction* action)
 {
-	_addActionFlag(actionFlag);
+	action -> apply(this);
 }
 
