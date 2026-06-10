@@ -1,10 +1,14 @@
 #ifndef THREAD_BASE_H
 #define THREAD_BASE_H
 
+#include <atomic>
+
 #include "ThreadCondition.hpp"
+#include "ThreadMutex.hpp"
 
 /**
- * Base class for create and invoke thread entry point.
+ * Base class for all thread types.
+ * @note This can only be used (started) once, i.e. It is a "one shot".
  */
 class ThreadBase
 {
@@ -15,25 +19,17 @@ class ThreadBase
 
 		/**
 		 * Start the thread.
+		 * @note Can only be started once.
 		 * @throw ThreadException
 		 */
-		virtual void start() final;
-
+		virtual bool start() final;
 
         /**
-         * Signal (request) the thread to stop.
-		 * This is a "gentle" request in that it just sets the threads quit flag and waits for it to react.
-         * Waits for thread to stop for up to 2 seconds.
+         * Stop the thread.
+		 * @param force If true, issue a force stop if gracefully stopping doesn't work.
          * @returns Whether the thread was successfully stopped.
          */
-        virtual bool signalStop();
-
-        /**
-         * Forcibly stop this thread.
-		 * This requires the thread to stop and will wait for it to do so for up to 2 seconds before returning.
-		 * @throw ThreadException
-         */
-        virtual void forceStop() final;
+        virtual bool stop(bool force);
 
 		/**
 		 * Sleep for a specified number of whole seconds.
@@ -71,7 +67,8 @@ class ThreadBase
         virtual bool _start(void*(*threadEntry)(void*)) = 0;
 
 		/**
-		 * Subclass hook so that concrete thread implementation can start the thread.
+		 * Sub-class hook so that concrete thread implementation can stop the thread.
+		 * The sub-class should be able to handle the case where the thread has already stopped.
 		 * @throw ThreadException
 		 */
 		virtual void _forceStop() = 0;
@@ -80,19 +77,33 @@ class ThreadBase
 		 * Get the quit flag of this thread.
 		 * If set to true the current code running on the thread should gracefully exit.
 		 */
-        bool getQuit();
+        bool _getQuit();
+
+		/**
+		 * Required sub-class hook to indicate this thread has requested to quit.
+		 * The sub-class must be able to handle the case where the thread exits before this is called.
+		 */
+		virtual void _quitRequested() = 0;
 
     private:
-
-        bool _quit;
 
         // It does not make sense to copy a thread so do not allow it.
         ThreadBase(const ThreadBase& copyFrom);
         ThreadBase& operator= (const ThreadBase& copyFrom);
 
-        bool _threadRunning = false;
+		/// Flag to indicate that this thread should quit.
+        std::atomic<bool> _quit;
 
-        /** Used to wait for thread to quit. */
+		/// Flag to indicate that the thread has started.
+		std::atomic<bool> _started;
+
+		/// Flag to indicate that the thread has stopped.
+		std::atomic<bool> _stopped;
+
+		/// General mutex used to guard all flags.
+		ThreadMutex _flagMutex;
+
+        /// Used to wait for thread to stop.
         ThreadCondition _stopCond;
 };
 

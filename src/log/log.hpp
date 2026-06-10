@@ -1,7 +1,7 @@
 #ifndef LOG__H
 #define LOG__H
 
-#include <iostream>
+#include <string>
 
 /** Simple logging mechanism */
 

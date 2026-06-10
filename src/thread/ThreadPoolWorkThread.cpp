@@ -1,13 +1,14 @@
 #include "ThreadPoolWorkThread.hpp"
 
 #include <iostream>
+
 #include "../log/log.hpp"
 #include "ThreadException.hpp"
 #include "ThreadPool.hpp"
 
 ThreadPoolWorkThread::~ThreadPoolWorkThread()
 {
-	forceStop();
+	stop(true);
 
 	if(_curWorkUnit) delete _curWorkUnit;
 }
@@ -20,6 +21,31 @@ ThreadPoolWorkThread::ThreadPoolWorkThread(ThreadPool* threadPool)
 	_threadPool = threadPool;
 	_working = false;
 	_shutdown = false;
+}
+
+bool ThreadPoolWorkThread::waitForReady(unsigned timeout)
+{
+	_cond.lockMutex();
+
+	// This stops any chance of the while looping forever.
+	unsigned loopLimit = 5;
+
+	// This guarantees that the maximum time taken for this operation is timeout.
+	unsigned effTimeout = timeout / loopLimit;
+
+	while(!_shutdown && !_workerThreadActive && loopLimit--)
+	{
+		_cond.waitTimeout(effTimeout);
+	}
+
+	_cond.unlockMutex();
+
+	return _workerThreadActive;
+}
+
+void ThreadPoolWorkThread::_quitRequested()
+{
+	// Just do nothing at this stage.
 }
 
 void ThreadPoolWorkThread::shutDown()
@@ -54,7 +80,7 @@ bool ThreadPoolWorkThread::executeWorkUnit(ThreadPoolWorkUnit* workUnit)
 	{
 		_curWorkUnit = workUnit;
 		accepted = true;
-		_cond.signal();
+		_cond.broadcast();
 	}
 
 	_cond.unlockMutex(); // This will trigger the condition to exit the wait() if it was signaled.
@@ -74,7 +100,10 @@ void ThreadPoolWorkThread::threadEntry()
 
 		_workerThreadActive = true;
 
-		while(!getQuit() && !_shutdown)
+		// This is so that anything waiting on the thread becoming active can be notified.
+		_cond.broadcast();
+
+		while(!_getQuit() && !_shutdown)
 		{
 			if(_curWorkUnit)
 			{
@@ -98,7 +127,7 @@ void ThreadPoolWorkThread::threadEntry()
 
 				// Finally tell the thread pool that a worker thread is free. This may or may not allocate a new work unit
 				// to this thread.
-				_threadPool -> workThreadFree();
+				_threadPool -> workerThreadFree();
 
 				// Protects reading vars in while statement.
 				_cond.lockMutex();
@@ -145,7 +174,7 @@ bool ThreadPoolWorkThread::canAcceptWorkUnit()
 
 bool ThreadPoolWorkThread::_canAcceptWorkUnit()
 {
-	return !getQuit() && !_shutdown && _workerThreadActive && _curWorkUnit == 0;
+	return !_getQuit() && !_shutdown && _workerThreadActive && _curWorkUnit == 0;
 }
 
 void ThreadPoolWorkThread::enumerateState(unsigned numTabs)

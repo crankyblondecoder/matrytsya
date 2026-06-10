@@ -1,6 +1,8 @@
 #ifndef THREAD_POOL_WORK_THREAD_H
 #define THREAD_POOL_WORK_THREAD_H
 
+#include <atomic>
+
 using namespace std;
 
 class ThreadPool;
@@ -19,6 +21,13 @@ class ThreadPoolWorkThread : public Thread
         virtual ~ThreadPoolWorkThread();
 
         ThreadPoolWorkThread(ThreadPool* threadPool);
+
+		/**
+		 * Wait for the thread to be ready to process work units.
+		 * @param timeout Maximumn time in ms to wait.
+		 * @returns True if ready to process work units. False if not.
+		 */
+		bool waitForReady(unsigned timeout);
 
 		/**
 		 * Gracefully shutdown this thread.
@@ -44,8 +53,10 @@ class ThreadPoolWorkThread : public Thread
 
     protected:
 
-        /** Entry point when thread is started */
-        void threadEntry();
+		// Public in base class.
+        void threadEntry() override;
+
+		void _quitRequested() override;
 
     private:
 
@@ -59,7 +70,7 @@ class ThreadPoolWorkThread : public Thread
 		ThreadPoolWorkUnit* _curWorkUnit;
 
 		/** Flag to indicate that worker thread is active. */
-		bool _workerThreadActive;
+		std::atomic<bool> _workerThreadActive;
 
 		bool _debugMarker;
 

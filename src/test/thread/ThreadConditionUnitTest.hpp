@@ -139,8 +139,8 @@ class ThreadConditionUnitTest : public UnitTest
 			threadWaitCond.broadcast();
 
 			// Stop threads.
-			testThread1.signalStop();
-			testThread2.signalStop();
+			testThread1.stop(true);
+			testThread2.stop(true);
 		}
 
 	private:

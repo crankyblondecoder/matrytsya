@@ -1,6 +1,7 @@
 #ifndef THREAD_POOL_H
 #define THREAD_POOL_H
 
+#include <atomic>
 #include <queue>
 
 class ThreadPoolWorkThread;
@@ -24,11 +25,11 @@ class ThreadPool : private Thread
         ThreadPool(unsigned numThreads);
 
 		/**
-		 * Entry point so that pool work thread can notify this pool that it is now free to execute
-		 * a work unit. Does not need to give specific work thread because all work units are allocated
+		 * Call point so that pool worker thread can notify this pool that it is now free to execute
+		 * a work unit. Does not need to give specific worker thread because all work units are allocated
 		 * to all available threads in a block.
 		 */
-		void workThreadFree();
+		void workerThreadFree();
 
 		/**
 		 * Execute a work unit using one of the threads from the pool.
@@ -63,7 +64,10 @@ class ThreadPool : private Thread
 
     protected:
 
-		void threadEntry();
+		// This was public in the base class.
+		void threadEntry() override;
+
+		void _quitRequested() override;
 
     private:
 
@@ -73,23 +77,26 @@ class ThreadPool : private Thread
         /// Pool of worker threads.
 		ThreadPoolWorkThread** _pool;
 
+		/// Guards the worker thread pool.
+		ThreadCondition _workerThreadPoolCond;
+
 		/// Essentially the number of worker threads that were started successfully.
 		unsigned _viableWorkerThreadCount;
 
 		/// The number of worker threads that are available to do work.
-		unsigned _numWorkerThreadsFree;
-
-		/// Condition for work unit processing thread to wait on.
-		ThreadCondition _queueCond;
+		std::atomic<unsigned> _numWorkerThreadsFree;
 
 		/// Queue for work units that need to be executed.
 		std::queue<ThreadPoolWorkUnit*> _workUnitQueue;
 
+		/**
+		 * Condition for work unit processing thread to wait on.
+		 * This guards the work unit queue.
+		 */
+		ThreadCondition _workUnitQueueCond;
+
 		/// Index of last thread that was allocated a work unit. Allows for round robin style of work unit allocation.
 		unsigned _lastAllocThreadIndex;
-
-		/// If true already allocating work units to workers.
-		bool _workUnitAllocPassInProgress;
 
 		/// Flag to indicate that pool thread is active.
 		bool _poolThreadActive;
@@ -98,9 +105,13 @@ class ThreadPool : private Thread
 		ThreadCondition _poolThreadActiveCondition;
 
 		/// Shutdown flag. True if shutdown or in the process of shutting down.
-		bool _shutdown;
+		std::atomic<bool> _shutdown;
 
-		void workUnitAllocPass();
+		/**
+		 * Gracefully shutdown this thread pool.
+		 * This will try and nicely stop the pool thread and all worker threads.
+		 */
+		void __shutdown();
 };
 
 /**

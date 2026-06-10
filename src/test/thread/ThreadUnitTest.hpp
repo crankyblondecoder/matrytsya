@@ -28,7 +28,7 @@ class ThreadUnitTest : public UnitTest
 
 			try
 			{
-				testThread.signalStop();
+				testThread.stop(true);
 			}
 			catch(ThreadException& except)
 			{
@@ -37,32 +37,6 @@ class ThreadUnitTest : public UnitTest
 			}
 
         	_notifyTestResult("ThreadStoppedOkay", !testThread.getRunning(), "");
-
-			// Re-start, force stop.
-
-			try
-			{
-				testThread.start();
-			}
-			catch(ThreadException& except)
-			{
-				_notifyTestResult("ThreadReStartedOkay", false, except.getSubsystemErrorString().c_str());
-				return;
-			}
-
-        	_notifyTestResult("ThreadReStartedOkay - getRunning", testThread.getRunning(), "");
-
-			try
-			{
-				testThread.forceStop();
-			}
-			catch(ThreadException& except)
-			{
-				_notifyTestResult("ThreadForceStoppedOkay", false, except.getSubsystemErrorString().c_str());
-				return;
-			}
-
-        	_notifyTestResult("ThreadForceStoppedOkay - getRunning", !testThread.getRunning(), "");
 		}
 
 	private:

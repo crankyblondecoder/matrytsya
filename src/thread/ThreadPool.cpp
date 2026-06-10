@@ -1,8 +1,8 @@
 #include "ThreadPool.hpp"
 
 #include <iostream>
-#include "../log/log.hpp"
 #include <new>
+#include <stdexcept>
 #include "ThreadException.hpp"
 #include "ThreadPoolWorkThread.hpp"
 
@@ -50,7 +50,7 @@ ThreadPool::~ThreadPool()
 
 	// The pool thread must be stopped first.
 	// Ideally this should have been done gracefully way before destruction.
-	forceStop();
+	stop(true);
 
 	// Force the worker threads to stop.
 	// Again, ideally that should have already been done gracefully.
@@ -59,7 +59,7 @@ ThreadPool::~ThreadPool()
 	{
 		if(_pool[index])
 		{
-			_pool[index] -> forceStop();
+			_pool[index] -> stop(true);
 			delete _pool[index];
 		}
 	}
@@ -72,7 +72,6 @@ ThreadPool::~ThreadPool()
 ThreadPool::ThreadPool(unsigned numThreads)
 {
 	_debugMarker = false;
-	_workUnitAllocPassInProgress = false;
 	_viableWorkerThreadCount = 0;
 	_numWorkerThreadsFree = 0;
 	_numThreads = numThreads;
@@ -118,15 +117,28 @@ ThreadPool::ThreadPool(unsigned numThreads)
 
 	for(index = 0; index < numThreads; index++)
 	{
+		bool running = false;
+
 		try
 		{
 			_pool[index] -> start();
-			_viableWorkerThreadCount++;
+
+			running = _pool[index] -> waitForReady(2000);
+
+			if(running) _viableWorkerThreadCount++;
 		}
 		catch(ThreadException& ex)
 		{
+			running = false;
+		}
+
+		if(!running)
+		{
+			_pool[index] -> shutDown();
 			delete _pool[index];
 			_pool[index] = 0;
+
+			cout << "Thread with index: " << index << " could not be started and has been terminated.\n";
 		}
 	}
 
@@ -159,129 +171,336 @@ void ThreadPool::threadEntry()
 	unsigned numAllocTrys;
 	ThreadPoolWorkThread* workerThread;
 
+	// Note: The policy is that any kind of major error in the thread pool queue procesing should be treated as a
+	//       critical error and immediately shut down queue processing. If the error is from the mutex or condition
+	//       related guards, it should cause the program to abort entirely.
+
 	try
 	{
-		_queueCond.lockMutex();
-
 		_poolThreadActiveCondition.lockMutex();
-		_poolThreadActive = true;
-		_poolThreadActiveCondition.broadcast();
-		_poolThreadActiveCondition.unlockMutex();
-
-		while(!getQuit() && !_shutdown)
-		{
-			// Assume queue mutex is locked on entry into this loop.
-			// Number worker threads free needs to be protected on read.
-
-			if(_numWorkerThreadsFree)
-			{
-				ThreadPoolWorkUnit* workUnit = 0;
-
-				if(!_workUnitQueue.empty())
-				{
-					workUnit = _workUnitQueue.front();
-					_workUnitQueue.pop();
-				}
-
-				if(workUnit)
-				{
-					// Release the queue lock so that work units can be added to the queue without unnecessary blocking.
-					_queueCond.unlockMutex();
-
-					// Allocate work unit to thread in round robin fashion.
-
-					numAllocTrys = 0;
-					allocated = false;
-					nextAllocThreadIndex = _lastAllocThreadIndex + 1;
-
-					while(!_shutdown && !allocated && numAllocTrys < _numThreads)
-					{
-						if(nextAllocThreadIndex >= _numThreads) nextAllocThreadIndex = 0;
-
-						_queueCond.lockMutex();
-						workerThread = _pool[nextAllocThreadIndex];
-						_queueCond.unlockMutex();
-
-						if(!_shutdown && workerThread)
-						{
-							allocated = workerThread -> executeWorkUnit(workUnit);
-						}
-
-						if(!allocated)
-						{
-							numAllocTrys++;
-							nextAllocThreadIndex++;
-						}
-						else
-						{
-							_lastAllocThreadIndex = nextAllocThreadIndex;
-						}
-					}
-
-					// The rest of the loop expects the queue to be locked.
-					// Placed here to protect write of num worker threads free.
-					_queueCond.lockMutex();
-
-					if(!allocated)
-					{
-						std::string msg = "ThreadPool was not able to allocate work unit to worker thread. This was unexpected.\n";
-						LOG(Logger::LogLevel::ERROR, msg);
-					}
-					else
-					{
-						_numWorkerThreadsFree--;
-					}
-				}
-			}
-
-			if(!_numWorkerThreadsFree || _workUnitQueue.empty())
-			{
-				// No worker threads are free or no work units need to be executed.
-
-				// Wait on the next unit of work to be queued. This will unlock the mutex.
-				_queueCond.wait();
-
-				// Conditions mutex will be locked on exit of wait. Leave it locked for entry back into the start of the loop.
-			}
-		}
-
-		_poolThreadActiveCondition.lockMutex();
-		_poolThreadActive = false;
-		_poolThreadActiveCondition.broadcast();
-		_poolThreadActiveCondition.unlockMutex();
-
-		// Shutdown may have waited on pool thread becoming inactive.
-		_queueCond.broadcast();
-
-		// Release anything waiting on thread loop exit.
-		_queueCond.unlockMutex();
 	}
 	catch(ThreadException& ex)
 	{
-		std::string msg = "Thread Pool exited unexpectedly:";
-		msg += ex.getSubsystemErrorString() + "\n";
-		LOG(Logger::LogLevel::ERROR, msg)
+		std::string msg = "Critical error: First thread active condition mutex lock failed -> " +
+			ex.getSubsystemErrorString();
+
+		// This is so severe that the app should just be killed.
+		throw std::runtime_error(msg);
 	}
 
-	// May have reached here via exception. So make sure flag is set.
-	_poolThreadActiveCondition.lockMutex();
+	_poolThreadActive = true;
+
+	try
+	{
+		_poolThreadActiveCondition.broadcast();
+	}
+	catch(ThreadException& ex)
+	{
+		std::string msg = "Critical error: First thread active condition broadcast failed -> " +
+			ex.getSubsystemErrorString();
+
+		// This is so severe that the app should just be killed.
+		throw std::runtime_error(msg);
+	}
+
+	try
+	{
+		_poolThreadActiveCondition.unlockMutex();
+	}
+	catch(ThreadException& ex)
+	{
+		std::string msg = "Critical error: First thread active condition mutex unlock failed -> " +
+			ex.getSubsystemErrorString();
+
+		// This is so severe that the app should just be killed.
+		throw std::runtime_error(msg);
+	}
+
+	// Queue condition mutex is locked.
+
+	while(!_shutdown)
+	{
+		// Assume number of worker threads free can _only_ be decremented by this loop.
+		// Therefore, this does not require guarding.
+
+		if(_numWorkerThreadsFree)
+		{
+			// Get a work unit from the queue.
+			ThreadPoolWorkUnit* workUnit = 0;
+
+			try
+			{
+				_workUnitQueueCond.lockMutex();
+			}
+			catch(ThreadException& ex)
+			{
+				std::string msg = "Critical error: Queue condition mutex lock failed -> " +
+					ex.getSubsystemErrorString();
+
+				// This is so severe that the app should just be killed.
+				throw std::runtime_error(msg);
+			}
+
+			if(!_workUnitQueue.empty())
+			{
+				workUnit = _workUnitQueue.front();
+				_workUnitQueue.pop();
+			}
+
+			try
+			{
+				_workUnitQueueCond.unlockMutex();
+			}
+			catch(ThreadException& ex)
+			{
+				std::string msg = "Critical error: Queue condition mutex unlock failed -> " +
+					ex.getSubsystemErrorString();
+
+				// This is so severe that the app should just be killed.
+				throw std::runtime_error(msg);
+			}
+
+			if(workUnit)
+			{
+				// Allocate work unit to thread using simple round robin algorithm.
+				// Only this thread controls the thread pool allocation so no need to guard it.
+
+				numAllocTrys = 0;
+				allocated = false;
+				nextAllocThreadIndex = _lastAllocThreadIndex + 1;
+
+				while(!_shutdown && !allocated && numAllocTrys < _numThreads)
+				{
+					if(nextAllocThreadIndex >= _numThreads) nextAllocThreadIndex = 0;
+
+					workerThread = _pool[nextAllocThreadIndex];
+
+					if(!_shutdown && workerThread)
+					{
+						// Rely on the worker thread knowing if it can execute the work unit or not. This way we
+						// don't need to track allocated worker thread.
+						// Assume this call won't block.
+						allocated = workerThread -> executeWorkUnit(workUnit);
+					}
+
+					if(!allocated)
+					{
+						numAllocTrys++;
+						nextAllocThreadIndex++;
+					}
+					else
+					{
+						_lastAllocThreadIndex = nextAllocThreadIndex;
+					}
+				}
+
+				if(!allocated)
+				{
+					if(!_shutdown)
+					{
+						std::string msg = "Critical error: ThreadPool was not able to allocate work unit to worker thread. This was unexpected.\n";
+
+						// This is so severe that the app should just be killed.
+						throw std::runtime_error(msg);
+					}
+				}
+				else
+				{
+					_numWorkerThreadsFree--;
+				}
+			}
+		}
+
+		// Short circuit on shutdown.
+		if(_shutdown) break;
+
+		// Wait for worker thread to become available if none are already.
+
+		try
+		{
+			_workerThreadPoolCond.lockMutex();
+		}
+		catch(ThreadException& ex)
+		{
+			std::string msg = "Critical error: Worker thread pool condition mutex lock failed -> " +
+				ex.getSubsystemErrorString();
+
+			// This is so severe that the app should just be killed.
+			throw std::runtime_error(msg);
+		}
+
+		// To avoid deadlock, This relies on shutdown trying to obtain the lock on the queue condition.
+		if(!_numWorkerThreadsFree && !_shutdown)
+		{
+			try
+			{
+				// Wait on worker threads becoming free or shutdown being invoked.
+				_workerThreadPoolCond.wait();
+			}
+			catch(ThreadException& ex)
+			{
+				std::string msg = "Critical error: Worker thread pool condition wait failed -> " +
+					ex.getSubsystemErrorString();
+
+				// This is so severe that the app should just be killed.
+				throw std::runtime_error(msg);
+			}
+		}
+
+		try
+		{
+			_workerThreadPoolCond.unlockMutex();
+		}
+		catch(ThreadException& ex)
+		{
+			std::string msg = "Critical error: Worker thread pool condition mutex unlock failed -> " +
+				ex.getSubsystemErrorString();
+
+			// This is so severe that the app should just be killed.
+			throw std::runtime_error(msg);
+		}
+
+		// Short circuit on shutdown.
+		if(_shutdown) break;
+
+		// Wait for a work unit to be posted if none are ready in the queue.
+
+		try
+		{
+			_workUnitQueueCond.lockMutex();
+		}
+		catch(ThreadException& ex)
+		{
+			std::string msg = "Critical error: Queue condition mutex lock failed -> " +
+				ex.getSubsystemErrorString();
+
+			// This is so severe that the app should just be killed.
+			throw std::runtime_error(msg);
+		}
+
+		// To avoid deadlock, This relies on shutdown trying to obtain the lock on the queue condition.
+		if(_workUnitQueue.empty() && !_shutdown)
+		{
+			// No work units need to be executed so wait for one.
+
+			try
+			{
+				// Wait on the next unit of work to be queued or shutdown to be invoked.
+				_workUnitQueueCond.wait();
+			}
+			catch(ThreadException& ex)
+			{
+				std::string msg = "Critical error: Queue condition wait failed -> " +
+					ex.getSubsystemErrorString();
+
+				// This is so severe that the app should just be killed.
+				throw std::runtime_error(msg);
+			}
+		}
+
+		try
+		{
+			_workUnitQueueCond.unlockMutex();
+		}
+		catch(ThreadException& ex)
+		{
+			std::string msg = "Critical error: Queue condition mutex unlock failed -> " +
+				ex.getSubsystemErrorString();
+
+			// This is so severe that the app should just be killed.
+			throw std::runtime_error(msg);
+		}
+	}
+
+	// Set the thread pool as being inactive.
+
+	try
+	{
+		_poolThreadActiveCondition.lockMutex();
+	}
+	catch(ThreadException& ex)
+	{
+		std::string msg = "Critical error: Final thread active condition mutex lock failed -> " +
+			ex.getSubsystemErrorString();
+
+		// This is so severe that the app should just be killed.
+		throw std::runtime_error(msg);
+	}
+
 	_poolThreadActive = false;
-	_poolThreadActiveCondition.broadcast();
-	_poolThreadActiveCondition.unlockMutex();
+
+	try
+	{
+		_poolThreadActiveCondition.broadcast();
+	}
+	catch(ThreadException& ex)
+	{
+		std::string msg = "Critical error: Final thread active condition broadcast failed -> " +
+			ex.getSubsystemErrorString();
+
+		// This is so severe that the app should just be killed.
+		throw std::runtime_error(msg);
+	}
+
+	try
+	{
+		_poolThreadActiveCondition.unlockMutex();
+	}
+	catch(ThreadException& ex)
+	{
+		std::string msg = "Critical error: Final thread active condition mutex unlock failed -> " +
+			ex.getSubsystemErrorString();
+
+		// This is so severe that the app should just be killed.
+		throw std::runtime_error(msg);
+	}
 }
 
-void ThreadPool::workThreadFree()
+void ThreadPool::workerThreadFree()
 {
 	if(!_shutdown)
 	{
-		_queueCond.lockMutex();
+		try
+		{
+			_workerThreadPoolCond.lockMutex();
+		}
+		catch(ThreadException& ex)
+		{
+			std::string msg = "Critical error: Worker thread pool condition mutex lock failed -> " +
+				ex.getSubsystemErrorString();
 
-		// Just to be safe, protect this write because any thread could modify it.
-		// Not strictly necessary at the moment though. Might change later.
+			// This is so severe that the app should just be killed.
+			throw std::runtime_error(msg);
+		}
+
 		_numWorkerThreadsFree++;
 
-		_queueCond.signal();
-		_queueCond.unlockMutex();
+		try
+		{
+			_workerThreadPoolCond.broadcast();
+		}
+		catch(ThreadException& ex)
+		{
+			std::string msg = "Critical error: Worker thread pool condition broadcast failed -> " +
+				ex.getSubsystemErrorString();
+
+			// This is so severe that the app should just be killed.
+			throw std::runtime_error(msg);
+		}
+
+		try
+		{
+			_workerThreadPoolCond.unlockMutex();
+		}
+		catch(ThreadException& ex)
+		{
+			std::string msg = "Critical error: Worker thread pool condition mutex lock failed -> " +
+				ex.getSubsystemErrorString();
+
+			// This is so severe that the app should just be killed.
+			throw std::runtime_error(msg);
+		}
+
 	}
 }
 
@@ -289,24 +508,61 @@ bool ThreadPool::executeWorkUnit(ThreadPoolWorkUnit* workUnit)
 {
 	bool canExecute = false;
 
-	_queueCond.lockMutex();
-
-	if(_poolThreadActive && !_shutdown && !getQuit())
+	try
 	{
-		// Pointer list does not own work unit. This is just a queue.
+		_workUnitQueueCond.lockMutex();
+	}
+	catch(ThreadException& ex)
+	{
+		std::string msg = "Critical error: Queue condition mutex lock failed -> " +
+			ex.getSubsystemErrorString();
+
+		// This is so severe that the app should just be killed.
+		throw std::runtime_error(msg);
+	}
+
+	if(!_shutdown)
+	{
+		// Queue does not own work unit pointer.
 		// Rely on the worker thread deleting it.
 
 		_workUnitQueue.push(workUnit);
-		_queueCond.signal();
+
+		try
+		{
+			_workUnitQueueCond.broadcast();
+		}
+		catch(ThreadException& ex)
+		{
+			std::string msg = "Critical error: Queue condition broadcast failed -> " +
+				ex.getSubsystemErrorString();
+
+			// This is so severe that the app should just be killed.
+			throw std::runtime_error(msg);
+		}
 
 		canExecute = true;
 	}
 	else
 	{
+		workUnit -> abort();
+		delete workUnit;
+
 		std::cout << "Warning: Work unit could not be executed. You probably weren't expecting this.\n";
 	}
 
-	_queueCond.unlockMutex();
+	try
+	{
+		_workUnitQueueCond.unlockMutex();
+	}
+	catch(ThreadException& ex)
+	{
+		std::string msg = "Critical error: Queue condition mutex unlock failed -> " +
+			ex.getSubsystemErrorString();
+
+		// This is so severe that the app should just be killed.
+		throw std::runtime_error(msg);
+	}
 
 	return canExecute;
 }
@@ -316,31 +572,152 @@ unsigned ThreadPool::getViableWorkerThreadCount()
 	return _viableWorkerThreadCount;
 }
 
+void ThreadPool::_quitRequested()
+{
+	// This is triggered by the underlying thread that is used for managing the pool.
+	__shutdown();
+}
+
 void ThreadPool::shutdown()
 {
-	// NOTE: Regardless of whether the pool thread is running shutdown still needs to be completed.
+	__shutdown();
+}
 
-	// Flag the shutdown.
-	_queueCond.lockMutex();
+void ThreadPool::__shutdown()
+{
+	// NOTE: Regardless of whether the pool thread is running shutdown still needs to be completed.
+	//       It tries to do this gracefully, but ultimately forcefully.
+
 	_shutdown = true;
 
-	// Wake up anything waiting on queue condition.
-	_queueCond.broadcast();
-	_queueCond.unlockMutex();
+	// Unblock any waits on the worker thread pool or the work unit queue so the pool thread can finish and become
+	// inactive.
 
-	// Need to obtain lock again to check thread active state.
-	_queueCond.lockMutex();
+	try
+	{
+		_workerThreadPoolCond.lockMutex();
+	}
+	catch(ThreadException& ex)
+	{
+		std::string msg = "Critical error: Worker thread pool condition mutex lock failed -> " +
+			ex.getSubsystemErrorString();
+
+		// This is so severe that the app should just be killed.
+		throw std::runtime_error(msg);
+	}
+
+	try
+	{
+		_workerThreadPoolCond.broadcast();
+	}
+	catch(ThreadException& ex)
+	{
+		std::string msg = "Critical error: Worker thread pool condition broadcast failed -> " +
+			ex.getSubsystemErrorString();
+
+		// This is so severe that the app should just be killed.
+		throw std::runtime_error(msg);
+	}
+
+	try
+	{
+		_workerThreadPoolCond.unlockMutex();
+	}
+	catch(ThreadException& ex)
+	{
+		std::string msg = "Critical error: Worker thread pool condition mutex lock failed -> " +
+			ex.getSubsystemErrorString();
+
+		// This is so severe that the app should just be killed.
+		throw std::runtime_error(msg);
+	}
+
+	try
+	{
+		_workUnitQueueCond.lockMutex();
+	}
+	catch(ThreadException& ex)
+	{
+		std::string msg = "Critical error: Queue condition mutex lock failed -> " +
+			ex.getSubsystemErrorString();
+
+		// This is so severe that the app should just be killed.
+		throw std::runtime_error(msg);
+	}
+
+	try
+	{
+		_workUnitQueueCond.broadcast();
+	}
+	catch(ThreadException& ex)
+	{
+		std::string msg = "Critical error: Queue condition broadcast failed -> " +
+			ex.getSubsystemErrorString();
+
+		// This is so severe that the app should just be killed.
+		throw std::runtime_error(msg);
+	}
+
+	try
+	{
+		_workUnitQueueCond.unlockMutex();
+	}
+	catch(ThreadException& ex)
+	{
+		std::string msg = "Critical error: Queue condition mutex unlock failed -> " +
+			ex.getSubsystemErrorString();
+
+		// This is so severe that the app should just be killed.
+		throw std::runtime_error(msg);
+	}
+
+	// Wait for pool thread to become inactive.
+
+	try
+	{
+		_poolThreadActiveCondition.lockMutex();
+	}
+	catch(ThreadException& ex)
+	{
+		std::string msg = "Critical error: Pool thread active condition mutex lock failed -> " +
+			ex.getSubsystemErrorString();
+
+		// This is so severe that the app should just be killed.
+		throw std::runtime_error(msg);
+	}
 
 	if(_poolThreadActive)
 	{
-		// Thread loop hasn't finished yet. Wait for it to signal.
-		// This will release mutex.
-		_queueCond.wait();
+		try
+		{
+			// Thread loop hasn't finished yet. Wait for 5 seconds to signal.
+			_poolThreadActiveCondition.waitTimeout(5000);
+		}
+		catch(ThreadException& ex)
+		{
+			std::string msg = "Critical error: Pool thread active condition wait failed -> " +
+				ex.getSubsystemErrorString();
+
+			// This is so severe that the app should just be killed.
+			throw std::runtime_error(msg);
+		}
 	}
 
-	// Mutex is now locked.
+	try
+	{
+		_poolThreadActiveCondition.unlockMutex();
+	}
+	catch(ThreadException& ex)
+	{
+		std::string msg = "Critical error: Pool thread active condition mutex unlock failed -> " +
+			ex.getSubsystemErrorString();
 
-	// Any uninvoked work units should be aborted.
+		// This is so severe that the app should just be killed.
+		throw std::runtime_error(msg);
+	}
+
+	// Any uninvoked work units should be aborted. Assume that the queue no longer needs to be guarded because no
+	// other pathway can now modify it.
 
 	if(!_workUnitQueue.empty())
 	{
@@ -349,11 +726,10 @@ void ThreadPool::shutdown()
 		while(workUnit)
 		{
 			_workUnitQueue.pop();
-			_queueCond.unlockMutex();
 
 			workUnit -> abort();
 
-			_queueCond.lockMutex();
+			delete workUnit;
 
 			if(!_workUnitQueue.empty())
 			{
@@ -366,10 +742,9 @@ void ThreadPool::shutdown()
 		}
 	}
 
-	_queueCond.unlockMutex();
-
 	// Try and gracefully shutdown the worker threads.
-	// Assume at this stage that _shutdown being set guards the array.
+	// Assume that no other pathway can now modify the array.
+
 	for(unsigned index = 0; index < _numThreads; index++)
 	{
 		try
@@ -382,9 +757,6 @@ void ThreadPool::shutdown()
 				ex.getSubsystemErrorString() << "\n";
 		}
 	}
-
-	// Finally unblock anything still waiting on mutex.
-	_queueCond.unlockMutex();
 }
 
 void ThreadPool::enumerateState(unsigned numTabs)

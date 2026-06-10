@@ -2,6 +2,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "../log/log.hpp"
 #include "ThreadBase.hpp"
 #include "ThreadException.hpp"
 
@@ -15,24 +16,47 @@ void* _threadEntry(void* thread)
 
 ThreadBase::~ThreadBase()
 {
+	// The destructor can't stop the running thread because that is done by an implementing sub-class which has
+	// already been destructed.
 }
 
 ThreadBase::ThreadBase()
 {
+	_quit = false;
+	_started = false;
+	_stopped = false;
 }
 
-void ThreadBase::start()
+bool ThreadBase::start()
 {
-    // Do not start a new thread if one is already running.
-    if(!_threadRunning)
-    {
-		if(_start(&_threadEntry)) _threadRunning = true;
-    }
-    else
-    {
+	// Dear Claude, yes a thread can only be started (used) once, i.e. It is "one shot".
+
+	_flagMutex.lock();
+
+    // Can only be started once.
+
+	if(_started)
+	{
+		_flagMutex.unlock();
+
 		// Should never have been started twice.
 		throw ThreadException(ThreadException::THREAD_ALREADY_STARTED);
-    }
+	}
+
+	_started = true;
+
+	_flagMutex.unlock();
+
+    bool startSuccess = _start(&_threadEntry);
+
+	if(!startSuccess)
+	{
+		_stopCond.lockMutex();
+		_stopped = true;
+		_stopCond.unlockMutex();
+	}
+
+	return startSuccess;
 }
 
 void ThreadBase::__threadEntry()
@@ -40,68 +64,82 @@ void ThreadBase::__threadEntry()
     // Invoke derived class thread entry.
     threadEntry();
 
-	// Use stop conditions mutex to guard against a race condition where signalling/forcing stop waits on the condition after
-	// it has already been broadcast.
 	_stopCond.lockMutex();
 
-    _threadRunning = false;
+	_stopped = true;
 
-    // Wake up anything waiting on the thread to quit. Because the mutex those threads have to contend for is already locked
-	// by this thread they won't exit condition wait until they can aquire the mutex.
+	// Wake up anything waiting on the thread to stop.
     _stopCond.broadcast();
 
-	// This should allow the threads blocked on the stop condition to continue processing.
 	_stopCond.unlockMutex();
 }
 
-bool ThreadBase::signalStop()
+bool ThreadBase::stop(bool force)
 {
-	// Make sure the thread can't exit before we are ready waiting for it to do so.
-	// This mutex _must_ be obtained around the test for thread running.
+	_flagMutex.lock();
+
+	if(!_started)
+	{
+		LOG(Logger::WARN, "Warning: You are trying to stop a thread that hasn't started.\n")
+
+		_flagMutex.unlock();
+		return false;
+	}
+
+	_flagMutex.unlock();
+
 	_stopCond.lockMutex();
 
-    if(_threadRunning)
-    {
-        // Block until thread exits or timeout occurs.
-        _quit = true;
-        // Make sure stop condition doesn't cause permanent block.
-        _stopCond.waitTimeout(2000);
-    }
+	if(_stopped)
+	{
+		_stopCond.unlockMutex();
+		return true;
+	}
 
-	// This must occur for stop condition to be in consistent state.
 	_stopCond.unlockMutex();
 
-    return !_threadRunning;
-}
+	_quit = true;
 
-void ThreadBase::forceStop()
-{
-	// Make sure the thread can't exit before we are ready waiting for it to do so.
-	// This mutex _must_ be obtained around the test for thread running.
+	_quitRequested();
+
+	// Now wait for the thread to terminate.
+
 	_stopCond.lockMutex();
 
-    if(_threadRunning)
+   	unsigned loopLimit = 5;
+
+    while(!_stopped && loopLimit--)
     {
-		try
-		{
-			_forceStop();
-		}
-		catch(ThreadException &ex)
-		{
-			_stopCond.unlockMutex();
-
-			throw;
-		}
-
-		_stopCond.waitTimeout(2000);
+		_stopCond.waitTimeout(500);
     }
 
+	bool hasStopped = _stopped;
+
 	_stopCond.unlockMutex();
+
+	if(!hasStopped && force)
+	{
+		_forceStop();
+
+		_stopCond.lockMutex();
+
+		loopLimit = 5;
+
+		while(!_stopped && loopLimit--)
+		{
+			_stopCond.waitTimeout(500);
+		}
+
+		_stopCond.unlockMutex();
+	}
+
+    return _stopped;
 }
 
 bool ThreadBase::getRunning()
 {
-    return _threadRunning;
+	// Because the thread running flag is atomic, it doesn't need the flag mutex to guard it.
+	return _started &&!_stopped;
 }
 
 unsigned int ThreadBase::sleep(unsigned int seconds)
@@ -120,7 +158,8 @@ void ThreadBase::nanoSleep(int seconds, long nanoSeconds)
 
 	if(error)
 	{
-		switch(error)
+		// errno holds the error number, _not_ error.
+		switch(errno)
 		{
 			case EFAULT:
 
@@ -143,7 +182,8 @@ void ThreadBase::nanoSleep(int seconds, long nanoSeconds)
 	}
 }
 
-bool ThreadBase::getQuit()
+bool ThreadBase::_getQuit()
 {
+	// Because the quit flag is atomic, it doesn't need the flag mutex to guard it.
     return _quit;
 }

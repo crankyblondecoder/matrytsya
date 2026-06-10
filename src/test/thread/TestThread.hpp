@@ -45,7 +45,7 @@ class TestThread : public Thread
 
             threadStarted = true;
 
-            while(!getQuit())
+            while(!_getQuit())
 			{
 				// To stop thrashing, sleep for a small time.
 				nanoSleep(0, 1000);
@@ -113,6 +113,10 @@ class TestThread : public Thread
 			_condToWaitOnTimeout = timeout;
 			_condToWaitOn = cond;
 		}
+
+	protected:
+
+		void _quitRequested() override {}
 
     private:
 
