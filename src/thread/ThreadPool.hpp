@@ -21,6 +21,7 @@ class ThreadPool : private Thread
 
 		/**
 		 * @param numThreads Number of threads to initially allocate within pool.
+		 * @throws ThreadException.
 		 */
         ThreadPool(unsigned numThreads);
 
@@ -53,8 +54,9 @@ class ThreadPool : private Thread
 
 		/**
 		 * Wait on the the thread pool becoming active.
+		 * @returns True if became active before a reasonable timeout period.
 		 */
-		void waitOnBecomingActive();
+		bool waitOnBecomingActive();
 
 		/** For debug. */
 		bool _debugMarker;

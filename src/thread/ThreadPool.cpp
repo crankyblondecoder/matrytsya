@@ -8,41 +8,10 @@
 
 using namespace std;
 
-ThreadPool* threadPool = 0;
-
 // TODO How can threads be pre-empted if they run for too long?
 //      Maybe there is a way to downgrade a threads priority while it is running?
 //      Maybe there is a way to kill a thread from outside the thread?
 //      Needs to be some way of notifying work units so that any associated resources can be released.
-
-void startThreadPool(unsigned numThreads)
-{
-	if(!threadPool)
-	{
-		threadPool = new ThreadPool(numThreads);
-
-		// Wait for thread pool to start.
-		threadPool -> waitOnBecomingActive();
-	}
-}
-
-void stopThreadPool()
-{
-	if(threadPool)
-	{
-		threadPool -> shutdown();
-
-		delete threadPool;
-	}
-}
-
-void enumerateThreadPool(unsigned numTabs)
-{
-	if(threadPool)
-	{
-		threadPool -> enumerateState(numTabs);
-	}
-}
 
 ThreadPool::~ThreadPool()
 {
@@ -155,13 +124,17 @@ ThreadPool::ThreadPool(unsigned numThreads)
 	}
 }
 
-void ThreadPool::waitOnBecomingActive()
+bool ThreadPool::waitOnBecomingActive()
 {
 	_poolThreadActiveCondition.lockMutex();
 
-	if(!_poolThreadActive) _poolThreadActiveCondition.wait();
+	unsigned loopLimit = 5;
+
+	while(!_poolThreadActive && !_shutdown && loopLimit--) _poolThreadActiveCondition.waitTimeout(500);
 
 	_poolThreadActiveCondition.unlockMutex();
+
+	return _poolThreadActive;
 }
 
 void ThreadPool::threadEntry()

@@ -2,8 +2,6 @@
 
 #include <iostream>
 
-#include "../log/log.hpp"
-#include "ThreadException.hpp"
 #include "ThreadPool.hpp"
 
 ThreadPoolWorkThread::~ThreadPoolWorkThread()
@@ -25,7 +23,7 @@ ThreadPoolWorkThread::ThreadPoolWorkThread(ThreadPool* threadPool)
 
 bool ThreadPoolWorkThread::waitForReady(unsigned timeout)
 {
-	_cond.lockMutex();
+	_workerThreadActiveCond.lockMutex();
 
 	// This stops any chance of the while looping forever.
 	unsigned loopLimit = 5;
@@ -35,10 +33,10 @@ bool ThreadPoolWorkThread::waitForReady(unsigned timeout)
 
 	while(!_shutdown && !_workerThreadActive && loopLimit--)
 	{
-		_cond.waitTimeout(effTimeout);
+		_workerThreadActiveCond.waitTimeout(effTimeout);
 	}
 
-	_cond.unlockMutex();
+	_workerThreadActiveCond.unlockMutex();
 
 	return _workerThreadActive;
 }
@@ -50,129 +48,112 @@ void ThreadPoolWorkThread::_quitRequested()
 
 void ThreadPoolWorkThread::shutDown()
 {
-	_cond.lockMutex();
 	_shutdown = true;
 
-	// Worker thread might be waiting on condition.
-	_cond.signal();
-	_cond.unlockMutex();
+	// Worker thread might be waiting on current work unit condition.
+	_curWorkUnitCond.lockMutex();
+	_curWorkUnitCond.broadcast();
+	_curWorkUnitCond.unlockMutex();
 
-	// Lock again so the thread active state can be read safely.
-	_cond.lockMutex();
+	// If worker thread is still active, wait on it to exit
 
-	// If worker thread is still active, wait on it to exit.
-	if(_workerThreadActive)
+	_workerThreadActiveCond.lockMutex();
+
+	unsigned loopLimit = 5;
+
+	while(_workerThreadActive && loopLimit--)
 	{
-		// This should unlock mutex.
-		_cond.wait();
+		_workerThreadActiveCond.waitTimeout(2000);
 	}
 
-	_cond.unlockMutex();
+	_workerThreadActiveCond.unlockMutex();
 }
 
 bool ThreadPoolWorkThread::executeWorkUnit(ThreadPoolWorkUnit* workUnit)
 {
 	bool accepted = false;
 
-	_cond.lockMutex();
+	_curWorkUnitCond.lockMutex();
 
-	if(_canAcceptWorkUnit())
+	if(__canAcceptWorkUnit())
 	{
-		_curWorkUnit = workUnit;
 		accepted = true;
-		_cond.broadcast();
+		_curWorkUnit = workUnit;
+		_curWorkUnitCond.broadcast();
 	}
 
-	_cond.unlockMutex(); // This will trigger the condition to exit the wait() if it was signaled.
+	_curWorkUnitCond.unlockMutex();
 
 	return accepted;
 }
 
 void ThreadPoolWorkThread::threadEntry()
 {
-	// Any kind of thread exception simply terminates the work thread.
+	_workerThreadActiveCond.lockMutex();
+	_workerThreadActive = true;
+	_workerThreadActiveCond.broadcast();
+	_workerThreadActiveCond.unlockMutex();
 
-	try
+	while(!_getQuit() && !_shutdown)
 	{
-		// Use the conditions mutex as a lock to read the thread state because it is used to protect
-		// work unit scheduling.
-		_cond.lockMutex();
+		_curWorkUnitCond.lockMutex();
 
-		_workerThreadActive = true;
-
-		// This is so that anything waiting on the thread becoming active can be notified.
-		_cond.broadcast();
-
-		while(!_getQuit() && !_shutdown)
+		if(_curWorkUnit)
 		{
-			if(_curWorkUnit)
+			_curWorkUnitCond.unlockMutex();
+
+			_working = true;
+
+			try
 			{
-				_working = true;
-
-				// Don't block for the entire processing of the work unit.
-				_cond.unlockMutex();
-
 				// Invoke the work load of the work unit.
 				_curWorkUnit -> work();
-
-				_cond.lockMutex();
-
-				_working = false;
-
-				// Work unit should be deleted at this point because it has reached the end of its life.
-				delete _curWorkUnit;
-				_curWorkUnit = 0;
-
-				_cond.unlockMutex();
-
-				// Finally tell the thread pool that a worker thread is free. This may or may not allocate a new work unit
-				// to this thread.
-				_threadPool -> workerThreadFree();
-
-				// Protects reading vars in while statement.
-				_cond.lockMutex();
 			}
-			else
+			catch(...)
 			{
-				// Wait on the next unit of work.
-				// The condition will unlock its mutex on wait.
-				_cond.wait();
-
-				// Conditions mutex will be locked on exit. Leave it that way to be able to safely read
-				// the current work unit.
+				// Catch everything so that a bad work unit can't bring down the entire system.
 			}
+
+			_working = false;
+
+			_curWorkUnitCond.lockMutex();
+
+			// Work unit should be deleted at this point because it has reached the end of its life.
+			delete _curWorkUnit;
+			_curWorkUnit = 0;
+
+			_curWorkUnitCond.unlockMutex();
+
+			// Finally tell the thread pool that a worker thread is free. This may or may not allocate a new work unit
+			// to this thread.
+			_threadPool -> workerThreadFree();
 		}
-
-		_workerThreadActive = false;
-
-		// Signal anything waiting on worker thread being inactive.
-		_cond.broadcast();
-
-		// Release anything waiting on worker thread exit.
-		_cond.unlockMutex();
-	}
-	catch(ThreadException& ex)
-	{
-		std::string msg = "threadPoolWorkThread exited unexpectedly:" + ex.getSubsystemErrorString() + "\n";
-		LOG(Logger::LogLevel::DEBUG, msg)
+		else
+		{
+			// Wait on the next unit of work becoming available.
+			if(!_shutdown) _curWorkUnitCond.wait();
+			_curWorkUnitCond.unlockMutex();
+		}
 	}
 
-	// Make sure of this. Could have reached here because of exception.
+	_workerThreadActiveCond.lockMutex();
 	_workerThreadActive = false;
+	_workerThreadActiveCond.broadcast();
+	_workerThreadActiveCond.unlockMutex();
 }
 
 bool ThreadPoolWorkThread::canAcceptWorkUnit()
 {
-	_cond.lockMutex();
+	_curWorkUnitCond.lockMutex();
 
-	bool canAccept = _canAcceptWorkUnit();
+	bool canAccept = __canAcceptWorkUnit();
 
-	_cond.unlockMutex();
+	_curWorkUnitCond.unlockMutex();
 
 	return canAccept;
 }
 
-bool ThreadPoolWorkThread::_canAcceptWorkUnit()
+bool ThreadPoolWorkThread::__canAcceptWorkUnit()
 {
 	return !_getQuit() && !_shutdown && _workerThreadActive && _curWorkUnit == 0;
 }

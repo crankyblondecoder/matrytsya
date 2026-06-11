@@ -1,24 +1,60 @@
-#include "../thread/thread.hpp"
+#include <stdexcept>
 
+#include "../thread/ThreadException.hpp"
+#include "../thread/ThreadPool.hpp"
 #include "GraphHive.hpp"
 #include "GraphNode.hpp"
 
 GraphHive::~GraphHive()
 {
+	{ SYNC(_lock)
+
+		_active = false;
+	}
+
 	for(GraphNode* node : _nodes)
 	{
 		node -> decouple();
 		node -> decrRef();
 	}
+
+	if(_threadPool)
+	{
+		_threadPool -> shutdown();
+		delete _threadPool;
+	}
 }
 
-GraphHive::GraphHive()
+GraphHive::GraphHive(unsigned numThreads)
 {
+	_active = false;
+	_threadPool = 0;
+
+	try
+	{
+		_threadPool = new ThreadPool(numThreads);
+		bool isActive = _threadPool -> waitOnBecomingActive();
+
+		std::string msg = "Critical error: thread pool did not become active.";
+		throw std::runtime_error(msg);
+
+	}
+	catch(ThreadException& ex)
+	{
+		std::string msg = "Critical error: thread pool creation failed -> " +
+			ex.getSubsystemErrorString();
+
+		throw std::runtime_error(msg);
+	}
+
+	_active = true;
 }
 
 unsigned GraphHive::addNode(GraphNode* node)
 {
 	{ SYNC(_lock)
+
+		if(!_active) return -1;
 
 		for(unsigned index = 0; index < _nodes.size(); index++)
 		{

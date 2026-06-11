@@ -60,27 +60,33 @@ class ThreadPoolWorkThread : public Thread
 
     private:
 
-		/** Thread pool this worker belongs to. */
+		/**
+		 * Whether the work unit can be processed by this work thread.
+		 */
+		bool __canAcceptWorkUnit();
+
+		/// Thread pool this worker belongs to.
 		ThreadPool* _threadPool;
 
-		/** Condition so that this worker can block until a work unit is available for it. */
-		ThreadCondition _cond;
-
-		/** The current unit of work that is being executed by the thread. */
+		/// The current unit of work that is being executed by the thread.
 		ThreadPoolWorkUnit* _curWorkUnit;
 
-		/** Flag to indicate that worker thread is active. */
+		/// Condition that guards the current work unit.
+		ThreadCondition _curWorkUnitCond;
+
+		/// Flag to indicate that worker thread is active.
 		std::atomic<bool> _workerThreadActive;
 
+ 		/// Condition that guards the worker thread active flag.
+		ThreadCondition _workerThreadActiveCond;
+
+		/// Flag to indicate a work unit is being executed.
+		std::atomic<bool> _working;
+
+		/// Flag to indicate shutdown is requested.
+		std::atomic<bool> _shutdown;
+
 		bool _debugMarker;
-
-		/** Flag to indicate a work unit is being executed. */
-		bool _working;
-
-		/** Flag to indicate shutdown is requested. */
-		bool _shutdown;
-
-		bool _canAcceptWorkUnit();
 };
 
 #endif
