@@ -3,5 +3,6 @@
 *.dep
 *.depMake
 matrytsya
+matrytsya_debug
 make.dep
 runUnitTests
