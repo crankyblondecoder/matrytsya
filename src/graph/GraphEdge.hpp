@@ -1,13 +1,15 @@
 #ifndef GRAPH_EDGE_H
 #define GRAPH_EDGE_H
 
+#include "../util/RefCounted.hpp"
+
 class GraphNodeHandle;
 
 /**
  * Edge that describes directed link to another node.
  * @note Edges are immutable.
  */
-class GraphEdge final
+class GraphEdge : public RefCounted
 {
     public:
 
@@ -16,8 +18,6 @@ class GraphEdge final
 		 * @param toNode Node edge points to.
 		 */
 		GraphEdge(GraphNodeHandle& toNode);
-
-		~GraphEdge();
 
 		/**
 		 * Whether this edge points to a node.
@@ -33,6 +33,8 @@ class GraphEdge final
 
 	protected:
 
+		// This is a requirement of being ref counted.
+		~GraphEdge();
 
     private:
 

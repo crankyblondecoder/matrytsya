@@ -4,6 +4,7 @@
 
 #include "GraphAction.hpp"
 #include "GraphEdge.hpp"
+#include "GraphEdgeHandle.hpp"
 #include "GraphException.hpp"
 #include "GraphHive.hpp"
 #include "GraphHiveHandle.hpp"
@@ -17,17 +18,22 @@ GraphNode::~GraphNode()
 	{
 		if(_edges[index] != 0)
 		{
-			delete _edges[index];
+			_edges[index] -> decrRef();
 		}
 	}
 }
 
 GraphNode::GraphNode(GraphHiveHandle& hive) : _hive(hive)
 {
+	_decoupled = false;
 	_edgeCount = 0;
 	_actionEnergyCost = 1;
 
-	for(int index = 0; index < EDGE_ARRAY_SIZE; index++) _edges[index] = 0;
+	for(int index = 0; index < EDGE_ARRAY_SIZE; index++)
+	{
+		_edges[index] = 0;
+		_edgeAlloc[index] = false;
+	}
 
 	if(_hive.isValid())	_hive.getHive() -> addNode(this);
 }
@@ -39,11 +45,31 @@ GraphHiveHandle GraphNode::getHive()
 
 void GraphNode::decouple()
 {
-	// Add this stage simply remove all edges attached to this.
+	GraphEdge* edgesToDelete[EDGE_ARRAY_SIZE];
 
+	{ SYNC(_lock)
+
+		// This must happen first to stop edges being added and remove edge not complaining about bad handles.
+		_decoupled = true;
+
+		for(int index = 0; index < EDGE_ARRAY_SIZE; index++)
+		{
+			if(_edges[index])
+			{
+				edgesToDelete[index] = __removeEdge(index);
+			}
+			else
+			{
+				edgesToDelete[index] = 0;
+			}
+		}
+	}
+
+	// The edges must be deleted outside the lock so that potential re-entry from the edge removing a ref count
+	// doesn't occur.
 	for(int index = 0; index < EDGE_ARRAY_SIZE; index++)
 	{
-		if(_edges[index]) __removeEdge(index);
+		if(edgesToDelete[index]) edgesToDelete[index] -> decrRef();
 	}
 }
 
@@ -59,42 +85,86 @@ void GraphNode::_setEnergyCost(unsigned cost)
 
 int GraphNode::createEdge(GraphNodeHandle& connectTo)
 {
+	// Default value indicates edge wasn't created.
 	int retHandle = -1;
+
+	{ SYNC(_lock)
+
+		if(_decoupled) return -1;
+	}
 
 	if(connectTo.isValid() && _edgeCount < EDGE_ARRAY_SIZE)
 	{
 		{ SYNC(_lock)
 
+			if(_decoupled) return -1;
+
 			// Find first available edge slot.
 			for(int index = 0; index < EDGE_ARRAY_SIZE; index++)
 			{
-				if(_edges[index] == 0)
+				if(!_edgeAlloc[index])
 				{
 					retHandle = index;
+					_edgeAlloc[index] = true;
+					_edgeCount++;
 					break;
 				}
 			}
+		}
 
-			if(retHandle > -1)
+		if(retHandle > -1)
+		{
+			GraphEdge* edge = 0;
+
+			try
 			{
-				GraphEdge* edge = 0;
+				// Edges are immutable and should not exist if not fully connected.
+				edge = new GraphEdge(connectTo);
+			}
+			catch(std::bad_alloc& ex)
+			{
+				{ SYNC(_lock)
 
-				try
-				{
-					// Edges are immutable and should not exist if not fully connected.
-					edge = new GraphEdge(connectTo);
-				}
-				catch(std::bad_alloc& ex)
-				{
-					throw GraphException(GraphException::EDGE_BAD_ALLOC);
+					_edgeAlloc[retHandle] = false;
+					_edgeCount--;
 				}
 
-				if(edge && edge -> isComplete())
-				{
-					_edges[retHandle] = edge;
-					_edgeCount++;
+				throw GraphException(GraphException::EDGE_BAD_ALLOC);
+			}
+
+			bool deleteEdge = false;
+
+			if(edge -> isComplete())
+			{
+				{ SYNC(_lock)
+
+					if(_decoupled)
+					{
+						_edgeAlloc[retHandle] = false;
+						_edgeCount--;
+						retHandle = -1;
+						deleteEdge = true;
+					}
+					else
+					{
+						_edges[retHandle] = edge;
+					}
 				}
 			}
+			else
+			{
+				{ SYNC(_lock)
+
+					_edgeAlloc[retHandle] = false;
+					_edgeCount--;
+				}
+
+				retHandle = -1;
+				deleteEdge = true;
+			}
+
+			// Make sure this is done outside of a sync lock because it could potentially trigger a node delete.
+			if(deleteEdge) edge -> decrRef();
 		}
 	}
 
@@ -103,58 +173,82 @@ int GraphNode::createEdge(GraphNodeHandle& connectTo)
 
 void GraphNode::removeEdge(int edgeHandle)
 {
-	__removeEdge(edgeHandle);
-}
-
-void GraphNode::__removeEdge(int edgeHandle)
-{
-	// NOTE: This relies on a the ref count to be increased prior to entry to give thread safety. It is _not_ safe
-	//       to allow a delete to be triggered here.
-
-	GraphEdge* edge = 0;
+	GraphEdge* edgeToDelete = 0;
 
     { SYNC(_lock)
 
-		if(edgeHandle < EDGE_ARRAY_SIZE && edgeHandle >= 0 && _edges[edgeHandle])
-		{
-			edge = _edges[edgeHandle];
-			_edges[edgeHandle] = 0;
-			_edgeCount--;
-		}
-		else
-		{
-			throw GraphException(GraphException::INVALID_EDGE_HANDLE);
-		}
-    }
+		edgeToDelete = __removeEdge(edgeHandle);
+	}
 
-	if(edge) delete edge;
+	if(edgeToDelete) edgeToDelete -> decrRef();
+}
+
+GraphEdge* GraphNode::__removeEdge(int edgeHandle)
+{
+	// Note: This function needs to be externally synchronised.
+
+	GraphEdge* edge = 0;
+
+	// The test for a null pointer in the edges array is to detect if an edge is in the process of being allocated.
+
+	if(edgeHandle < EDGE_ARRAY_SIZE && edgeHandle >= 0 && _edgeAlloc[edgeHandle] && _edges[edgeHandle])
+	{
+		edge = _edges[edgeHandle];
+		_edges[edgeHandle] = 0;
+		_edgeAlloc[edgeHandle] = false;
+		_edgeCount--;
+	}
+	else
+	{
+		// Decoupling can be triggered when an edge has been added incompletely. This should not trigger this exception.
+		if(!_decoupled) throw GraphException(GraphException::INVALID_EDGE_HANDLE);
+	}
+
+	return edge;
 }
 
 void GraphNode::referredTo(GraphEdge* edge)
 {
-	if(!_initialised)
-	{
-		// Initialisation is deferred to first edge referring to this node because it can't be run in the constructor.
-		_init();
-		_initialised = true;
+	bool runInit = false;
+
+	{ SYNC(_lock)
+
+		if(!_initialised)
+		{
+			runInit = true;
+			_initialised = true;
+		}
 	}
+
+	if(runInit) _init();
 }
 
 GraphNodeHandle GraphNode::traverse()
 {
+	// Using a handle guarantees that the edges refcount will be decr.
+	GraphEdgeHandle edgeToTraverse(0);
+
 	{ SYNC(_lock)
 
-		for(int index = 0; index < EDGE_ARRAY_SIZE; index++)
+		if(!_decoupled)
 		{
-			if(_edges[index] != 0)
+			for(int index = 0; index < EDGE_ARRAY_SIZE; index++)
 			{
-				return _edges[index] -> traverse();
+				if(_edges[index] != 0)
+				{
+					edgeToTraverse = _edges[index];
+					break;
+				}
 			}
 		}
 	}
 
-	// If gets to here then a non-valid handle must be returned.
+	if(edgeToTraverse.isValid())
+	{
+		return (edgeToTraverse.getEdge()) -> traverse();
+	}
 
+	// If gets to here then a non-valid handle must be returned.
 	return GraphNodeHandle(0);
 }
 

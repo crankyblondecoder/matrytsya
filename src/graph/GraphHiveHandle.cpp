@@ -26,6 +26,22 @@ GraphHiveHandle::GraphHiveHandle(const GraphHiveHandle& copyFrom)
 	}
 }
 
+GraphHiveHandle& GraphHiveHandle::operator= (const GraphHiveHandle& copyFrom)
+{
+	if(_referencedHive) _referencedHive -> decrRef();
+
+	if(copyFrom._referencedHive -> incrRef())
+	{
+		_referencedHive = copyFrom._referencedHive;
+	}
+	else
+	{
+		_referencedHive = 0;
+	}
+
+	return *this;
+}
+
 GraphHiveHandle::~GraphHiveHandle()
 {
 	if(_referencedHive) _referencedHive -> decrRef();

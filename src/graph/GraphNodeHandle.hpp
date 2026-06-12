@@ -8,7 +8,6 @@ class GraphNode;
  * Guarantees that the graph node this references will be available.
  * Graph nodes will be automatically ref'd/de-ref'd.
  * @note This is not re-entrant.
- * @note Node handles are immutable.
  */
 class GraphNodeHandle
 {
@@ -25,6 +24,11 @@ class GraphNodeHandle
 		 */
         GraphNodeHandle(const GraphNodeHandle& copyFrom);
 
+		/**
+		 * Node handles can be re-assigned.
+		 */
+        GraphNodeHandle& operator= (const GraphNodeHandle& copyFrom);
+
 		virtual ~GraphNodeHandle();
 
 		/**
@@ -40,8 +44,6 @@ class GraphNodeHandle
 
     private:
 
-		// Handles are immutable.
-        GraphNodeHandle& operator= (const GraphNodeHandle& copyFrom);
 
 		GraphNode* _referencedNode;
 };

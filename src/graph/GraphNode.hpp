@@ -61,6 +61,7 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 
 		/**
 		 * Does any house keeping associated with decoupling from the graph.
+		 * Once a node is decoupled, it can't be re-attached.
 		 * @note This can be assumed to be associated with being removed from a hive.
 		 */
 		void decouple();
@@ -101,13 +102,19 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 		/** The hive this node belongs to. */
 		GraphHiveHandle _hive;
 
-		/** All edges directed from this node. */
+		/// All edges directed from this node.
         GraphEdge* _edges[EDGE_ARRAY_SIZE];
 
-		/** Count of the number of edges in the edge array. */
+		/// Whether edge slot in _edges array has been allocated.
+		bool _edgeAlloc[EDGE_ARRAY_SIZE];
+
+		/// Count of the number of edges in the edge array.
 		unsigned _edgeCount;
 
-        /** Generic lock. */
+		/// Whether this node is in the process of decoupling or has been decoupled from all edges it contains.
+		bool _decoupled;
+
+        /// Generic lock.
         ThreadMutex _lock;
 
 		/** How much energy it costs for an action to be applied to this node. */
@@ -120,8 +127,9 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 		/**
 		 * Remove edge from this node.
 		 * @param handle Handle of edge to remove. As returned by createEdge.
+		 * @returns Point to graph edge that needs to be deleted outside of lock.
 		 */
-        void __removeEdge(int handle);
+        GraphEdge* __removeEdge(int handle);
 };
 
 #endif

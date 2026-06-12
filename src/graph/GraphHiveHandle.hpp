@@ -8,7 +8,6 @@ class GraphHive;
  * Guarantees that the graph node this references will be available.
  * Graph nodes will be automatically ref'd/de-ref'd.
  * @note This is not re-entrant.
- * @note Node handles are immutable.
  */
 class GraphHiveHandle
 {
@@ -25,6 +24,11 @@ class GraphHiveHandle
 		 */
         GraphHiveHandle(const GraphHiveHandle& copyFrom);
 
+		/**
+		 * Hive handles can be re-assigned.
+		 */
+        GraphHiveHandle& operator= (const GraphHiveHandle& copyFrom);
+
 		virtual ~GraphHiveHandle();
 
 		/**
@@ -39,9 +43,6 @@ class GraphHiveHandle
     protected:
 
     private:
-
-		// Handles are immutable.
-        GraphHiveHandle& operator= (const GraphHiveHandle& copyFrom);
 
 		GraphHive* _referencedHive;
 };

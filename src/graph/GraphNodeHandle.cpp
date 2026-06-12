@@ -26,6 +26,22 @@ GraphNodeHandle::GraphNodeHandle(const GraphNodeHandle& copyFrom)
 	}
 }
 
+GraphNodeHandle& GraphNodeHandle::operator= (const GraphNodeHandle& copyFrom)
+{
+	if(_referencedNode) _referencedNode -> decrRef();
+
+	if(copyFrom._referencedNode -> incrRef())
+	{
+		_referencedNode = copyFrom._referencedNode;
+	}
+	else
+	{
+		_referencedNode = 0;
+	}
+
+	return *this;
+}
+
 GraphNodeHandle::~GraphNodeHandle()
 {
 	if(_referencedNode) _referencedNode -> decrRef();
