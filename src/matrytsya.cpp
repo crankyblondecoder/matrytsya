@@ -1,11 +1,6 @@
-#include "thread/ThreadPool.hpp"
-
 int main(int argc, char const *argv[])
 {
-	startThreadPool(6);
+	// TODO Somehow load a hive ...
 
-	stopThreadPool();
-
-	/* code */
 	return 0;
 }

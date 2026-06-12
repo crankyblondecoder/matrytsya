@@ -5,7 +5,6 @@
 #include "../../graph/graphEdgeFlagRegister.hpp"
 #include "../../graph/GraphNodeHandle.hpp"
 #include "../../graph/nodes/TestNode.hpp"
-#include "../../thread/ThreadPool.hpp"
 #include "../UnitTest.hpp"
 
 using namespace std;
@@ -20,7 +19,7 @@ class PingTest : public UnitTest
 
 		void handleCtrlC()
 		{
-			enumerateThreadPool(0);
+			if(hive) hive -> enumerateThreadPool(0);
 		}
 
 	protected:
@@ -32,20 +31,22 @@ class PingTest : public UnitTest
 
 	private:
 
+		GraphHive* hive = 0;
+
 		void __actionEnergyRundownTest()
 		{
 			// This creates a hive and runs an action that should cycle until it runs out of energy.
 
-			startThreadPool(2);
+			hive = new GraphHive(2);
 
-			GraphHive* hive = new GraphHive();
+			GraphHiveHandle hiveHandle(hive);
 
 			// Build a network of nodes and apply ping test action.
-			// The nodes must _not_ be allocated on the stack because of auto-delete once de-reff'd.
+			// The nodes must _not_ be allocated on the stack because of auto-delete once de-referenced.
 
-			TestNode* testNode1 = new TestNode(*hive);
-			TestNode* testNode2 = new TestNode(*hive);
-			TestNode* testNode3 = new TestNode(*hive);
+			TestNode* testNode1 = new TestNode(hiveHandle);
+			TestNode* testNode2 = new TestNode(hiveHandle);
+			TestNode* testNode3 = new TestNode(hiveHandle);
 
 			GraphNodeHandle nodeHandle1(testNode1);
 			GraphNodeHandle nodeHandle2(testNode2);
@@ -83,9 +84,8 @@ class PingTest : public UnitTest
 				_notifyTestResult("Action ping count", true, "");
 			}
 
-			delete hive;
-
-			stopThreadPool();
+			hive -> shutdown();
+			hive = 0;
 		}
 
 		void __waitUntilActionCompleteTest()

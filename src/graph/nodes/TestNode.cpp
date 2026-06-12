@@ -7,7 +7,7 @@ TestNode::~TestNode()
 {
 }
 
-TestNode::TestNode(GraphHive& hive) : GraphNode(hive)
+TestNode::TestNode(GraphHiveHandle& hive) : GraphNode(hive)
 {
 	_setEnergyCost(1);
 

@@ -116,22 +116,4 @@ class ThreadPool : private Thread
 		void __shutdown();
 };
 
-/**
- * Start the thread pool.
- * If an existing thread pool exists, this function just exits gracefully.
- * @note This function will block until the thread pool is ready to process work units or thread pool start fails.
- * @param numThreads Number of threads pool should have.
- */
-void startThreadPool(unsigned numThreads);
-
-/**
- * Stop and release the current thread pool.
- */
-void stopThreadPool();
-
-/**
- * Enumerate threadpool status.
- */
-void enumerateThreadPool(unsigned numTabs);
-
 #endif

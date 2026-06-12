@@ -7,6 +7,50 @@
 
 GraphHive::~GraphHive()
 {
+}
+
+GraphHive::GraphHive(unsigned numThreads)
+{
+	_active = false;
+	_threadPool = 0;
+
+	try
+	{
+		_threadPool = new ThreadPool(numThreads);
+		bool isActive = _threadPool -> waitOnBecomingActive();
+
+		if(!isActive)
+		{
+			_threadPool -> shutdown();
+			_threadPool = 0;
+
+			std::string msg = "Critical error: thread pool did not become active.";
+			throw std::runtime_error(msg);
+		}
+	}
+	catch(ThreadException& ex)
+	{
+		std::string msg = "Critical error: thread pool creation failed -> " +
+			ex.getSubsystemErrorString();
+
+		throw std::runtime_error(msg);
+	}
+
+	_active = true;
+}
+
+bool GraphHive::executeWorkUnit(ThreadPoolWorkUnit* workUnit)
+{
+	{ SYNC(_lock)
+
+		if(!_active) return false;
+	}
+
+	return _threadPool -> executeWorkUnit(workUnit);
+}
+
+void GraphHive::shutdown()
+{
 	{ SYNC(_lock)
 
 		_active = false;
@@ -23,31 +67,9 @@ GraphHive::~GraphHive()
 		_threadPool -> shutdown();
 		delete _threadPool;
 	}
-}
 
-GraphHive::GraphHive(unsigned numThreads)
-{
-	_active = false;
-	_threadPool = 0;
-
-	try
-	{
-		_threadPool = new ThreadPool(numThreads);
-		bool isActive = _threadPool -> waitOnBecomingActive();
-
-		std::string msg = "Critical error: thread pool did not become active.";
-		throw std::runtime_error(msg);
-
-	}
-	catch(ThreadException& ex)
-	{
-		std::string msg = "Critical error: thread pool creation failed -> " +
-			ex.getSubsystemErrorString();
-
-		throw std::runtime_error(msg);
-	}
-
-	_active = true;
+	// Allow this to be deleted.
+	decrRef();
 }
 
 unsigned GraphHive::addNode(GraphNode* node)
@@ -76,6 +98,8 @@ void GraphHive::removeNode(unsigned nodeIndex)
 {
 	{ SYNC(_lock)
 
+		if(!_active) return;
+
 		if(nodeIndex < _nodes.size() && _nodes[nodeIndex])
 		{
 			_nodes[nodeIndex] -> decouple();
@@ -85,3 +109,10 @@ void GraphHive::removeNode(unsigned nodeIndex)
 	}
 }
 
+void GraphHive::enumerateThreadPool(unsigned numTabs)
+{
+	{ SYNC(_lock)
+
+		if(_threadPool) _threadPool -> enumerateState(numTabs);
+	}
+}

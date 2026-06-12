@@ -6,6 +6,7 @@
 #include "GraphEdge.hpp"
 #include "GraphException.hpp"
 #include "GraphHive.hpp"
+#include "GraphHiveHandle.hpp"
 #include "GraphNodeHandle.hpp"
 
 GraphNode::~GraphNode()
@@ -21,14 +22,19 @@ GraphNode::~GraphNode()
 	}
 }
 
-GraphNode::GraphNode(GraphHive& hive) : _hive(hive)
+GraphNode::GraphNode(GraphHiveHandle& hive) : _hive(hive)
 {
 	_edgeCount = 0;
 	_actionEnergyCost = 1;
 
 	for(int index = 0; index < EDGE_ARRAY_SIZE; index++) _edges[index] = 0;
 
-	hive.addNode(this);
+	if(_hive.isValid())	_hive.getHive() -> addNode(this);
+}
+
+GraphHiveHandle GraphNode::getHive()
+{
+	return GraphHiveHandle(_hive);
 }
 
 void GraphNode::decouple()

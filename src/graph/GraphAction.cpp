@@ -1,14 +1,11 @@
-#include <iostream>
-
+#include "../thread/ThreadException.hpp"
 #include "GraphAction.hpp"
 #include "GraphActionThreadPoolWorkUnit.hpp"
 #include "GraphException.hpp"
+#include "GraphHive.hpp"
+#include "GraphHiveHandle.hpp"
 #include "GraphNode.hpp"
 #include "GraphNodeHandle.hpp"
-#include "../thread/ThreadPool.hpp"
-#include "../thread/ThreadException.hpp"
-
-extern ThreadPool* threadPool;
 
 GraphAction::~GraphAction()
 {
@@ -133,11 +130,17 @@ void GraphAction::start()
 
 	bool workSubmitted = false;
 
-	if(threadPool && _boundNode -> isValid())
+	if(_boundNode -> isValid())
 	{
-		// Bootstrap into action work cycle.
-		// Ask threadpool to execute actions work unit.
-		workSubmitted = threadPool -> executeWorkUnit(new GraphActionThreadPoolWorkUnit(this));
+		GraphHiveHandle hiveHandle = (_boundNode -> getNode()) -> getHive();
+
+		if(hiveHandle.isValid())
+		{
+			// Bootstrap into action work cycle.
+			// Ask threadpool to execute actions work unit.
+			workSubmitted = (hiveHandle.getHive()) ->
+				executeWorkUnit(new GraphActionThreadPoolWorkUnit(this));
+		}
 	}
 
 	// Anything beyond this point should just be centered around the work cycle not being able to be established
@@ -193,11 +196,16 @@ void GraphAction::work()
 				{
 					// Create and schedule another work unit for the newly bound valid node. This makes sure
 					// actions don't hog thread time.
+					GraphHiveHandle hiveHandle = (_boundNode -> getNode()) -> getHive();
 
-					if(threadPool -> executeWorkUnit(new GraphActionThreadPoolWorkUnit(this)))
+					if(hiveHandle.isValid())
 					{
-						// Work successfully scheduled.
-						complete = false;
+						if((hiveHandle.getHive()) ->
+								executeWorkUnit(new GraphActionThreadPoolWorkUnit(this)))
+						{
+							// Work successfully scheduled.
+							complete = false;
+						}
 					}
 				}
 			}

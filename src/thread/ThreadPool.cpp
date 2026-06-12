@@ -740,8 +740,6 @@ void ThreadPool::enumerateState(unsigned numTabs)
 		indentTabs += "\t";
 	}
 
-	cout << indentTabs << "thread pool debug marker: " << threadPool -> _debugMarker << "\n";
-
 	cout << indentTabs << "thread pool worker threads:\n";
 
 	for(unsigned index = 0; index < _numThreads; index++)

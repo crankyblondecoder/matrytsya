@@ -13,7 +13,7 @@ class TestNode : public GraphNode, public PingActionTarget
 
         virtual ~TestNode();
 
-        TestNode(GraphHive& hive);
+        TestNode(GraphHiveHandle& hive);
 
 		virtual bool ping();
 

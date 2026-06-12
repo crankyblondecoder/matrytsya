@@ -1,6 +1,7 @@
 #ifndef GRAPH_NODE_H
 #define GRAPH_NODE_H
 
+#include "GraphHiveHandle.hpp"
 class GraphEdge;
 class GraphHive;
 class GraphNodeHandle;
@@ -25,7 +26,7 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 		 *       before it can be deleted. Doing this explicitly is only required if this node has _not_ had its
 		 *       ref-count explicitly increased.
 		 */
-        GraphNode(GraphHive& hive);
+        GraphNode(GraphHiveHandle& hive);
 
 		/**
 		 * Create and add an edge from this node to another node.
@@ -64,6 +65,11 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 		 */
 		void decouple();
 
+		/**
+		 * Get a handle to the hive this node is part of.
+		 */
+		GraphHiveHandle getHive();
+
     protected:
 
 		// Must be virtual for reference counting auto-delete.
@@ -93,7 +99,7 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 		bool _initialised;
 
 		/** The hive this node belongs to. */
-		GraphHive& _hive;
+		GraphHiveHandle _hive;
 
 		/** All edges directed from this node. */
         GraphEdge* _edges[EDGE_ARRAY_SIZE];
