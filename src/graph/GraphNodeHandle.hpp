@@ -5,7 +5,7 @@ class GraphNode;
 
 /**
  * Handle to a graph node.
- * Guarantees that the graph node this references will be available.
+ * Guarantees that the graph node this references will be available while an instance of this class exists.
  * Graph nodes will be automatically ref'd/de-ref'd.
  * @note This is not re-entrant.
  */
@@ -43,7 +43,6 @@ class GraphNodeHandle
     protected:
 
     private:
-
 
 		GraphNode* _referencedNode;
 };

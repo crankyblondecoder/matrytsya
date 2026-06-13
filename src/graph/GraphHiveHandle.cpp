@@ -16,7 +16,7 @@ GraphHiveHandle::GraphHiveHandle(GraphHive* node)
 
 GraphHiveHandle::GraphHiveHandle(const GraphHiveHandle& copyFrom)
 {
-	if(copyFrom._referencedHive -> incrRef())
+	if(copyFrom._referencedHive && copyFrom._referencedHive -> incrRef())
 	{
 		_referencedHive = copyFrom._referencedHive;
 	}
@@ -28,9 +28,11 @@ GraphHiveHandle::GraphHiveHandle(const GraphHiveHandle& copyFrom)
 
 GraphHiveHandle& GraphHiveHandle::operator= (const GraphHiveHandle& copyFrom)
 {
+	if(this == &copyFrom) return *this;
+
 	if(_referencedHive) _referencedHive -> decrRef();
 
-	if(copyFrom._referencedHive -> incrRef())
+	if(copyFrom._referencedHive && copyFrom._referencedHive -> incrRef())
 	{
 		_referencedHive = copyFrom._referencedHive;
 	}
@@ -51,12 +53,7 @@ GraphHiveHandle::~GraphHiveHandle()
 
 GraphHive* GraphHiveHandle::getHive()
 {
-	if(_referencedHive -> incrRef())
-	{
-		return _referencedHive;
-	}
-
-	return 0;
+	return _referencedHive;
 }
 
 bool GraphHiveHandle::isValid()

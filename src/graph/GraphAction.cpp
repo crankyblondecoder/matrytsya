@@ -48,11 +48,15 @@ void GraphAction::waitOnComplete(unsigned timeOut)
 			{
 				if(timeOut > 0)
 				{
-					_completeCond.waitTimeout(timeOut);
+					unsigned loopLimit = 5;
+					unsigned effTimeout = timeOut / loopLimit;
+					if(effTimeout < 1) effTimeout = 1;
+
+					while(!_stopped && loopLimit--) _completeCond.waitTimeout(effTimeout);
 				}
 				else
 				{
-					_completeCond.wait();
+					while(!_stopped)_completeCond.wait();
 				}
 			}
 			catch(ThreadException& ex)
@@ -98,22 +102,32 @@ unsigned GraphAction::getEnergyLevel()
 
 void GraphAction::__complete()
 {
+	bool runDecrRef = false;
+	bool runCompleteHook = false;
+
 	// This guards the stopped condition.
 	_completeCond.lockMutex();
 
-	_stopped = true;
+	if(!_stopped)
+	{
+		_stopped = true;
 
-	// Notify subclass.
-	_complete();
+		runDecrRef = true;
+		runCompleteHook = true;
 
-	// Process any threads waiting on condition.
-	// Exceptions are allowed to pass through because it is a critical situation to potentially have any threads stalled indefinitely.
+		// Process any threads waiting on condition.
+		// Exceptions are allowed to pass through because it is a critical situation to potentially have any threads stalled indefinitely.
 
-	_completeCond.broadcast();
+		_completeCond.broadcast();
+	}
+
 	_completeCond.unlockMutex();
 
-	// This allows initial ref count to be released.
-	decrRef();
+	// Notify subclass.
+	if(runCompleteHook) _complete();
+
+	// This allows initial ref count to be released. Must be done last.
+	if(runDecrRef) decrRef();
 }
 
 void GraphAction::start()
@@ -171,18 +185,22 @@ void GraphAction::work()
 	// active for this action at any one time because a new work unit can't be scheduled until the current work unit
 	// owns the mutex.
 
+	bool apply = false;
+	bool execWorkUnit = false;
 	bool complete = true;
+
+	GraphNode* curBoundNode = 0;
 
 	{ SYNC(_workLock)
 
 		if(_boundNode && _boundNode -> isValid())
 		{
-			GraphNode* curBoundNode = _boundNode -> getNode();
+			curBoundNode = _boundNode -> getNode();
 
 			if(!_initTraverse)
 			{
 				// Act on currently bound node.
-				if(curBoundNode -> canActionTarget(this)) __apply(curBoundNode);
+				if(curBoundNode -> canActionTarget(this)) apply = true;
 
 				// Always consume energy even when action can't target the bound node. This ensures that actions
 				// "always die" with certainty. If it was only consumed upon application of a target then potentially
@@ -192,32 +210,41 @@ void GraphAction::work()
 			}
 			else
 			{
-				// Don't act on first bound node.
+				// Stops acting on first bound node.
 				_initTraverse = false;
 			}
 
 			if(_energy > 0)
 			{
-				delete _boundNode;
+				GraphNodeHandle* prevBoundNode = _boundNode;
 
 				_boundNode = new GraphNodeHandle(curBoundNode -> traverse());
 
+				delete prevBoundNode;
+
 				if(_boundNode -> isValid())
 				{
-					// Create and schedule another work unit for the newly bound valid node. This makes sure
-					// actions don't hog thread time.
-					GraphHiveHandle hiveHandle = (_boundNode -> getNode()) -> getHive();
-
-					if(hiveHandle.isValid())
-					{
-						if((hiveHandle.getHive()) ->
-							executeWorkUnit(new GraphActionThreadPoolWorkUnit(this)))
-						{
-							// Work successfully scheduled.
-							complete = false;
-						}
-					}
+					execWorkUnit = true;
 				}
+			}
+		}
+	}
+
+	if(apply) __apply(curBoundNode);
+
+	if(execWorkUnit)
+	{
+		// Create and schedule another work unit for the newly bound valid node. This makes sure
+		// actions don't hog thread time.
+		GraphHiveHandle hiveHandle = (_boundNode -> getNode()) -> getHive();
+
+		if(hiveHandle.isValid())
+		{
+			if((hiveHandle.getHive()) ->
+				executeWorkUnit(new GraphActionThreadPoolWorkUnit(this)))
+			{
+				// Work successfully scheduled.
+				complete = false;
 			}
 		}
 	}

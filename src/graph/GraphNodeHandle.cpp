@@ -16,7 +16,7 @@ GraphNodeHandle::GraphNodeHandle(GraphNode* node)
 
 GraphNodeHandle::GraphNodeHandle(const GraphNodeHandle& copyFrom)
 {
-	if(copyFrom._referencedNode -> incrRef())
+	if(copyFrom._referencedNode && copyFrom._referencedNode -> incrRef())
 	{
 		_referencedNode = copyFrom._referencedNode;
 	}
@@ -28,9 +28,11 @@ GraphNodeHandle::GraphNodeHandle(const GraphNodeHandle& copyFrom)
 
 GraphNodeHandle& GraphNodeHandle::operator= (const GraphNodeHandle& copyFrom)
 {
+	if(this == &copyFrom) return *this;
+
 	if(_referencedNode) _referencedNode -> decrRef();
 
-	if(copyFrom._referencedNode -> incrRef())
+	if(copyFrom._referencedNode && copyFrom._referencedNode -> incrRef())
 	{
 		_referencedNode = copyFrom._referencedNode;
 	}
@@ -51,12 +53,7 @@ GraphNodeHandle::~GraphNodeHandle()
 
 GraphNode* GraphNodeHandle::getNode()
 {
-	if(_referencedNode -> incrRef())
-	{
-		return _referencedNode;
-	}
-
-	return 0;
+	return _referencedNode;
 }
 
 bool GraphNodeHandle::isValid()

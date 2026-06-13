@@ -1,7 +1,6 @@
 #ifndef GRAPH_HIVE_H
 #define GRAPH_HIVE_H
 
-#include <atomic>
 #include <vector>
 
 #include "GraphNodeHandle.hpp"
@@ -50,7 +49,7 @@ class GraphHive : public RefCounted
 		 * @note Expects to manage the initial reference count of this node.
 		 * @returns Nodes hive index. -1 for couldn't add node.
 		 */
-		 unsigned addNode(GraphNode* node);
+		 int addNode(GraphNode* node);
 
 		 /**
 		  * Remove node from hive.
@@ -85,7 +84,7 @@ class GraphHive : public RefCounted
 		std::vector<GraphNode*>	_nodes;
 
 		/// Whether this hive is active.
-		std::atomic<bool> _active;
+		bool _active;
 
 		/// Thread condition that guards whether this hive is active.
 		ThreadCondition _activeCond;

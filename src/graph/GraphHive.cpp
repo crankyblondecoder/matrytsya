@@ -41,23 +41,32 @@ GraphHive::GraphHive(unsigned numThreads)
 
 bool GraphHive::executeWorkUnit(ThreadPoolWorkUnit* workUnit)
 {
-	if(!_active)
-	{
-		delete workUnit;
-		return false;
-	}
+	{ SYNC(_lock)
 
-	return _threadPool -> executeWorkUnit(workUnit);
+		if(!_active)
+		{
+			delete workUnit;
+			return false;
+		}
+
+		return _threadPool -> executeWorkUnit(workUnit);
+	}
 }
 
 void GraphHive::shutdown()
 {
-	_active = false;
+	{ SYNC(_lock)
+
+		_active = false;
+	}
 
 	for(GraphNode* node : _nodes)
 	{
-		node -> decouple();
-		node -> decrRef();
+		if(node)
+		{
+			node -> decouple();
+			node -> decrRef();
+		}
 	}
 
 	if(_threadPool)
@@ -70,7 +79,7 @@ void GraphHive::shutdown()
 	decrRef();
 }
 
-unsigned GraphHive::addNode(GraphNode* node)
+int GraphHive::addNode(GraphNode* node)
 {
 	{ SYNC(_lock)
 

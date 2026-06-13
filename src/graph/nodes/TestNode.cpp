@@ -31,7 +31,7 @@ PingAction* TestNode::emitPing(bool wait)
 
 	_emitAction(action);
 
-	action -> waitOnComplete(0);
+	if(wait) action -> waitOnComplete(0);
 
 	return action;
 }

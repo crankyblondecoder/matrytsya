@@ -16,7 +16,7 @@ GraphEdgeHandle::GraphEdgeHandle(GraphEdge* edge)
 
 GraphEdgeHandle::GraphEdgeHandle(const GraphEdgeHandle& copyFrom)
 {
-	if(copyFrom._referencedEdge -> incrRef())
+	if(copyFrom._referencedEdge && copyFrom._referencedEdge -> incrRef())
 	{
 		_referencedEdge = copyFrom._referencedEdge;
 	}
@@ -28,9 +28,11 @@ GraphEdgeHandle::GraphEdgeHandle(const GraphEdgeHandle& copyFrom)
 
 GraphEdgeHandle& GraphEdgeHandle::operator= (const GraphEdgeHandle& copyFrom)
 {
+	if(this == &copyFrom) return *this;
+
 	if(_referencedEdge) _referencedEdge -> decrRef();
 
-	if(copyFrom._referencedEdge -> incrRef())
+	if(copyFrom._referencedEdge && copyFrom._referencedEdge -> incrRef())
 	{
 		_referencedEdge = copyFrom._referencedEdge;
 	}
@@ -51,12 +53,7 @@ GraphEdgeHandle::~GraphEdgeHandle()
 
 GraphEdge* GraphEdgeHandle::getEdge()
 {
-	if(_referencedEdge -> incrRef())
-	{
-		return _referencedEdge;
-	}
-
-	return 0;
+	return _referencedEdge;
 }
 
 bool GraphEdgeHandle::isValid()

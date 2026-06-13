@@ -28,6 +28,7 @@ GraphNode::GraphNode(GraphHiveHandle& hive) : _hive(hive)
 	_decoupled = false;
 	_edgeCount = 0;
 	_actionEnergyCost = 1;
+	_initialised = false;
 
 	for(int index = 0; index < EDGE_ARRAY_SIZE; index++)
 	{
@@ -75,12 +76,18 @@ void GraphNode::decouple()
 
 unsigned GraphNode::getEnergyCost()
 {
-	return _actionEnergyCost;
+	{ SYNC(_lock)
+
+		return _actionEnergyCost;
+	}
 }
 
 void GraphNode::_setEnergyCost(unsigned cost)
 {
-	_actionEnergyCost = cost;
+	{ SYNC(_lock)
+
+		_actionEnergyCost = cost;
+	}
 }
 
 int GraphNode::createEdge(GraphNodeHandle& connectTo)
@@ -90,10 +97,10 @@ int GraphNode::createEdge(GraphNodeHandle& connectTo)
 
 	{ SYNC(_lock)
 
-		if(_decoupled) return -1;
+		if(_decoupled || !(_edgeCount < EDGE_ARRAY_SIZE)) return -1;
 	}
 
-	if(connectTo.isValid() && _edgeCount < EDGE_ARRAY_SIZE)
+	if(connectTo.isValid())
 	{
 		{ SYNC(_lock)
 
@@ -130,6 +137,16 @@ int GraphNode::createEdge(GraphNodeHandle& connectTo)
 				}
 
 				throw GraphException(GraphException::EDGE_BAD_ALLOC);
+			}
+			catch(...)
+			{
+				{ SYNC(_lock)
+
+					_edgeAlloc[retHandle] = false;
+					_edgeCount--;
+				}
+
+				throw;
 			}
 
 			bool deleteEdge = false;
