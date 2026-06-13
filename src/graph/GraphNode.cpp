@@ -95,16 +95,11 @@ int GraphNode::createEdge(GraphNodeHandle& connectTo)
 	// Default value indicates edge wasn't created.
 	int retHandle = -1;
 
-	{ SYNC(_lock)
-
-		if(_decoupled || !(_edgeCount < EDGE_ARRAY_SIZE)) return -1;
-	}
-
 	if(connectTo.isValid())
 	{
 		{ SYNC(_lock)
 
-			if(_decoupled) return -1;
+			if(_decoupled || !(_edgeCount < EDGE_ARRAY_SIZE)) return -1;
 
 			// Find first available edge slot.
 			for(int index = 0; index < EDGE_ARRAY_SIZE; index++)
@@ -165,9 +160,16 @@ int GraphNode::createEdge(GraphNodeHandle& connectTo)
 					else
 					{
 						_edges[retHandle] = edge;
+						edge -> incrRef();
 					}
 				}
-			}
+
+				if(!deleteEdge)
+				{
+					edge -> boundToNode();
+					edge -> decrRef();
+				}
+ 			}
 			else
 			{
 				{ SYNC(_lock)

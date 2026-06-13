@@ -103,16 +103,23 @@ int GraphHive::addNode(GraphNode* node)
 
 void GraphHive::removeNode(unsigned nodeIndex)
 {
+	GraphNode* nodeToDecouple = 0;
+
 	{ SYNC(_lock)
 
 		if(!_active) return;
 
 		if(nodeIndex < _nodes.size() && _nodes[nodeIndex])
 		{
-			_nodes[nodeIndex] -> decouple();
-			_nodes[nodeIndex] -> decrRef();
+			nodeToDecouple = _nodes[nodeIndex];
 			_nodes[nodeIndex] = 0;
 		}
+	}
+
+	if(nodeToDecouple)
+	{
+		nodeToDecouple -> decouple();
+		nodeToDecouple -> decrRef();
 	}
 }
 

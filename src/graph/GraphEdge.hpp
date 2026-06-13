@@ -31,6 +31,11 @@ class GraphEdge : public RefCounted
 		 */
 		GraphNodeHandle traverse();
 
+		/**
+		 * Called by the node that contains the edge to say it has been bound to that node.
+		 */
+		void boundToNode();
+
 	protected:
 
 		// This is a requirement of being ref counted.

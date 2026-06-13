@@ -190,6 +190,7 @@ void GraphAction::work()
 	bool complete = true;
 
 	GraphNode* curBoundNode = 0;
+	GraphNodeHandle* prevBoundNodeHandle = 0;
 
 	{ SYNC(_workLock)
 
@@ -216,11 +217,9 @@ void GraphAction::work()
 
 			if(_energy > 0)
 			{
-				GraphNodeHandle* prevBoundNode = _boundNode;
+				prevBoundNodeHandle = _boundNode;
 
 				_boundNode = new GraphNodeHandle(curBoundNode -> traverse());
-
-				delete prevBoundNode;
 
 				if(_boundNode -> isValid())
 				{
@@ -234,9 +233,11 @@ void GraphAction::work()
 
 	if(execWorkUnit)
 	{
+		// Previous bound node handle _must_ be non-null if execWorkUnit is true.
+
 		// Create and schedule another work unit for the newly bound valid node. This makes sure
 		// actions don't hog thread time.
-		GraphHiveHandle hiveHandle = (_boundNode -> getNode()) -> getHive();
+		GraphHiveHandle hiveHandle = (prevBoundNodeHandle -> getNode()) -> getHive();
 
 		if(hiveHandle.isValid())
 		{
@@ -248,6 +249,9 @@ void GraphAction::work()
 			}
 		}
 	}
+
+	// Previous bound node handle will not exist unless it is required to be deleted at this point.
+	if(prevBoundNodeHandle) delete prevBoundNodeHandle;
 
 	if(complete)
 	{

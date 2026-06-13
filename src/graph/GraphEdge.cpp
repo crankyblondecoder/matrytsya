@@ -17,13 +17,16 @@ GraphEdge::GraphEdge(GraphNodeHandle& fromNode)
 	if(newHandle -> isValid())
 	{
 		_toNode = newHandle;
-
-		(_toNode -> getNode()) -> referredTo(this);
 	}
 	else
 	{
 		delete newHandle;
 	}
+}
+
+void GraphEdge::boundToNode()
+{
+	if(_toNode) (_toNode -> getNode()) -> referredTo(this);
 }
 
 bool GraphEdge::isComplete()
