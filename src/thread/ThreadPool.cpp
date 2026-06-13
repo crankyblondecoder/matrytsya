@@ -44,6 +44,7 @@ ThreadPool::ThreadPool(unsigned numThreads)
 	_viableWorkerThreadCount = 0;
 	_numWorkerThreadsFree = 0;
 	_numThreads = numThreads;
+	_lastAllocThreadIndex = 0;
 	_poolThreadActive = false;
 	_shutdown = false;
 
@@ -132,9 +133,11 @@ bool ThreadPool::waitOnBecomingActive()
 
 	while(!_poolThreadActive && !_shutdown && loopLimit--) _poolThreadActiveCondition.waitTimeout(500);
 
+	bool active = _poolThreadActive;
+
 	_poolThreadActiveCondition.unlockMutex();
 
-	return _poolThreadActive;
+	return active;
 }
 
 void ThreadPool::threadEntry()
@@ -216,6 +219,7 @@ void ThreadPool::threadEntry()
 
 			if(!_workUnitQueue.empty())
 			{
+				// Once removed from queue, work unit _must_ be ultimately deleted in this function.
 				workUnit = _workUnitQueue.front();
 				_workUnitQueue.pop();
 			}
@@ -226,6 +230,12 @@ void ThreadPool::threadEntry()
 			}
 			catch(ThreadException& ex)
 			{
+				if(workUnit)
+				{
+					workUnit -> abort();
+					delete workUnit;
+				}
+
 				std::string msg = "Critical error: Queue condition mutex unlock failed -> " +
 					ex.getSubsystemErrorString();
 
@@ -271,10 +281,18 @@ void ThreadPool::threadEntry()
 				{
 					if(!_shutdown)
 					{
+						workUnit -> abort();
+						delete workUnit;
+
 						std::string msg = "Critical error: ThreadPool was not able to allocate work unit to worker thread. This was unexpected.\n";
 
 						// This is so severe that the app should just be killed.
 						throw std::runtime_error(msg);
+					}
+					else
+					{
+						workUnit -> abort();
+						delete workUnit;
 					}
 				}
 				else
@@ -467,13 +485,12 @@ void ThreadPool::workerThreadFree()
 		}
 		catch(ThreadException& ex)
 		{
-			std::string msg = "Critical error: Worker thread pool condition mutex lock failed -> " +
+			std::string msg = "Critical error: Worker thread pool condition mutex unlock failed -> " +
 				ex.getSubsystemErrorString();
 
 			// This is so severe that the app should just be killed.
 			throw std::runtime_error(msg);
 		}
-
 	}
 }
 
@@ -487,6 +504,9 @@ bool ThreadPool::executeWorkUnit(ThreadPoolWorkUnit* workUnit)
 	}
 	catch(ThreadException& ex)
 	{
+		workUnit -> abort();
+		delete workUnit;
+
 		std::string msg = "Critical error: Queue condition mutex lock failed -> " +
 			ex.getSubsystemErrorString();
 
@@ -507,6 +527,8 @@ bool ThreadPool::executeWorkUnit(ThreadPoolWorkUnit* workUnit)
 		}
 		catch(ThreadException& ex)
 		{
+			_workUnitQueueCond.unlockMutex();
+
 			std::string msg = "Critical error: Queue condition broadcast failed -> " +
 				ex.getSubsystemErrorString();
 
@@ -598,7 +620,7 @@ void ThreadPool::__shutdown()
 	}
 	catch(ThreadException& ex)
 	{
-		std::string msg = "Critical error: Worker thread pool condition mutex lock failed -> " +
+		std::string msg = "Critical error: Worker thread pool condition mutex unlock failed -> " +
 			ex.getSubsystemErrorString();
 
 		// This is so severe that the app should just be killed.
@@ -663,8 +685,13 @@ void ThreadPool::__shutdown()
 	{
 		try
 		{
-			// Thread loop hasn't finished yet. Wait for 5 seconds to signal.
-			_poolThreadActiveCondition.waitTimeout(5000);
+			// Thread loop hasn't finished yet. Impatiently wait for it to end.
+			unsigned loopLimit = 5;
+
+			while(_poolThreadActive && loopLimit--)
+			{
+				_poolThreadActiveCondition.waitTimeout(500);
+			}
 		}
 		catch(ThreadException& ex)
 		{

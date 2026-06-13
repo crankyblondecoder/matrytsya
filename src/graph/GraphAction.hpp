@@ -60,7 +60,7 @@ class GraphAction : public RefCounted
 
 	protected:
 
-		// This is ref counted.
+		// This is a requirement of being ref counted.
 		virtual ~GraphAction();
 
 		/**

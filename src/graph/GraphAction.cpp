@@ -57,6 +57,7 @@ void GraphAction::waitOnComplete(unsigned timeOut)
 			}
 			catch(ThreadException& ex)
 			{
+				_completeCond.unlockMutex();
 				decrRef();
 				return;
 			}
@@ -89,7 +90,10 @@ void GraphAction::__consumeEnergy(unsigned amount)
 
 unsigned GraphAction::getEnergyLevel()
 {
-	return _energy;
+	{ SYNC(_workLock)
+
+		return _energy;
+	}
 }
 
 void GraphAction::__complete()
@@ -116,17 +120,23 @@ void GraphAction::start()
 {
 	// This is deliberately not re-entrant!
 
+	_completeCond.lockMutex();
+
 	if(_started)
 	{
-		throw new GraphException(GraphException::Error::RE_ENTRY_NOT_PERMITTED);
+		_completeCond.unlockMutex();
+		throw GraphException(GraphException::Error::RE_ENTRY_NOT_PERMITTED);
 	}
 
 	if(_stopped)
 	{
-		throw new GraphException(GraphException::Error::RE_ENTRY_NOT_PERMITTED);
+		_completeCond.unlockMutex();
+		throw GraphException(GraphException::Error::RE_ENTRY_NOT_PERMITTED);
 	}
 
 	_started = true;
+
+	_completeCond.unlockMutex();
 
 	bool workSubmitted = false;
 
@@ -161,9 +171,9 @@ void GraphAction::work()
 	// active for this action at any one time because a new work unit can't be scheduled until the current work unit
 	// owns the mutex.
 
-	{ SYNC(_workLock)
+	bool complete = true;
 
-		bool complete = true;
+	{ SYNC(_workLock)
 
 		if(_boundNode && _boundNode -> isValid())
 		{
@@ -201,7 +211,7 @@ void GraphAction::work()
 					if(hiveHandle.isValid())
 					{
 						if((hiveHandle.getHive()) ->
-								executeWorkUnit(new GraphActionThreadPoolWorkUnit(this)))
+							executeWorkUnit(new GraphActionThreadPoolWorkUnit(this)))
 						{
 							// Work successfully scheduled.
 							complete = false;
@@ -210,12 +220,12 @@ void GraphAction::work()
 				}
 			}
 		}
+	}
 
-		if(complete)
-		{
-			// Action has completed.
-			__complete();
-		}
+	if(complete)
+	{
+		// Action has completed.
+		__complete();
 	}
 }
 

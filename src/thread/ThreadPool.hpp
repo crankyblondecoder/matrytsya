@@ -34,7 +34,7 @@ class ThreadPool : private Thread
 
 		/**
 		 * Execute a work unit using one of the threads from the pool.
-		 * @note The work unit will be deleted by this pool once it has completed.
+		 * @note The work unit will be deleted by this pool once it has completed or failure to execute.
 		 * @param workUnit Work unit to execute.
 		 * @returns True if could execute. False otherwise.
 		 */

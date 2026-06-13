@@ -41,9 +41,10 @@ GraphHive::GraphHive(unsigned numThreads)
 
 bool GraphHive::executeWorkUnit(ThreadPoolWorkUnit* workUnit)
 {
-	{ SYNC(_lock)
-
-		if(!_active) return false;
+	if(!_active)
+	{
+		delete workUnit;
+		return false;
 	}
 
 	return _threadPool -> executeWorkUnit(workUnit);
@@ -51,10 +52,7 @@ bool GraphHive::executeWorkUnit(ThreadPoolWorkUnit* workUnit)
 
 void GraphHive::shutdown()
 {
-	{ SYNC(_lock)
-
-		_active = false;
-	}
+	_active = false;
 
 	for(GraphNode* node : _nodes)
 	{

@@ -8,7 +8,11 @@ ThreadPoolWorkThread::~ThreadPoolWorkThread()
 {
 	stop(true);
 
-	if(_curWorkUnit) delete _curWorkUnit;
+	if(_curWorkUnit)
+	{
+		_curWorkUnit -> abort();
+		delete _curWorkUnit;
+	}
 }
 
 ThreadPoolWorkThread::ThreadPoolWorkThread(ThreadPool* threadPool)
