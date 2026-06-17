@@ -40,6 +40,11 @@ class GraphHiveHandle
 		/** Get whether the handle is valid. ie A valid hive pointer is available. */
 		bool isValid();
 
+		/**
+		 * Clear the handle, i.e. De-reference the pointed to node and make this handle invalid.
+		 */
+		void clear();
+
     protected:
 
     private:

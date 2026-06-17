@@ -1,6 +1,8 @@
 #ifndef THREAD_LOCK_H
 #define THREAD_LOCK_H
 
+#include <atomic>
+
 #include "ThreadMutex.hpp"
 
 /**
@@ -22,7 +24,7 @@ class ThreadLock
 
         ThreadMutex* _mutex;
 
-        bool _locked;
+        std::atomic<bool> _locked;
 };
 
 #endif

@@ -86,9 +86,6 @@ class GraphHive : public RefCounted
 		/// Whether this hive is active.
 		bool _active;
 
-		/// Thread condition that guards whether this hive is active.
-		ThreadCondition _activeCond;
-
         /// Generic lock.
         ThreadMutex _lock;
 };

@@ -5,8 +5,8 @@
 // an action using logical AND.
 
 #define PING_GRAPH_ACTION 0x00000001
+#define SERIALISABLE_GRAPH_ACTION 0x00000002
 
-//#define _GRAPH_ACTION 0x00000002
 //#define _GRAPH_ACTION 0x00000004
 //#define _GRAPH_ACTION 0x00000008
 

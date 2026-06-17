@@ -46,9 +46,7 @@ GraphHiveHandle& GraphHiveHandle::operator= (const GraphHiveHandle& copyFrom)
 
 GraphHiveHandle::~GraphHiveHandle()
 {
-	if(_referencedHive) _referencedHive -> decrRef();
-
-	_referencedHive = 0;
+	clear();
 }
 
 GraphHive* GraphHiveHandle::getHive()
@@ -59,5 +57,12 @@ GraphHive* GraphHiveHandle::getHive()
 bool GraphHiveHandle::isValid()
 {
 	return _referencedHive != 0;
+}
+
+void GraphHiveHandle::clear()
+{
+	if(_referencedHive) _referencedHive -> decrRef();
+
+	_referencedHive = 0;
 }
 

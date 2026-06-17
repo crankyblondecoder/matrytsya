@@ -270,7 +270,7 @@ void ThreadConditionPthread::unlockMutex()
     if(error)
 	{
 		std::string errorString = "Condition embedded pthread mutex unlock error. ";
-		appendPthreadMutexLockError(error, errorString);
+		appendPthreadMutexUnlockError(error, errorString);
 		throw ThreadException(ThreadException::CONDITION_MUTEX_ERROR, error, errorString.c_str());
 	}
 }

@@ -1,95 +1,54 @@
-#include <string>
+#ifndef PING_TEST_H
+#define PING_TEST_H
+
+#include <gtest/gtest.h>
 
 #include "../../graph/actions/PingAction.hpp"
 #include "../../graph/GraphHive.hpp"
 #include "../../graph/graphEdgeFlagRegister.hpp"
 #include "../../graph/GraphNodeHandle.hpp"
 #include "../../graph/nodes/TestNode.hpp"
-#include "../UnitTest.hpp"
 
-using namespace std;
-
-class PingTest : public UnitTest
+TEST(PingTest, ActionEnergyRundown)
 {
-	public:
+	// This creates a hive and runs an action that should cycle until it runs out of energy.
 
-		PingTest() : UnitTest("PingTest")
-		{
-		}
+	GraphHive* hive = new GraphHive(2);
 
-		void handleCtrlC()
-		{
-			if(hive) hive -> enumerateThreadPool(0);
-		}
+	GraphHiveHandle hiveHandle(hive);
 
-	protected:
+	// The nodes must _not_ be allocated on the stack because of auto-delete once de-referenced.
+	TestNode* testNode1 = new TestNode();
+	TestNode* testNode2 = new TestNode();
+	TestNode* testNode3 = new TestNode();
 
-		virtual void _runTests()
-		{
-			__actionEnergyRundownTest();
-		}
+	hive -> addNode(testNode1);
+	hive -> addNode(testNode2);
+	hive -> addNode(testNode3);
 
-	private:
+	GraphNodeHandle nodeHandle1(testNode1);
+	GraphNodeHandle nodeHandle2(testNode2);
+	GraphNodeHandle nodeHandle3(testNode3);
 
-		GraphHive* hive = 0;
+	// Deliberately create a cycle.
+	testNode1 -> createEdge(nodeHandle2);
+	testNode2 -> createEdge(nodeHandle3);
+	testNode3 -> createEdge(nodeHandle1);
 
-		void __actionEnergyRundownTest()
-		{
-			// This creates a hive and runs an action that should cycle until it runs out of energy.
+	// Run ping action.
+	PingAction* action = testNode1 -> emitPing(true);
 
-			hive = new GraphHive(2);
+	// Ping action should have run out of energy.
+	EXPECT_EQ(action -> getEnergyLevel(), 0) << "Energy was not zero as expected.";
 
-			GraphHiveHandle hiveHandle(hive);
+	// Assume standard energy for ping action is 32 and test node consumes 1 unit per traversal.
+	// This gives a ping count of 32.
+	unsigned pingCount = action -> getPingCount();
+	EXPECT_EQ(pingCount, 32u) << "Ping count incorrect.";
 
-			// Build a network of nodes and apply ping test action.
-			// The nodes must _not_ be allocated on the stack because of auto-delete once de-referenced.
+	action -> decrRef();
 
-			TestNode* testNode1 = new TestNode(hiveHandle);
-			TestNode* testNode2 = new TestNode(hiveHandle);
-			TestNode* testNode3 = new TestNode(hiveHandle);
+	hive -> shutdown();
+}
 
-			GraphNodeHandle nodeHandle1(testNode1);
-			GraphNodeHandle nodeHandle2(testNode2);
-			GraphNodeHandle nodeHandle3(testNode3);
-
-			// Deliberately create a cycle.
-			testNode1 -> createEdge(nodeHandle2);
-			testNode2 -> createEdge(nodeHandle3);
-			testNode3 -> createEdge(nodeHandle1);
-
-			// Run ping action.
- 			PingAction* action = testNode1 -> emitPing(true);
-
-			// Ping action should have run out of energy.
-			if(action -> getEnergyLevel() != 0)
-			{
-				_notifyTestResult("Action energy rundown", false, "Energy was not zero as expected.");
-			}
-			else
-			{
-				_notifyTestResult("Action energy rundown", true, "");
-			}
-
-			// Assume standard energy for ping action is 32 and test node consumes 1 unit per traversal.
-			// This gives a ping count of 32.
-			unsigned pingCount = action -> getPingCount();
-
-			if(pingCount != 32)
-			{
-				string msg = "Ping count is incorrect, expected 32 found " + std::to_string(pingCount);
-				_notifyTestResult("Action ping count", false, msg.c_str());
-			}
-			else
-			{
-				_notifyTestResult("Action ping count", true, "");
-			}
-
-			hive -> shutdown();
-			hive = 0;
-		}
-
-		void __waitUntilActionCompleteTest()
-		{
-
-		}
-};
+#endif

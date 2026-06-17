@@ -9,17 +9,11 @@
 
 GraphAction::~GraphAction()
 {
-	if(_boundNode)
-	{
-		delete _boundNode;
-		_boundNode = 0;
-	}
+	_boundNode.clear();
 }
 
-GraphAction::GraphAction(GraphNodeHandle& initNode, unsigned energy)
+GraphAction::GraphAction(GraphNodeHandle& initNode, unsigned energy) : _boundNode(initNode)
 {
-	_boundNode = new GraphNodeHandle(initNode);
-
 	_started = false;
 	_initTraverse = true;
 	_stopped = false;
@@ -154,16 +148,23 @@ void GraphAction::start()
 
 	bool workSubmitted = false;
 
-	if(_boundNode -> isValid())
+	if(_boundNode.isValid())
 	{
-		GraphHiveHandle hiveHandle = (_boundNode -> getNode()) -> getHive();
+		GraphHiveHandle hiveHandle = (_boundNode.getNode()) -> getHive();
 
 		if(hiveHandle.isValid())
 		{
 			// Bootstrap into action work cycle.
 			// Ask threadpool to execute actions work unit.
-			workSubmitted = (hiveHandle.getHive()) ->
-				executeWorkUnit(new GraphActionThreadPoolWorkUnit(this));
+			try
+			{
+				workSubmitted = (hiveHandle.getHive()) ->
+					executeWorkUnit(new GraphActionThreadPoolWorkUnit(this));
+			}
+			catch(std::bad_alloc& ex)
+			{
+				workSubmitted = false;
+			}
 		}
 	}
 
@@ -190,13 +191,13 @@ void GraphAction::work()
 	bool complete = true;
 
 	GraphNode* curBoundNode = 0;
-	GraphNodeHandle* prevBoundNodeHandle = 0;
+	GraphNodeHandle prevBoundNodeHandle(0);
 
 	{ SYNC(_workLock)
 
-		if(_boundNode && _boundNode -> isValid())
+		if(_boundNode.isValid())
 		{
-			curBoundNode = _boundNode -> getNode();
+			curBoundNode = _boundNode.getNode();
 
 			if(!_initTraverse)
 			{
@@ -219,9 +220,9 @@ void GraphAction::work()
 			{
 				prevBoundNodeHandle = _boundNode;
 
-				_boundNode = new GraphNodeHandle(curBoundNode -> traverse());
+				_boundNode = curBoundNode -> traverse();
 
-				if(_boundNode -> isValid())
+				if(_boundNode.isValid())
 				{
 					execWorkUnit = true;
 				}
@@ -237,21 +238,28 @@ void GraphAction::work()
 
 		// Create and schedule another work unit for the newly bound valid node. This makes sure
 		// actions don't hog thread time.
-		GraphHiveHandle hiveHandle = (prevBoundNodeHandle -> getNode()) -> getHive();
+		GraphHiveHandle hiveHandle = prevBoundNodeHandle.getNode() -> getHive();
 
 		if(hiveHandle.isValid())
 		{
-			if((hiveHandle.getHive()) ->
-				executeWorkUnit(new GraphActionThreadPoolWorkUnit(this)))
+			try
 			{
-				// Work successfully scheduled.
-				complete = false;
+				if((hiveHandle.getHive()) ->
+					executeWorkUnit(new GraphActionThreadPoolWorkUnit(this)))
+				{
+					// Work successfully scheduled.
+					complete = false;
+				}
+			}
+			catch(std::bad_alloc& ex)
+			{
+				complete = true;
 			}
 		}
 	}
 
-	// Previous bound node handle will not exist unless it is required to be deleted at this point.
-	if(prevBoundNodeHandle) delete prevBoundNodeHandle;
+	// Previous bound node handle will not be valid unless it is required to be cleared at this point.
+	if(prevBoundNodeHandle.isValid()) prevBoundNodeHandle.clear();
 
 	if(complete)
 	{
@@ -267,5 +275,4 @@ void GraphAction::abortWork()
 
 	__complete();
 }
-
 

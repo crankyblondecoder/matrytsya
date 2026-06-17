@@ -24,11 +24,6 @@ GraphEdge::GraphEdge(GraphNodeHandle& fromNode)
 	}
 }
 
-void GraphEdge::boundToNode()
-{
-	if(_toNode) (_toNode -> getNode()) -> referredTo(this);
-}
-
 bool GraphEdge::isComplete()
 {
 	return _toNode != 0;

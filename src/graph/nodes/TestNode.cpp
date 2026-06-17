@@ -7,7 +7,7 @@ TestNode::~TestNode()
 {
 }
 
-TestNode::TestNode(GraphHiveHandle& hive) : GraphNode(hive)
+TestNode::TestNode() : GraphNode()
 {
 	_setEnergyCost(1);
 
@@ -34,10 +34,6 @@ PingAction* TestNode::emitPing(bool wait)
 	if(wait) action -> waitOnComplete(0);
 
 	return action;
-}
-
-void TestNode::_init()
-{
 }
 
 void TestNode::_applyAction(PingAction* action)

@@ -8,7 +8,7 @@ PingAction::~PingAction()
 }
 
 PingAction::PingAction(GraphNodeHandle& initNode)
-	: GraphAction(initNode, 32)
+	: SerialisableAction(initNode, 32)
 {
 	_pingCount = 0;
 }
@@ -33,3 +33,13 @@ unsigned PingAction::getPingCount()
 {
 	return _pingCount;
 }
+
+std::span<uint8_t> PingAction::_serialise()
+{
+	return std::span<uint8_t> {};
+}
+
+void PingAction::_deserialise(std::span<uint8_t> data)
+{
+}
+

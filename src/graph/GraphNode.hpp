@@ -1,13 +1,15 @@
 #ifndef GRAPH_NODE_H
 #define GRAPH_NODE_H
 
-#include "GraphHiveHandle.hpp"
+#include <atomic>
+
 class GraphEdge;
 class GraphHive;
 class GraphNodeHandle;
 
-#include "GraphActionTargetable.hpp"
 #include "../util/RefCounted.hpp"
+#include "GraphActionTargetable.hpp"
+#include "GraphHiveHandle.hpp"
 
 // The number of edges a node can have is fixed.
 #define EDGE_ARRAY_SIZE 32
@@ -23,10 +25,9 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 		/**
 		 * Create new graph node.
 		 * @note Because this is ref-counted it will require the automatic initial reference increase to be released
-		 *       before it can be deleted. Doing this explicitly is only required if this node has _not_ had its
-		 *       ref-count explicitly increased.
+		 *       before it can be deleted.
 		 */
-        GraphNode(GraphHiveHandle& hive);
+        GraphNode();
 
 		/**
 		 * Create and add an edge from this node to another node.
@@ -42,11 +43,6 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 		 * @param handle Handle of edge to remove. As returned by createEdge.
 		 */
         void removeEdge(int handle);
-
-		/**
-		 * Inform this node that an edge is now pointing to it.
-		 */
-		void referredTo(GraphEdge* edge);
 
 		/**
 		 * Find the next node to traverse to.
@@ -71,16 +67,17 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 		 */
 		GraphHiveHandle getHive();
 
+		/**
+		 * Set the hive that this node belongs to.
+		 * @param hive Hive that this node is part of.
+		 * @returns True if this node accepts being part of the hive. False otherwise.
+		 */
+		bool setHive(GraphHiveHandle hive);
+
     protected:
 
 		// Must be virtual for reference counting auto-delete.
 		virtual ~GraphNode();
-
-		/**
-		 * Sub-class hook to do any required initialisation.
-		 * @note The sub-class _should_ register any action flags it supports during this call.
-		 */
-		virtual void _init() = 0;
 
 		/**
 		 * Emit an action by making its origin this node.
@@ -96,9 +93,6 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 
 	private:
 
-		/** Whether this node has been initialised. */
-		bool _initialised;
-
 		/** The hive this node belongs to. */
 		GraphHiveHandle _hive;
 
@@ -112,7 +106,7 @@ class GraphNode : public RefCounted, public GraphActionTargetable
 		unsigned _edgeCount;
 
 		/// Whether this node is in the process of decoupling or has been decoupled from all edges it contains.
-		bool _decoupled;
+		std::atomic<bool> _decoupled;
 
         /// Generic lock.
         ThreadMutex _lock;

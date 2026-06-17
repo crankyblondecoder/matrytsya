@@ -3,9 +3,9 @@
 
 #include "../util/RefCounted.hpp"
 #include "../thread/ThreadCondition.hpp"
+#include "GraphNodeHandle.hpp"
 
 class GraphNode;
-class GraphNodeHandle;
 
 /**
  * Base class of all actions that traverses the graph and invoke operations on a node, as per a pre-defined action
@@ -91,8 +91,8 @@ class GraphAction : public RefCounted
 		 */
 		bool _stopped;
 
-		/** The curent node this action is associated with. */
-		GraphNodeHandle* _boundNode;
+		/** Handle to the curent node this action is associated with. */
+		GraphNodeHandle _boundNode;
 
 		/**
 		 * The number of energy units this action currently contains.

@@ -13,7 +13,7 @@ class TestNode : public GraphNode, public PingActionTarget
 
         virtual ~TestNode();
 
-        TestNode(GraphHiveHandle& hive);
+        TestNode();
 
 		virtual bool ping();
 
@@ -25,8 +25,6 @@ class TestNode : public GraphNode, public PingActionTarget
 		PingAction* emitPing(bool wait);
 
 	protected:
-
-		void _init() override;
 
 		void _applyAction(PingAction* action) override;
 

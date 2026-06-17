@@ -131,7 +131,15 @@ bool ThreadPool::waitOnBecomingActive()
 
 	unsigned loopLimit = 5;
 
-	while(!_poolThreadActive && !_shutdown && loopLimit--) _poolThreadActiveCondition.waitTimeout(500);
+	try
+	{
+		while(!_poolThreadActive && !_shutdown && loopLimit--) _poolThreadActiveCondition.waitTimeout(500);
+	}
+	catch(ThreadException& ex)
+	{
+		_poolThreadActiveCondition.unlockMutex();
+		throw;
+	}
 
 	bool active = _poolThreadActive;
 

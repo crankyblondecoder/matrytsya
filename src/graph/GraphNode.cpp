@@ -1,7 +1,5 @@
 #include "GraphNode.hpp"
 
-#include <new>
-
 #include "GraphAction.hpp"
 #include "GraphEdge.hpp"
 #include "GraphEdgeHandle.hpp"
@@ -23,25 +21,40 @@ GraphNode::~GraphNode()
 	}
 }
 
-GraphNode::GraphNode(GraphHiveHandle& hive) : _hive(hive)
+GraphNode::GraphNode() : _hive(0)
 {
 	_decoupled = false;
 	_edgeCount = 0;
 	_actionEnergyCost = 1;
-	_initialised = false;
 
 	for(int index = 0; index < EDGE_ARRAY_SIZE; index++)
 	{
 		_edges[index] = 0;
 		_edgeAlloc[index] = false;
 	}
-
-	if(_hive.isValid())	_hive.getHive() -> addNode(this);
 }
 
 GraphHiveHandle GraphNode::getHive()
 {
-	return GraphHiveHandle(_hive);
+	{ SYNC(_lock)
+
+		return GraphHiveHandle(_hive);
+	}
+}
+
+bool GraphNode::setHive(GraphHiveHandle hive)
+{
+	if(!hive.isValid()) return false;
+
+	{ SYNC(_lock)
+
+		// Once a node is decoupled, it can never be part of another hive.
+		if(_decoupled) return false;
+
+		_hive = hive;
+	}
+
+	return true;
 }
 
 void GraphNode::decouple()
@@ -166,7 +179,6 @@ int GraphNode::createEdge(GraphNodeHandle& connectTo)
 
 				if(!deleteEdge)
 				{
-					edge -> boundToNode();
 					edge -> decrRef();
 				}
  			}
@@ -224,22 +236,6 @@ GraphEdge* GraphNode::__removeEdge(int edgeHandle)
 	}
 
 	return edge;
-}
-
-void GraphNode::referredTo(GraphEdge* edge)
-{
-	bool runInit = false;
-
-	{ SYNC(_lock)
-
-		if(!_initialised)
-		{
-			runInit = true;
-			_initialised = true;
-		}
-	}
-
-	if(runInit) _init();
 }
 
 GraphNodeHandle GraphNode::traverse()

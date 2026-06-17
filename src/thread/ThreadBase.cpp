@@ -108,10 +108,18 @@ bool ThreadBase::stop(bool force)
 
    	unsigned loopLimit = 5;
 
-    while(!_stopped && loopLimit--)
-    {
-		_stopCond.waitTimeout(500);
-    }
+	try
+	{
+	    while(!_stopped && loopLimit--)
+		{
+			_stopCond.waitTimeout(500);
+	    }
+	}
+	catch(ThreadException& ex)
+	{
+		_stopCond.unlockMutex();
+		throw;
+	}
 
 	bool hasStopped = _stopped;
 
@@ -124,10 +132,17 @@ bool ThreadBase::stop(bool force)
 		_stopCond.lockMutex();
 
 		loopLimit = 5;
-
-		while(!_stopped && loopLimit--)
+		try
 		{
-			_stopCond.waitTimeout(500);
+			while(!_stopped && loopLimit--)
+			{
+				_stopCond.waitTimeout(500);
+			}
+		}
+		catch(ThreadException& ex)
+		{
+			_stopCond.unlockMutex();
+			throw;
 		}
 
 		_stopCond.unlockMutex();

@@ -46,9 +46,7 @@ GraphEdgeHandle& GraphEdgeHandle::operator= (const GraphEdgeHandle& copyFrom)
 
 GraphEdgeHandle::~GraphEdgeHandle()
 {
-	if(_referencedEdge) _referencedEdge -> decrRef();
-
-	_referencedEdge = 0;
+	clear();
 }
 
 GraphEdge* GraphEdgeHandle::getEdge()
@@ -60,3 +58,11 @@ bool GraphEdgeHandle::isValid()
 {
 	return _referencedEdge != 0;
 }
+
+void GraphEdgeHandle::clear()
+{
+	if(_referencedEdge) _referencedEdge -> decrRef();
+
+	_referencedEdge = 0;
+}
+

@@ -46,9 +46,7 @@ GraphNodeHandle& GraphNodeHandle::operator= (const GraphNodeHandle& copyFrom)
 
 GraphNodeHandle::~GraphNodeHandle()
 {
-	if(_referencedNode) _referencedNode -> decrRef();
-
-	_referencedNode = 0;
+	clear();
 }
 
 GraphNode* GraphNodeHandle::getNode()
@@ -60,3 +58,11 @@ bool GraphNodeHandle::isValid()
 {
 	return _referencedNode != 0;
 }
+
+void GraphNodeHandle::clear()
+{
+	if(_referencedNode) _referencedNode -> decrRef();
+
+	_referencedNode = 0;
+}
+

@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+#include "ThreadException.hpp"
 #include "ThreadPool.hpp"
 
 ThreadPoolWorkThread::~ThreadPoolWorkThread()
@@ -35,9 +36,17 @@ bool ThreadPoolWorkThread::waitForReady(unsigned timeout)
 	// This guarantees that the maximum time taken for this operation is timeout.
 	unsigned effTimeout = timeout / loopLimit;
 
-	while(!_shutdown && !_workerThreadActive && loopLimit--)
+	try
 	{
-		_workerThreadActiveCond.waitTimeout(effTimeout);
+		while(!_shutdown && !_workerThreadActive && loopLimit--)
+		{
+			_workerThreadActiveCond.waitTimeout(effTimeout);
+		}
+	}
+	catch(ThreadException& ex)
+	{
+		_workerThreadActiveCond.unlockMutex();
+		throw;
 	}
 
 	_workerThreadActiveCond.unlockMutex();
@@ -65,9 +74,17 @@ void ThreadPoolWorkThread::shutDown()
 
 	unsigned loopLimit = 5;
 
-	while(_workerThreadActive && loopLimit--)
+	try
 	{
-		_workerThreadActiveCond.waitTimeout(2000);
+		while(_workerThreadActive && loopLimit--)
+		{
+			_workerThreadActiveCond.waitTimeout(2000);
+		}
+	}
+	catch(ThreadException& ex)
+	{
+		_workerThreadActiveCond.unlockMutex();
+		throw;
 	}
 
 	_workerThreadActiveCond.unlockMutex();

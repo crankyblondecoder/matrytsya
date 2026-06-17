@@ -1,6 +1,8 @@
 #ifndef GRAPH_ACTION_TARGETABLE_H
 #define GRAPH_ACTION_TARGETABLE_H
 
+#include <atomic>
+
 class GraphAction;
 
 #include "./actions/PingAction.hpp"
@@ -43,7 +45,7 @@ class GraphActionTargetable
 
 	private:
 
-		unsigned long _actionFlags;
+		std::atomic<unsigned long> _actionFlags;
 };
 
 #endif

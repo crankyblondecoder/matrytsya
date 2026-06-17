@@ -1,13 +1,16 @@
 #ifndef PING_ACTION_H
 #define PING_ACTION_H
 
+#include <atomic>
+#include <span>
+
 #include "../actionTargets/PingActionTarget.hpp"
-#include "../GraphAction.hpp"
+#include "SerialisableAction.hpp"
 
 /**
  * Ping graph action.
  */
-class PingAction : public GraphAction
+class PingAction : public SerialisableAction
 {
     public:
 
@@ -31,9 +34,13 @@ class PingAction : public GraphAction
 
 		void _complete() override;
 
+		std::span<uint8_t> _serialise() override;
+
+		void _deserialise(std::span<uint8_t> data) override;
+
     private:
 
-		unsigned _pingCount;
+		std::atomic<unsigned> _pingCount;
 
 		unsigned _debugCount = 0;
 };

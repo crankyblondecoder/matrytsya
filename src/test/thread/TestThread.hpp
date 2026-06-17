@@ -103,17 +103,6 @@ class TestThread : public Thread
 			_condToWaitOn = cond;
 		}
 
-		void waitOnCond(ThreadCondition* cond, unsigned int timeout, ThreadCondition* signalCond)
-		{
-			// Immediately lock the conditions mutex which gives the calling test a mechanism to get the signal timing correct.
-			cond -> lockMutex();
-
-			condWaitError = false;
-			_condToSignal = signalCond;
-			_condToWaitOnTimeout = timeout;
-			_condToWaitOn = cond;
-		}
-
 	protected:
 
 		void _quitRequested() override {}

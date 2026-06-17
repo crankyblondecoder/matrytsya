@@ -33,6 +33,12 @@ GraphHive::GraphHive(unsigned numThreads)
 		std::string msg = "Critical error: thread pool creation failed -> " +
 			ex.getSubsystemErrorString();
 
+		if(_threadPool)
+		{
+			_threadPool -> shutdown();
+			_threadPool = 0;
+		}
+
 		throw std::runtime_error(msg);
 	}
 
@@ -57,6 +63,9 @@ void GraphHive::shutdown()
 {
 	{ SYNC(_lock)
 
+		// After construction, assume that the active flag can only be set to false by shutdown.
+		if(!_active) return;
+
 		_active = false;
 	}
 
@@ -73,6 +82,7 @@ void GraphHive::shutdown()
 	{
 		_threadPool -> shutdown();
 		delete _threadPool;
+		_threadPool = 0;
 	}
 
 	// Allow this to be deleted.
@@ -81,24 +91,35 @@ void GraphHive::shutdown()
 
 int GraphHive::addNode(GraphNode* node)
 {
+	int retIndex = -1;
+
 	{ SYNC(_lock)
 
-		if(!_active) return -1;
-
-		for(unsigned index = 0; index < _nodes.size(); index++)
+		if(_active)
 		{
-			if(!_nodes[index])
+			for(unsigned index = 0; index < _nodes.size(); index++)
 			{
-				_nodes[index] = node;
-				return index;
+				if(!_nodes[index])
+				{
+					_nodes[index] = node;
+					retIndex = index;
+					break;
+				}
+			}
+
+			if(retIndex == -1)
+			{
+				// No spare slot available.
+				_nodes.push_back(node);
+
+				retIndex = _nodes.size() - 1;
 			}
 		}
-
-		// No spare slot available.
-
-		_nodes.push_back(node);
-		return _nodes.size() - 1;
 	}
+
+	if(retIndex != -1) node -> setHive(GraphHiveHandle(this));
+
+	return retIndex;
 }
 
 void GraphHive::removeNode(unsigned nodeIndex)
