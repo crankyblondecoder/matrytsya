@@ -6,3 +6,5 @@ matrytsya
 matrytsya_debug
 make.dep
 runUnitTests
+fix_perms.sh
+.claude

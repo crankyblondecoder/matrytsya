@@ -1,4 +1,4 @@
-srcFiles = unitTests.cpp UnitTest.cpp
+srcFiles = unitTests.cpp
 
 objFiles = $(srcFiles:.cpp=.o)
 
@@ -10,7 +10,7 @@ VPATH = ../../src/test
 
 .PHONY : test
 test : $(objFiles)
-	$(cname) $(cflags) -o runUnitTests $(objFiles) $(module_libs)
+	$(cname) $(cflags) -o runUnitTests $(objFiles) $(module_libs) -lgtest -lgtest_main
 	./runUnitTests
 
 -include ../makefile_std_dep

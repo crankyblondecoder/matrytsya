@@ -13,11 +13,11 @@ module_makefiles = $(foreach module, $(modules), makefile_$(module))
 execName = matrytsya
 execName_debug = matrytsya_debug
 
-cflags_debug = -std=c++11 -Wall -O0 -g -pthread
-cflags_release = -std=c++11 -Wall -fPIC -O3 -pthread
-cflags_test = -std=c++11 -Wall -O0 -g -pthread
+cflags_debug = -Wall -std=c++20 -O0 -g -pthread
+cflags_release = -Wall -std=c++20 -fPIC -O3 -pthread
+cflags_test = -Wall -std=c++20 -O0 -g -pthread
 
-export depflags = -std=c++11
+export depflags = -std=c++20
 export cname = g++
 
 CXX = $(cname)
@@ -47,6 +47,13 @@ release : subDirs
 	@ echo "*** Building - Release Executable ***"
 	@ echo
 	$(cname) $(cflags_release) -o $(execName) ../src/$(execName).cpp $(foreach module_lib, $(module_libs), release/$(module_lib))
+
+.PHONY : dep
+dep : subDirs
+	@ echo
+	@ echo "*** Building Dependencies ***"
+	@ echo
+	for makeFile in $(module_makefiles); do cd debug;$(MAKE) --makefile=../$$makeFile dep cflags="$(cflags_debug)"; done
 
 .PHONY : clean
 clean : subDirs
