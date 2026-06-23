@@ -1,2 +1,5 @@
 node_modules/
 dist/
+pnpm*
+package.json
+tsconfig.json

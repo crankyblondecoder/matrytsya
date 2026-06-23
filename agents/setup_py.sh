@@ -9,6 +9,7 @@ pip install \
     langgraph-checkpoint \
     langgraph-checkpoint-sqlite \
     langgraph-checkpoint-postgres \
-    langchain-ollama
+    langchain-ollama \
+    langchain
 
 echo "Setup complete. Activate with: source .venv/bin/activate"

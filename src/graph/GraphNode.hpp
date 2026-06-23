@@ -10,6 +10,7 @@ class GraphNodeHandle;
 #include "../util/RefCounted.hpp"
 #include "GraphActionTargetable.hpp"
 #include "GraphHiveHandle.hpp"
+#include "GraphNamed.hpp"
 
 // The number of edges a node can have is fixed.
 #define EDGE_ARRAY_SIZE 32
@@ -18,7 +19,7 @@ class GraphNodeHandle;
  * Node of a graph
  * @note Nodes self delete when no longer referenced by an edge.
  */
-class GraphNode : public RefCounted, public GraphActionTargetable
+class GraphNode : public RefCounted, public GraphActionTargetable, public GraphNamed
 {
     public:
 

@@ -3,7 +3,7 @@ set -euo pipefail
 
 # NOTE: Only use this for setting up a typescript env for LangGraph.
 
-for cmd in node npm; do
+for cmd in node pnpm; do
   if ! command -v "$cmd" &>/dev/null; then
     echo "Error: '$cmd' is not installed or not in PATH." >&2
     exit 1
@@ -19,23 +19,21 @@ cat > package.json <<'EOF'
 	"type": "module",
 	"scripts":
 	{
+		"tutorial": "tsx ./src/tutorial.ts",
 		"proc_unit_tests": "tsx ./src/proc_unit_tests.ts"
 	},
 	"dependencies":
 	{
 		"@langchain/core": "^1.1.49",
 		"@langchain/langgraph": "^1.4.2",
-		"@langchain/ollama": "^1.2.7"
+		"@langchain/ollama": "^1.2.7",
+		"zod": "^4.4.3"
 	},
 	"devDependencies":
 	{
 		"@types/node": "^25.9.3",
-	    "tsx": "^4.22.4",
+		"tsx": "^4.22.4",
 		"typescript": "^6.0.3"
-	},
-	"allowScripts":
-	{
-		"esbuild": true
 	}
 }
 EOF
@@ -60,12 +58,20 @@ cat > tsconfig.json <<'EOF'
 }
 EOF
 
+cat > pnpm-workspace.yaml <<'EOF'
+allowBuilds:
+    esbuild: true
+EOF
+
 cat > .gitignore <<'EOF'
 node_modules/
 dist/
+pnpm*
+package.json
+tsconfig.json
 EOF
 
 rm -rf node_modules
-npm install
+pnpm install
 
 echo "Done."

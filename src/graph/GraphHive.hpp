@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include "GraphNamed.hpp"
 #include "GraphNodeHandle.hpp"
 #include "../thread/ThreadMutex.hpp"
 #include "../thread/ThreadPool.hpp"
@@ -27,7 +28,7 @@ enum GraphHiveNodeType
  * A "Hive" is a container for nodes.
  * Nodes can refer to the hive when they want access to specific services, like persistence for example.
  */
-class GraphHive : public RefCounted
+class GraphHive : public RefCounted, public GraphNamed
 {
     public:
 

@@ -1,5 +1,6 @@
-srcFiles = GraphHive.cpp GraphHiveHandle.cpp GraphAction.cpp GraphActionTargetable.cpp \
-GraphActionThreadPoolWorkUnit.cpp GraphEdge.cpp GraphEdgeHandle.cpp GraphNodeHandle.cpp GraphNode.cpp \
+srcFiles =  GraphAction.cpp GraphActionTargetable.cpp GraphActionThreadPoolWorkUnit.cpp \
+GraphEdge.cpp GraphEdgeHandle.cpp GraphHive.cpp GraphHiveHandle.cpp GraphNamed.cpp \
+GraphNodeHandle.cpp GraphNode.cpp \
 actions/PingAction.cpp actions/SerialisableAction.cpp \
 nodes/TestNode.cpp
 
