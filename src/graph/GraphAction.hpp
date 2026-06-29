@@ -77,19 +77,19 @@ class GraphAction : public RefCounted
 		ThreadCondition _completeCond;
 
 		/** Whether the action has been started. */
-		bool _started;
+		bool _started = false;
 
 		/**
 		 * Whether the initial traverse has occurred.
 		 * This exists to stop the action from being applied to the initial bound node.
 		 */
-		bool _initTraverse;
+		bool _initTraverse = true;
 
 		/**
 		 * Whether the action has stopped traversing, i.e. it will no longer be applied to any nodes.
 		 * If true, this indicates that this action is complete.
 		 */
-		bool _stopped;
+		bool _stopped = false;
 
 		/** Handle to the curent node this action is associated with. */
 		GraphNodeHandle _boundNode;

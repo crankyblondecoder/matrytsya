@@ -89,11 +89,16 @@ const MessagesState = new StateSchema({
 
 const llmCall:GraphNode<typeof MessagesState> = async (state) => {
 
+	console.log("llmCall");
+
 	const response = await modelWithTools.invoke([
 
 		new SystemMessage( "You are a helpful assistant tasked with performing arithmetic on a set of inputs."
 
     ), ...state.messages,]);
+
+	console.log("llmCall response.content:" + response.content);
+	console.log("llmCall response.tool_calls:" + response.tool_calls);
 
 	return {
 
@@ -103,6 +108,8 @@ const llmCall:GraphNode<typeof MessagesState> = async (state) => {
 };
 
 const toolNode:GraphNode<typeof MessagesState> = async (state) => {
+
+	console.log("toolNode");
 
 	const lastMessage = state.messages.at(-1);
 
@@ -126,6 +133,8 @@ const toolNode:GraphNode<typeof MessagesState> = async (state) => {
 };
 
 const shouldContinue:ConditionalEdgeRouter<typeof MessagesState, Record<string, any>, "toolNode"> = (state) => {
+
+	console.log("shouldContinue");
 
 	const lastMessage = state.messages.at(-1);
 

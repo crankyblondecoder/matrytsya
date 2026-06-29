@@ -11,7 +11,6 @@ GraphActionTargetable::~GraphActionTargetable()
 
 GraphActionTargetable::GraphActionTargetable()
 {
-	_actionFlags = 0;
 }
 
 void GraphActionTargetable::_addActionFlag(unsigned long actionFlag)

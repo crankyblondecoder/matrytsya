@@ -60,7 +60,7 @@ class ThreadPool : private Thread
 		bool waitOnBecomingActive();
 
 		/** For debug. */
-		bool _debugMarker;
+		bool _debugMarker = false;
 
 		/** Enumerate the state of this thread pool. */
 		void enumerateState(unsigned numTabs);
@@ -84,10 +84,10 @@ class ThreadPool : private Thread
 		ThreadCondition _workerThreadPoolCond;
 
 		/// Essentially the number of worker threads that were started successfully.
-		unsigned _viableWorkerThreadCount;
+		unsigned _viableWorkerThreadCount = 0;
 
 		/// The number of worker threads that are available to do work.
-		std::atomic<unsigned> _numWorkerThreadsFree;
+		std::atomic<unsigned> _numWorkerThreadsFree{0};
 
 		/// Queue for work units that need to be executed.
 		std::queue<ThreadPoolWorkUnit*> _workUnitQueue;
@@ -99,16 +99,16 @@ class ThreadPool : private Thread
 		ThreadCondition _workUnitQueueCond;
 
 		/// Index of last thread that was allocated a work unit. Allows for round robin style of work unit allocation.
-		unsigned _lastAllocThreadIndex;
+		unsigned _lastAllocThreadIndex = 0;
 
 		/// Flag to indicate that pool thread is active.
-		bool _poolThreadActive;
+		bool _poolThreadActive = false;
 
 		/// Guards the pool thread active flag.
 		ThreadCondition _poolThreadActiveCondition;
 
 		/// Shutdown flag. True if shutdown or in the process of shutting down.
-		std::atomic<bool> _shutdown;
+		std::atomic<bool> _shutdown{false};
 
 		/**
 		 * Gracefully shutdown this thread pool.

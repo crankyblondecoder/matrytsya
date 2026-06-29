@@ -19,12 +19,18 @@ class GraphException : public Exception
 			EDGE_BAD_ALLOC,
 			/// General out of memory.
 			OUT_OF_MEMORY,
+			/// General buffer overflow.
+			OVERFLOW,
 			/// Re-entry of function is not permitted.
 			RE_ENTRY_NOT_PERMITTED,
 			/// The provided edge handle is not valid.
 			INVALID_EDGE_HANDLE,
 			/// The provided node handle is not valid.
 			INVALID_NODE_HANDLE,
+			/// The provided hive handle is not valid.
+			INVALID_HIVE_HANDLE,
+			/// A duplicate hive was attempted to be added to a collection.
+			DUPLICATE_HIVE,
 			/// Could not allocate node list page in memory.
 			NODE_LIST_PAGE_BAD_ALLOC,
 			/// Node list page is already full.

@@ -15,7 +15,7 @@ class TestNode : public GraphNode, public PingActionTarget
 
         TestNode();
 
-		virtual bool ping();
+		virtual bool ping() override;
 
 		/**
 		 * Emit a ping action from this node.
@@ -29,6 +29,8 @@ class TestNode : public GraphNode, public PingActionTarget
 		void _applyAction(PingAction* action) override;
 
     private:
+
+		unsigned _pingCount = 0;
 };
 
 #endif

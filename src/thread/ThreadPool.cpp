@@ -40,13 +40,7 @@ ThreadPool::~ThreadPool()
 
 ThreadPool::ThreadPool(unsigned numThreads)
 {
-	_debugMarker = false;
-	_viableWorkerThreadCount = 0;
-	_numWorkerThreadsFree = 0;
 	_numThreads = numThreads;
-	_lastAllocThreadIndex = 0;
-	_poolThreadActive = false;
-	_shutdown = false;
 
 	try
 	{

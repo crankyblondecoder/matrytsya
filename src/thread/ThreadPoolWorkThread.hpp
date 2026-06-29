@@ -69,24 +69,24 @@ class ThreadPoolWorkThread : public Thread
 		ThreadPool* _threadPool;
 
 		/// The current unit of work that is being executed by the thread.
-		ThreadPoolWorkUnit* _curWorkUnit;
+		ThreadPoolWorkUnit* _curWorkUnit = nullptr;
 
 		/// Condition that guards the current work unit.
 		ThreadCondition _curWorkUnitCond;
 
 		/// Flag to indicate that worker thread is active.
-		std::atomic<bool> _workerThreadActive;
+		std::atomic<bool> _workerThreadActive{false};
 
  		/// Condition that guards the worker thread active flag.
 		ThreadCondition _workerThreadActiveCond;
 
 		/// Flag to indicate a work unit is being executed.
-		std::atomic<bool> _working;
+		std::atomic<bool> _working{false};
 
 		/// Flag to indicate shutdown is requested.
-		std::atomic<bool> _shutdown;
+		std::atomic<bool> _shutdown{false};
 
-		bool _debugMarker;
+		bool _debugMarker = false;
 };
 
 #endif

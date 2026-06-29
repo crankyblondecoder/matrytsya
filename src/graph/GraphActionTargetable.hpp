@@ -45,7 +45,7 @@ class GraphActionTargetable
 
 	private:
 
-		std::atomic<unsigned long> _actionFlags;
+		std::atomic<unsigned long> _actionFlags{0};
 };
 
 #endif

@@ -92,13 +92,13 @@ class ThreadBase
         ThreadBase& operator= (const ThreadBase& copyFrom);
 
 		/// Flag to indicate that this thread should quit.
-        std::atomic<bool> _quit;
+        std::atomic<bool> _quit{false};
 
 		/// Flag to indicate that the thread has started.
-		std::atomic<bool> _started;
+		std::atomic<bool> _started{false};
 
 		/// Flag to indicate that the thread has stopped.
-		std::atomic<bool> _stopped;
+		std::atomic<bool> _stopped{false};
 
 		/// General mutex used to guard all flags.
 		ThreadMutex _flagMutex;

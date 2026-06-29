@@ -95,25 +95,25 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 	private:
 
 		/** The hive this node belongs to. */
-		GraphHiveHandle _hive;
+		GraphHiveHandle _hive{nullptr};
 
 		/// All edges directed from this node.
-        GraphEdge* _edges[EDGE_ARRAY_SIZE];
+        GraphEdge* _edges[EDGE_ARRAY_SIZE]{};
 
 		/// Whether edge slot in _edges array has been allocated.
-		bool _edgeAlloc[EDGE_ARRAY_SIZE];
+		bool _edgeAlloc[EDGE_ARRAY_SIZE]{};
 
 		/// Count of the number of edges in the edge array.
-		unsigned _edgeCount;
+		unsigned _edgeCount = 0;
 
 		/// Whether this node is in the process of decoupling or has been decoupled from all edges it contains.
-		std::atomic<bool> _decoupled;
+		std::atomic<bool> _decoupled{false};
 
         /// Generic lock.
         ThreadMutex _lock;
 
 		/** How much energy it costs for an action to be applied to this node. */
-		unsigned _actionEnergyCost;
+		unsigned _actionEnergyCost = 1;
 
         // Do not allow copying.
         GraphNode(const GraphNode& copyFrom);

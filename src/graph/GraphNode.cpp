@@ -21,17 +21,8 @@ GraphNode::~GraphNode()
 	}
 }
 
-GraphNode::GraphNode() : _hive(0)
+GraphNode::GraphNode()
 {
-	_decoupled = false;
-	_edgeCount = 0;
-	_actionEnergyCost = 1;
-
-	for(int index = 0; index < EDGE_ARRAY_SIZE; index++)
-	{
-		_edges[index] = 0;
-		_edgeAlloc[index] = false;
-	}
 }
 
 GraphHiveHandle GraphNode::getHive()

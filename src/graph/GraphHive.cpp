@@ -11,9 +11,6 @@ GraphHive::~GraphHive()
 
 GraphHive::GraphHive(unsigned numThreads)
 {
-	_active = false;
-	_threadPool = 0;
-
 	try
 	{
 		_threadPool = new ThreadPool(numThreads);

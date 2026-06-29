@@ -79,13 +79,13 @@ class GraphHive : public RefCounted, public GraphNamed
     private:
 
 		/// Thread pool that hive runs actions on.
-		ThreadPool* _threadPool;
+		ThreadPool* _threadPool = nullptr;
 
 		/// Nodes contained in this hive.
 		std::vector<GraphNode*>	_nodes;
 
 		/// Whether this hive is active.
-		bool _active;
+		bool _active = false;
 
         /// Generic lock.
         ThreadMutex _lock;

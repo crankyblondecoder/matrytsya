@@ -1,4 +1,5 @@
 #include "../graphActionFlagRegister.hpp"
+#include "SerialisableActionPayload.hpp"
 #include "PingAction.hpp"
 
 #include <iostream>
@@ -10,7 +11,6 @@ PingAction::~PingAction()
 PingAction::PingAction(GraphNodeHandle& initNode)
 	: SerialisableAction(initNode, 32)
 {
-	_pingCount = 0;
 }
 
 unsigned long PingAction::getFlag()
@@ -34,12 +34,16 @@ unsigned PingAction::getPingCount()
 	return _pingCount;
 }
 
-std::span<uint8_t> PingAction::_serialise()
+SerialisableActionPayload* PingAction::_serialise()
 {
-	return std::span<uint8_t> {};
+	SerialisableActionPayload* payload = new SerialisableActionPayload(sizeof(_pingCount));
+
+	payload -> serialiseValue(_pingCount);
+
+	return payload;
 }
 
-void PingAction::_deserialise(std::span<uint8_t> data)
+void PingAction::_deserialise(SerialisableActionPayload& data)
 {
 }
 

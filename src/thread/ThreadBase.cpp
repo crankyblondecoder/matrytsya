@@ -22,9 +22,6 @@ ThreadBase::~ThreadBase()
 
 ThreadBase::ThreadBase()
 {
-	_quit = false;
-	_started = false;
-	_stopped = false;
 }
 
 bool ThreadBase::start()

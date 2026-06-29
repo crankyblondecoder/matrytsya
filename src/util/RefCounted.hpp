@@ -72,16 +72,14 @@ class RefCounted
 		 */
 		RefCounted()
 		{
-			_refCount = 1;
-			_deleting = false;
 		}
 
 		virtual ~RefCounted(){}
 
 	private:
 
-		int _refCount;
-		bool _deleting;
+		int _refCount = 1;
+		bool _deleting = false;
 
         ThreadMutex _lock;
 };

@@ -18,12 +18,7 @@ ThreadPoolWorkThread::~ThreadPoolWorkThread()
 
 ThreadPoolWorkThread::ThreadPoolWorkThread(ThreadPool* threadPool)
 {
-	_workerThreadActive = false;
-	_debugMarker = false;
-	_curWorkUnit = 0;
 	_threadPool = threadPool;
-	_working = false;
-	_shutdown = false;
 }
 
 bool ThreadPoolWorkThread::waitForReady(unsigned timeout)

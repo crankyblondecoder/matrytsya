@@ -2,10 +2,10 @@
 #define PING_ACTION_H
 
 #include <atomic>
-#include <span>
 
 #include "../actionTargets/PingActionTarget.hpp"
 #include "SerialisableAction.hpp"
+#include "SerialisableActionPayload.hpp"
 
 /**
  * Ping graph action.
@@ -34,14 +34,16 @@ class PingAction : public SerialisableAction
 
 		void _complete() override;
 
-		std::span<uint8_t> _serialise() override;
+		SerialisableActionPayload* _serialise() override;
 
-		void _deserialise(std::span<uint8_t> data) override;
+		void _deserialise(SerialisableActionPayload& data) override;
 
     private:
 
-		std::atomic<unsigned> _pingCount;
+		/// Number of times this action has pinged a node.
+		std::atomic<unsigned> _pingCount{0};
 
+		/// Used for debugging only.
 		unsigned _debugCount = 0;
 };
 

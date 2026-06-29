@@ -14,10 +14,6 @@ GraphAction::~GraphAction()
 
 GraphAction::GraphAction(GraphNodeHandle& initNode, unsigned energy) : _boundNode(initNode)
 {
-	_started = false;
-	_initTraverse = true;
-	_stopped = false;
-
 	_energy = energy;
 }
 

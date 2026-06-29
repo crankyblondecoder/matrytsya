@@ -1,39 +1,5 @@
 [
   {
-    "file": "../../src/graph/GraphHive.cpp",
-    "arguments": [
-      "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
-      "GraphHive.o",
-      "../../src/graph/GraphHive.cpp"
-    ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "GraphHive.o"
-  },
-  {
-    "file": "../../src/graph/GraphHiveHandle.cpp",
-    "arguments": [
-      "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
-      "GraphHiveHandle.o",
-      "../../src/graph/GraphHiveHandle.cpp"
-    ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "GraphHiveHandle.o"
-  },
-  {
     "file": "../../src/graph/GraphAction.cpp",
     "arguments": [
       "/usr/bin/g++",
@@ -119,6 +85,57 @@
     "output": "GraphEdgeHandle.o"
   },
   {
+    "file": "../../src/graph/GraphHive.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphHive.o",
+      "../../src/graph/GraphHive.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphHive.o"
+  },
+  {
+    "file": "../../src/graph/GraphHiveHandle.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphHiveHandle.o",
+      "../../src/graph/GraphHiveHandle.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphHiveHandle.o"
+  },
+  {
+    "file": "../../src/graph/GraphNamed.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphNamed.o",
+      "../../src/graph/GraphNamed.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphNamed.o"
+  },
+  {
     "file": "../../src/graph/GraphNodeHandle.cpp",
     "arguments": [
       "/usr/bin/g++",
@@ -185,6 +202,23 @@
     ],
     "directory": "/data/devel/matrytsya/build/debug",
     "output": "actions/SerialisableAction.o"
+  },
+  {
+    "file": "../../src/graph/actions/SerialisableActionPayload.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "actions/SerialisableActionPayload.o",
+      "../../src/graph/actions/SerialisableActionPayload.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "actions/SerialisableActionPayload.o"
   },
   {
     "file": "../../src/graph/nodes/TestNode.cpp",

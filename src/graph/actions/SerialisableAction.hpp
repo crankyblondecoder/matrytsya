@@ -1,11 +1,9 @@
 #ifndef SERIALISABLE_ACTION_H
 #define SERIALISABLE_ACTION_H
 
-#include <span>
-#include <cstdint>
-
 #include "../actionTargets/SerialisableActionTarget.hpp"
 #include "../GraphAction.hpp"
+#include "SerialisableActionPayload.hpp"
 
 /**
  * Graph action that is serialisable.
@@ -32,12 +30,12 @@ class SerialisableAction : public GraphAction
 		/**
 		 * Serialise the implementing actions data into a series of bytes.
 		 */
-		virtual std::span<uint8_t> _serialise() = 0;
+		virtual SerialisableActionPayload* _serialise() = 0;
 
 		/**
 		 * Deserialise into the implementing action from the given raw data.
 		 */
-		virtual void _deserialise(std::span<uint8_t> data) = 0;
+		virtual void _deserialise(SerialisableActionPayload& data) = 0;
 
     private:
 };
