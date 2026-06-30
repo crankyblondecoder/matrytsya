@@ -64,12 +64,6 @@ void GraphAction::waitOnComplete(unsigned timeOut)
 	}
 }
 
-void GraphAction::__apply(GraphNode* node)
-{
-	// Send to concrete sub-class.
-	node -> applyAction(this);
-}
-
 void GraphAction::__consumeEnergy(unsigned amount)
 {
 	if(amount >= _energy)
@@ -226,7 +220,8 @@ void GraphAction::work()
 		}
 	}
 
-	if(apply) __apply(curBoundNode);
+	// Note: Make sure a handle still keeps a reference to this node pointer until after the action is applied.
+	if(apply) _apply(curBoundNode);
 
 	if(execWorkUnit)
 	{

@@ -36,8 +36,8 @@ PingAction* TestNode::emitPing(bool wait)
 	return action;
 }
 
-void TestNode::_applyAction(PingAction* action)
+PingActionTarget* TestNode::getPingActionTarget()
 {
-	action -> apply(this);
+	return this;
 }
 

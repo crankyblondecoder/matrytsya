@@ -3,7 +3,6 @@
 
 #include <atomic>
 
-#include "../actionTargets/PingActionTarget.hpp"
 #include "SerialisableAction.hpp"
 #include "SerialisableActionPayload.hpp"
 
@@ -25,12 +24,9 @@ class PingAction : public SerialisableAction
 		 */
 		unsigned getPingCount();
 
-		/**
-		 * Apply this action to a ping target.
-		 */
-		void apply(PingActionTarget* target);
-
 	protected:
+
+		void _apply(GraphNode* target) override;
 
 		void _complete() override;
 

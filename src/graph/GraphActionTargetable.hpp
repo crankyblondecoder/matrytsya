@@ -1,11 +1,12 @@
 #ifndef GRAPH_ACTION_TARGETABLE_H
 #define GRAPH_ACTION_TARGETABLE_H
 
+#include "actionTargets/PingActionTarget.hpp"
+#include "actionTargets/SerialisableActionTarget.hpp"
+
 #include <atomic>
 
 class GraphAction;
-
-#include "./actions/PingAction.hpp"
 
 /**
  * Base class of all classes that can be action targets.
@@ -17,13 +18,21 @@ class GraphActionTargetable
 
 		/**
 		 * Determine whether an action can target this.
+		 * @note This returns true if this can be a target for at least one of the actions required targetable
+		 *       interfaces, i.e. It doesn't guarantee that all targetable interfaces are supported.
 		 */
 		bool canActionTarget(GraphAction* action);
 
 		/**
-		 * Apply a graph action to this target.
+		 * Determine whether an individual targetable interface is supported by this.
 		 */
-		void applyAction(GraphAction* action);
+		bool hasActionTarget(unsigned long actionFlag);
+
+		/// Get the target for the ping action.
+		virtual PingActionTarget* getPingActionTarget();
+
+		/// Get the target for the serialisable action.
+		virtual SerialisableActionTarget* getSerialisableActionTarget();
 
 	protected:
 
@@ -37,11 +46,6 @@ class GraphActionTargetable
 		 * @param actionFlag Action flag from action flag register.
 		 */
 		virtual void _addActionFlag(unsigned long actionFlag);
-
-		/**
-		 * Apply a ping action to this target.
-		 */
-		virtual void _applyAction(PingAction* action);
 
 	private:
 

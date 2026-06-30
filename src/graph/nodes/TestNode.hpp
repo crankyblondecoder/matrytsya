@@ -1,8 +1,8 @@
 #ifndef TEST_NODE_H
 #define TEST_NODE_H
 
-#include "../actionTargets/PingActionTarget.hpp"
 #include "../GraphNode.hpp"
+#include "../actionTargets/PingActionTarget.hpp"
 
 class PingAction;
 
@@ -24,9 +24,9 @@ class TestNode : public GraphNode, public PingActionTarget
 		 */
 		PingAction* emitPing(bool wait);
 
-	protected:
+		PingActionTarget* getPingActionTarget() override;
 
-		void _applyAction(PingAction* action) override;
+	protected:
 
     private:
 

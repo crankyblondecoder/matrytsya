@@ -1,7 +1,6 @@
 #ifndef SERIALISABLE_ACTION_H
 #define SERIALISABLE_ACTION_H
 
-#include "../actionTargets/SerialisableActionTarget.hpp"
 #include "../GraphAction.hpp"
 #include "SerialisableActionPayload.hpp"
 
@@ -18,12 +17,9 @@ class SerialisableAction : public GraphAction
 
 		unsigned long getFlag() override;
 
-		/**
-		 * Apply this action to a serialisable target.
-		 */
-		void apply(SerialisableActionTarget* target);
-
 	protected:
+
+		void _apply(GraphNode* target) override;
 
 		void _complete() override;
 

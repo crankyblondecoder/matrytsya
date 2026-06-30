@@ -1,5 +1,8 @@
-#include "../graphActionFlagRegister.hpp"
 #include "SerialisableAction.hpp"
+
+#include "../GraphNode.hpp"
+#include "../graphActionFlagRegister.hpp"
+#include "../actionTargets/SerialisableActionTarget.hpp"
 
 SerialisableAction::~SerialisableAction()
 {
@@ -15,8 +18,14 @@ unsigned long SerialisableAction::getFlag()
 	return SERIALISABLE_GRAPH_ACTION;
 }
 
-void SerialisableAction::apply(SerialisableActionTarget* target)
+void SerialisableAction::_apply(GraphNode* target)
 {
+	SerialisableActionTarget* actionTarget = target -> getSerialisableActionTarget();
+
+	if(actionTarget)
+	{
+		// TODO ...
+	}
 }
 
 void SerialisableAction::_complete()

@@ -160,7 +160,7 @@ void SerialisableActionPayload::deserialiseValue(uint32_t& value)
 		throw GraphException(GraphException::OVERFLOW);
 	}
 
-	value  = static_cast<uint32_t>(_payload[--_payloadPosn]) << 24;
+	value = static_cast<uint32_t>(_payload[--_payloadPosn]) << 24;
 	value |= static_cast<uint32_t>(_payload[--_payloadPosn]) << 16;
 	value |= static_cast<uint32_t>(_payload[--_payloadPosn]) << 8;
 	value |= static_cast<uint32_t>(_payload[--_payloadPosn]);
@@ -180,7 +180,7 @@ void SerialisableActionPayload::deserialiseValue(uint64_t& value)
 		throw GraphException(GraphException::OVERFLOW);
 	}
 
-	value  = static_cast<uint64_t>(_payload[--_payloadPosn]) << 56;
+	value = static_cast<uint64_t>(_payload[--_payloadPosn]) << 56;
 	value |= static_cast<uint64_t>(_payload[--_payloadPosn]) << 48;
 	value |= static_cast<uint64_t>(_payload[--_payloadPosn]) << 40;
 	value |= static_cast<uint64_t>(_payload[--_payloadPosn]) << 32;

@@ -68,6 +68,11 @@ class GraphAction : public RefCounted
 		 */
 		virtual void _complete() = 0;
 
+		/**
+		 * Apply this action to a node.
+		 */
+		virtual void _apply(GraphNode* node) = 0;
+
     private:
 
 		/** Work only lock. */
@@ -99,11 +104,6 @@ class GraphAction : public RefCounted
 		 * This is part of the mechanism that prevents infinite loops.
 		 */
 		unsigned _energy;
-
-		/**
-		 * Apply this action to the currently bound node.
-		 */
-		void __apply(GraphNode* node);
 
 		/**
 		 * Action is complete.

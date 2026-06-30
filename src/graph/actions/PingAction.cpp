@@ -1,8 +1,12 @@
-#include "../graphActionFlagRegister.hpp"
-#include "SerialisableActionPayload.hpp"
 #include "PingAction.hpp"
 
+#include <cstdint>
 #include <iostream>
+
+#include "../actionTargets/PingActionTarget.hpp"
+#include "../graphActionFlagRegister.hpp"
+#include "../GraphNode.hpp"
+#include "SerialisableActionPayload.hpp"
 
 PingAction::~PingAction()
 {
@@ -18,10 +22,18 @@ unsigned long PingAction::getFlag()
 	return PING_GRAPH_ACTION;
 }
 
-void PingAction::apply(PingActionTarget* target)
+void PingAction::_apply(GraphNode* target)
 {
-	bool pinged = target -> ping();
-	if(pinged) _pingCount++;
+	PingActionTarget* pingTarget = target -> getPingActionTarget();
+
+	if(pingTarget)
+	{
+		bool pinged = pingTarget -> ping();
+		if(pinged) _pingCount++;
+	}
+
+	// Any serialisation should happen after all other actions are applied.
+	SerialisableAction::_apply(target);
 }
 
 void PingAction::_complete()
@@ -45,5 +57,8 @@ SerialisableActionPayload* PingAction::_serialise()
 
 void PingAction::_deserialise(SerialisableActionPayload& data)
 {
+	uint32_t pingCount;
+	data.deserialiseValue(pingCount);
+	_pingCount = pingCount;
 }
 
