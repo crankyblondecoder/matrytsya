@@ -2,6 +2,7 @@
 
 #include "../thread/ThreadException.hpp"
 #include "../thread/ThreadPool.hpp"
+#include "GraphException.hpp"
 #include "GraphHive.hpp"
 #include "GraphNode.hpp"
 
@@ -14,6 +15,7 @@ GraphHive::GraphHive(unsigned numThreads)
 	try
 	{
 		_threadPool = new ThreadPool(numThreads);
+
 		bool isActive = _threadPool -> waitOnBecomingActive();
 
 		if(!isActive)
@@ -40,6 +42,31 @@ GraphHive::GraphHive(unsigned numThreads)
 	}
 
 	_active = true;
+}
+
+void GraphHive::teleportAction(SerialisableActionPayload& actionPayload, GraphNodeLocation& nodeLocation)
+{
+	GraphHiveCollection* curCollection = 0;
+
+	{ SYNC(_lock)
+
+		if(!_active || !_collection)
+		{
+			throw GraphException(GraphException::ACTION_TELEPORT_FAILED);
+		}
+
+		curCollection = _collection;
+	}
+
+	curCollection -> teleportAction(actionPayload, nodeLocation);
+}
+
+void GraphHive::setHiveCollection(GraphHiveCollection* collection)
+{
+	{ SYNC(_lock)
+
+		if(_active) _collection = collection;
+	}
 }
 
 bool GraphHive::executeWorkUnit(ThreadPoolWorkUnit* workUnit)
@@ -139,6 +166,28 @@ void GraphHive::removeNode(unsigned nodeIndex)
 		nodeToDecouple -> decouple();
 		nodeToDecouple -> decrRef();
 	}
+}
+
+GraphNodeHandle GraphHive::getNode(std::string nodeName)
+{
+	GraphNode* foundNode = 0;
+
+	{ SYNC(_lock)
+
+		if(_active)
+		{
+			for(GraphNode* node : _nodes)
+			{
+				if(node && node -> getName() == nodeName)
+				{
+					foundNode = node;
+					break;
+				}
+			}
+		}
+	}
+
+	return GraphNodeHandle(foundNode);
 }
 
 void GraphHive::enumerateThreadPool(unsigned numTabs)

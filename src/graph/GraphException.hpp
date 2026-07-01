@@ -46,7 +46,9 @@ class GraphException : public Exception
 			/// Operation should have been implemented.
 			OPERATION_MISSING,
 			/// A serialisable action type was not recognised by the factory.
-			UNKNOWN_ACTION_TYPE
+			UNKNOWN_ACTION_TYPE,
+			/// The attempted teleportation of an action failed.
+			ACTION_TELEPORT_FAILED
         };
 
         virtual ~GraphException(){}

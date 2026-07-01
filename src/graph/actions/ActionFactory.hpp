@@ -18,8 +18,8 @@ class ActionFactory
          * @param initNode Initial node to bind the new action to.
          * @param payload Payload carrying the serialised action data. The type encoded in the payload determines
 		 *        which concrete action is created.
-         * @returns Newly allocated action with its data fully deserialised. The caller is responsible for calling
-		 *          decrRef() when done.
+         * @returns Newly allocated action with its data fully deserialised. The caller is responsible for starting
+		 *          the action.
          * @throws GraphException(UNKNOWN_ACTION_TYPE) if the payload carries an unrecognised action type.
          */
         static SerialisableAction* create(GraphNodeHandle& initNode, SerialisableActionPayload& payload);

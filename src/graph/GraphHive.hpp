@@ -3,11 +3,14 @@
 
 #include <vector>
 
-#include "GraphNamed.hpp"
-#include "GraphNodeHandle.hpp"
 #include "../thread/ThreadMutex.hpp"
 #include "../thread/ThreadPool.hpp"
 #include "../util/RefCounted.hpp"
+#include "./actions/SerialisableActionPayload.hpp"
+#include "GraphHiveCollection.hpp"
+#include "GraphNamed.hpp"
+#include "GraphNodeLocation.hpp"
+#include "GraphNodeHandle.hpp"
 
 class GraphNode;
 
@@ -45,6 +48,13 @@ class GraphHive : public RefCounted, public GraphNamed
 		 void removeNode(unsigned nodeIndex);
 
 		 /**
+		  * Find a node in this hive by name.
+		  * @param nodeName Name of node to find.
+		  * @returns Handle to the node. Invalid handle if no node with that name exists in this hive.
+		  */
+		 GraphNodeHandle getNode(std::string nodeName);
+
+		 /**
 		  * Get the thread pool used by this hive to enumerate itself.
 		  * @param numTabs Number of tabs to indent output by.
 		  */
@@ -58,6 +68,18 @@ class GraphHive : public RefCounted, public GraphNamed
 		 */
 		bool executeWorkUnit(ThreadPoolWorkUnit* workUnit);
 
+		/**
+		 * Set the graph hive collection this hive is part of.
+		 */
+		void setHiveCollection(GraphHiveCollection* collection);
+
+		/**
+		 * Teleport a graph action.
+		 * @param actionPayload Payload of action to teleport.
+		 * @param nodeLocation Location of node to teleport action to.
+		 */
+		void teleportAction(SerialisableActionPayload& actionPayload, GraphNodeLocation& nodeLocation);
+
 	protected:
 
 		// Required by ref counting.
@@ -66,7 +88,10 @@ class GraphHive : public RefCounted, public GraphNamed
     private:
 
 		/// Thread pool that hive runs actions on.
-		ThreadPool* _threadPool = nullptr;
+		ThreadPool* _threadPool = 0;
+
+		/// Hive collection this hive is part of.
+		GraphHiveCollection* _collection = 0;
 
 		/// Nodes contained in this hive.
 		std::vector<GraphNode*>	_nodes;
