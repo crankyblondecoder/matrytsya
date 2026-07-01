@@ -44,7 +44,9 @@ class GraphException : public Exception
 			/// The requested node was not found.
 			NODE_NOT_FOUND,
 			/// Operation should have been implemented.
-			OPERATION_MISSING
+			OPERATION_MISSING,
+			/// A serialisable action type was not recognised by the factory.
+			UNKNOWN_ACTION_TYPE
         };
 
         virtual ~GraphException(){}

@@ -1,21 +1,28 @@
-#ifndef TEST_NODE_H
-#define TEST_NODE_H
+#ifndef PING_NODE_H
+#define PING_NODE_H
 
 #include "../GraphNode.hpp"
 #include "../actionTargets/PingActionTarget.hpp"
 
 class PingAction;
 
-/** Test graph node. */
-class TestNode : public GraphNode, public PingActionTarget
+/**
+ * Simple graph node that just provides a ping point.
+ */
+class PingNode : public GraphNode, public PingActionTarget
 {
     public:
 
-        virtual ~TestNode();
+        virtual ~PingNode();
 
-        TestNode();
+        PingNode();
 
-		virtual bool ping() override;
+		bool ping() override;
+
+		/**
+		 * Get the number of times this node has been pinged.
+		 */
+		unsigned getPingCount();
 
 		/**
 		 * Emit a ping action from this node.

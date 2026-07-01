@@ -7,7 +7,7 @@
 #include "../../graph/GraphHive.hpp"
 #include "../../graph/graphEdgeFlagRegister.hpp"
 #include "../../graph/GraphNodeHandle.hpp"
-#include "../../graph/nodes/TestNode.hpp"
+#include "../../graph/nodes/PingNode.hpp"
 
 TEST(PingTest, ActionEnergyRundown)
 {
@@ -18,9 +18,9 @@ TEST(PingTest, ActionEnergyRundown)
 	GraphHiveHandle hiveHandle(hive);
 
 	// The nodes must _not_ be allocated on the stack because of auto-delete once de-referenced.
-	TestNode* testNode1 = new TestNode();
-	TestNode* testNode2 = new TestNode();
-	TestNode* testNode3 = new TestNode();
+	PingNode* testNode1 = new PingNode();
+	PingNode* testNode2 = new PingNode();
+	PingNode* testNode3 = new PingNode();
 
 	hive -> addNode(testNode1);
 	hive -> addNode(testNode2);
@@ -42,8 +42,8 @@ TEST(PingTest, ActionEnergyRundown)
 	EXPECT_EQ(action -> getEnergyLevel(), 0) << "Energy was not zero as expected.";
 
 	// Assume standard energy for ping action is 32 and test node consumes 1 unit per traversal.
-	// This gives a ping count of 32.
-	unsigned pingCount = action -> getPingCount();
+	// This gives a combined ping count of 32 across all nodes.
+	unsigned pingCount = testNode1 -> getPingCount() + testNode2 -> getPingCount() + testNode3 -> getPingCount();
 	EXPECT_EQ(pingCount, 32u) << "Ping count incorrect.";
 
 	action -> decrRef();

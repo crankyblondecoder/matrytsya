@@ -24,11 +24,22 @@ void SerialisableAction::_apply(GraphNode* target)
 
 	if(actionTarget)
 	{
-		// TODO ...
+		SerialisableActionPayload* payload = _serialise();
+
+		if(payload)
+		{
+			actionTarget -> send(*payload);
+			payload -> decrRef();
+		}
 	}
 }
 
 void SerialisableAction::_complete()
 {
+}
+
+void SerialisableAction::deserialise(SerialisableActionPayload& data)
+{
+	_deserialise(data);
 }
 

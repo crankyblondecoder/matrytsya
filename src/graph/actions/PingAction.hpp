@@ -24,6 +24,8 @@ class PingAction : public SerialisableAction
 		 */
 		unsigned getPingCount();
 
+		SerialisableActionType getSerialisbleType() override;
+
 	protected:
 
 		void _apply(GraphNode* target) override;

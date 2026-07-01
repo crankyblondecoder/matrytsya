@@ -12,6 +12,7 @@ static_assert(sizeof(double) == 8, "double must be 64-bit.");
 static_assert(CHAR_BIT == 8, "This system must use 8-bit bytes.");
 
 #include "../../util/RefCounted.hpp"
+#include "SerialisableAction.hpp"
 
 /**
  * Contains the serialised payload of a serialisable graph action.
@@ -26,17 +27,19 @@ class SerialisableActionPayload : public RefCounted
 
 		/**
 		 * Constructor for serialising into the payload.
+		 * @param serialisableActionType Type of action that payload is for.
 		 * @param sizeInBytes Size of payload in bytes, i.e. The sizeOf the data structure.
 		 */
-		SerialisableActionPayload(unsigned sizeInBytes);
-
+		SerialisableActionPayload(SerialisableAction::SerialisableActionType serialisableActionType, unsigned sizeInBytes);
 
 		/**
 		 * Constructor for setting a payload so it can be de-serialised.
+		 * @param serialisableActionType Type of action that payload is for.
 		 * @param payload Payload to de-serialise from.
 		 * @param sizeInBytes Number of bytes in payload.
 		 */
-		SerialisableActionPayload(std::byte* payload, unsigned sizeInBytes);
+		SerialisableActionPayload(SerialisableAction::SerialisableActionType serialisableActionType,
+				std::byte* payload, unsigned sizeInBytes);
 
 		/**
 		 * Serialise a single value and add it to the payload.
@@ -172,6 +175,11 @@ class SerialisableActionPayload : public RefCounted
 		 */
 		std::span<std::byte> getPayload();
 
+		/**
+		 * Get the type of serialisable action this payload is for.
+		 */
+		SerialisableAction::SerialisableActionType getSerialisableActionType();
+
 	protected:
 
 		// This is a requirement of being ref counted.
@@ -182,6 +190,10 @@ class SerialisableActionPayload : public RefCounted
 		// Disable copying.
 		SerialisableActionPayload(const SerialisableActionPayload& copyFrom);
 		SerialisableActionPayload& operator= (const SerialisableActionPayload& copyFrom);
+
+		/// Type of action that payload applies to. This can be used to re-create the action after teleportation.
+		SerialisableAction::SerialisableActionType _serialisableActionType =
+			SerialisableAction::SerialisableActionType::UNKNOWN;
 
 		/// Actual serialised payload.
 		std::byte* _payload = 0;

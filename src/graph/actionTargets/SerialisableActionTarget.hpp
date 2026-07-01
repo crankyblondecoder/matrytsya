@@ -1,6 +1,8 @@
 #ifndef SERIALISABLE_ACTION_TARGET_H
 #define SERIALISABLE_ACTION_TARGET_H
 
+#include "../actions/SerialisableActionPayload.hpp"
+
 /**
  * Action target to use for a node that can (de)serialise an action.
  */
@@ -12,7 +14,7 @@ class SerialisableActionTarget
 
 		SerialisableActionTarget() {}
 
-		virtual bool ping() = 0;
+		virtual void send(SerialisableActionPayload& payload) = 0;
 
 	protected:
 

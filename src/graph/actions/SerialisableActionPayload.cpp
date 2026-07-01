@@ -12,14 +12,18 @@ SerialisableActionPayload::~SerialisableActionPayload()
 	if(_payload) delete[] _payload;
 }
 
-SerialisableActionPayload::SerialisableActionPayload(unsigned sizeInBytes)
+SerialisableActionPayload::SerialisableActionPayload(SerialisableAction::SerialisableActionType serialisableActionType,
+		unsigned sizeInBytes)
 {
+	_serialisableActionType = serialisableActionType;
 	_payload = new std::byte[sizeInBytes]{};
 	_payloadSize = sizeInBytes;
 }
 
-SerialisableActionPayload::SerialisableActionPayload(std::byte* payload, unsigned sizeInBytes)
+SerialisableActionPayload::SerialisableActionPayload(SerialisableAction::SerialisableActionType serialisableActionType,
+		std::byte* payload, unsigned sizeInBytes)
 {
+	_serialisableActionType = serialisableActionType;
 	_payload = payload;
 	_payloadSize = sizeInBytes;
 	_payloadPosn = sizeInBytes;
@@ -228,5 +232,10 @@ std::span<std::byte> SerialisableActionPayload::getPayload()
 
 	// Effectively null.
 	return std::span<std::byte> {};
+}
+
+SerialisableAction::SerialisableActionType SerialisableActionPayload::getSerialisableActionType()
+{
+	return _serialisableActionType;
 }
 

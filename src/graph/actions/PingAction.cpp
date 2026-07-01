@@ -1,7 +1,6 @@
 #include "PingAction.hpp"
 
 #include <cstdint>
-#include <iostream>
 
 #include "../actionTargets/PingActionTarget.hpp"
 #include "../graphActionFlagRegister.hpp"
@@ -38,7 +37,6 @@ void PingAction::_apply(GraphNode* target)
 
 void PingAction::_complete()
 {
-//	std::cout << "Ping count: " << _pingCount << "\n";
 }
 
 unsigned PingAction::getPingCount()
@@ -48,7 +46,7 @@ unsigned PingAction::getPingCount()
 
 SerialisableActionPayload* PingAction::_serialise()
 {
-	SerialisableActionPayload* payload = new SerialisableActionPayload(sizeof(_pingCount));
+	SerialisableActionPayload* payload = new SerialisableActionPayload(SerialisableActionType::PING, sizeof(_pingCount));
 
 	payload -> serialiseValue(_pingCount);
 
@@ -60,5 +58,10 @@ void PingAction::_deserialise(SerialisableActionPayload& data)
 	uint32_t pingCount;
 	data.deserialiseValue(pingCount);
 	_pingCount = pingCount;
+}
+
+SerialisableAction::SerialisableActionType PingAction::getSerialisbleType()
+{
+	return SerialisableActionType::PING;
 }
 

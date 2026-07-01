@@ -1,13 +1,13 @@
 #include "../actions/PingAction.hpp"
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphNodeHandle.hpp"
-#include "TestNode.hpp"
+#include "PingNode.hpp"
 
-TestNode::~TestNode()
+PingNode::~PingNode()
 {
 }
 
-TestNode::TestNode() : GraphNode()
+PingNode::PingNode() : GraphNode()
 {
 	_setEnergyCost(1);
 
@@ -15,12 +15,13 @@ TestNode::TestNode() : GraphNode()
 	_addActionFlag(PING_GRAPH_ACTION);
 }
 
-bool TestNode::ping()
+bool PingNode::ping()
 {
+	_pingCount++;
 	return true;
 }
 
-PingAction* TestNode::emitPing(bool wait)
+PingAction* PingNode::emitPing(bool wait)
 {
 	GraphNodeHandle handle(this);
 
@@ -36,8 +37,13 @@ PingAction* TestNode::emitPing(bool wait)
 	return action;
 }
 
-PingActionTarget* TestNode::getPingActionTarget()
+PingActionTarget* PingNode::getPingActionTarget()
 {
 	return this;
+}
+
+unsigned PingNode::getPingCount()
+{
+	return _pingCount;
 }
 
