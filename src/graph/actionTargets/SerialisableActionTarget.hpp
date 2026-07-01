@@ -14,7 +14,13 @@ class SerialisableActionTarget
 
 		SerialisableActionTarget() {}
 
-		virtual void send(SerialisableActionPayload& payload) = 0;
+		/**
+		 * Send the serialised payload to wherever the payload needs to go.
+		 * What that location is, is implementation specific.
+		 * @param payload Payload to send.
+		 * @returns True if succesfully sent. False otherwise.
+		 */
+		virtual bool send(SerialisableActionPayload& payload) = 0;
 
 	protected:
 

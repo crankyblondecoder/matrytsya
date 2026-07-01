@@ -55,6 +55,8 @@ class GraphException : public Exception
 
         GraphException(Error error) : Exception(Exception::GRAPH), _error{error} {}
 
+        Error getError() {return _error;}
+
     private:
 
         Error _error;

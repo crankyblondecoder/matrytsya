@@ -2,7 +2,7 @@ srcFiles =  GraphAction.cpp GraphActionTargetable.cpp GraphActionThreadPoolWorkU
 GraphEdge.cpp GraphEdgeHandle.cpp GraphHive.cpp GraphHiveCollection.cpp GraphHiveHandle.cpp GraphNamed.cpp \
 GraphNodeHandle.cpp GraphNode.cpp GraphNodeLocation.cpp \
 actions/ActionFactory.cpp actions/PingAction.cpp actions/SerialisableAction.cpp actions/SerialisableActionPayload.cpp \
-nodes/PingNode.cpp
+nodes/PingNode.cpp nodes/TeleportNode.cpp
 
 objFiles = $(srcFiles:.cpp=.o)
 

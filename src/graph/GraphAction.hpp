@@ -3,6 +3,7 @@
 
 #include "../util/RefCounted.hpp"
 #include "../thread/ThreadCondition.hpp"
+#include "GraphHiveHandle.hpp"
 #include "GraphNodeHandle.hpp"
 
 class GraphNode;
@@ -75,13 +76,13 @@ class GraphAction : public RefCounted
 
     private:
 
-		/** Work only lock. */
+		/// Work only lock.
         ThreadMutex _workLock;
 
-		/** For any thread that wants to wait on the action completing. */
+		/// For any thread that wants to wait on the action completing.
 		ThreadCondition _completeCond;
 
-		/** Whether the action has been started. */
+		/// Whether the action has been started.
 		bool _started = false;
 
 		/**
@@ -96,14 +97,23 @@ class GraphAction : public RefCounted
 		 */
 		bool _stopped = false;
 
-		/** Handle to the curent node this action is associated with. */
+		/// Handle to the curent node this action is associated with.
 		GraphNodeHandle _boundNode;
+
+		/// Hive this action is traversing. Should always be set to the hive of the initial node.
+		GraphHiveHandle _boundHive;
 
 		/**
 		 * The number of energy units this action currently contains.
 		 * This is part of the mechanism that prevents infinite loops.
 		 */
 		unsigned _energy;
+
+		/// Handle supplied by the bound hive's actionActive(), used to notify actionInactive() on completion.
+		unsigned _hiveActionHandle = 0;
+
+		/// Whether this action is currently registered as active with the bound hive.
+		bool _hiveActionRegistered = false;
 
 		/**
 		 * Action is complete.

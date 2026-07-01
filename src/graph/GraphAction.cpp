@@ -12,9 +12,14 @@ GraphAction::~GraphAction()
 	_boundNode.clear();
 }
 
-GraphAction::GraphAction(GraphNodeHandle& initNode, unsigned energy) : _boundNode(initNode)
+GraphAction::GraphAction(GraphNodeHandle& initNode, unsigned energy) : _boundNode(initNode), _boundHive(0)
 {
 	_energy = energy;
+
+	if(initNode.isValid())
+	{
+		_boundHive = initNode.getNode() -> getHive();
+	}
 }
 
 void GraphAction::waitOnComplete(unsigned timeOut)
@@ -88,6 +93,7 @@ void GraphAction::__complete()
 {
 	bool runDecrRef = false;
 	bool runCompleteHook = false;
+	bool runHiveInactive = false;
 
 	// This guards the stopped condition.
 	_completeCond.lockMutex();
@@ -98,6 +104,9 @@ void GraphAction::__complete()
 
 		runDecrRef = true;
 		runCompleteHook = true;
+		runHiveInactive = _hiveActionRegistered;
+
+		_hiveActionRegistered = false;
 
 		// Process any threads waiting on condition.
 		// Exceptions are allowed to pass through because it is a critical situation to potentially have any threads stalled indefinitely.
@@ -106,6 +115,12 @@ void GraphAction::__complete()
 	}
 
 	_completeCond.unlockMutex();
+
+	// Notify the hive that this action is no longer active.
+	if(runHiveInactive && _boundHive.isValid())
+	{
+		_boundHive.getHive() -> actionInactive(_hiveActionHandle);
+	}
 
 	// Notify subclass.
 	if(runCompleteHook) _complete();
@@ -140,15 +155,18 @@ void GraphAction::start()
 
 	if(_boundNode.isValid())
 	{
-		GraphHiveHandle hiveHandle = (_boundNode.getNode()) -> getHive();
-
-		if(hiveHandle.isValid())
+		if(_boundHive.isValid())
 		{
+			// Register as active before work is scheduled so that a work unit which completes
+			// almost immediately on another thread is guaranteed to see this action as registered.
+			_hiveActionHandle = _boundHive.getHive() -> actionActive(this);
+			_hiveActionRegistered = true;
+
 			// Bootstrap into action work cycle.
 			// Ask threadpool to execute actions work unit.
 			try
 			{
-				workSubmitted = (hiveHandle.getHive()) ->
+				workSubmitted = (_boundHive.getHive()) ->
 					executeWorkUnit(new GraphActionThreadPoolWorkUnit(this));
 			}
 			catch(std::bad_alloc& ex)

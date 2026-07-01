@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include "../thread/ThreadCondition.hpp"
 #include "../thread/ThreadMutex.hpp"
 #include "../thread/ThreadPool.hpp"
 #include "../util/RefCounted.hpp"
@@ -80,6 +81,26 @@ class GraphHive : public RefCounted, public GraphNamed
 		 */
 		void teleportAction(SerialisableActionPayload& actionPayload, GraphNodeLocation& nodeLocation);
 
+		/**
+		 * Notify this hive that a graph action has become active.
+		 * This occurs when the action starts.
+		 * @returns Handle to use when notifying this hive that the action has become inactive.
+		 */
+		unsigned actionActive(GraphAction* action);
+
+		/**
+		 * Notify this have that a graph action has become inactive.
+		 * This occurs when the action is complete.
+		 * @param handle Handle that was supplied by actionActive.
+		 */
+		void actionInactive(unsigned handle);
+
+		/**
+		 * Wait on there being no active actions within this hive.
+		 * @param timeOut Maximum period in ms to wait on condition to be signalled. Use 0 for no timeout.
+		 */
+		void waitOnNoActionsActive(unsigned timeOut);
+
 	protected:
 
 		// Required by ref counting.
@@ -96,11 +117,20 @@ class GraphHive : public RefCounted, public GraphNamed
 		/// Nodes contained in this hive.
 		std::vector<GraphNode*>	_nodes;
 
+		/// Currently active actions within the hive.
+		std::vector<GraphAction*> _activeActions;
+
 		/// Whether this hive is active.
 		bool _active = false;
 
         /// Generic lock.
         ThreadMutex _lock;
+
+		/// Number of currently active actions within the hive. Guarded solely by _noActionsActiveCond's own mutex.
+		unsigned _activeActionCount = 0;
+
+		/// Condition signalled whenever the active action count drops to zero.
+		ThreadCondition _noActionsActiveCond;
 };
 
 #endif

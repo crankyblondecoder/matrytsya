@@ -39,7 +39,7 @@ class CapturingNode : public GraphNode, public PingActionTarget, public Serialis
 
         bool ping() override { return true; }
 
-        void send(SerialisableActionPayload& payload) override
+        bool send(SerialisableActionPayload& payload) override
         {
             // Retain the payload so it outlives the action's _apply() call.
             payload.incrRef();
@@ -47,6 +47,8 @@ class CapturingNode : public GraphNode, public PingActionTarget, public Serialis
             if(_capturedPayload) _capturedPayload -> decrRef();
 
             _capturedPayload = &payload;
+
+			return true;
         }
 
         PingActionTarget* getPingActionTarget() override { return this; }
