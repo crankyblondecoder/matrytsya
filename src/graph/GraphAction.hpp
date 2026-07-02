@@ -1,6 +1,8 @@
 #ifndef GRAPH_ACTION_H
 #define GRAPH_ACTION_H
 
+#include <atomic>
+
 #include "../util/RefCounted.hpp"
 #include "../thread/ThreadCondition.hpp"
 #include "GraphHiveHandle.hpp"
@@ -25,10 +27,10 @@ class GraphAction : public RefCounted
 		GraphAction(GraphNodeHandle& initNode, unsigned energy);
 
 		/**
-		 * Get flag that determines if this action is invoked on a node i.e. The node is processed.
-		 * @returns Bit field flag from action flag register.
+		 * Get the flags that determine if this action is invoked on a node i.e. The node is processed.
+		 * @returns Bit field of flags from action flag register or'ed together.
 		 */
-        virtual unsigned long getFlag() = 0;
+        virtual unsigned long getFlags() final;
 
 		/**
 		 * Start traversal of graph.
@@ -63,6 +65,11 @@ class GraphAction : public RefCounted
 
 		// This is a requirement of being ref counted.
 		virtual ~GraphAction();
+
+		/**
+		 * Add flag that determines if this action is invoked on a node i.e. The node is processed.
+		 */
+		void _addFlag(unsigned long flag);
 
 		/**
 		 * Action is complete, will no longer traverse edges, and will soon be deleted.
@@ -114,6 +121,9 @@ class GraphAction : public RefCounted
 
 		/// Whether this action is currently registered as active with the bound hive.
 		bool _hiveActionRegistered = false;
+
+		/// Flags that determine if this action is invoked on a node.
+		std::atomic<unsigned long> _flags{0};
 
 		/**
 		 * Action is complete.

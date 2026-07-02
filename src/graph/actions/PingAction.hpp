@@ -17,8 +17,6 @@ class PingAction : public SerialisableAction
 
 		PingAction(GraphNodeHandle& initNode);
 
-		unsigned long getFlag() override;
-
 		/**
 		 * Get the current ping count from the action.
 		 */

@@ -21,6 +21,7 @@ GraphHive::GraphHive(unsigned numThreads)
 		if(!isActive)
 		{
 			_threadPool -> shutdown();
+			delete _threadPool;
 			_threadPool = 0;
 
 			std::string msg = "Critical error: thread pool did not become active.";
@@ -35,6 +36,7 @@ GraphHive::GraphHive(unsigned numThreads)
 		if(_threadPool)
 		{
 			_threadPool -> shutdown();
+			delete _threadPool;
 			_threadPool = 0;
 		}
 
@@ -72,9 +74,37 @@ unsigned GraphHive::actionActive(GraphAction* action)
 		}
 	}
 
-	_noActionsActiveCond.lockMutex();
-	_activeActionCount++;
-	_noActionsActiveCond.unlockMutex();
+	// Update current action active count and signal anything waiting on it to change.
+
+	_activeActionCountCond.lockMutex();
+
+	if(_activeActionCount > -1)
+	{
+		_activeActionCount++;
+
+		if(!_initialActionActive)
+		{
+			_initialActionActive = true;
+
+			// Wake up anything waiting on this condition for the initial action to become active.
+			_activeActionCountCond.broadcast();
+		}
+	}
+
+	_activeActionCountCond.unlockMutex();
+
+	// Update accumulated active action count and signal anything waiting on it to change.
+
+	_activeActionCountAccumCond.lockMutex();
+
+	if(_activeActionCountAccum > -1)
+	{
+		_activeActionCountAccum++;
+
+		_activeActionCountAccumCond.broadcast();
+	}
+
+	_activeActionCountAccumCond.unlockMutex();
 
 	return retHandle;
 }
@@ -94,13 +124,16 @@ void GraphHive::actionInactive(unsigned handle)
 
 	if(removed)
 	{
-		_noActionsActiveCond.lockMutex();
+		_activeActionCountCond.lockMutex();
 
-		_activeActionCount--;
+		if(_activeActionCount > -1)
+		{
+			_activeActionCount--;
 
-		if(_activeActionCount == 0) _noActionsActiveCond.broadcast();
+			if(_activeActionCount == 0) _activeActionCountCond.broadcast();
+		}
 
-		_noActionsActiveCond.unlockMutex();
+		_activeActionCountCond.unlockMutex();
 	}
 }
 
@@ -111,7 +144,7 @@ void GraphHive::waitOnNoActionsActive(unsigned timeOut)
 	{
 		try
 		{
-			_noActionsActiveCond.lockMutex();
+			_activeActionCountCond.lockMutex();
 		}
 		catch(ThreadException& ex)
 		{
@@ -119,7 +152,8 @@ void GraphHive::waitOnNoActionsActive(unsigned timeOut)
 			return;
 		}
 
-		if(_activeActionCount != 0)
+		// Must take into account shutdown indicator value.
+		if(_activeActionCount > 0)
 		{
 			try
 			{
@@ -129,23 +163,119 @@ void GraphHive::waitOnNoActionsActive(unsigned timeOut)
 					unsigned effTimeout = timeOut / loopLimit;
 					if(effTimeout < 1) effTimeout = 1;
 
-					while(_activeActionCount != 0 && loopLimit--) _noActionsActiveCond.waitTimeout(effTimeout);
+					while(_activeActionCount > 0 && loopLimit--) _activeActionCountCond.waitTimeout(effTimeout);
 				}
 				else
 				{
-					while(_activeActionCount != 0) _noActionsActiveCond.wait();
+					while(_activeActionCount > 0) _activeActionCountCond.wait();
 				}
 			}
 			catch(ThreadException& ex)
 			{
-				_noActionsActiveCond.unlockMutex();
+				_activeActionCountCond.unlockMutex();
 				decrRef();
 				return;
 			}
 		}
 
 		// Thread is no longer waiting.
-		_noActionsActiveCond.unlockMutex();
+		_activeActionCountCond.unlockMutex();
+
+		decrRef();
+	}
+}
+
+void GraphHive::waitOnInitialActionActive(unsigned timeOut)
+{
+	// This is required so that this can't be deleted before the condition can be completed.
+	if(incrRef())
+	{
+		try
+		{
+			_activeActionCountCond.lockMutex();
+		}
+		catch(ThreadException& ex)
+		{
+			decrRef();
+			return;
+		}
+
+		if(!_initialActionActive && _activeActionCount > -1)
+		{
+			try
+			{
+				if(timeOut > 0)
+				{
+					unsigned loopLimit = 5;
+					unsigned effTimeout = timeOut / loopLimit;
+					if(effTimeout < 1) effTimeout = 1;
+
+					while(!_initialActionActive && _activeActionCount > -1 && loopLimit--) _activeActionCountCond.waitTimeout(effTimeout);
+				}
+				else
+				{
+					while(!_initialActionActive && _activeActionCount > -1) _activeActionCountCond.wait();
+				}
+			}
+			catch(ThreadException& ex)
+			{
+				_activeActionCountCond.unlockMutex();
+				decrRef();
+				return;
+			}
+		}
+
+		// Thread is no longer waiting.
+		_activeActionCountCond.unlockMutex();
+
+		decrRef();
+	}
+}
+
+void GraphHive::waitOnActionActiveCountAccum(int count, unsigned timeOut)
+{
+	// This is required so that this can't be deleted before the condition can be completed.
+	if(incrRef())
+	{
+		try
+		{
+			_activeActionCountAccumCond.lockMutex();
+		}
+		catch(ThreadException& ex)
+		{
+			decrRef();
+			return;
+		}
+
+		if(_activeActionCountAccum > -1 && _activeActionCountAccum < count)
+		{
+			try
+			{
+				if(timeOut > 0)
+				{
+					unsigned loopLimit = 5;
+					unsigned effTimeout = timeOut / loopLimit;
+					if(effTimeout < 1) effTimeout = 1;
+
+					while(_activeActionCountAccum > -1 && _activeActionCountAccum < count && loopLimit--)
+						_activeActionCountAccumCond.waitTimeout(effTimeout);
+				}
+				else
+				{
+					while(_activeActionCountAccum > -1 && _activeActionCountAccum < count)
+						_activeActionCountAccumCond.wait();
+				}
+			}
+			catch(ThreadException& ex)
+			{
+				_activeActionCountAccumCond.unlockMutex();
+				decrRef();
+				return;
+			}
+		}
+
+		// Thread is no longer waiting.
+		_activeActionCountAccumCond.unlockMutex();
 
 		decrRef();
 	}
@@ -164,6 +294,8 @@ void GraphHive::teleportAction(SerialisableActionPayload& actionPayload, GraphNo
 
 		curCollection = _collection;
 	}
+
+	// TODO ... There is a potential null pointer situation here if the hive is shutdown at this point.
 
 	curCollection -> teleportAction(actionPayload, nodeLocation);
 }
@@ -186,6 +318,9 @@ bool GraphHive::executeWorkUnit(ThreadPoolWorkUnit* workUnit)
 			return false;
 		}
 
+		// TODO ... This shouldn't be called in a SYNC block but for the moment can be assumed to not cause re-entry
+		// on this thread.
+
 		return _threadPool -> executeWorkUnit(workUnit);
 	}
 }
@@ -200,12 +335,41 @@ void GraphHive::shutdown()
 		_active = false;
 	}
 
-	for(GraphNode* node : _nodes)
+	// Required so that active count wait can terminate.
+	try
 	{
+		_activeActionCountCond.lockMutex();
+		_activeActionCount = -1;
+		_activeActionCountCond.broadcast();
+		_activeActionCountCond.unlockMutex();
+	}
+	catch(ThreadException& ex)
+	{
+		// Just continue on with trying to shutdown.
+	}
+
+	try
+	{
+		_activeActionCountAccumCond.lockMutex();
+		_activeActionCountAccum = -1;
+		_activeActionCountAccumCond.broadcast();
+		_activeActionCountAccumCond.unlockMutex();
+	}
+	catch(ThreadException& ex)
+	{
+		// Just continue on with trying to shutdown.
+	}
+
+	for(unsigned index = 0; index < _nodes.size(); index++)
+	{
+		GraphNode* node = _nodes[index];
+
 		if(node)
 		{
 			node -> decouple();
 			node -> decrRef();
+
+			_nodes[index] = 0;
 		}
 	}
 
@@ -220,9 +384,13 @@ void GraphHive::shutdown()
 	decrRef();
 }
 
-int GraphHive::addNode(GraphNode* node)
+void GraphHive::addNode(GraphNode* node)
 {
-	int retIndex = -1;
+	// Increment the ref to the node so that shutdown can't delete it pre-maturely.
+	if(!node -> incrRef()) return;
+
+	int addedIndex = -1;
+	bool removeInitRef = false;
 
 	{ SYNC(_lock)
 
@@ -233,45 +401,81 @@ int GraphHive::addNode(GraphNode* node)
 				if(!_nodes[index])
 				{
 					_nodes[index] = node;
-					retIndex = index;
+					addedIndex = index;
 					break;
 				}
 			}
 
-			if(retIndex == -1)
+			if(addedIndex == -1)
 			{
 				// No spare slot available.
 				_nodes.push_back(node);
 
-				retIndex = _nodes.size() - 1;
+				addedIndex = _nodes.size() - 1;
 			}
+		}
+		else
+		{
+			removeInitRef = true;
 		}
 	}
 
-	if(retIndex != -1) node -> setHive(GraphHiveHandle(this));
+	// Note: It is possible for shutdown to be invoked here on another thread.
 
-	return retIndex;
+	if(addedIndex != -1)
+	{
+		// Rely on the node rejecting being added to the hive if it has been decoupled. This is possibly a bit brittle.
+		bool accepted = node -> setHive(GraphHiveHandle(this));
+
+		if(!accepted)
+		{
+			// If not already, remove from nodes vector and remove initial ref.
+
+			{ SYNC(_lock)
+
+				if(_active)
+				{
+					_nodes[addedIndex] = 0;
+					removeInitRef = true;
+				}
+			}
+
+			addedIndex = -1;
+		}
+	}
+
+	if(removeInitRef) node -> decrRef();
+
+	// Remove the ref added at the beginning of this function.
+	node -> decrRef();
 }
 
-void GraphHive::removeNode(unsigned nodeIndex)
+void GraphHive::removeNode(GraphNodeHandle nodeHandle)
 {
-	GraphNode* nodeToDecouple = 0;
+	if(!nodeHandle.isValid()) return;
+
+	GraphNode* nodeToFind = nodeHandle.getNode();
+	bool decouple = false;
 
 	{ SYNC(_lock)
 
 		if(!_active) return;
 
-		if(nodeIndex < _nodes.size() && _nodes[nodeIndex])
+		for(unsigned index = 0; index < _nodes.size(); index++)
 		{
-			nodeToDecouple = _nodes[nodeIndex];
-			_nodes[nodeIndex] = 0;
+			if(_nodes[index] == nodeToFind)
+			{
+				decouple = true;
+				_nodes[index] = 0;
+				break;
+			}
 		}
 	}
 
-	if(nodeToDecouple)
+	if(decouple)
 	{
-		nodeToDecouple -> decouple();
-		nodeToDecouple -> decrRef();
+		nodeToFind -> decouple();
+		nodeToFind -> decrRef();
 	}
 }
 
@@ -299,8 +503,10 @@ GraphNodeHandle GraphHive::getNode(std::string nodeName)
 
 void GraphHive::enumerateThreadPool(unsigned numTabs)
 {
+	// Note: this function is assumed to be called as a diagnostic and so the SYNC rules can be relaxed.
+
 	{ SYNC(_lock)
 
-		if(_threadPool) _threadPool -> enumerateState(numTabs);
+		if(_active && _threadPool) _threadPool -> enumerateState(numTabs);
 	}
 }

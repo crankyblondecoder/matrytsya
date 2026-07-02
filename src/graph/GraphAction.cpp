@@ -22,6 +22,16 @@ GraphAction::GraphAction(GraphNodeHandle& initNode, unsigned energy) : _boundNod
 	}
 }
 
+unsigned long GraphAction::getFlags()
+{
+	return _flags;
+}
+
+void GraphAction::_addFlag(unsigned long flag)
+{
+	_flags |= flag;
+}
+
 void GraphAction::waitOnComplete(unsigned timeOut)
 {
 	// This is required so that this can't be deleted before the condition can be completed.

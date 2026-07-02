@@ -14,11 +14,7 @@ PingAction::~PingAction()
 PingAction::PingAction(GraphNodeHandle& initNode)
 	: SerialisableAction(initNode, 32)
 {
-}
-
-unsigned long PingAction::getFlag()
-{
-	return PING_GRAPH_ACTION;
+	_addFlag(PING_GRAPH_ACTION);
 }
 
 void PingAction::_apply(GraphNode* target)

@@ -16,8 +16,6 @@ class SerialisableAction : public GraphAction
 
  		SerialisableAction(GraphNodeHandle& initNode, unsigned energy);
 
-		unsigned long getFlag() override;
-
 		/**
 		 * Type of serialisable action.
 		 * This is required to be able to re-create the action after teleportation.

@@ -18,7 +18,7 @@ void GraphActionTargetable::_addActionFlag(unsigned long actionFlag)
 
 bool GraphActionTargetable::canActionTarget(GraphAction* graphAction)
 {
-	return graphAction -> getFlag() & _actionFlags;
+	return graphAction -> getFlags() & _actionFlags;
 }
 
 bool GraphActionTargetable::hasActionTarget(unsigned long actionFlag)

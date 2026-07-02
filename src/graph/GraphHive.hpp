@@ -38,15 +38,14 @@ class GraphHive : public RefCounted, public GraphNamed
 
 		/**
 		 * Add a graph node to this hive.
-		 * @note Expects to manage the initial reference count of this node.
-		 * @returns Nodes hive index. -1 for couldn't add node.
+		 * @note Expects to manage the initial reference count of this node regardless of whether it could be added.
 		 */
-		 int addNode(GraphNode* node);
+		 void addNode(GraphNode* node);
 
 		 /**
 		  * Remove node from hive.
 		  */
-		 void removeNode(unsigned nodeIndex);
+		 void removeNode(GraphNodeHandle nodeHandle);
 
 		 /**
 		  * Find a node in this hive by name.
@@ -101,6 +100,21 @@ class GraphHive : public RefCounted, public GraphNamed
 		 */
 		void waitOnNoActionsActive(unsigned timeOut);
 
+		/**
+		 * Wait on the initial (first) action becoming active within this hive.
+		 * This will only wait on the very first action becoming active in this hive.
+		 * @note This is intended to only be used for unit testing purposes.
+		 * @param timeOut Maximum period in ms to wait on condition to be signalled. Use 0 for no timeout.
+		 */
+		void waitOnInitialActionActive(unsigned timeOut);
+
+		/**
+		 * Wait on the accumulated active action count going greater of equal to a particular value.
+		 * @param count Value that count accumulator must be greater or equal to.
+		 * @param timeOut Maximum period in ms to wait on condition to be signalled. Use 0 for no timeout.
+		 */
+		void waitOnActionActiveCountAccum(int count, unsigned timeOut);
+
 	protected:
 
 		// Required by ref counting.
@@ -126,11 +140,26 @@ class GraphHive : public RefCounted, public GraphNamed
         /// Generic lock.
         ThreadMutex _lock;
 
-		/// Number of currently active actions within the hive. Guarded solely by _noActionsActiveCond's own mutex.
-		unsigned _activeActionCount = 0;
+		/**
+		 * Number of currently active actions within the hive.
+		 * A value of -1 indicates shutdown is in progress.
+		 */
+		int _activeActionCount = 0;
 
-		/// Condition signalled whenever the active action count drops to zero.
-		ThreadCondition _noActionsActiveCond;
+		/**
+		 * The accumulated number of actions that have become active.
+		 * A value of -1 indicates shutdown is in progress;
+		 */
+		int _activeActionCountAccum = 0;
+
+		/// This flag indiciates that an initial action became active. This will only ever flip to true once.
+		bool _initialActionActive = false;
+
+		/// Condition that guards the current active action count.
+		ThreadCondition _activeActionCountCond;
+
+		/// Condition that guards the active action count accumulator.
+		ThreadCondition _activeActionCountAccumCond;
 };
 
 #endif
