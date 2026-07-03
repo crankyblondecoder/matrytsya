@@ -1,0 +1,37 @@
+srcFiles = $(notdir $(wildcard ../../src/lua/*.c))
+
+objFiles = $(srcFiles:.c=.o)
+
+# Lua is vendored C sources, so it is built with a C compiler and its own
+# flags rather than the project's C++ toolchain settings. LUA_USE_POSIX
+# enables POSIX facilities without LUA_USE_DLOPEN, so loadlib.c falls back to
+# its "dynamic libraries not enabled" stub and no -ldl is required, meaning
+# dynamic loading of C modules via require/package.loadlib is not supported.
+
+CC = gcc
+CFLAGS = -Wall -O2 -DLUA_USE_POSIX
+
+# Tell make to search other paths. Separate multiple with ":"
+VPATH = ../../src/lua
+
+lua.a : $(objFiles)
+	@ echo
+	@ echo "*** Building - Lua Module ***"
+	@ echo
+	ar rcs lua.a $(objFiles)
+
+# Empty recipes for c files so they don't cause make to look for implicit rules to build them when they are prerequisites.
+$(srcFiles) : ;
+
+%.dep : %.c
+	@ mkdir -p $$(dirname $@)
+	$(CC) -MM $< > $@
+	$(CC) -MM -MT $@ $< > $@Make
+    # Build the depMake include file.
+	@ echo -e "\t\$$(CC) -MM $$< > \$$@" >> $@Make
+	@ echo -e "\t\$$(CC) -MM -MT \$$@ $$< > \$$@Make" >> $@Make
+
+ifneq ($(MAKECMDGOALS),clean)
+    include $(objFiles:.o=.dep)
+    -include $(objFiles:.o=.depMake)
+endif

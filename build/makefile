@@ -2,7 +2,7 @@
 
 # Each module has a subdirectory where the module name and the directory name are the same.
 # The order is important because it sets the final linking order and if that is incorrect it causes undefined reference errors.
-modules = graph thread log
+modules = graph thread log lua
 
 # The name of the static library (.a file) should be modulename.a
 export module_libs = $(foreach module, $(modules), $(module).a)
@@ -47,6 +47,13 @@ release : subDirs
 	@ echo "*** Building - Release Executable ***"
 	@ echo
 	$(cname) $(cflags_release) -o $(execName) ../src/$(execName).cpp $(foreach module_lib, $(module_libs), release/$(module_lib))
+
+.PHONY : lua
+lua : subDirs
+	@ echo
+	@ echo "*** Building - Lua ***"
+	@ echo
+	cd debug;$(MAKE) --makefile=../makefile_lua cflags="$(cflags_debug)"
 
 .PHONY : dep
 dep : subDirs
