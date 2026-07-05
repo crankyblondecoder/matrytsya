@@ -102,6 +102,23 @@
     "output": "GraphHive.o"
   },
   {
+    "file": "../../src/graph/GraphHiveCollection.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphHiveCollection.o",
+      "../../src/graph/GraphHiveCollection.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphHiveCollection.o"
+  },
+  {
     "file": "../../src/graph/GraphHiveHandle.cpp",
     "arguments": [
       "/usr/bin/g++",
@@ -170,6 +187,40 @@
     "output": "GraphNode.o"
   },
   {
+    "file": "../../src/graph/GraphNodeLocation.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphNodeLocation.o",
+      "../../src/graph/GraphNodeLocation.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphNodeLocation.o"
+  },
+  {
+    "file": "../../src/graph/actions/ActionFactory.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "actions/ActionFactory.o",
+      "../../src/graph/actions/ActionFactory.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "actions/ActionFactory.o"
+  },
+  {
     "file": "../../src/graph/actions/PingAction.cpp",
     "arguments": [
       "/usr/bin/g++",
@@ -185,6 +236,23 @@
     ],
     "directory": "/data/devel/matrytsya/build/debug",
     "output": "actions/PingAction.o"
+  },
+  {
+    "file": "../../src/graph/actions/ScriptAction.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "actions/ScriptAction.o",
+      "../../src/graph/actions/ScriptAction.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "actions/ScriptAction.o"
   },
   {
     "file": "../../src/graph/actions/SerialisableAction.cpp",
@@ -221,7 +289,7 @@
     "output": "actions/SerialisableActionPayload.o"
   },
   {
-    "file": "../../src/graph/nodes/TestNode.cpp",
+    "file": "../../src/graph/nodes/PingNode.cpp",
     "arguments": [
       "/usr/bin/g++",
       "-Wall",
@@ -231,11 +299,45 @@
       "-pthread",
       "-c",
       "-o",
-      "nodes/TestNode.o",
-      "../../src/graph/nodes/TestNode.cpp"
+      "nodes/PingNode.o",
+      "../../src/graph/nodes/PingNode.cpp"
     ],
     "directory": "/data/devel/matrytsya/build/debug",
-    "output": "nodes/TestNode.o"
+    "output": "nodes/PingNode.o"
+  },
+  {
+    "file": "../../src/graph/nodes/ScriptNode.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "nodes/ScriptNode.o",
+      "../../src/graph/nodes/ScriptNode.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "nodes/ScriptNode.o"
+  },
+  {
+    "file": "../../src/graph/nodes/TeleportNode.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "nodes/TeleportNode.o",
+      "../../src/graph/nodes/TeleportNode.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "nodes/TeleportNode.o"
   },
   {
     "file": "../../src/thread/ThreadBase.cpp",
@@ -406,6 +508,486 @@
     ],
     "directory": "/data/devel/matrytsya/build/debug",
     "output": "log.o"
+  },
+  {
+    "file": "../../src/lua/lapi.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "lapi.o",
+      "../../src/lua/lapi.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "lapi.o"
+  },
+  {
+    "file": "../../src/lua/lauxlib.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "lauxlib.o",
+      "../../src/lua/lauxlib.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "lauxlib.o"
+  },
+  {
+    "file": "../../src/lua/lbaselib.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "lbaselib.o",
+      "../../src/lua/lbaselib.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "lbaselib.o"
+  },
+  {
+    "file": "../../src/lua/lcode.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "lcode.o",
+      "../../src/lua/lcode.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "lcode.o"
+  },
+  {
+    "file": "../../src/lua/lcorolib.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "lcorolib.o",
+      "../../src/lua/lcorolib.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "lcorolib.o"
+  },
+  {
+    "file": "../../src/lua/lctype.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "lctype.o",
+      "../../src/lua/lctype.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "lctype.o"
+  },
+  {
+    "file": "../../src/lua/ldblib.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "ldblib.o",
+      "../../src/lua/ldblib.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "ldblib.o"
+  },
+  {
+    "file": "../../src/lua/ldebug.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "ldebug.o",
+      "../../src/lua/ldebug.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "ldebug.o"
+  },
+  {
+    "file": "../../src/lua/ldo.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "ldo.o",
+      "../../src/lua/ldo.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "ldo.o"
+  },
+  {
+    "file": "../../src/lua/ldump.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "ldump.o",
+      "../../src/lua/ldump.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "ldump.o"
+  },
+  {
+    "file": "../../src/lua/lfunc.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "lfunc.o",
+      "../../src/lua/lfunc.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "lfunc.o"
+  },
+  {
+    "file": "../../src/lua/lgc.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "lgc.o",
+      "../../src/lua/lgc.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "lgc.o"
+  },
+  {
+    "file": "../../src/lua/linit.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "linit.o",
+      "../../src/lua/linit.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "linit.o"
+  },
+  {
+    "file": "../../src/lua/liolib.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "liolib.o",
+      "../../src/lua/liolib.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "liolib.o"
+  },
+  {
+    "file": "../../src/lua/llex.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "llex.o",
+      "../../src/lua/llex.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "llex.o"
+  },
+  {
+    "file": "../../src/lua/lmathlib.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "lmathlib.o",
+      "../../src/lua/lmathlib.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "lmathlib.o"
+  },
+  {
+    "file": "../../src/lua/lmem.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "lmem.o",
+      "../../src/lua/lmem.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "lmem.o"
+  },
+  {
+    "file": "../../src/lua/loadlib.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "loadlib.o",
+      "../../src/lua/loadlib.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "loadlib.o"
+  },
+  {
+    "file": "../../src/lua/lobject.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "lobject.o",
+      "../../src/lua/lobject.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "lobject.o"
+  },
+  {
+    "file": "../../src/lua/lopcodes.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "lopcodes.o",
+      "../../src/lua/lopcodes.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "lopcodes.o"
+  },
+  {
+    "file": "../../src/lua/loslib.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "loslib.o",
+      "../../src/lua/loslib.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "loslib.o"
+  },
+  {
+    "file": "../../src/lua/lparser.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "lparser.o",
+      "../../src/lua/lparser.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "lparser.o"
+  },
+  {
+    "file": "../../src/lua/lstate.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "lstate.o",
+      "../../src/lua/lstate.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "lstate.o"
+  },
+  {
+    "file": "../../src/lua/lstring.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "lstring.o",
+      "../../src/lua/lstring.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "lstring.o"
+  },
+  {
+    "file": "../../src/lua/lstrlib.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "lstrlib.o",
+      "../../src/lua/lstrlib.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "lstrlib.o"
+  },
+  {
+    "file": "../../src/lua/ltable.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "ltable.o",
+      "../../src/lua/ltable.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "ltable.o"
+  },
+  {
+    "file": "../../src/lua/ltablib.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "ltablib.o",
+      "../../src/lua/ltablib.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "ltablib.o"
+  },
+  {
+    "file": "../../src/lua/ltm.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "ltm.o",
+      "../../src/lua/ltm.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "ltm.o"
+  },
+  {
+    "file": "../../src/lua/lundump.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "lundump.o",
+      "../../src/lua/lundump.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "lundump.o"
+  },
+  {
+    "file": "../../src/lua/lutf8lib.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "lutf8lib.o",
+      "../../src/lua/lutf8lib.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "lutf8lib.o"
+  },
+  {
+    "file": "../../src/lua/lvm.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "lvm.o",
+      "../../src/lua/lvm.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "lvm.o"
+  },
+  {
+    "file": "../../src/lua/lzio.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O2",
+      "-DLUA_USE_POSIX",
+      "-c",
+      "-o",
+      "lzio.o",
+      "../../src/lua/lzio.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "lzio.o"
   },
   {
     "file": "../src/matrytsya.cpp",

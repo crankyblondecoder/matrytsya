@@ -48,7 +48,9 @@ class GraphException : public Exception
 			/// A serialisable action type was not recognised by the factory.
 			UNKNOWN_ACTION_TYPE,
 			/// The attempted teleportation of an action failed.
-			ACTION_TELEPORT_FAILED
+			ACTION_TELEPORT_FAILED,
+			/// Could not allocate a new isolated Lua state for a script node.
+			SCRIPT_STATE_BAD_ALLOC
         };
 
         virtual ~GraphException(){}

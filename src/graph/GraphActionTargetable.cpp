@@ -36,3 +36,8 @@ SerialisableActionTarget* GraphActionTargetable::getSerialisableActionTarget()
 	return 0;
 }
 
+ScriptActionTarget* GraphActionTargetable::getScriptActionTarget()
+{
+	return 0;
+}
+
