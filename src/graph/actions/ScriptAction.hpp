@@ -68,6 +68,44 @@ class ScriptAction : public GraphAction
 		 */
 		void _shareGlobal(const char* name, const char* value);
 
+		/**
+		 * Read a boolean, preferring the value most recently set by a visited node's script and falling
+		 * back to a value published with _shareGlobal() if no node's script set that name.
+		 * @param name Global name to look up.
+		 * @param value Set to the global's value if found.
+		 * @returns Whether a boolean by that name was found.
+		 */
+		bool _getGlobal(const char* name, bool& value);
+
+		/**
+		 * Read an integer, preferring the value most recently set by a visited node's script and falling
+		 * back to a value published with _shareGlobal() if no node's script set that name.
+		 * @param name Global name to look up.
+		 * @param value Set to the global's value if found.
+		 * @returns Whether an integer by that name was found.
+		 */
+		bool _getGlobal(const char* name, int& value);
+
+		/**
+		 * Read a floating point number, preferring the value most recently set by a visited node's script
+		 * and falling back to a value published with _shareGlobal() if no node's script set that name.
+		 * @param name Global name to look up.
+		 * @param value Set to the global's value if found.
+		 * @returns Whether a number by that name was found.
+		 */
+		bool _getGlobal(const char* name, double& value);
+
+		/**
+		 * Read a string, preferring the value most recently set by a visited node's script and falling
+		 * back to a value published with _shareGlobal() if no node's script set that name.
+		 * @param name Global name to look up.
+		 * @param value Set to the global's value if found.
+		 * @note The returned pointer is anchored by the table it was read from and remains valid until
+		 *       that table is replaced or the same name is overwritten within it.
+		 * @returns Whether a string by that name was found.
+		 */
+		bool _getGlobal(const char* name, const char*& value);
+
     private:
 
         // Do not allow copying.
@@ -82,11 +120,29 @@ class ScriptAction : public GraphAction
 		void __shareGlobal(const char* name);
 
 		/**
+		 * Push the named global's value onto _luaState, or nil if it was never set. Looks first in the
+		 * last visited node's isolated environment table, which falls through automatically (via its
+		 * metatable's __index) to the shared table if that node's script never set the name; if no node
+		 * has been visited yet, looks directly in the shared table. Shared implementation behind every
+		 * _getGlobal() overload, each of which checks the pushed value's type before popping it.
+		 * @param name Global name to look up.
+		 * @returns Whether the global was found (a non-nil value was pushed).
+		 */
+		bool __getGlobal(const char* name);
+
+		/**
 		 * Replace the state's current global table with a fresh one whose reads fall through, via a
 		 * metatable, to the shared table so library functions and anything published with _shareGlobal()
 		 * remain visible. Writes made by the node's script land only in the fresh table.
 		 */
 		void __installIsolatedEnv();
+
+		/**
+		 * Save a registry reference to the environment table currently installed as _luaState's globals,
+		 * replacing (and unref'ing) whatever _lastNodeEnvRef pointed to previously. Called once a node's
+		 * script has finished running so _getGlobal() can read back whatever it set.
+		 */
+		void __captureLastNodeEnv();
 
 		/**
 		 * Allocator given to _luaState. Draws memory from the C heap but refuses any request that would push
@@ -114,6 +170,14 @@ class ScriptAction : public GraphAction
 		 * assigned in the constructor before any node is visited.
 		 */
 		int _sharedEnvRef = 0;
+
+		/**
+		 * Registry reference to the isolated environment table of the last node visited by _apply(), or 0
+		 * if no node has been visited yet. _getGlobal() reads through this table first so it sees values
+		 * set directly by that node's script; the table's metatable falls through to the shared table if
+		 * the script never set the requested name.
+		 */
+		int _lastNodeEnvRef = 0;
 
 		/// Running total of bytes currently allocated by _luaState via __alloc.
 		size_t _memoryUsed = 0;

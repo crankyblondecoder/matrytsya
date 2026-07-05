@@ -58,6 +58,8 @@ void ScriptAction::_apply(GraphNode* target)
 		__installIsolatedEnv();
 
 		scriptTarget -> invoke(_luaState);
+
+		__captureLastNodeEnv();
 	}
 }
 
@@ -98,6 +100,70 @@ void ScriptAction::__shareGlobal(const char* name)
 	lua_pop(_luaState, 1); // [...]
 }
 
+bool ScriptAction::_getGlobal(const char* name, bool& value)
+{
+	if(!__getGlobal(name) || !lua_isboolean(_luaState, -1))
+	{
+		lua_pop(_luaState, 1);
+		return false;
+	}
+
+	value = lua_toboolean(_luaState, -1);
+	lua_pop(_luaState, 1);
+	return true;
+}
+
+bool ScriptAction::_getGlobal(const char* name, int& value)
+{
+	if(!__getGlobal(name) || !lua_isinteger(_luaState, -1))
+	{
+		lua_pop(_luaState, 1);
+		return false;
+	}
+
+	value = static_cast<int>(lua_tointeger(_luaState, -1));
+	lua_pop(_luaState, 1);
+	return true;
+}
+
+bool ScriptAction::_getGlobal(const char* name, double& value)
+{
+	if(!__getGlobal(name) || !lua_isnumber(_luaState, -1))
+	{
+		lua_pop(_luaState, 1);
+		return false;
+	}
+
+	value = lua_tonumber(_luaState, -1);
+	lua_pop(_luaState, 1);
+	return true;
+}
+
+bool ScriptAction::_getGlobal(const char* name, const char*& value)
+{
+	if(!__getGlobal(name) || !lua_isstring(_luaState, -1))
+	{
+		lua_pop(_luaState, 1);
+		return false;
+	}
+
+	value = lua_tostring(_luaState, -1);
+	lua_pop(_luaState, 1);
+	return true;
+}
+
+bool ScriptAction::__getGlobal(const char* name)
+{
+	// Reading via the last node's env (when one exists) falls through its metatable to the shared table
+	// automatically, so this also covers the _shareGlobal()-only fallback case.
+	int envRef = _lastNodeEnvRef ? _lastNodeEnvRef : _sharedEnvRef;
+
+	lua_rawgeti(_luaState, LUA_REGISTRYINDEX, envRef); // [env]
+	lua_getfield(_luaState, -1, name); // [env, value]
+	lua_remove(_luaState, -2); // [value]
+	return !lua_isnil(_luaState, -1);
+}
+
 void ScriptAction::__installIsolatedEnv()
 {
 	lua_newtable(_luaState); // env
@@ -108,6 +174,15 @@ void ScriptAction::__installIsolatedEnv()
 
 	// Reads not found in env fall through to the shared table; writes only ever land in env.
 	lua_rawseti(_luaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
+}
+
+void ScriptAction::__captureLastNodeEnv()
+{
+	lua_rawgeti(_luaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
+
+	if(_lastNodeEnvRef) luaL_unref(_luaState, LUA_REGISTRYINDEX, _lastNodeEnvRef);
+
+	_lastNodeEnvRef = luaL_ref(_luaState, LUA_REGISTRYINDEX); // [ ]
 }
 
 void* ScriptAction::__alloc(void* userData, void* ptr, size_t oldSize, size_t newSize)

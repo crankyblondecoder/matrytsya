@@ -10,6 +10,8 @@
 #include "../../../graph/GraphNode.hpp"
 #include "../../../graph/GraphNodeHandle.hpp"
 #include "../../../graph/graphActionFlagRegister.hpp"
+#include "../../../graph/nodes/PingNode.hpp"
+#include "../../../graph/nodes/ScriptNode.hpp"
 #include "../../../lua/lua.hpp"
 
 namespace
@@ -242,6 +244,48 @@ class SharingScriptAction : public ScriptAction
 		}
 };
 
+/**
+ * ScriptAction subclass that carries a running integer counter through a chain of plain ScriptNode
+ * instances. Per-node isolation means a node's own update to "counter" never reaches the next node (or this
+ * action) on its own, so this reads back whatever it last shared via _getGlobal(), advances it itself, and
+ * re-publishes it via _shareGlobal() before the next node runs.
+ */
+class AccumulatingScriptAction : public ScriptAction
+{
+	public:
+
+		/**
+		 * @param initNode Initial node this action is bound to.
+		 * @param startValue Value "counter" is seeded with before the first node in the chain is invoked.
+		 */
+		AccumulatingScriptAction(GraphNodeHandle& initNode, int startValue) : ScriptAction(initNode)
+		{
+			_shareGlobal("counter", startValue);
+		}
+
+		/**
+		 * Get the counter's current shared value.
+		 */
+		int getCounter()
+		{
+			int value = 0;
+			_getGlobal("counter", value);
+			return value;
+		}
+
+	protected:
+
+		void _apply(GraphNode* target) override
+		{
+			ScriptAction::_apply(target);
+
+			int value = 0;
+
+			// This makes the updated global from the last node application available to the next script node.
+			if(_getGlobal("counter", value)) _shareGlobal("counter", value);
+		}
+};
+
 TEST(ScriptActionTest, SandboxedStateRunsScriptWithNoOsAccess)
 {
 	GraphHive* hive = new GraphHive(2);
@@ -342,6 +386,55 @@ TEST(ScriptActionTest, ExplicitlySharedGlobalsAreVisibleToEveryNode)
 
 	EXPECT_FALSE(readerNode2 -> wasNil()) << "Explicitly shared global should be visible to every node.";
 	EXPECT_EQ(readerNode2 -> getValue(), 99);
+
+	action -> decrRef();
+
+	hive -> shutdown();
+}
+
+TEST(ScriptActionTest, ScriptNodesAccumulateCounter)
+{
+	// Non-cyclic graph of 5 nodes: a PingNode root (the action's initial node, never itself invoked) followed
+	// by a chain of 4 plain ScriptNode instances. Each one reads "counter" and adds an integer value to it, and the action
+	// re-shares the result between nodes via _shareGlobal()/_getGlobal(),
+
+	GraphHive* hive = new GraphHive(2);
+
+	GraphHiveHandle hiveHandle(hive);
+
+	// The nodes must _not_ be allocated on the stack because of auto-delete once de-referenced.
+	PingNode* rootNode = new PingNode();
+	ScriptNode* node1 = new ScriptNode("counter = counter + 3");
+	ScriptNode* node2 = new ScriptNode("counter = counter + 4");
+	ScriptNode* node3 = new ScriptNode("counter = counter + 5");
+	ScriptNode* node4 = new ScriptNode("counter = counter + 6");
+
+	hive -> addNode(rootNode);
+	hive -> addNode(node1);
+	hive -> addNode(node2);
+	hive -> addNode(node3);
+	hive -> addNode(node4);
+
+	GraphNodeHandle node1Handle(node1);
+	GraphNodeHandle node2Handle(node2);
+	GraphNodeHandle node3Handle(node3);
+	GraphNodeHandle node4Handle(node4);
+
+	rootNode -> createEdge(node1Handle);
+	node1 -> createEdge(node2Handle);
+	node2 -> createEdge(node3Handle);
+	node3 -> createEdge(node4Handle);
+
+	GraphNodeHandle rootHandle(rootNode);
+
+	AccumulatingScriptAction* action = new AccumulatingScriptAction(rootHandle, 1);
+
+	action -> incrRef();
+
+	action -> start();
+	action -> waitOnComplete(0);
+
+	EXPECT_EQ(action -> getCounter(), 1 + 3 + 4 + 5 + 6) << "Final accumulated counter did not match expected value.";
 
 	action -> decrRef();
 
