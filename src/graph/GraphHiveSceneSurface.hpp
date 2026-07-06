@@ -15,30 +15,51 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 
 		GraphHiveSceneSurface();
 
+		/**
+		 * Defines a chunk of geometry.
+		 */
 		struct Chunk
 		{
-			/// Transform that is applied to vertexes after being combined with the current world transform.
-			Transform transform;
-
-			/**
-			 * Whether this transform accumulates with the world transform, i.e. It is multiplied to it and affects
-			 * all subsequent vertexes.
-			 */
-			bool accumulateTransform;
-
 			/// The vertexes of the chunk. These _must_ be in multiples of three, i.e. three vertexes per triangle.
 			std::vector<Vertex> vertexes;
+
+			/// The index of the model transform to use for this chunk.
+			unsigned modelTransformIndex;
+		};
+
+		struct ModelTransform
+		{
+			/// A numerical id that can be used to refer to this model transform.
+			unsigned id;
+
+			/// Actual model transform.
+			Transform transform;
 		};
 
 		/**
-		 * Add vertexes to this scene surface.
+		 * Add vertexes to this scene surface to create a new chunk.
 		 * Think of this as adding vertexes to a stream.
+		 * @note The model transform that is ultimately applied to this chunk is the current model transform.
 		 * @param vertexes Vertexes to add.
-		 * @param transform Transform to apply to vertexes.
-		 * @param transformAccumulates Whether the transform accumulates, i.e. Is multiplied to the current
-		 *        (accumulative) world transform.
 		 */
-		void addVertexes(const std::vector<Vertex>& vertexes, Transform transform, bool transformAccumulates);
+		void addVertexes(const std::vector<Vertex>& vertexes);
+
+		/**
+		 * Add a local transform to the scene.
+		 * This is pre-multiplied to the last stored model transform to make the new model transform which is added
+		 * to the end of the model transform list.
+		 * @param transform The local transform to add.
+		 * @param id Identifying value stored against the new model transform. This is not required to be unique.
+		 */
+		void addLocalTransform(const Transform& transform, unsigned id);
+
+		/**
+		 * Add a model transform to the end of the model transform list.
+		 * This is added as-is and doesn't involve any multiplication.
+		 * @param modelTransformId The id of the model transform to copy to the end of the model transform list.
+		 * @note The id of the copied model transform is preserved in the new entry.
+		 */
+		void addModelTransform(unsigned modelTransformId);
 
 	protected:
 
@@ -52,6 +73,9 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 
 		/// Chunks that describe the scene surface.
 		std::vector<Chunk> _chunks;
+
+		/// The model transforms that apply to chunks. The last transform in this list is the "current" one.
+		std::vector<ModelTransform> _modelTransforms;
 };
 
 #endif

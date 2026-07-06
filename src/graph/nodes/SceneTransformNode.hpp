@@ -1,31 +1,22 @@
-#ifndef SCENE_NODE_H
-#define SCENE_NODE_H
+#ifndef SCENE_TRANSFORM_NODE_H
+#define SCENE_TRANSFORM_NODE_H
 
-#include <string>
-#include <vector>
-
-#include "../graphSceneElements.hpp"
+#include "../GraphNode.hpp"
 #include "../actionTargets/SceneActionTarget.hpp"
-#include "ScriptNode.hpp"
+#include "../graphSceneElements.hpp"
+
+class GraphHiveSceneSurface;
 
 /**
- * Graph node that represents a scene.
+ * Graph node that represents a transform applied to scene geometry.
  */
-class SceneNode : public ScriptNode, public SceneActionTarget
+class SceneTransformNode : public GraphNode, public SceneActionTarget
 {
     public:
 
-        virtual ~SceneNode();
+        virtual ~SceneTransformNode();
 
-		/**
-		 * @param script Lua source code that this node runs when invoked.
-		 */
-        SceneNode(const std::string& script);
-
-		/**
-		 * Add vertexes to the list of vertexes for this scene.
-		 */
-		void addVertexes(std::vector<Vertex> vertexesToAdd);
+        SceneTransformNode();
 
 		/**
 		 * Set the transform applied to this
@@ -43,15 +34,8 @@ class SceneNode : public ScriptNode, public SceneActionTarget
     private:
 
         // Do not allow copying.
-        SceneNode(const SceneNode& copyFrom);
-        SceneNode& operator= (const SceneNode& copyFrom);
-
-		/**
-		 * The vertexes that make up the scene object this node defines.
-		 * Each triplet defines a triangle with standard counter-clockwise winding order for the front face.
-		 * @note There is no indexing at this stage.
-		 */
-		std::vector<Vertex> _vertexes;
+        SceneTransformNode(const SceneTransformNode& copyFrom);
+        SceneTransformNode& operator= (const SceneTransformNode& copyFrom);
 
 		/**
 		 * The local transform applied to the geometry.

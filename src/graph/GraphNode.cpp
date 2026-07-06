@@ -23,7 +23,7 @@ GraphNode::~GraphNode()
 	}
 }
 
-GraphNode::GraphNode() : _id{_nextId++}
+GraphNode::GraphNode() : _id { _nextId++ }
 {
 }
 
