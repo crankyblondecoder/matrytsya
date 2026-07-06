@@ -4,12 +4,14 @@
 #include <string>
 #include <vector>
 
+#include "../graphSceneElements.hpp"
+#include "../actionTargets/SceneActionTarget.hpp"
 #include "ScriptNode.hpp"
 
 /**
  * Graph node that represents a scene.
  */
-class SceneNode : public ScriptNode
+class SceneNode : public ScriptNode, public SceneActionTarget
 {
     public:
 
@@ -19,23 +21,6 @@ class SceneNode : public ScriptNode
 		 * @param script Lua source code that this node runs when invoked.
 		 */
         SceneNode(const std::string& script);
-
-		/**
-		 * Data structure that describes a single vertex.
-		 */
-		struct Vertex
-		{
-			/// Position: X, Y, Z
-			double posn[3];
-			/// Colour: R, G, B, A
-		    double colour[4];
-			/// Texture coordinates: U, V
-		    double texCoords[2];
-			/// Normal (must be normalised): X, Y, Z
-		    double normal[3];
-		};
-
-		using Transform = double[16];
 
 		/**
 		 * Add vertexes to the list of vertexes for this scene.
@@ -48,6 +33,10 @@ class SceneNode : public ScriptNode
 		 * @param isWorld Whether this transform affects the accumulative world transform.
 		 */
 		void setTransform(Transform transform, bool isWorld);
+
+		void populateSurface(GraphHiveSceneSurface& surface) override;
+
+		SceneActionTarget* getSceneActionTarget() override;
 
 	protected:
 
@@ -82,7 +71,7 @@ class SceneNode : public ScriptNode
 		 * If true this will affect all scene nodes that are processsed after this one as an action traverses the
 		 * graph.
 		 */
-		bool _transformIsWorld = false;
+		bool _transformAccumulates = false;
 };
 
 #endif

@@ -5,6 +5,8 @@
 
 /**
  * Represents a "surface" that a hive can interact with, either for display or input.
+ * It essentially provides a layer of abstraction for various display types but keeps the interface that an action
+ * has to use consistent.
  */
 class GraphHiveSurface : public GraphNamed
 {

@@ -41,3 +41,8 @@ ScriptActionTarget* GraphActionTargetable::getScriptActionTarget()
 	return 0;
 }
 
+SceneActionTarget* GraphActionTargetable::getSceneActionTarget()
+{
+	return 0;
+}
+

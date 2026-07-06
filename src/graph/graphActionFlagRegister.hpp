@@ -5,10 +5,12 @@
 // an action using logical AND.
 
 #define PING_GRAPH_ACTION 0x00000001
+/// Supports serialisation of an action, typically used for teleporting.
 #define SERIALISABLE_GRAPH_ACTION 0x00000002
+/// Supports invoking a script.
 #define SCRIPT_GRAPH_ACTION 0x00000004
-
-//#define _GRAPH_ACTION 0x00000008
+/// Supports building of a hive scene surface.
+#define SCENE_GRAPH_ACTION 0x00000008
 
 //#define _GRAPH_ACTION 0x00000010
 //#define _GRAPH_ACTION 0x00000020

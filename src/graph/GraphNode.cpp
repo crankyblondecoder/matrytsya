@@ -8,6 +8,8 @@
 #include "GraphHiveHandle.hpp"
 #include "GraphNodeHandle.hpp"
 
+std::atomic<unsigned> GraphNode::_nextId{0};
+
 GraphNode::~GraphNode()
 {
 	// Remove all edges.
@@ -21,8 +23,13 @@ GraphNode::~GraphNode()
 	}
 }
 
-GraphNode::GraphNode()
+GraphNode::GraphNode() : _id{_nextId++}
 {
+}
+
+unsigned GraphNode::getId()
+{
+	return _id;
 }
 
 GraphHiveHandle GraphNode::getHive()

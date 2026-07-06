@@ -2,6 +2,7 @@
 #define GRAPH_ACTION_TARGETABLE_H
 
 #include "actionTargets/PingActionTarget.hpp"
+#include "actionTargets/SceneActionTarget.hpp"
 #include "actionTargets/ScriptActionTarget.hpp"
 #include "actionTargets/SerialisableActionTarget.hpp"
 
@@ -37,6 +38,9 @@ class GraphActionTargetable
 
 		/// Get the target for the script action.
 		virtual ScriptActionTarget* getScriptActionTarget();
+
+		/// Get the target for the scene action.
+		virtual SceneActionTarget* getSceneActionTarget();
 
 	protected:
 

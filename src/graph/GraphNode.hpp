@@ -69,6 +69,11 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		GraphHiveHandle getHive();
 
 		/**
+		 * Get the unique id of this node.
+		 */
+		unsigned getId();
+
+		/**
 		 * Set the hive that this node belongs to.
 		 * @param hive Hive that this node is part of.
 		 * @returns True if this node accepts being part of the hive. False otherwise.
@@ -93,6 +98,12 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		void _setEnergyCost(unsigned cost);
 
 	private:
+
+		/// Counter used to derive each node's unique id.
+		static std::atomic<unsigned> _nextId;
+
+		/// Unique id of this node.
+		unsigned _id;
 
 		/** The hive this node belongs to. */
 		GraphHiveHandle _hive{nullptr};
