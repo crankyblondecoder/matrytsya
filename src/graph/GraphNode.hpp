@@ -3,9 +3,11 @@
 
 #include <atomic>
 
+class GraphAction;
 class GraphEdge;
 class GraphHive;
 class GraphNodeHandle;
+class GraphEdgeHandle;
 
 #include "../util/RefCounted.hpp"
 #include "GraphActionTargetable.hpp"
@@ -47,9 +49,12 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 
 		/**
 		 * Find the next node to traverse to.
-		 * @returns Handle to next node to traverse to.
+		 * @note This defines default traversal behaviour which is to traverse the next edge that the action has not
+		 *       already traversed.
+		 * @param action Action that is requesting to traverse.
+		 * @returns Handle to next edge to traverse.
 		 */
-		GraphNodeHandle traverse();
+		virtual GraphEdgeHandle traverse(GraphAction& action);
 
 		/**
 		 * Get the energy cost of an action being applied to this node.

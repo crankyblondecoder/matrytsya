@@ -1,6 +1,8 @@
 #ifndef GRAPH_EDGE_H
 #define GRAPH_EDGE_H
 
+#include <atomic>
+
 #include "../util/RefCounted.hpp"
 
 class GraphNodeHandle;
@@ -31,12 +33,23 @@ class GraphEdge : public RefCounted
 		 */
 		GraphNodeHandle traverse();
 
+		/**
+		 * Get the unique id of this edge.
+		 */
+		unsigned getId();
+
 	protected:
 
 		// This is a requirement of being ref counted.
 		~GraphEdge();
 
     private:
+
+		/// Counter used to derive each edge's unique id.
+		static std::atomic<unsigned> _nextId;
+
+		/// Unique id of this edge.
+		unsigned _id;
 
 		/** Node this edge points to. */
         GraphNodeHandle* _toNode;

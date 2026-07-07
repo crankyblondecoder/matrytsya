@@ -136,6 +136,40 @@
     "output": "GraphHiveHandle.o"
   },
   {
+    "file": "../../src/graph/GraphHiveSceneSurface.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphHiveSceneSurface.o",
+      "../../src/graph/GraphHiveSceneSurface.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphHiveSceneSurface.o"
+  },
+  {
+    "file": "../../src/graph/GraphHiveSurface.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphHiveSurface.o",
+      "../../src/graph/GraphHiveSurface.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphHiveSurface.o"
+  },
+  {
     "file": "../../src/graph/GraphNamed.cpp",
     "arguments": [
       "/usr/bin/g++",
@@ -304,6 +338,40 @@
     ],
     "directory": "/data/devel/matrytsya/build/debug",
     "output": "nodes/PingNode.o"
+  },
+  {
+    "file": "../../src/graph/nodes/SceneGeometryNode.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "nodes/SceneGeometryNode.o",
+      "../../src/graph/nodes/SceneGeometryNode.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "nodes/SceneGeometryNode.o"
+  },
+  {
+    "file": "../../src/graph/nodes/SceneTransformNode.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "nodes/SceneTransformNode.o",
+      "../../src/graph/nodes/SceneTransformNode.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "nodes/SceneTransformNode.o"
   },
   {
     "file": "../../src/graph/nodes/ScriptNode.cpp",

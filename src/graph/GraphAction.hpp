@@ -2,9 +2,11 @@
 #define GRAPH_ACTION_H
 
 #include <atomic>
+#include <vector>
 
 #include "../util/RefCounted.hpp"
 #include "../thread/ThreadCondition.hpp"
+#include "GraphEdgeHandle.hpp"
 #include "GraphHiveHandle.hpp"
 #include "GraphNodeHandle.hpp"
 
@@ -60,6 +62,12 @@ class GraphAction : public RefCounted
 		 * @param timeOut Maximum period in ms to wait on condition to be signalled. Use 0 for no timeout.
 		 */
 		void waitOnComplete(unsigned timeOut);
+
+		/**
+		 * Get whether this action can traverse the given edge.
+		 * An action ultimately determines which pathway it takes through the graph.
+		 */
+		virtual bool canTraverseEdge(GraphEdgeHandle handle);
 
 	protected:
 
@@ -124,6 +132,9 @@ class GraphAction : public RefCounted
 
 		/// Flags that determine if this action is invoked on a node.
 		std::atomic<unsigned long> _flags{0};
+
+		/// List of id's of edges this action has already traversed.
+		std::vector<unsigned> _traversedEdges;
 
 		/**
 		 * Action is complete.

@@ -1,6 +1,7 @@
 #include "../thread/ThreadException.hpp"
 #include "GraphAction.hpp"
 #include "GraphActionThreadPoolWorkUnit.hpp"
+#include "GraphEdge.hpp"
 #include "GraphException.hpp"
 #include "GraphHive.hpp"
 #include "GraphHiveHandle.hpp"
@@ -238,11 +239,22 @@ void GraphAction::work()
 			{
 				prevBoundNodeHandle = _boundNode;
 
-				_boundNode = curBoundNode -> traverse();
+				GraphEdgeHandle edgeToTraverse = curBoundNode -> traverse(*this);
 
-				if(_boundNode.isValid())
+				if(edgeToTraverse.isValid())
 				{
-					execWorkUnit = true;
+					_traversedEdges.push_back(edgeToTraverse.getEdge() -> getId());
+
+					_boundNode = edgeToTraverse.getEdge() -> traverse();
+
+					if(_boundNode.isValid())
+					{
+						execWorkUnit = true;
+					}
+				}
+				else
+				{
+					_boundNode.clear();
 				}
 			}
 		}
@@ -293,5 +305,32 @@ void GraphAction::abortWork()
 	// complete.
 
 	__complete();
+}
+
+bool GraphAction::canTraverseEdge(GraphEdgeHandle handle)
+{
+	bool canTraverse = true;
+
+	// Standard behaviour is to not traverse an edge that has already been traversed.
+	// This was introduced to support required Transform Node behaviour.
+
+	if(handle.isValid())
+	{
+		unsigned edgeId = handle.getEdge() -> getId();
+
+		unsigned numTraversedEdges = _traversedEdges.size();
+
+		for(unsigned index = 0; index < numTraversedEdges; index++)
+		{
+			if(_traversedEdges[index] == edgeId)
+			{
+				// Edge has already been traversed by this action.
+				canTraverse = false;
+				break;
+			}
+		}
+	}
+
+	return canTraverse;
 }
 

@@ -1,5 +1,6 @@
 srcFiles =  GraphAction.cpp GraphActionTargetable.cpp GraphActionThreadPoolWorkUnit.cpp \
-GraphEdge.cpp GraphEdgeHandle.cpp GraphHive.cpp GraphHiveCollection.cpp GraphHiveHandle.cpp GraphNamed.cpp \
+GraphEdge.cpp GraphEdgeHandle.cpp GraphHive.cpp GraphHiveCollection.cpp GraphHiveHandle.cpp GraphHiveSceneSurface.cpp \
+GraphHiveSurface.cpp GraphNamed.cpp \
 GraphNodeHandle.cpp GraphNode.cpp GraphNodeLocation.cpp \
 actions/ActionFactory.cpp actions/PingAction.cpp actions/ScriptAction.cpp actions/SerialisableAction.cpp \
 actions/SerialisableActionPayload.cpp \

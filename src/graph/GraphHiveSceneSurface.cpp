@@ -1,6 +1,5 @@
 #include "GraphHiveSceneSurface.hpp"
 
-#include <algorithm>
 #include <utility>
 
 namespace
@@ -51,27 +50,32 @@ void GraphHiveSceneSurface::addVertexes(const std::vector<Vertex>& vertexes)
 
 void GraphHiveSceneSurface::addLocalTransform(const Transform& transform, unsigned id)
 {
+	// Look for existing transform that matches the ID first.
+	int index = _modelTransforms.size() - 1;
+
+	for(; index >= 0; index--)
+	{
+		if(_modelTransforms[index].id == id)
+		{
+			break;
+		}
+	}
+
 	ModelTransform modelTransform;
 
-	modelTransform.id = id;
+	if(index >= 0)
+	{
+		modelTransform = _modelTransforms[index];
+		_modelTransforms.push_back(modelTransform);
+	}
+	else
+	{
+		modelTransform.id = id;
 
-	// Pre-multiplies (This is standard OpenGL behaviour).
-	multiplyTransforms(modelTransform.transform, transform, _modelTransforms.back().transform);
+		// Pre-multiplies (This is standard OpenGL behaviour).
+		multiplyTransforms(modelTransform.transform, transform, _modelTransforms.back().transform);
 
-	_modelTransforms.push_back(std::move(modelTransform));
+		_modelTransforms.push_back(modelTransform);
+	}
 }
 
-void GraphHiveSceneSurface::addModelTransform(unsigned modelTransformId)
-{
-	// Ids are not required to be unique, so take the most recently added match.
-	auto found = std::find_if(_modelTransforms.rbegin(), _modelTransforms.rend(),
-
-		[modelTransformId](const ModelTransform& modelTransform)
-		{
-			return modelTransform.id == modelTransformId;
-		});
-
-	ModelTransform modelTransform = *found;
-
-	_modelTransforms.push_back(std::move(modelTransform));
-}

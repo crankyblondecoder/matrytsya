@@ -236,10 +236,13 @@ GraphEdge* GraphNode::__removeEdge(int edgeHandle)
 	return edge;
 }
 
-GraphNodeHandle GraphNode::traverse()
+GraphEdgeHandle GraphNode::traverse(GraphAction& action)
 {
-	// Using a handle guarantees that the edges refcount will be decr.
+	// Using a handle guarantees that the edge will be availble.
 	GraphEdgeHandle edgeToTraverse(0);
+
+	std::vector<GraphEdgeHandle> edgesToCheck;
+	unsigned numEdgesToCheck = 0;
 
 	{ SYNC(_lock)
 
@@ -249,20 +252,28 @@ GraphNodeHandle GraphNode::traverse()
 			{
 				if(_edges[index] != 0)
 				{
-					edgeToTraverse = _edges[index];
-					break;
+					GraphEdgeHandle edgeHandle(_edges[index]);
+
+					edgesToCheck.push_back(edgeHandle);
+					numEdgesToCheck++;
+
 				}
 			}
 		}
 	}
 
-	if(edgeToTraverse.isValid())
+	for(unsigned index = 0; index < numEdgesToCheck; index++)
 	{
-		return (edgeToTraverse.getEdge()) -> traverse();
+		GraphEdgeHandle edgeHandleToCheck = edgesToCheck[index];
+
+		if(action.canTraverseEdge(edgeHandleToCheck))
+		{
+			edgeToTraverse = edgeHandleToCheck;
+			break;
+		}
 	}
 
-	// If gets to here then a non-valid handle must be returned.
-	return GraphNodeHandle(0);
+	return edgeToTraverse;
 }
 
 void GraphNode::_emitAction(GraphAction* action)

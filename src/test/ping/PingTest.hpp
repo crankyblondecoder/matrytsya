@@ -34,10 +34,15 @@ TEST(PingTest, ActionEnergyRundown)
 	GraphNodeHandle nodeHandle2(testNode2);
 	GraphNodeHandle nodeHandle3(testNode3);
 
-	// Deliberately create a cycle.
-	testNode1 -> createEdge(nodeHandle2);
-	testNode2 -> createEdge(nodeHandle3);
-	testNode3 -> createEdge(nodeHandle1);
+	// Deliberately create a cycle. An action can never re-traverse the same edge, so a single
+	// edge per hop would only let it complete one lap; add enough parallel edges per hop to
+	// cover every traversal across the full 32 units of energy (the busiest hop is used 11 times).
+	for(int index = 0; index < 11; index++)
+	{
+		testNode1 -> createEdge(nodeHandle2);
+		testNode2 -> createEdge(nodeHandle3);
+		testNode3 -> createEdge(nodeHandle1);
+	}
 
 	// Run ping action.
 	PingAction* action = testNode1 -> emitPing(true);
@@ -77,10 +82,15 @@ TEST(PingTest, ActionEnergyRundownWaitOnHive)
 	GraphNodeHandle nodeHandle2(testNode2);
 	GraphNodeHandle nodeHandle3(testNode3);
 
-	// Deliberately create a cycle.
-	testNode1 -> createEdge(nodeHandle2);
-	testNode2 -> createEdge(nodeHandle3);
-	testNode3 -> createEdge(nodeHandle1);
+	// Deliberately create a cycle. An action can never re-traverse the same edge, so a single
+	// edge per hop would only let it complete one lap; add enough parallel edges per hop to
+	// cover every traversal across the full 32 units of energy (the busiest hop is used 11 times).
+	for(int index = 0; index < 11; index++)
+	{
+		testNode1 -> createEdge(nodeHandle2);
+		testNode2 -> createEdge(nodeHandle3);
+		testNode3 -> createEdge(nodeHandle1);
+	}
 
 	// Emit ping action without waiting on it directly.
 	PingAction* action = testNode1 -> emitPing(false);
@@ -148,11 +158,17 @@ TEST(PingTest, ActionTeleportBetweenHives)
 	GraphNodeHandle h2Handle4(h2Node4);
 	GraphNodeHandle h2Handle5(h2Node5);
 
-	h2Node1 -> createEdge(h2Handle2);
-	h2Node2 -> createEdge(h2Handle3);
-	h2Node3 -> createEdge(h2Handle4);
-	h2Node4 -> createEdge(h2Handle5);
-	h2Node5 -> createEdge(h2Handle1);
+	// An action can never re-traverse the same edge, so a single edge per hop would only let it
+	// complete one lap; add enough parallel edges per hop to cover every traversal across the
+	// full 32 units of energy that each fresh teleported action starts with (busiest hop used 7 times).
+	for(int index = 0; index < 7; index++)
+	{
+		h2Node1 -> createEdge(h2Handle2);
+		h2Node2 -> createEdge(h2Handle3);
+		h2Node3 -> createEdge(h2Handle4);
+		h2Node4 -> createEdge(h2Handle5);
+		h2Node5 -> createEdge(h2Handle1);
+	}
 
 	// -- Build hive1's 5 node cycle: 4 ping nodes then a teleport node back to node 1 --
 
@@ -178,11 +194,17 @@ TEST(PingTest, ActionTeleportBetweenHives)
 	GraphNodeHandle h1Handle4(h1Node4);
 	GraphNodeHandle h1Handle5(h1Node5);
 
-	h1Node1 -> createEdge(h1Handle2);
-	h1Node2 -> createEdge(h1Handle3);
-	h1Node3 -> createEdge(h1Handle4);
-	h1Node4 -> createEdge(h1Handle5);
-	h1Node5 -> createEdge(h1Handle1);
+	// An action can never re-traverse the same edge, so a single edge per hop would only let it
+	// complete one lap; add enough parallel edges per hop to cover every traversal across the
+	// full 32 units of energy (the busiest hop is used 7 times).
+	for(int index = 0; index < 7; index++)
+	{
+		h1Node1 -> createEdge(h1Handle2);
+		h1Node2 -> createEdge(h1Handle3);
+		h1Node3 -> createEdge(h1Handle4);
+		h1Node4 -> createEdge(h1Handle5);
+		h1Node5 -> createEdge(h1Handle1);
+	}
 
 	// Run the ping action within hive1. Waiting on it directly only guarantees hive1's own
 	// traversal has finished; the teleported actions it spawned in hive2 keep running.

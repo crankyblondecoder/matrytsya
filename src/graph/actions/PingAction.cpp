@@ -60,4 +60,3 @@ SerialisableAction::SerialisableActionType PingAction::getSerialisbleType()
 {
 	return SerialisableActionType::PING;
 }
-
