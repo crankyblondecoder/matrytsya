@@ -10,7 +10,8 @@ class Exception
         {
 			EVENT,
 			THREAD,
-			GRAPH
+			GRAPH,
+			DISPLAY
 		};
 
 		Exception(Module module) : _module{module} {}

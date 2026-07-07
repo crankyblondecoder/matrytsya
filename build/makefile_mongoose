@@ -1,0 +1,15 @@
+srcFiles = mongoose.c
+
+objFiles = $(srcFiles:.c=.o)
+
+CC = gcc
+CFLAGS = -Wall -O3 -pthread -DMG_ARCH=MG_ARCH_UNIX
+
+# Tell make to search other paths. Separate multiple with ":"
+VPATH = ../../src/mongoose
+
+mongoose.a : $(objFiles)
+	@ echo
+	@ echo "*** Building - Mongoose Module ***"
+	@ echo
+	ar rcs mongoose.a $(objFiles)

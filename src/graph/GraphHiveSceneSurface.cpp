@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include "../thread/thread.hpp"
+
 namespace
 {
 	// Multiply two column-major 4x4 transforms: result = a * b.
@@ -43,39 +45,62 @@ void GraphHiveSceneSurface::addVertexes(const std::vector<Vertex>& vertexes)
 	Chunk chunk;
 
 	chunk.vertexes = vertexes;
-	chunk.modelTransformIndex = _modelTransforms.size() - 1;
 
-	_chunks.push_back(std::move(chunk));
+	{ SYNC(_lock)
+
+		chunk.modelTransformIndex = _modelTransforms.size() - 1;
+
+		_chunks.push_back(std::move(chunk));
+	}
 }
 
 void GraphHiveSceneSurface::addLocalTransform(const Transform& transform, unsigned id)
 {
-	// Look for existing transform that matches the ID first.
-	int index = _modelTransforms.size() - 1;
+	{ SYNC(_lock)
 
-	for(; index >= 0; index--)
-	{
-		if(_modelTransforms[index].id == id)
+		// Look for existing transform that matches the ID first.
+		int index = _modelTransforms.size() - 1;
+
+		for(; index >= 0; index--)
 		{
-			break;
+			if(_modelTransforms[index].id == id)
+			{
+				break;
+			}
+		}
+
+		ModelTransform modelTransform;
+
+		if(index >= 0)
+		{
+			modelTransform = _modelTransforms[index];
+			_modelTransforms.push_back(modelTransform);
+		}
+		else
+		{
+			modelTransform.id = id;
+
+			// Pre-multiplies (This is standard OpenGL behaviour).
+			multiplyTransforms(modelTransform.transform, transform, _modelTransforms.back().transform);
+
+			_modelTransforms.push_back(modelTransform);
 		}
 	}
+}
 
-	ModelTransform modelTransform;
+std::vector<GraphHiveSceneSurface::Chunk> GraphHiveSceneSurface::getChunks()
+{
+	{ SYNC(_lock)
 
-	if(index >= 0)
-	{
-		modelTransform = _modelTransforms[index];
-		_modelTransforms.push_back(modelTransform);
+		return _chunks;
 	}
-	else
-	{
-		modelTransform.id = id;
+}
 
-		// Pre-multiplies (This is standard OpenGL behaviour).
-		multiplyTransforms(modelTransform.transform, transform, _modelTransforms.back().transform);
+std::vector<GraphHiveSceneSurface::ModelTransform> GraphHiveSceneSurface::getModelTransforms()
+{
+	{ SYNC(_lock)
 
-		_modelTransforms.push_back(modelTransform);
+		return _modelTransforms;
 	}
 }
 

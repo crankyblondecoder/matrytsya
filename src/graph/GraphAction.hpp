@@ -64,6 +64,11 @@ class GraphAction : public RefCounted
 		void waitOnComplete(unsigned timeOut);
 
 		/**
+		 * Get whether this action has completed, i.e. it will no longer traverse edges or be applied to any nodes.
+		 */
+		bool isComplete();
+
+		/**
 		 * Get whether this action can traverse the given edge.
 		 * An action ultimately determines which pathway it takes through the graph.
 		 */

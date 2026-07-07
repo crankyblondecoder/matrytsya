@@ -2,7 +2,7 @@
 
 # Each module has a subdirectory where the module name and the directory name are the same.
 # The order is important because it sets the final linking order and if that is incorrect it causes undefined reference errors.
-modules = graph thread log lua
+modules = graph thread log lua display mongoose
 
 # The name of the static library (.a file) should be modulename.a
 export module_libs = $(foreach module, $(modules), $(module).a)
@@ -12,6 +12,7 @@ module_makefiles = $(foreach module, $(modules), makefile_$(module))
 
 execName = matrytsya
 execName_debug = matrytsya_debug
+execName_test = matrytsya_test
 
 cflags_debug = -Wall -std=c++20 -O0 -g -pthread
 cflags_release = -Wall -std=c++20 -fPIC -O3 -pthread
@@ -48,6 +49,17 @@ release : subDirs
 	@ echo
 	$(cname) $(cflags_release) -o $(execName) ../src/$(execName).cpp $(foreach module_lib, $(module_libs), release/$(module_lib))
 
+.PHONY : debug_test
+debug_test : subDirs
+	@ echo
+	@ echo "*** Building - Debug ***"
+	@ echo
+	for makeFile in $(module_makefiles); do cd debug;$(MAKE) --makefile=../$$makeFile cflags="$(cflags_debug)"; done
+	@ echo
+	@ echo "*** Building - Debug Test Executable ***"
+	@ echo
+	$(cname) $(cflags_debug) -o $(execName_test) ../src/$(execName_test).cpp $(foreach module_lib, $(module_libs), debug/$(module_lib))
+
 .PHONY : lua
 lua : subDirs
 	@ echo
@@ -70,6 +82,7 @@ clean : subDirs
 	@ echo
 	-rm $(execName)
 	-rm $(execName_debug)
+	-rm $(execName_test)
 	-rm -rf ./debug/*
 	-rm -rf ./release/*
 	-rm -rf ./test/*

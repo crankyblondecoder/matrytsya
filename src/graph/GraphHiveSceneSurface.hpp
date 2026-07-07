@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include "../thread/ThreadMutex.hpp"
 #include "GraphHiveSurface.hpp"
 #include "graphSceneElements.hpp"
 
@@ -54,9 +55,25 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		 */
 		void addLocalTransform(const Transform& transform, unsigned id);
 
-	protected:
+		/**
+		 * Get a copy of the chunks that currently describe this scene surface.
+		 * @note Returns a copy, taken under lock, so that the caller does not have to hold this surface's internal
+		 *       lock while reading the result.
+		 */
+		std::vector<Chunk> getChunks();
 
+		/**
+		 * Get a copy of the model transforms that currently apply to this scene surface's chunks.
+		 * @note Returns a copy, taken under lock, so that the caller does not have to hold this surface's internal
+		 *       lock while reading the result.
+		 */
+		std::vector<ModelTransform> getModelTransforms();
+
+		// Not ref counted, unlike most graph objects: instances are owned directly (e.g. by a GraphHiveSurfaceMap),
+		// not via a handle, so the destructor must stay accessible to whatever holds one of these by value.
 		virtual ~GraphHiveSceneSurface();
+
+	protected:
 
 	private:
 
@@ -69,6 +86,9 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 
 		/// The model transforms that apply to chunks. The last transform in this list is the "current" one.
 		std::vector<ModelTransform> _modelTransforms;
+
+		/// Guards _chunks and _modelTransforms, which may be written to and read from on different threads.
+		ThreadMutex _lock;
 };
 
 #endif

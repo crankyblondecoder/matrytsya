@@ -1058,6 +1058,158 @@
     "output": "lzio.o"
   },
   {
+    "file": "../../src/mongoose/mongoose.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O3",
+      "-pthread",
+      "-DMG_ARCH=MG_ARCH_UNIX",
+      "-c",
+      "-o",
+      "mongoose.o",
+      "../../src/mongoose/mongoose.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "mongoose.o"
+  },
+  {
+    "file": "../../src/display/GraphHiveSceneSurfaceWebglMap.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphHiveSceneSurfaceWebglMap.o",
+      "../../src/display/GraphHiveSceneSurfaceWebglMap.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphHiveSceneSurfaceWebglMap.o"
+  },
+  {
+    "file": "../../src/display/GraphHiveSurfaceMap.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphHiveSurfaceMap.o",
+      "../../src/display/GraphHiveSurfaceMap.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphHiveSurfaceMap.o"
+  },
+  {
+    "file": "../../src/display/GraphHiveSurfaceHttpMap.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphHiveSurfaceHttpMap.o",
+      "../../src/display/GraphHiveSurfaceHttpMap.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphHiveSurfaceHttpMap.o"
+  },
+  {
+    "file": "../../src/display/http/HttpRequest.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "http/HttpRequest.o",
+      "../../src/display/http/HttpRequest.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "http/HttpRequest.o"
+  },
+  {
+    "file": "../../src/display/http/HttpResponse.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "http/HttpResponse.o",
+      "../../src/display/http/HttpResponse.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "http/HttpResponse.o"
+  },
+  {
+    "file": "../../src/display/http/HttpServerBase.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "http/HttpServerBase.o",
+      "../../src/display/http/HttpServerBase.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "http/HttpServerBase.o"
+  },
+  {
+    "file": "../../src/display/http/HttpServerMongoose.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "http/HttpServerMongoose.o",
+      "../../src/display/http/HttpServerMongoose.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "http/HttpServerMongoose.o"
+  },
+  {
+    "file": "../../src/display/http/HttpServerMongoosePollThread.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "http/HttpServerMongoosePollThread.o",
+      "../../src/display/http/HttpServerMongoosePollThread.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "http/HttpServerMongoosePollThread.o"
+  },
+  {
     "file": "../src/matrytsya.cpp",
     "arguments": [
       "/usr/bin/g++",

@@ -80,6 +80,19 @@ void GraphAction::waitOnComplete(unsigned timeOut)
 	}
 }
 
+bool GraphAction::isComplete()
+{
+	bool complete;
+
+	_completeCond.lockMutex();
+
+	complete = _stopped;
+
+	_completeCond.unlockMutex();
+
+	return complete;
+}
+
 void GraphAction::__consumeEnergy(unsigned amount)
 {
 	if(amount >= _energy)

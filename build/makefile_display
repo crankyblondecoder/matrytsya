@@ -1,0 +1,19 @@
+srcFiles = GraphHiveSceneSurfaceWebglMap.cpp GraphHiveSurfaceMap.cpp GraphHiveSurfaceHttpMap.cpp webglPageTemplate.cpp \
+http/HttpRequest.cpp http/HttpResponse.cpp http/HttpServerBase.cpp http/HttpServerMongoose.cpp \
+http/HttpServerMongoosePollThread.cpp
+
+objFiles = $(srcFiles:.cpp=.o)
+
+CXX = $(cname)
+CXXFLAGS = $(cflags)
+
+# Tell make to search other paths. Separate multiple with ":"
+VPATH = ../../src/display
+
+display.a : $(objFiles)
+	@ echo
+	@ echo "*** Building - Display Module ***"
+	@ echo
+	ar rcs display.a $(objFiles)
+
+-include ../makefile_std_dep

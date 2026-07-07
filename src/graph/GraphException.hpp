@@ -50,7 +50,9 @@ class GraphException : public Exception
 			/// The attempted teleportation of an action failed.
 			ACTION_TELEPORT_FAILED,
 			/// Could not allocate a new isolated Lua state for a script node.
-			SCRIPT_STATE_BAD_ALLOC
+			SCRIPT_STATE_BAD_ALLOC,
+			/// Timed out waiting for a scene surface to be generated.
+			SCENE_SURFACE_GENERATION_TIMED_OUT
         };
 
         virtual ~GraphException(){}

@@ -14,9 +14,11 @@ class GraphHiveSurface : public GraphNamed
 
 		GraphHiveSurface();
 
-	protected:
-
+		// Not ref counted: instances are owned directly by whatever creates them, so the destructor must stay
+		// accessible to that owner rather than being hidden behind a ref-counting mechanism.
 		virtual ~GraphHiveSurface();
+
+	protected:
 
 	private:
 
