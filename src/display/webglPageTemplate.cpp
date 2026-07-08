@@ -239,7 +239,8 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 				var worldNormal = transformNormal(modelTransform, vertex.normal[0], vertex.normal[1], vertex.normal[2]);
 
 				positions.push(worldPos[0], worldPos[1], worldPos[2]);
-				colors.push(vertex.colour[0], vertex.colour[1], vertex.colour[2], vertex.colour[3]);
+				colors.push(vertex.colour[0] / 255, vertex.colour[1] / 255, vertex.colour[2] / 255,
+					vertex.colour[3] / 255);
 				normals.push(worldNormal[0], worldNormal[1], worldNormal[2]);
 
 				minX = Math.min(minX, worldPos[0]); maxX = Math.max(maxX, worldPos[0]);

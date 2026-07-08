@@ -272,6 +272,40 @@
     "output": "actions/PingAction.o"
   },
   {
+    "file": "../../src/graph/actions/SceneAction.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "actions/SceneAction.o",
+      "../../src/graph/actions/SceneAction.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "actions/SceneAction.o"
+  },
+  {
+    "file": "../../src/graph/actions/SceneStrobeAction.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "actions/SceneStrobeAction.o",
+      "../../src/graph/actions/SceneStrobeAction.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "actions/SceneStrobeAction.o"
+  },
+  {
     "file": "../../src/graph/actions/ScriptAction.cpp",
     "arguments": [
       "/usr/bin/g++",
@@ -355,6 +389,23 @@
     ],
     "directory": "/data/devel/matrytsya/build/debug",
     "output": "nodes/SceneGeometryNode.o"
+  },
+  {
+    "file": "../../src/graph/nodes/SceneRootNode.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "nodes/SceneRootNode.o",
+      "../../src/graph/nodes/SceneRootNode.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "nodes/SceneRootNode.o"
   },
   {
     "file": "../../src/graph/nodes/SceneTransformNode.cpp",
@@ -1058,22 +1109,6 @@
     "output": "lzio.o"
   },
   {
-    "file": "../../src/mongoose/mongoose.c",
-    "arguments": [
-      "/usr/bin/gcc",
-      "-Wall",
-      "-O3",
-      "-pthread",
-      "-DMG_ARCH=MG_ARCH_UNIX",
-      "-c",
-      "-o",
-      "mongoose.o",
-      "../../src/mongoose/mongoose.c"
-    ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "mongoose.o"
-  },
-  {
     "file": "../../src/display/GraphHiveSceneSurfaceWebglMap.cpp",
     "arguments": [
       "/usr/bin/g++",
@@ -1123,6 +1158,23 @@
     ],
     "directory": "/data/devel/matrytsya/build/debug",
     "output": "GraphHiveSurfaceHttpMap.o"
+  },
+  {
+    "file": "../../src/display/webglPageTemplate.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "webglPageTemplate.o",
+      "../../src/display/webglPageTemplate.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "webglPageTemplate.o"
   },
   {
     "file": "../../src/display/http/HttpRequest.cpp",
@@ -1208,6 +1260,22 @@
     ],
     "directory": "/data/devel/matrytsya/build/debug",
     "output": "http/HttpServerMongoosePollThread.o"
+  },
+  {
+    "file": "../../src/mongoose/mongoose.c",
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-O3",
+      "-pthread",
+      "-DMG_ARCH=MG_ARCH_UNIX",
+      "-c",
+      "-o",
+      "mongoose.o",
+      "../../src/mongoose/mongoose.c"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "mongoose.o"
   },
   {
     "file": "../src/matrytsya.cpp",

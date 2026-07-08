@@ -1,6 +1,7 @@
 #ifndef SCRIPT_NODE_H
 #define SCRIPT_NODE_H
 
+#include <cstddef>
 #include <string>
 
 #include "../actionTargets/ScriptActionTarget.hpp"
@@ -38,6 +39,17 @@ class ScriptNode : public GraphNode, public ScriptActionTarget
 		 * @param count Number of elements to read.
 		 */
 		static void _readDoubleArray(lua_State* luaState, int tableIndex, const char* field, double* out, int count);
+
+		/**
+		 * Read an optional array field out of the table at the given stack index into a fixed-size byte
+		 * array, leaving entries at their existing values if the field is absent.
+		 * @param luaState Lua state to read from.
+		 * @param tableIndex Stack index of the table to read the field from.
+		 * @param field Name of the field to read.
+		 * @param out Array to write the values into.
+		 * @param count Number of elements to read.
+		 */
+		static void _readByteArray(lua_State* luaState, int tableIndex, const char* field, std::byte* out, int count);
 
     private:
 

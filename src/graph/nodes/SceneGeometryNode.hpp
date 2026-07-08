@@ -28,6 +28,14 @@ class SceneGeometryNode : public ScriptNode, public SceneActionTarget, public Sc
 		 */
 		void addVertexes(std::vector<Vertex> vertexesToAdd);
 
+		/**
+		 * Add vertexes as an array of raw data.
+		 * @param rawData Array of raw data that matches the Vertex struct. Multiple vertexes can be defined.
+		 * @param length Length of raw data array. Must be in multiples of VERTEX_SERIAL_SIZE. An incomplete vertex
+		 *        at the end of the array will simply be discarded rather than throw an exception.
+		 */
+		void addVertexes(double* rawData, unsigned length);
+
 		bool invoke(lua_State* luaState) override;
 
 		void populateSurface(GraphHiveSceneSurface& surface) override;

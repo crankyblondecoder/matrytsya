@@ -20,6 +20,39 @@ void SceneGeometryNode::addVertexes(std::vector<Vertex> vertexesToAdd)
 	_vertexes.insert(_vertexes.end(), vertexesToAdd.begin(), vertexesToAdd.end());
 }
 
+void SceneGeometryNode::addVertexes(double* rawData, unsigned length)
+{
+	for(unsigned index = 0; index + VERTEX_SERIAL_SIZE <= length;)
+	{
+		// Pack into a Vertex.
+		Vertex newVertex {
+
+			// Position: X, Y, Z
+			{rawData[index++], rawData[index++], rawData[index++]},
+
+			// Colour: R, G, B, A
+			//std::byte colour[4];
+			{
+
+				static_cast<std::byte>(rawData[index++]),
+				static_cast<std::byte>(rawData[index++]),
+				static_cast<std::byte>(rawData[index++]),
+				static_cast<std::byte>(rawData[index++])
+			},
+
+			// Texture coordinates: U, V
+			// double texCoords[2];
+			{rawData[index++], rawData[index++]},
+
+			// Normal (must be normalised): X, Y, Z
+			//double normal[3];
+			{rawData[index++], rawData[index++], rawData[index++]}
+		};
+
+		_vertexes.push_back(newVertex);
+	}
+}
+
 bool SceneGeometryNode::invoke(lua_State* luaState)
 {
 	__registerVertexBindings(luaState);
@@ -54,7 +87,7 @@ int SceneGeometryNode::__luaVertexConstructor(lua_State* luaState)
 	*vertex = Vertex{};
 
 	_readDoubleArray(luaState, 1, "posn", vertex -> posn, 3);
-	_readDoubleArray(luaState, 1, "colour", vertex -> colour, 4);
+	_readByteArray(luaState, 1, "colour", vertex -> colour, 4);
 	_readDoubleArray(luaState, 1, "texCoords", vertex -> texCoords, 2);
 	_readDoubleArray(luaState, 1, "normal", vertex -> normal, 3);
 

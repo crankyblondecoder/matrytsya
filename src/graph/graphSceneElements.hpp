@@ -1,8 +1,12 @@
 #ifndef GRAPH_SCENE_ELEMENTS_H
 #define GRAPH_SCENE_ELEMENTS_H
 
+#include <cstddef>
 
 // A collection of data structures that are used to assemble a 3D graph scene.
+
+// Number of serial values in a Vertex.
+#define VERTEX_SERIAL_SIZE 12
 
 /**
  * Data structure that describes a single vertex.
@@ -13,7 +17,7 @@ struct Vertex
 	double posn[3];
 
 	/// Colour: R, G, B, A
-	double colour[4];
+	std::byte colour[4];
 
 	/// Texture coordinates: U, V
 	double texCoords[2];

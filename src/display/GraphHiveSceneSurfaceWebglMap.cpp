@@ -1,5 +1,6 @@
 #include "GraphHiveSceneSurfaceWebglMap.hpp"
 
+#include <cstddef>
 #include <iomanip>
 #include <sstream>
 
@@ -28,6 +29,22 @@ namespace
 			if(index > 0) result += ",";
 
 			result += jsonNumber(values[index]);
+		}
+
+		result += "]";
+
+		return result;
+	}
+
+	std::string jsonByteVec(const std::byte* values, unsigned count)
+	{
+		std::string result = "[";
+
+		for(unsigned index = 0; index < count; index++)
+		{
+			if(index > 0) result += ",";
+
+			result += std::to_string(std::to_integer<unsigned>(values[index]));
 		}
 
 		result += "]";
@@ -101,7 +118,7 @@ void GraphHiveSceneSurfaceWebglMap::_serveData(HttpRequest& request, HttpRespons
 			const Vertex& vertex = chunk.vertexes[vertexIndex];
 
 			json += "{\"posn\":" + jsonVec(vertex.posn, 3) +
-				",\"colour\":" + jsonVec(vertex.colour, 4) +
+				",\"colour\":" + jsonByteVec(vertex.colour, 4) +
 				",\"texCoords\":" + jsonVec(vertex.texCoords, 2) +
 				",\"normal\":" + jsonVec(vertex.normal, 3) + "}";
 		}

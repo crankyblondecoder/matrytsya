@@ -4,6 +4,8 @@
 
 #include "../../lua/lua.hpp"
 
+#include <cmath>
+
 ScriptNode::~ScriptNode()
 {
 }
@@ -49,6 +51,27 @@ void ScriptNode::_readDoubleArray(lua_State* luaState, int tableIndex, const cha
 		{
 			lua_geti(luaState, -1, i + 1); // [..., field, element]
 			out[i] = lua_tonumber(luaState, -1);
+			lua_pop(luaState, 1); // [..., field]
+		}
+	}
+
+	lua_pop(luaState, 1); // [...]
+}
+
+void ScriptNode::_readByteArray(lua_State* luaState, int tableIndex, const char* field, std::byte* out, int count)
+{
+	lua_getfield(luaState, tableIndex, field); // [..., field]
+
+	if(lua_istable(luaState, -1))
+	{
+		for(int i = 0; i < count; i++)
+		{
+			lua_geti(luaState, -1, i + 1); // [..., field, element]
+
+			// lua_tointeger() only succeeds on values that are already exactly integral, returning 0 for
+			// any other number (e.g. the fractional result of a colour lerp), so round instead.
+			out[i] = static_cast<std::byte>(std::lround(lua_tonumber(luaState, -1)));
+
 			lua_pop(luaState, 1); // [..., field]
 		}
 	}

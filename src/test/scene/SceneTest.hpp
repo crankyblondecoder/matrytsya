@@ -23,7 +23,7 @@ TEST(SceneTest, GeneratedSceneContainsScriptVertexes)
 	SceneGeometryNode* geometryNode = new SceneGeometryNode(
 		"addVertex(Vertex{"
 		"	posn = {1, 2, 3},"
-		"	colour = {0.1, 0.2, 0.3, 0.4},"
+		"	colour = {10, 20, 30, 40},"
 		"	texCoords = {0.5, 0.6},"
 		"	normal = {0, 0, 1}"
 		"})");
@@ -55,10 +55,10 @@ TEST(SceneTest, GeneratedSceneContainsScriptVertexes)
 	EXPECT_DOUBLE_EQ(vertex.posn[1], 2);
 	EXPECT_DOUBLE_EQ(vertex.posn[2], 3);
 
-	EXPECT_DOUBLE_EQ(vertex.colour[0], 0.1);
-	EXPECT_DOUBLE_EQ(vertex.colour[1], 0.2);
-	EXPECT_DOUBLE_EQ(vertex.colour[2], 0.3);
-	EXPECT_DOUBLE_EQ(vertex.colour[3], 0.4);
+	EXPECT_EQ(std::to_integer<int>(vertex.colour[0]), 10);
+	EXPECT_EQ(std::to_integer<int>(vertex.colour[1]), 20);
+	EXPECT_EQ(std::to_integer<int>(vertex.colour[2]), 30);
+	EXPECT_EQ(std::to_integer<int>(vertex.colour[3]), 40);
 
 	EXPECT_DOUBLE_EQ(vertex.texCoords[0], 0.5);
 	EXPECT_DOUBLE_EQ(vertex.texCoords[1], 0.6);
