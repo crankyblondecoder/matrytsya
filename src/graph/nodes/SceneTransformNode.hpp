@@ -1,16 +1,17 @@
 #ifndef SCENE_TRANSFORM_NODE_H
 #define SCENE_TRANSFORM_NODE_H
 
-#include "../GraphNode.hpp"
 #include "../actionTargets/SceneActionTarget.hpp"
+#include "../actionTargets/SceneStrobeActionTarget.hpp"
 #include "../graphSceneElements.hpp"
+#include "../GraphNode.hpp"
 
 class GraphHiveSceneSurface;
 
 /**
  * Graph node that represents a transform applied to scene geometry.
  */
-class SceneTransformNode : public GraphNode, public SceneActionTarget
+class SceneTransformNode : public GraphNode, public SceneActionTarget, public SceneStrobeActionTarget
 {
     public:
 
@@ -21,13 +22,15 @@ class SceneTransformNode : public GraphNode, public SceneActionTarget
 		/**
 		 * Set the transform applied to this
 		 * @param transform The transform to set.
-		 * @param isWorld Whether this transform affects the accumulative world transform.
 		 */
-		void setTransform(Transform transform, bool isWorld);
+		void setTransform(Transform transform);
 
 		void populateSurface(GraphHiveSceneSurface& surface) override;
 
+		void strobe() override;
+
 		SceneActionTarget* getSceneActionTarget() override;
+		SceneStrobeActionTarget* getSceneStrobeActionTarget() override;
 
 	protected:
 
@@ -49,13 +52,6 @@ class SceneTransformNode : public GraphNode, public SceneActionTarget
 			0.0, 0.0, 1.0, 0.0,
 			0.0, 0.0, 0.0, 1.0
 		};
-
-		/**
-		 * Whether the transform is multipled to the current world transform.
-		 * If true this will affect all scene nodes that are processsed after this one as an action traverses the
-		 * graph.
-		 */
-		bool _transformAccumulates = false;
 };
 
 #endif

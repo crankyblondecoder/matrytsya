@@ -11,7 +11,8 @@ SerialisableAction::~SerialisableAction()
 SerialisableAction::SerialisableAction(GraphNodeHandle& initNode, unsigned energy)
 	: GraphAction(initNode, energy)
 {
-	_addFlag(SERIALISABLE_GRAPH_ACTION);
+	// Many actions that are serialisable will need to still be invoked on non-serialising nodes.
+	_addFlag(SERIALISABLE_GRAPH_ACTION, false);
 }
 
 void SerialisableAction::_apply(GraphNode* target)

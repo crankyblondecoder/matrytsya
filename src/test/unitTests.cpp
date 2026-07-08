@@ -5,3 +5,4 @@
 #include "./ping/PingTest.hpp"
 #include "./graph/actions/ActionFactoryUnitTest.hpp"
 #include "./graph/actions/ScriptActionUnitTest.hpp"
+#include "./scene/SceneTest.hpp"

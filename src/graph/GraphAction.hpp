@@ -29,10 +29,19 @@ class GraphAction : public RefCounted
 		GraphAction(GraphNodeHandle& initNode, unsigned energy);
 
 		/**
-		 * Get the flags that determine if this action is invoked on a node i.e. The node is processed.
+		 * Get the required flags that determine if this action is invoked on a node.
+		 * All of these flags must be present on the node for it to be processed.
 		 * @returns Bit field of flags from action flag register or'ed together.
 		 */
-        virtual unsigned long getFlags() final;
+        virtual unsigned long getRequiredFlags() final;
+
+		/**
+		 * Get the optional flags that determine if this action is invoked on a node.
+		 * If no required flags are present, at least one of these flags must be present on a node for it to be
+		 * processed.
+		 * @returns Bit field of flags from action flag register or'ed together.
+		 */
+        virtual unsigned long getOptionalFlags() final;
 
 		/**
 		 * Start traversal of graph.
@@ -81,8 +90,10 @@ class GraphAction : public RefCounted
 
 		/**
 		 * Add flag that determines if this action is invoked on a node i.e. The node is processed.
+		 * @param flag Flag to add.
+		 * @param required If true, the flag is required on the node for the action to be invoked on it.
 		 */
-		void _addFlag(unsigned long flag);
+		void _addFlag(unsigned long flag, bool required);
 
 		/**
 		 * Action is complete, will no longer traverse edges, and will soon be deleted.
@@ -135,8 +146,18 @@ class GraphAction : public RefCounted
 		/// Whether this action is currently registered as active with the bound hive.
 		bool _hiveActionRegistered = false;
 
-		/// Flags that determine if this action is invoked on a node.
-		std::atomic<unsigned long> _flags{0};
+		/**
+		 * Required flags that determine if this action is invoked on a node.
+		 * The node must have all these flags.
+		 */
+		std::atomic<unsigned long> _requiredFlags{0};
+
+		/**
+		 * Optional flags that determine if this action is invoked on a node.
+		 * These are only used if no required flags are present, in which case, at least one these flags must
+		 * match the node.
+		 */
+		std::atomic<unsigned long> _optionalFlags{0};
 
 		/// List of id's of edges this action has already traversed.
 		std::vector<unsigned> _traversedEdges;

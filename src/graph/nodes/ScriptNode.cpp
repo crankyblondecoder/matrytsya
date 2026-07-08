@@ -38,3 +38,20 @@ ScriptActionTarget* ScriptNode::getScriptActionTarget()
 {
 	return this;
 }
+
+void ScriptNode::_readDoubleArray(lua_State* luaState, int tableIndex, const char* field, double* out, int count)
+{
+	lua_getfield(luaState, tableIndex, field); // [..., field]
+
+	if(lua_istable(luaState, -1))
+	{
+		for(int i = 0; i < count; i++)
+		{
+			lua_geti(luaState, -1, i + 1); // [..., field, element]
+			out[i] = lua_tonumber(luaState, -1);
+			lua_pop(luaState, 1); // [..., field]
+		}
+	}
+
+	lua_pop(luaState, 1); // [...]
+}

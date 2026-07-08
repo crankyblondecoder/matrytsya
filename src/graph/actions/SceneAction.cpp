@@ -11,7 +11,7 @@ SceneAction::~SceneAction()
 SceneAction::SceneAction(GraphNodeHandle& initNode, GraphHiveSceneSurface& surface)
 	: GraphAction(initNode, 512), _surface(surface)
 {
-	_addFlag(SCENE_GRAPH_ACTION);
+	_addFlag(SCENE_GRAPH_ACTION, true);
 }
 
 void SceneAction::_apply(GraphNode* target)

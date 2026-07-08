@@ -20,10 +20,12 @@ ScriptAction::~ScriptAction()
 	if(_luaState) lua_close(_luaState);
 }
 
-ScriptAction::ScriptAction(GraphNodeHandle& initNode)
-	: GraphAction(initNode, 32)
+ScriptAction::ScriptAction(GraphNodeHandle& initNode, unsigned energy)
+	: GraphAction(initNode, energy)
 {
-	_addFlag(SCRIPT_GRAPH_ACTION);
+	// The script action is likely inherited, so leave the action flag as optional.
+	// Any sub-class can always set it to required.
+	_addFlag(SCRIPT_GRAPH_ACTION, false);
 
 	_luaState = lua_newstate(__alloc, this, luaL_makeseed(0));
 

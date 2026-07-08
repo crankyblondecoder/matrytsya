@@ -3,6 +3,7 @@
 
 #include "actionTargets/PingActionTarget.hpp"
 #include "actionTargets/SceneActionTarget.hpp"
+#include "actionTargets/SceneStrobeActionTarget.hpp"
 #include "actionTargets/ScriptActionTarget.hpp"
 #include "actionTargets/SerialisableActionTarget.hpp"
 
@@ -20,8 +21,8 @@ class GraphActionTargetable
 
 		/**
 		 * Determine whether an action can target this.
-		 * @note This returns true if this can be a target for at least one of the actions required targetable
-		 *       interfaces, i.e. It doesn't guarantee that all targetable interfaces are supported.
+		 * @note This only returns true if this can be a target for all of the actions required targetable
+		 *       interfaces or if no required interfaces are specified, at least one of the optional ones.
 		 */
 		bool canActionTarget(GraphAction* action);
 
@@ -41,6 +42,9 @@ class GraphActionTargetable
 
 		/// Get the target for the scene action.
 		virtual SceneActionTarget* getSceneActionTarget();
+
+		/// Get the target for the scene strobe action.
+		virtual SceneStrobeActionTarget* getSceneStrobeActionTarget();
 
 	protected:
 

@@ -3,14 +3,18 @@
 
 #include <gtest/gtest.h>
 
+#include "../../../graph/actions/SceneAction.hpp"
 #include "../../../graph/actions/ScriptAction.hpp"
 #include "../../../graph/actionTargets/ScriptActionTarget.hpp"
 #include "../../../graph/GraphHive.hpp"
 #include "../../../graph/GraphHiveHandle.hpp"
+#include "../../../graph/GraphHiveSceneSurface.hpp"
 #include "../../../graph/GraphNode.hpp"
 #include "../../../graph/GraphNodeHandle.hpp"
 #include "../../../graph/graphActionFlagRegister.hpp"
+#include "../../../graph/graphSceneElements.hpp"
 #include "../../../graph/nodes/PingNode.hpp"
+#include "../../../graph/nodes/SceneGeometryNode.hpp"
 #include "../../../graph/nodes/ScriptNode.hpp"
 #include "../../../lua/lua.hpp"
 
@@ -286,6 +290,38 @@ class AccumulatingScriptAction : public ScriptAction
 		}
 };
 
+/**
+ * ScriptAction subclass that captures a SceneGeometryNode script's vertexCount() readings, published as
+ * globals, so the test can assert on them directly rather than via script-side error() checks.
+ */
+class VertexCountCapturingScriptAction : public ScriptAction
+{
+	public:
+
+		VertexCountCapturingScriptAction(GraphNodeHandle& initNode) : ScriptAction(initNode) {}
+
+		int getCountBefore()
+		{
+			int value = -1;
+			_getGlobal("countBefore", value);
+			return value;
+		}
+
+		int getCountAfterOne()
+		{
+			int value = -1;
+			_getGlobal("countAfterOne", value);
+			return value;
+		}
+
+		int getCountAfterMany()
+		{
+			int value = -1;
+			_getGlobal("countAfterMany", value);
+			return value;
+		}
+};
+
 TEST(ScriptActionTest, SandboxedStateRunsScriptWithNoOsAccess)
 {
 	GraphHive* hive = new GraphHive(2);
@@ -435,6 +471,158 @@ TEST(ScriptActionTest, ScriptNodesAccumulateCounter)
 	action -> waitOnComplete(0);
 
 	EXPECT_EQ(action -> getCounter(), 1 + 3 + 4 + 5 + 6) << "Final accumulated counter did not match expected value.";
+
+	action -> decrRef();
+
+	hive -> shutdown();
+}
+
+TEST(ScriptActionTest, SceneGeometryNodeExposesVertexToLua)
+{
+	GraphHive* hive = new GraphHive(2);
+	GraphHiveHandle hiveHandle(hive);
+
+	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
+
+	SceneGeometryNode* geometryNode = new SceneGeometryNode(
+		"addVertex(Vertex{"
+		"	posn = {1, 2, 3},"
+		"	colour = {0.1, 0.2, 0.3, 0.4},"
+		"	texCoords = {0.5, 0.6},"
+		"	normal = {0, 0, 1}"
+		"})");
+
+	hive -> addNode(sourceNode);
+	hive -> addNode(geometryNode);
+
+	GraphNodeHandle geometryHandle(geometryNode);
+
+	sourceNode -> createEdge(geometryHandle);
+
+	ScriptAction* action = sourceNode -> emitScript(true);
+
+	action -> decrRef();
+
+	GraphHiveSceneSurface surface;
+	GraphNodeHandle sourceHandle(sourceNode);
+	SceneAction* sceneAction = new SceneAction(sourceHandle, surface);
+
+	sceneAction -> incrRef();
+	sceneAction -> start();
+	sceneAction -> waitOnComplete(0);
+
+	std::vector<GraphHiveSceneSurface::Chunk> chunks = surface.getChunks();
+
+	ASSERT_EQ(chunks.size(), 1u);
+	ASSERT_EQ(chunks[0].vertexes.size(), 1u);
+
+	const Vertex& vertex = chunks[0].vertexes[0];
+
+	EXPECT_DOUBLE_EQ(vertex.posn[0], 1);
+	EXPECT_DOUBLE_EQ(vertex.posn[1], 2);
+	EXPECT_DOUBLE_EQ(vertex.posn[2], 3);
+
+	EXPECT_DOUBLE_EQ(vertex.colour[0], 0.1);
+	EXPECT_DOUBLE_EQ(vertex.colour[1], 0.2);
+	EXPECT_DOUBLE_EQ(vertex.colour[2], 0.3);
+	EXPECT_DOUBLE_EQ(vertex.colour[3], 0.4);
+
+	EXPECT_DOUBLE_EQ(vertex.texCoords[0], 0.5);
+	EXPECT_DOUBLE_EQ(vertex.texCoords[1], 0.6);
+
+	EXPECT_DOUBLE_EQ(vertex.normal[0], 0);
+	EXPECT_DOUBLE_EQ(vertex.normal[1], 0);
+	EXPECT_DOUBLE_EQ(vertex.normal[2], 1);
+
+	sceneAction -> decrRef();
+
+	hive -> shutdown();
+}
+
+TEST(ScriptActionTest, SceneGeometryNodeExposesAddVertexesToLua)
+{
+	GraphHive* hive = new GraphHive(2);
+	GraphHiveHandle hiveHandle(hive);
+
+	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
+
+	SceneGeometryNode* geometryNode = new SceneGeometryNode(
+		"addVertexes({"
+		"	Vertex{posn = {1, 0, 0}},"
+		"	Vertex{posn = {0, 1, 0}},"
+		"	Vertex{posn = {0, 0, 1}}"
+		"})");
+
+	hive -> addNode(sourceNode);
+	hive -> addNode(geometryNode);
+
+	GraphNodeHandle geometryHandle(geometryNode);
+
+	sourceNode -> createEdge(geometryHandle);
+
+	ScriptAction* action = sourceNode -> emitScript(true);
+
+	action -> decrRef();
+
+	GraphHiveSceneSurface surface;
+	GraphNodeHandle sourceHandle(sourceNode);
+	SceneAction* sceneAction = new SceneAction(sourceHandle, surface);
+
+	sceneAction -> incrRef();
+	sceneAction -> start();
+	sceneAction -> waitOnComplete(0);
+
+	std::vector<GraphHiveSceneSurface::Chunk> chunks = surface.getChunks();
+
+	ASSERT_EQ(chunks.size(), 1u);
+	ASSERT_EQ(chunks[0].vertexes.size(), 3u);
+
+	EXPECT_DOUBLE_EQ(chunks[0].vertexes[0].posn[0], 1);
+	EXPECT_DOUBLE_EQ(chunks[0].vertexes[0].posn[1], 0);
+	EXPECT_DOUBLE_EQ(chunks[0].vertexes[0].posn[2], 0);
+
+	EXPECT_DOUBLE_EQ(chunks[0].vertexes[1].posn[0], 0);
+	EXPECT_DOUBLE_EQ(chunks[0].vertexes[1].posn[1], 1);
+	EXPECT_DOUBLE_EQ(chunks[0].vertexes[1].posn[2], 0);
+
+	EXPECT_DOUBLE_EQ(chunks[0].vertexes[2].posn[0], 0);
+	EXPECT_DOUBLE_EQ(chunks[0].vertexes[2].posn[1], 0);
+	EXPECT_DOUBLE_EQ(chunks[0].vertexes[2].posn[2], 1);
+
+	sceneAction -> decrRef();
+
+	hive -> shutdown();
+}
+
+TEST(ScriptActionTest, SceneGeometryNodeExposesVertexCountToLua)
+{
+	GraphHive* hive = new GraphHive(2);
+	GraphHiveHandle hiveHandle(hive);
+
+	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
+
+	SceneGeometryNode* geometryNode = new SceneGeometryNode(
+		"countBefore = vertexCount()\n"
+		"addVertex(Vertex{posn = {1, 2, 3}})\n"
+		"countAfterOne = vertexCount()\n"
+		"addVertexes({Vertex{posn = {4, 5, 6}}, Vertex{posn = {7, 8, 9}}})\n"
+		"countAfterMany = vertexCount()\n");
+
+	hive -> addNode(sourceNode);
+	hive -> addNode(geometryNode);
+
+	GraphNodeHandle geometryHandle(geometryNode);
+
+	sourceNode -> createEdge(geometryHandle);
+
+	GraphNodeHandle sourceHandle(sourceNode);
+	VertexCountCapturingScriptAction* action = new VertexCountCapturingScriptAction(sourceHandle);
+
+	sourceNode -> emit(action, true);
+
+	EXPECT_EQ(action -> getCountBefore(), 0) << "Vertex count should start at zero.";
+	EXPECT_EQ(action -> getCountAfterOne(), 1) << "Vertex count should reflect a single addVertex() call.";
+	EXPECT_EQ(action -> getCountAfterMany(), 3) << "Vertex count should reflect a following addVertexes() call.";
 
 	action -> decrRef();
 

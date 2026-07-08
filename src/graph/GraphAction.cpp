@@ -23,14 +23,26 @@ GraphAction::GraphAction(GraphNodeHandle& initNode, unsigned energy) : _boundNod
 	}
 }
 
-unsigned long GraphAction::getFlags()
+unsigned long GraphAction::getRequiredFlags()
 {
-	return _flags;
+	return _requiredFlags;
 }
 
-void GraphAction::_addFlag(unsigned long flag)
+unsigned long GraphAction::getOptionalFlags()
 {
-	_flags |= flag;
+	return _optionalFlags;
+}
+
+void GraphAction::_addFlag(unsigned long flag, bool required)
+{
+	if(required)
+	{
+		_requiredFlags |= flag;
+	}
+	else
+	{
+		_optionalFlags |= flag;
+	}
 }
 
 void GraphAction::waitOnComplete(unsigned timeOut)
