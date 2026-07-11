@@ -3,11 +3,11 @@
 
 #include <gtest/gtest.h>
 
+#include "../../graph/actions/SceneAction.hpp"
 #include "../../graph/actions/SceneStrobeAction.hpp"
+#include "../../graph/GraphHandle.hpp"
 #include "../../graph/GraphHive.hpp"
-#include "../../graph/GraphHiveHandle.hpp"
 #include "../../graph/GraphHiveSceneSurface.hpp"
-#include "../../graph/GraphNodeHandle.hpp"
 #include "../../graph/nodes/SceneGeometryNode.hpp"
 #include "../../graph/nodes/SceneRootNode.hpp"
 #include "../../graph/nodes/SceneTransformNode.hpp"
@@ -15,7 +15,7 @@
 TEST(SceneTest, GeneratedSceneContainsScriptVertexes)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHiveHandle hiveHandle(hive);
+	GraphHandle<GraphHive> hiveHandle(hive);
 
 	// The nodes must _not_ be allocated on the stack because of auto-delete once de-referenced.
 	SceneRootNode* root = new SceneRootNode();
@@ -31,10 +31,10 @@ TEST(SceneTest, GeneratedSceneContainsScriptVertexes)
 	hive -> addNode(root);
 	hive -> addNode(geometryNode);
 
-	GraphNodeHandle geometryHandle(geometryNode);
+	GraphHandle<GraphNode> geometryHandle(geometryNode);
 	root -> createEdge(geometryHandle);
 
-	GraphNodeHandle rootHandle(root);
+	GraphHandle<GraphNode> rootHandle(root);
 	SceneStrobeAction* strobeAction = new SceneStrobeAction(rootHandle);
 
 	strobeAction -> incrRef();
@@ -42,7 +42,14 @@ TEST(SceneTest, GeneratedSceneContainsScriptVertexes)
 	strobeAction -> waitOnComplete(0);
 	strobeAction -> decrRef();
 
-	GraphHiveSceneSurface* surface = root -> generateSceneSurface(0);
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+
+	SceneAction* sceneAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
+
+	sceneAction -> incrRef();
+	sceneAction -> start();
+	sceneAction -> waitOnComplete(0);
+	sceneAction -> decrRef();
 
 	std::vector<GraphHiveSceneSurface::Chunk> chunks = surface -> getChunks();
 
@@ -67,7 +74,7 @@ TEST(SceneTest, GeneratedSceneContainsScriptVertexes)
 	EXPECT_DOUBLE_EQ(vertex.normal[1], 0);
 	EXPECT_DOUBLE_EQ(vertex.normal[2], 1);
 
-	delete surface;
+	surface -> close();
 
 	hive -> shutdown();
 }
@@ -75,7 +82,7 @@ TEST(SceneTest, GeneratedSceneContainsScriptVertexes)
 TEST(SceneTest, GeneratedSceneKeepsVertexesInScriptOrder)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHiveHandle hiveHandle(hive);
+	GraphHandle<GraphHive> hiveHandle(hive);
 
 	SceneRootNode* root = new SceneRootNode();
 
@@ -89,10 +96,10 @@ TEST(SceneTest, GeneratedSceneKeepsVertexesInScriptOrder)
 	hive -> addNode(root);
 	hive -> addNode(geometryNode);
 
-	GraphNodeHandle geometryHandle(geometryNode);
+	GraphHandle<GraphNode> geometryHandle(geometryNode);
 	root -> createEdge(geometryHandle);
 
-	GraphNodeHandle rootHandle(root);
+	GraphHandle<GraphNode> rootHandle(root);
 	SceneStrobeAction* strobeAction = new SceneStrobeAction(rootHandle);
 
 	strobeAction -> incrRef();
@@ -100,7 +107,14 @@ TEST(SceneTest, GeneratedSceneKeepsVertexesInScriptOrder)
 	strobeAction -> waitOnComplete(0);
 	strobeAction -> decrRef();
 
-	GraphHiveSceneSurface* surface = root -> generateSceneSurface(0);
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+
+	SceneAction* sceneAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
+
+	sceneAction -> incrRef();
+	sceneAction -> start();
+	sceneAction -> waitOnComplete(0);
+	sceneAction -> decrRef();
 
 	std::vector<GraphHiveSceneSurface::Chunk> chunks = surface -> getChunks();
 
@@ -119,7 +133,7 @@ TEST(SceneTest, GeneratedSceneKeepsVertexesInScriptOrder)
 	EXPECT_DOUBLE_EQ(chunks[0].vertexes[2].posn[1], 0);
 	EXPECT_DOUBLE_EQ(chunks[0].vertexes[2].posn[2], 1);
 
-	delete surface;
+	surface -> close();
 
 	hive -> shutdown();
 }
@@ -127,7 +141,7 @@ TEST(SceneTest, GeneratedSceneKeepsVertexesInScriptOrder)
 TEST(SceneTest, GeneratedSceneUsesIdentityTransformWhenNoneApplied)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHiveHandle hiveHandle(hive);
+	GraphHandle<GraphHive> hiveHandle(hive);
 
 	SceneRootNode* root = new SceneRootNode();
 	SceneGeometryNode* geometryNode = new SceneGeometryNode("addVertex(Vertex{posn = {1, 2, 3}})");
@@ -135,10 +149,10 @@ TEST(SceneTest, GeneratedSceneUsesIdentityTransformWhenNoneApplied)
 	hive -> addNode(root);
 	hive -> addNode(geometryNode);
 
-	GraphNodeHandle geometryHandle(geometryNode);
+	GraphHandle<GraphNode> geometryHandle(geometryNode);
 	root -> createEdge(geometryHandle);
 
-	GraphNodeHandle rootHandle(root);
+	GraphHandle<GraphNode> rootHandle(root);
 	SceneStrobeAction* strobeAction = new SceneStrobeAction(rootHandle);
 
 	strobeAction -> incrRef();
@@ -146,7 +160,14 @@ TEST(SceneTest, GeneratedSceneUsesIdentityTransformWhenNoneApplied)
 	strobeAction -> waitOnComplete(0);
 	strobeAction -> decrRef();
 
-	GraphHiveSceneSurface* surface = root -> generateSceneSurface(0);
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+
+	SceneAction* sceneAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
+
+	sceneAction -> incrRef();
+	sceneAction -> start();
+	sceneAction -> waitOnComplete(0);
+	sceneAction -> decrRef();
 
 	std::vector<GraphHiveSceneSurface::Chunk> chunks = surface -> getChunks();
 	std::vector<GraphHiveSceneSurface::ModelTransform> modelTransforms = surface -> getModelTransforms();
@@ -164,7 +185,7 @@ TEST(SceneTest, GeneratedSceneUsesIdentityTransformWhenNoneApplied)
 		}
 	}
 
-	delete surface;
+	surface -> close();
 
 	hive -> shutdown();
 }
@@ -176,11 +197,11 @@ TEST(SceneTest, GeneratedSceneCombinesNestedTransformsInTraversalOrder)
 	// scale factor stays on the diagonal, and the translation column carries the translate node's own offset.
 
 	GraphHive* hive = new GraphHive(2);
-	GraphHiveHandle hiveHandle(hive);
+	GraphHandle<GraphHive> hiveHandle(hive);
 
 	SceneRootNode* root = new SceneRootNode();
-	SceneTransformNode* scaleNode = new SceneTransformNode();
-	SceneTransformNode* translateNode = new SceneTransformNode();
+	SceneTransformNode* scaleNode = new SceneTransformNode("");
+	SceneTransformNode* translateNode = new SceneTransformNode("");
 	SceneGeometryNode* geometryNode = new SceneGeometryNode("addVertex(Vertex{posn = {1, 2, 3}})");
 
 	double scaleTransform[16] = {
@@ -205,15 +226,15 @@ TEST(SceneTest, GeneratedSceneCombinesNestedTransformsInTraversalOrder)
 	hive -> addNode(translateNode);
 	hive -> addNode(geometryNode);
 
-	GraphNodeHandle scaleHandle(scaleNode);
-	GraphNodeHandle translateHandle(translateNode);
-	GraphNodeHandle geometryHandle(geometryNode);
+	GraphHandle<GraphNode> scaleHandle(scaleNode);
+	GraphHandle<GraphNode> translateHandle(translateNode);
+	GraphHandle<GraphNode> geometryHandle(geometryNode);
 
 	root -> createEdge(scaleHandle);
 	scaleNode -> createEdge(translateHandle);
 	translateNode -> createEdge(geometryHandle);
 
-	GraphNodeHandle rootHandle(root);
+	GraphHandle<GraphNode> rootHandle(root);
 	SceneStrobeAction* strobeAction = new SceneStrobeAction(rootHandle);
 
 	strobeAction -> incrRef();
@@ -221,7 +242,14 @@ TEST(SceneTest, GeneratedSceneCombinesNestedTransformsInTraversalOrder)
 	strobeAction -> waitOnComplete(0);
 	strobeAction -> decrRef();
 
-	GraphHiveSceneSurface* surface = root -> generateSceneSurface(0);
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+
+	SceneAction* sceneAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
+
+	sceneAction -> incrRef();
+	sceneAction -> start();
+	sceneAction -> waitOnComplete(0);
+	sceneAction -> decrRef();
 
 	std::vector<GraphHiveSceneSurface::Chunk> chunks = surface -> getChunks();
 	std::vector<GraphHiveSceneSurface::ModelTransform> modelTransforms = surface -> getModelTransforms();
@@ -251,7 +279,58 @@ TEST(SceneTest, GeneratedSceneCombinesNestedTransformsInTraversalOrder)
 		EXPECT_DOUBLE_EQ(combined[index], expectedCombined[index]) << "Mismatch at transform element " << index;
 	}
 
-	delete surface;
+	surface -> close();
+
+	hive -> shutdown();
+}
+
+TEST(SceneTest, TransformNodeScriptCanReadAndModifyTransform)
+{
+	GraphHive* hive = new GraphHive(2);
+	GraphHandle<GraphHive> hiveHandle(hive);
+
+	SceneRootNode* root = new SceneRootNode();
+	SceneTransformNode* transformNode = new SceneTransformNode(
+		"local t = getTransform();"
+		"t[13] = t[13] + 5;"
+		"setTransform(t);");
+	SceneGeometryNode* geometryNode = new SceneGeometryNode("addVertex(Vertex{posn = {1, 2, 3}})");
+
+	hive -> addNode(root);
+	hive -> addNode(transformNode);
+	hive -> addNode(geometryNode);
+
+	GraphHandle<GraphNode> transformHandle(transformNode);
+	GraphHandle<GraphNode> geometryHandle(geometryNode);
+
+	root -> createEdge(transformHandle);
+	transformNode -> createEdge(geometryHandle);
+
+	GraphHandle<GraphNode> rootHandle(root);
+	SceneStrobeAction* strobeAction = new SceneStrobeAction(rootHandle);
+
+	strobeAction -> incrRef();
+	strobeAction -> start();
+	strobeAction -> waitOnComplete(0);
+	strobeAction -> decrRef();
+
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+
+	SceneAction* sceneAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
+
+	sceneAction -> incrRef();
+	sceneAction -> start();
+	sceneAction -> waitOnComplete(0);
+	sceneAction -> decrRef();
+
+	std::vector<GraphHiveSceneSurface::Chunk> chunks = surface -> getChunks();
+	std::vector<GraphHiveSceneSurface::ModelTransform> modelTransforms = surface -> getModelTransforms();
+
+	const Transform& transform = modelTransforms[chunks[0].modelTransformIndex].transform;
+
+	EXPECT_DOUBLE_EQ(transform[12], 5.0) << "Script should have read the identity transform and added 5 to element 13.";
+
+	surface -> close();
 
 	hive -> shutdown();
 }

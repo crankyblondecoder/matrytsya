@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include "../thread/ThreadCondition.hpp"
 #include "GraphHiveSurfaceMap.hpp"
 #include "http/HttpRequestHandler.hpp"
 
@@ -30,6 +31,18 @@ class GraphHiveSurfaceHttpMap : public GraphHiveSurfaceMap, public HttpRequestHa
 
         void handleRequest(HttpRequest& request, HttpResponse& response) final;
 
+        /**
+         * Block the calling thread until this map has received its first HTTP request, e.g. a browser loading
+         * its page for the first time.
+         * @param timeOut Maximum period in ms to wait. Use 0 to wait indefinitely.
+         */
+        void waitForFirstRequest(unsigned timeOut);
+
+        /**
+         * Get whether this map has received its first HTTP request yet.
+         */
+        bool hasReceivedFirstRequest();
+
     protected:
 
         /**
@@ -51,8 +64,20 @@ class GraphHiveSurfaceHttpMap : public GraphHiveSurfaceMap, public HttpRequestHa
         GraphHiveSurfaceHttpMap(const GraphHiveSurfaceHttpMap& copyFrom);
         GraphHiveSurfaceHttpMap& operator= (const GraphHiveSurfaceHttpMap& copyFrom);
 
+        /**
+         * Mark the first HTTP request as received, waking any thread blocked in waitForFirstRequest(), if this
+         * is indeed the first request.
+         */
+        void __signalFirstRequest();
+
         /// HTTP server this map is registered with.
         HttpServerBase& _httpServer;
+
+        /// Set once the first HTTP request for this map has been received.
+        bool _receivedFirstRequest = false;
+
+        /// Signalled when the first HTTP request for this map is received.
+        ThreadCondition _firstRequestCond;
 };
 
 #endif

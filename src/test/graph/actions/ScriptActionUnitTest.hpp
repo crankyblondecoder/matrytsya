@@ -6,11 +6,10 @@
 #include "../../../graph/actions/SceneAction.hpp"
 #include "../../../graph/actions/ScriptAction.hpp"
 #include "../../../graph/actionTargets/ScriptActionTarget.hpp"
+#include "../../../graph/GraphHandle.hpp"
 #include "../../../graph/GraphHive.hpp"
-#include "../../../graph/GraphHiveHandle.hpp"
 #include "../../../graph/GraphHiveSceneSurface.hpp"
 #include "../../../graph/GraphNode.hpp"
-#include "../../../graph/GraphNodeHandle.hpp"
 #include "../../../graph/graphActionFlagRegister.hpp"
 #include "../../../graph/graphSceneElements.hpp"
 #include "../../../graph/nodes/PingNode.hpp"
@@ -50,7 +49,7 @@ class ScriptEmitterNode : public GraphNode
 		 */
 		ScriptAction* emitScript(bool wait)
 		{
-			GraphNodeHandle handle(this);
+			GraphHandle<GraphNode> handle(this);
 
 			return emit(new ScriptAction(handle), wait);
 		}
@@ -242,7 +241,7 @@ class SharingScriptAction : public ScriptAction
 {
 	public:
 
-		SharingScriptAction(GraphNodeHandle& initNode) : ScriptAction(initNode)
+		SharingScriptAction(GraphHandle<GraphNode>& initNode) : ScriptAction(initNode)
 		{
 			_shareGlobal("shared", 99);
 		}
@@ -262,7 +261,7 @@ class AccumulatingScriptAction : public ScriptAction
 		 * @param initNode Initial node this action is bound to.
 		 * @param startValue Value "counter" is seeded with before the first node in the chain is invoked.
 		 */
-		AccumulatingScriptAction(GraphNodeHandle& initNode, int startValue) : ScriptAction(initNode)
+		AccumulatingScriptAction(GraphHandle<GraphNode>& initNode, int startValue) : ScriptAction(initNode)
 		{
 			_shareGlobal("counter", startValue);
 		}
@@ -298,7 +297,7 @@ class VertexCountCapturingScriptAction : public ScriptAction
 {
 	public:
 
-		VertexCountCapturingScriptAction(GraphNodeHandle& initNode) : ScriptAction(initNode) {}
+		VertexCountCapturingScriptAction(GraphHandle<GraphNode>& initNode) : ScriptAction(initNode) {}
 
 		int getCountBefore()
 		{
@@ -325,7 +324,7 @@ class VertexCountCapturingScriptAction : public ScriptAction
 TEST(ScriptActionTest, SandboxedStateRunsScriptWithNoOsAccess)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHiveHandle hiveHandle(hive);
+	GraphHandle<GraphHive> hiveHandle(hive);
 
 	// The nodes must _not_ be allocated on the stack because of auto-delete once de-referenced.
 	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
@@ -334,7 +333,7 @@ TEST(ScriptActionTest, SandboxedStateRunsScriptWithNoOsAccess)
 	hive -> addNode(sourceNode);
 	hive -> addNode(probeNode);
 
-	GraphNodeHandle probeHandle(probeNode);
+	GraphHandle<GraphNode> probeHandle(probeNode);
 
 	sourceNode -> createEdge(probeHandle);
 
@@ -362,7 +361,7 @@ TEST(ScriptActionTest, SandboxedStateRunsScriptWithNoOsAccess)
 TEST(ScriptActionTest, GlobalsAreIsolatedPerNode)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHiveHandle hiveHandle(hive);
+	GraphHandle<GraphHive> hiveHandle(hive);
 
 	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
 	ScriptGlobalWriterNode* writerNode = new ScriptGlobalWriterNode("leaked", 123);
@@ -372,8 +371,8 @@ TEST(ScriptActionTest, GlobalsAreIsolatedPerNode)
 	hive -> addNode(writerNode);
 	hive -> addNode(readerNode);
 
-	GraphNodeHandle writerHandle(writerNode);
-	GraphNodeHandle readerHandle(readerNode);
+	GraphHandle<GraphNode> writerHandle(writerNode);
+	GraphHandle<GraphNode> readerHandle(readerNode);
 
 	sourceNode -> createEdge(writerHandle);
 	writerNode -> createEdge(readerHandle);
@@ -393,7 +392,7 @@ TEST(ScriptActionTest, GlobalsAreIsolatedPerNode)
 TEST(ScriptActionTest, ExplicitlySharedGlobalsAreVisibleToEveryNode)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHiveHandle hiveHandle(hive);
+	GraphHandle<GraphHive> hiveHandle(hive);
 
 	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
 	ScriptGlobalReaderNode* readerNode1 = new ScriptGlobalReaderNode("shared");
@@ -403,13 +402,13 @@ TEST(ScriptActionTest, ExplicitlySharedGlobalsAreVisibleToEveryNode)
 	hive -> addNode(readerNode1);
 	hive -> addNode(readerNode2);
 
-	GraphNodeHandle reader1Handle(readerNode1);
-	GraphNodeHandle reader2Handle(readerNode2);
+	GraphHandle<GraphNode> reader1Handle(readerNode1);
+	GraphHandle<GraphNode> reader2Handle(readerNode2);
 
 	sourceNode -> createEdge(reader1Handle);
 	readerNode1 -> createEdge(reader2Handle);
 
-	GraphNodeHandle sourceHandle(sourceNode);
+	GraphHandle<GraphNode> sourceHandle(sourceNode);
 	SharingScriptAction* action = new SharingScriptAction(sourceHandle);
 
 	sourceNode -> emit(action, true);
@@ -436,7 +435,7 @@ TEST(ScriptActionTest, ScriptNodesAccumulateCounter)
 
 	GraphHive* hive = new GraphHive(2);
 
-	GraphHiveHandle hiveHandle(hive);
+	GraphHandle<GraphHive> hiveHandle(hive);
 
 	// The nodes must _not_ be allocated on the stack because of auto-delete once de-referenced.
 	PingNode* rootNode = new PingNode();
@@ -451,17 +450,17 @@ TEST(ScriptActionTest, ScriptNodesAccumulateCounter)
 	hive -> addNode(node3);
 	hive -> addNode(node4);
 
-	GraphNodeHandle node1Handle(node1);
-	GraphNodeHandle node2Handle(node2);
-	GraphNodeHandle node3Handle(node3);
-	GraphNodeHandle node4Handle(node4);
+	GraphHandle<GraphNode> node1Handle(node1);
+	GraphHandle<GraphNode> node2Handle(node2);
+	GraphHandle<GraphNode> node3Handle(node3);
+	GraphHandle<GraphNode> node4Handle(node4);
 
 	rootNode -> createEdge(node1Handle);
 	node1 -> createEdge(node2Handle);
 	node2 -> createEdge(node3Handle);
 	node3 -> createEdge(node4Handle);
 
-	GraphNodeHandle rootHandle(rootNode);
+	GraphHandle<GraphNode> rootHandle(rootNode);
 
 	AccumulatingScriptAction* action = new AccumulatingScriptAction(rootHandle, 1);
 
@@ -480,7 +479,7 @@ TEST(ScriptActionTest, ScriptNodesAccumulateCounter)
 TEST(ScriptActionTest, SceneGeometryNodeExposesVertexToLua)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHiveHandle hiveHandle(hive);
+	GraphHandle<GraphHive> hiveHandle(hive);
 
 	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
 
@@ -495,7 +494,7 @@ TEST(ScriptActionTest, SceneGeometryNodeExposesVertexToLua)
 	hive -> addNode(sourceNode);
 	hive -> addNode(geometryNode);
 
-	GraphNodeHandle geometryHandle(geometryNode);
+	GraphHandle<GraphNode> geometryHandle(geometryNode);
 
 	sourceNode -> createEdge(geometryHandle);
 
@@ -503,15 +502,15 @@ TEST(ScriptActionTest, SceneGeometryNodeExposesVertexToLua)
 
 	action -> decrRef();
 
-	GraphHiveSceneSurface surface;
-	GraphNodeHandle sourceHandle(sourceNode);
-	SceneAction* sceneAction = new SceneAction(sourceHandle, surface);
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(0));
+	GraphHandle<GraphNode> sourceHandle(sourceNode);
+	SceneAction* sceneAction = new SceneAction(sourceHandle, GraphHandle<GraphHiveSceneSurface>(surface));
 
 	sceneAction -> incrRef();
 	sceneAction -> start();
 	sceneAction -> waitOnComplete(0);
 
-	std::vector<GraphHiveSceneSurface::Chunk> chunks = surface.getChunks();
+	std::vector<GraphHiveSceneSurface::Chunk> chunks = surface -> getChunks();
 
 	ASSERT_EQ(chunks.size(), 1u);
 	ASSERT_EQ(chunks[0].vertexes.size(), 1u);
@@ -536,13 +535,15 @@ TEST(ScriptActionTest, SceneGeometryNodeExposesVertexToLua)
 
 	sceneAction -> decrRef();
 
+	surface -> close();
+
 	hive -> shutdown();
 }
 
 TEST(ScriptActionTest, SceneGeometryNodeExposesAddVertexesToLua)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHiveHandle hiveHandle(hive);
+	GraphHandle<GraphHive> hiveHandle(hive);
 
 	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
 
@@ -556,7 +557,7 @@ TEST(ScriptActionTest, SceneGeometryNodeExposesAddVertexesToLua)
 	hive -> addNode(sourceNode);
 	hive -> addNode(geometryNode);
 
-	GraphNodeHandle geometryHandle(geometryNode);
+	GraphHandle<GraphNode> geometryHandle(geometryNode);
 
 	sourceNode -> createEdge(geometryHandle);
 
@@ -564,15 +565,15 @@ TEST(ScriptActionTest, SceneGeometryNodeExposesAddVertexesToLua)
 
 	action -> decrRef();
 
-	GraphHiveSceneSurface surface;
-	GraphNodeHandle sourceHandle(sourceNode);
-	SceneAction* sceneAction = new SceneAction(sourceHandle, surface);
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(0));
+	GraphHandle<GraphNode> sourceHandle(sourceNode);
+	SceneAction* sceneAction = new SceneAction(sourceHandle, GraphHandle<GraphHiveSceneSurface>(surface));
 
 	sceneAction -> incrRef();
 	sceneAction -> start();
 	sceneAction -> waitOnComplete(0);
 
-	std::vector<GraphHiveSceneSurface::Chunk> chunks = surface.getChunks();
+	std::vector<GraphHiveSceneSurface::Chunk> chunks = surface -> getChunks();
 
 	ASSERT_EQ(chunks.size(), 1u);
 	ASSERT_EQ(chunks[0].vertexes.size(), 3u);
@@ -591,13 +592,15 @@ TEST(ScriptActionTest, SceneGeometryNodeExposesAddVertexesToLua)
 
 	sceneAction -> decrRef();
 
+	surface -> close();
+
 	hive -> shutdown();
 }
 
 TEST(ScriptActionTest, SceneGeometryNodeExposesVertexCountToLua)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHiveHandle hiveHandle(hive);
+	GraphHandle<GraphHive> hiveHandle(hive);
 
 	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
 
@@ -611,11 +614,11 @@ TEST(ScriptActionTest, SceneGeometryNodeExposesVertexCountToLua)
 	hive -> addNode(sourceNode);
 	hive -> addNode(geometryNode);
 
-	GraphNodeHandle geometryHandle(geometryNode);
+	GraphHandle<GraphNode> geometryHandle(geometryNode);
 
 	sourceNode -> createEdge(geometryHandle);
 
-	GraphNodeHandle sourceHandle(sourceNode);
+	GraphHandle<GraphNode> sourceHandle(sourceNode);
 	VertexCountCapturingScriptAction* action = new VertexCountCapturingScriptAction(sourceHandle);
 
 	sourceNode -> emit(action, true);

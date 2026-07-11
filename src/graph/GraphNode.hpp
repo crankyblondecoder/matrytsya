@@ -6,12 +6,10 @@
 class GraphAction;
 class GraphEdge;
 class GraphHive;
-class GraphNodeHandle;
-class GraphEdgeHandle;
 
 #include "../util/RefCounted.hpp"
 #include "GraphActionTargetable.hpp"
-#include "GraphHiveHandle.hpp"
+#include "GraphHandle.hpp"
 #include "GraphNamed.hpp"
 
 // The number of edges a node can have is fixed.
@@ -39,7 +37,7 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 * @param connectTo Handle of node to form edge to.
          * @returns Handle to use to refer to the created edge (local to this node only). -1 if could not be added.
 		 */
-		int createEdge(GraphNodeHandle& connectTo);
+		int createEdge(GraphHandle<GraphNode>& connectTo);
 
 		/**
 		 * Remove edge from this node.
@@ -54,7 +52,7 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 * @param action Action that is requesting to traverse.
 		 * @returns Handle to next edge to traverse.
 		 */
-		virtual GraphEdgeHandle traverse(GraphAction& action);
+		virtual GraphHandle<GraphEdge> traverse(GraphAction& action);
 
 		/**
 		 * Get the energy cost of an action being applied to this node.
@@ -71,7 +69,7 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		/**
 		 * Get a handle to the hive this node is part of.
 		 */
-		GraphHiveHandle getHive();
+		GraphHandle<GraphHive> getHive();
 
 		/**
 		 * Get the unique id of this node.
@@ -83,7 +81,7 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 * @param hive Hive that this node is part of.
 		 * @returns True if this node accepts being part of the hive. False otherwise.
 		 */
-		bool setHive(GraphHiveHandle hive);
+		bool setHive(GraphHandle<GraphHive> hive);
 
     protected:
 
@@ -111,7 +109,7 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		unsigned _id;
 
 		/** The hive this node belongs to. */
-		GraphHiveHandle _hive{nullptr};
+		GraphHandle<GraphHive> _hive;
 
 		/// All edges directed from this node.
         GraphEdge* _edges[EDGE_ARRAY_SIZE]{};

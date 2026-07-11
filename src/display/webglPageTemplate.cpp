@@ -2,7 +2,8 @@
 
 // The WebGL viewer page. It fetches this map's data endpoint and renders the returned chunks as triangles,
 // applying each chunk's model transform on the client before upload so that only a single camera uniform is
-// needed to draw the whole scene.
+// needed to draw the whole scene. It polls the map's revision endpoint to detect a changed or replaced surface,
+// only re-fetching and re-uploading scene data when the revision actually changes.
 const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 <html>
 <head>
@@ -125,6 +126,10 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	var camera = { yaw: 0.6, pitch: 0.4, distance: 10, centre: [0, 0, 0] };
 	var dragging = false;
 	var lastX = 0, lastY = 0;
+
+	// Only auto-fit the camera to the scene once: it's driven off each load's bounding box, and re-fitting on
+	// every subsequent load (e.g. from an in-progress animation) would fight the user's own zoom/orbit input.
+	var cameraFitted = false;
 
 	canvas.addEventListener('mousedown', function(e) { dragging = true; lastX = e.clientX; lastY = e.clientY; });
 	window.addEventListener('mouseup', function() { dragging = false; });
@@ -260,7 +265,7 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
 
-		if(vertexCount > 0)
+		if(vertexCount > 0 && !cameraFitted)
 		{
 			camera.centre = [(minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2];
 
@@ -268,6 +273,8 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 				Math.pow(maxX - minX, 2) + Math.pow(maxY - minY, 2) + Math.pow(maxZ - minZ, 2)) / 2);
 
 			camera.distance = radius * 2.5;
+
+			cameraFitted = true;
 		}
 
 		status.textContent = vertexCount + ' vertexes across ' + data.chunks.length + ' chunk(s). Drag to orbit, scroll to zoom.';
@@ -311,15 +318,36 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	}
 
 	var dataUrl = window.location.pathname.replace(/\/+$/, '') + '/data';
+	var revisionUrl = window.location.pathname.replace(/\/+$/, '') + '/revision';
+	var lastRevision = null;
+	var drawing = false;
 
-	fetch(dataUrl).then(function(res) { return res.json(); }).then(function(data)
+	function poll()
 	{
-		loadScene(data);
-		draw();
-	}).catch(function(err)
-	{
-		status.textContent = 'Failed to load scene data: ' + err;
-	});
+		fetch(revisionUrl).then(function(res) { return res.json(); }).then(function(revisionData)
+		{
+			if(revisionData.revision === lastRevision) return null;
+
+			lastRevision = revisionData.revision;
+
+			return fetch(dataUrl).then(function(res) { return res.json(); }).then(function(data)
+			{
+				loadScene(data);
+
+				if(!drawing)
+				{
+					drawing = true;
+					draw();
+				}
+			});
+		}).catch(function(err)
+		{
+			status.textContent = 'Failed to load scene data: ' + err;
+		});
+	}
+
+	poll();
+	setInterval(poll, %POLL_INTERVAL_MS%);
 })();
 </script>
 </body>

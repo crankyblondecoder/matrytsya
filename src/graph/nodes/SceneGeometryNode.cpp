@@ -60,9 +60,9 @@ bool SceneGeometryNode::invoke(lua_State* luaState)
 	return ScriptNode::invoke(luaState);
 }
 
-void SceneGeometryNode::populateSurface(GraphHiveSceneSurface& surface)
+void SceneGeometryNode::populateSurface(GraphHandle<GraphHiveSceneSurface> surface)
 {
-	surface.addVertexes(_vertexes);
+	if(surface.isValid()) surface.getInstance() -> addVertexes(_vertexes, getId());
 }
 
 void SceneGeometryNode::strobe()

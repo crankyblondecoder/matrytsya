@@ -425,7 +425,7 @@ void GraphHive::addNode(GraphNode* node)
 	if(addedIndex != -1)
 	{
 		// Rely on the node rejecting being added to the hive if it has been decoupled. This is possibly a bit brittle.
-		bool accepted = node -> setHive(GraphHiveHandle(this));
+		bool accepted = node -> setHive(GraphHandle<GraphHive>(this));
 
 		if(!accepted)
 		{
@@ -450,11 +450,11 @@ void GraphHive::addNode(GraphNode* node)
 	node -> decrRef();
 }
 
-void GraphHive::removeNode(GraphNodeHandle nodeHandle)
+void GraphHive::removeNode(GraphHandle<GraphNode> nodeHandle)
 {
 	if(!nodeHandle.isValid()) return;
 
-	GraphNode* nodeToFind = nodeHandle.getNode();
+	GraphNode* nodeToFind = nodeHandle.getInstance();
 	bool decouple = false;
 
 	{ SYNC(_lock)
@@ -479,7 +479,7 @@ void GraphHive::removeNode(GraphNodeHandle nodeHandle)
 	}
 }
 
-GraphNodeHandle GraphHive::getNode(std::string nodeName)
+GraphHandle<GraphNode> GraphHive::getNode(std::string nodeName)
 {
 	GraphNode* foundNode = 0;
 
@@ -498,7 +498,7 @@ GraphNodeHandle GraphHive::getNode(std::string nodeName)
 		}
 	}
 
-	return GraphNodeHandle(foundNode);
+	return GraphHandle<GraphNode>(foundNode);
 }
 
 void GraphHive::enumerateThreadPool(unsigned numTabs)

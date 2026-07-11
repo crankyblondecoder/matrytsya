@@ -38,7 +38,7 @@ class SceneGeometryNode : public ScriptNode, public SceneActionTarget, public Sc
 
 		bool invoke(lua_State* luaState) override;
 
-		void populateSurface(GraphHiveSceneSurface& surface) override;
+		void populateSurface(GraphHandle<GraphHiveSceneSurface> surface) override;
 
 		void strobe() override;
 

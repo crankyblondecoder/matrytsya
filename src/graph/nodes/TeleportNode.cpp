@@ -1,8 +1,8 @@
 #include "TeleportNode.hpp"
 
 #include "../GraphException.hpp"
+#include "../GraphHandle.hpp"
 #include "../GraphHive.hpp"
-#include "../GraphHiveHandle.hpp"
 #include "../graphActionFlagRegister.hpp"
 
 TeleportNode::~TeleportNode()
@@ -21,13 +21,13 @@ bool TeleportNode::send(SerialisableActionPayload& payload)
 {
 	bool okay = false;
 
-	GraphHiveHandle hiveHandle = getHive();
+	GraphHandle<GraphHive> hiveHandle = getHive();
 
 	if(hiveHandle.isValid())
 	{
 		try
 		{
-			hiveHandle.getHive() -> teleportAction(payload, _destination);
+			hiveHandle.getInstance() -> teleportAction(payload, _destination);
 
 			okay = true;
 		}

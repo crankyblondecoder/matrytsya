@@ -5,6 +5,7 @@
 #include <sstream>
 
 #include "../graph/GraphHiveSceneSurface.hpp"
+#include "../thread/thread.hpp"
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
 #include "webglPageTemplate.hpp"
@@ -55,19 +56,34 @@ namespace
 
 GraphHiveSceneSurfaceWebglMap::GraphHiveSceneSurfaceWebglMap(HttpServerBase& httpServer, GraphHiveSceneSurface& surface,
 	std::string path) :
-	GraphHiveSurfaceHttpMap(httpServer, surface, path), _sceneSurface{surface}
+	GraphHiveSurfaceHttpMap(httpServer, surface, path), _sceneSurface(&surface)
 {
+	surface.addListener(this);
 }
 
 GraphHiveSceneSurfaceWebglMap::~GraphHiveSceneSurfaceWebglMap()
 {
 }
 
+void GraphHiveSceneSurfaceWebglMap::setPollInterval(unsigned pollIntervalMs)
+{
+	{ SYNC(_lock)
+
+		_pollIntervalMs = pollIntervalMs;
+	}
+}
+
 void GraphHiveSceneSurfaceWebglMap::_renderPage(HttpResponse& response)
 {
 	std::string page = webglPageTemplate;
 
-	std::string title = _getSurface().getName();
+	std::string title = _sceneSurface.getInstance() -> getName();
+	unsigned pollIntervalMs;
+
+	{ SYNC(_lock)
+
+		pollIntervalMs = _pollIntervalMs;
+	}
 
 	if(title.empty()) title = "Graph Hive Scene Surface";
 
@@ -80,16 +96,63 @@ void GraphHiveSceneSurfaceWebglMap::_renderPage(HttpResponse& response)
 		titlePos = page.find("%TITLE%", titlePos + title.size());
 	}
 
+	std::string pollIntervalStr = std::to_string(pollIntervalMs);
+	std::size_t pollPos = page.find("%POLL_INTERVAL_MS%");
+
+	while(pollPos != std::string::npos)
+	{
+		page.replace(pollPos, 18, pollIntervalStr);
+
+		pollPos = page.find("%POLL_INTERVAL_MS%", pollPos + pollIntervalStr.size());
+	}
+
 	response.setContentType("text/html");
 	response.setBody(page);
 }
 
+void GraphHiveSceneSurfaceWebglMap::__serveRevision(HttpResponse& response)
+{
+	unsigned revision;
+
+	{ SYNC(_lock)
+
+		revision = _revision;
+	}
+
+	response.setContentType("application/json");
+	response.setBody("{\"revision\":" + std::to_string(revision) + "}");
+}
+
+void GraphHiveSceneSurfaceWebglMap::hiveSurfaceChanged(GraphHandle<GraphHiveSurface> hiveSurface)
+{
+	{ SYNC(_lock)
+
+		_revision++;
+	}
+}
+
+GraphHiveSurfaceListener* GraphHiveSceneSurfaceWebglMap::getListener()
+{
+	return this;
+}
+
 void GraphHiveSceneSurfaceWebglMap::_serveData(HttpRequest& request, HttpResponse& response)
 {
-	(void) request;
+	std::string base = getPath();
 
-	std::vector<GraphHiveSceneSurface::Chunk> chunks = _sceneSurface.getChunks();
-	std::vector<GraphHiveSceneSurface::ModelTransform> modelTransforms = _sceneSurface.getModelTransforms();
+	while(!base.empty() && base.back() == '/') base.pop_back();
+
+	if(request.getPath() == base + "/revision")
+	{
+		__serveRevision(response);
+
+		return;
+	}
+
+	GraphHiveSceneSurface* sceneSurface = _sceneSurface.getInstance();
+
+	std::vector<GraphHiveSceneSurface::Chunk> chunks = sceneSurface -> getChunks();
+	std::vector<GraphHiveSceneSurface::ModelTransform> modelTransforms = sceneSurface -> getModelTransforms();
 
 	std::string json = "{\"modelTransforms\":[";
 

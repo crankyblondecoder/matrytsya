@@ -1,0 +1,17 @@
+srcFiles =
+
+objFiles = $(srcFiles:.cpp=.o)
+
+CXX = $(cname)
+CXXFLAGS = $(cflags)
+
+# Tell make to search other paths. Separate multiple with ":"
+VPATH = ../../src/util
+
+util.a : $(objFiles)
+	@ echo
+	@ echo "*** Building - Util Module ***"
+	@ echo
+	ar rcs util.a $(objFiles)
+
+-include ../makefile_std_dep

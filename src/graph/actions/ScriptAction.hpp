@@ -24,12 +24,13 @@ class ScriptAction : public GraphAction
 
         virtual ~ScriptAction();
 
-		ScriptAction(GraphNodeHandle& initNode, unsigned energy = 32);
+		ScriptAction(GraphHandle<GraphNode>& initNode, unsigned energy = 32);
 
 	protected:
 
 		void _apply(GraphNode* target) override;
 
+		void _starting() override;
 		void _complete() override;
 
 		/**

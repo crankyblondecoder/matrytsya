@@ -3,23 +3,22 @@
 #include "GraphActionThreadPoolWorkUnit.hpp"
 #include "GraphEdge.hpp"
 #include "GraphException.hpp"
+#include "GraphHandle.hpp"
 #include "GraphHive.hpp"
-#include "GraphHiveHandle.hpp"
 #include "GraphNode.hpp"
-#include "GraphNodeHandle.hpp"
 
 GraphAction::~GraphAction()
 {
 	_boundNode.clear();
 }
 
-GraphAction::GraphAction(GraphNodeHandle& initNode, unsigned energy) : _boundNode(initNode), _boundHive(0)
+GraphAction::GraphAction(GraphHandle<GraphNode> initNode, unsigned energy) : _boundNode(initNode), _boundHive(0)
 {
 	_energy = energy;
 
 	if(initNode.isValid())
 	{
-		_boundHive = initNode.getNode() -> getHive();
+		_boundHive = initNode.getInstance() -> getHive();
 	}
 }
 
@@ -155,7 +154,7 @@ void GraphAction::__complete()
 	// Notify the hive that this action is no longer active.
 	if(runHiveInactive && _boundHive.isValid())
 	{
-		_boundHive.getHive() -> actionInactive(_hiveActionHandle);
+		_boundHive.getInstance() -> actionInactive(_hiveActionHandle);
 	}
 
 	// Notify subclass.
@@ -183,6 +182,9 @@ void GraphAction::start()
 		throw GraphException(GraphException::Error::RE_ENTRY_NOT_PERMITTED);
 	}
 
+	// Inform any subclass.
+	_starting();
+
 	_started = true;
 
 	_completeCond.unlockMutex();
@@ -195,14 +197,14 @@ void GraphAction::start()
 		{
 			// Register as active before work is scheduled so that a work unit which completes
 			// almost immediately on another thread is guaranteed to see this action as registered.
-			_hiveActionHandle = _boundHive.getHive() -> actionActive(this);
+			_hiveActionHandle = _boundHive.getInstance() -> actionActive(this);
 			_hiveActionRegistered = true;
 
 			// Bootstrap into action work cycle.
 			// Ask threadpool to execute actions work unit.
 			try
 			{
-				workSubmitted = (_boundHive.getHive()) ->
+				workSubmitted = (_boundHive.getInstance()) ->
 					executeWorkUnit(new GraphActionThreadPoolWorkUnit(this));
 			}
 			catch(std::bad_alloc& ex)
@@ -235,13 +237,13 @@ void GraphAction::work()
 	bool complete = true;
 
 	GraphNode* curBoundNode = 0;
-	GraphNodeHandle prevBoundNodeHandle(0);
+	GraphHandle<GraphNode> prevBoundNodeHandle(0);
 
 	{ SYNC(_workLock)
 
 		if(_boundNode.isValid())
 		{
-			curBoundNode = _boundNode.getNode();
+			curBoundNode = _boundNode.getInstance();
 
 			if(!_initTraverse)
 			{
@@ -264,13 +266,13 @@ void GraphAction::work()
 			{
 				prevBoundNodeHandle = _boundNode;
 
-				GraphEdgeHandle edgeToTraverse = curBoundNode -> traverse(*this);
+				GraphHandle<GraphEdge> edgeToTraverse = curBoundNode -> traverse(*this);
 
 				if(edgeToTraverse.isValid())
 				{
-					_traversedEdges.push_back(edgeToTraverse.getEdge() -> getId());
+					_traversedEdges.push_back(edgeToTraverse.getInstance() -> getId());
 
-					_boundNode = edgeToTraverse.getEdge() -> traverse();
+					_boundNode = edgeToTraverse.getInstance() -> traverse();
 
 					if(_boundNode.isValid())
 					{
@@ -294,13 +296,13 @@ void GraphAction::work()
 
 		// Create and schedule another work unit for the newly bound valid node. This makes sure
 		// actions don't hog thread time.
-		GraphHiveHandle hiveHandle = prevBoundNodeHandle.getNode() -> getHive();
+		GraphHandle<GraphHive> hiveHandle = prevBoundNodeHandle.getInstance() -> getHive();
 
 		if(hiveHandle.isValid())
 		{
 			try
 			{
-				if((hiveHandle.getHive()) ->
+				if((hiveHandle.getInstance()) ->
 					executeWorkUnit(new GraphActionThreadPoolWorkUnit(this)))
 				{
 					// Work successfully scheduled.
@@ -332,7 +334,7 @@ void GraphAction::abortWork()
 	__complete();
 }
 
-bool GraphAction::canTraverseEdge(GraphEdgeHandle handle)
+bool GraphAction::canTraverseEdge(GraphHandle<GraphEdge> handle)
 {
 	bool canTraverse = true;
 
@@ -341,7 +343,7 @@ bool GraphAction::canTraverseEdge(GraphEdgeHandle handle)
 
 	if(handle.isValid())
 	{
-		unsigned edgeId = handle.getEdge() -> getId();
+		unsigned edgeId = handle.getInstance() -> getId();
 
 		unsigned numTraversedEdges = _traversedEdges.size();
 

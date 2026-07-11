@@ -1,7 +1,6 @@
+#include "graph/GraphHandle.hpp"
 #include "graph/GraphHive.hpp"
-#include "graph/GraphHiveHandle.hpp"
 #include "graph/GraphHiveSceneSurface.hpp"
-#include "graph/GraphNodeHandle.hpp"
 #include "graph/graphSceneElements.hpp"
 #include "graph/nodes/SceneGeometryNode.hpp"
 #include "graph/nodes/SceneRootNode.hpp"
@@ -29,6 +28,31 @@ namespace
 	const double _BODY_RADIUS = 0.9;
 	const double _PETAL_TILT_ANGLE_RADIANS = 0.45;
 	const double _TWO_PI = 2.0 * std::acos(-1.0);
+
+	// A finer-grained, more frequent step reads as smoother motion than a coarser one at the same overall
+	// closing duration; the webgl map's poll interval is tightened to match so the browser doesn't skip frames.
+	const unsigned _STROBE_INTERVAL_US = 40000;
+	const unsigned _WEBGL_POLL_INTERVAL_MS = 50;
+
+	// Runs against the first petal's transform node only: that node's matrix is the sole place the shared
+	// outward tilt lives (see the petalPlacement comment below), so nudging its rotation-Z component here is
+	// enough to fold every petal in unison on each strobe, since every other petal's transform chains off it.
+	// Elements 1/2/5/6 (Lua 1-based) are transform[0], transform[1], transform[4], transform[5], i.e. exactly
+	// the cos/sin terms _setRotationZ() would have written; math.min() clamps so repeated strobes settle at
+	// maxTilt rather than overshoot past it. Guarded on STROBE so the tilt only advances on strobe actions,
+	// not on every action that happens to invoke this node's script.
+	const char* const _PETAL_CLOSE_SCRIPT =
+		"if STROBE then"
+		"	local t = getTransform();"
+		"	local angle = math.atan(t[2], t[1]);"
+		"	local step = 0.0028;"
+		"	local maxTilt = 1.5;"
+		"	angle = math.min(angle + step, maxTilt);"
+		"	local c = math.cos(angle);"
+		"	local s = math.sin(angle);"
+		"	t[1] = c; t[2] = s; t[5] = -s; t[6] = c;"
+		"	setTransform(t);"
+		"end";
 
 	void _setIdentity(Transform transform)
 	{
@@ -271,20 +295,20 @@ namespace
 
 		return vertexes;
 	}
+
 }
 
 int main(int argc, char const *argv[])
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHiveHandle hiveHandle(hive);
+	GraphHandle<GraphHive> hiveHandle(hive);
 
 	SceneRootNode* root = new SceneRootNode();
 	hive -> addNode(root);
-	GraphNodeHandle rootHandle(root);
 
 	SceneGeometryNode* body = new SceneGeometryNode("");
 	hive -> addNode(body);
-	GraphNodeHandle bodyHandle(body);
+	GraphHandle<GraphNode> bodyHandle(body);
 
 	std::vector<double> bodyVertexes = _buildHalfSphereBodyVertexes();
 	body -> addVertexes(bodyVertexes.data(), bodyVertexes.size());
@@ -324,9 +348,9 @@ int main(int argc, char const *argv[])
 		_hsvToRgb(hue, 0.85, 0.95, baseR, baseG, baseB);
 		_hsvToRgb(hue, 0.25, 1.0, tipR, tipG, tipB);
 
-		SceneTransformNode* petalTransform = new SceneTransformNode();
+		SceneTransformNode* petalTransform = new SceneTransformNode(i == 0 ? _PETAL_CLOSE_SCRIPT : "");
 		hive -> addNode(petalTransform);
-		GraphNodeHandle petalTransformHandle(petalTransform);
+		GraphHandle<GraphNode> petalTransformHandle(petalTransform);
 
 		petalTransform -> setTransform(i == 0 ? petalPlacement : petalAngleStep);
 
@@ -334,7 +358,7 @@ int main(int argc, char const *argv[])
 
 		SceneGeometryNode* petal = new SceneGeometryNode("");
 		hive -> addNode(petal);
-		GraphNodeHandle petalHandle(petal);
+		GraphHandle<GraphNode> petalHandle(petal);
 
 		std::vector<double> petalVertexes = _buildPetalVertexes(baseR, baseG, baseB, tipR, tipG, tipB);
 		petal -> addVertexes(petalVertexes.data(), petalVertexes.size());
@@ -344,11 +368,15 @@ int main(int argc, char const *argv[])
 		previousNode = petal;
 	}
 
-	GraphHiveSceneSurface* surface = root -> generateSceneSurface(0);
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+
+	root -> populateSceneSurface(GraphHandle<GraphHiveSceneSurface>(surface));
 
 	HttpServer httpServer(8080);
 
 	GraphHiveSceneSurfaceWebglMap webglMap(httpServer, *surface, "/");
+
+	webglMap.setPollInterval(_WEBGL_POLL_INTERVAL_MS);
 
 	httpServer.start();
 
@@ -356,14 +384,29 @@ int main(int argc, char const *argv[])
 
 	signal(SIGINT, _handleSigInt);
 
+	// Don't start folding the petals until a browser has actually loaded the page; otherwise the animation
+	// could run to completion, or well past it, before anyone is around to see it.
+	while(_running && !webglMap.hasReceivedFirstRequest())
+	{
+		webglMap.waitForFirstRequest(500);
+	}
+
+	if(_running) std::cout << "Browser connected, starting petal close animation." << std::endl;
+
 	while(_running)
 	{
-		pause();
+		root -> emitStrobe();
+
+		// webglMap is bound to this surface for its whole lifetime; it picks up the refreshed contents via the
+		// surface changed event fired by populateEnd().
+		root -> populateSceneSurface(GraphHandle<GraphHiveSceneSurface>(surface));
+
+		usleep(_STROBE_INTERVAL_US);
 	}
 
 	httpServer.stop();
 
-	delete surface;
+	surface -> close();
 
 	hive -> shutdown();
 

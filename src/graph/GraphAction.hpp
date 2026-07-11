@@ -6,10 +6,10 @@
 
 #include "../util/RefCounted.hpp"
 #include "../thread/ThreadCondition.hpp"
-#include "GraphEdgeHandle.hpp"
-#include "GraphHiveHandle.hpp"
-#include "GraphNodeHandle.hpp"
+#include "GraphHandle.hpp"
 
+class GraphEdge;
+class GraphHive;
 class GraphNode;
 
 /**
@@ -26,7 +26,7 @@ class GraphAction : public RefCounted
 		 * @param initNode Initial node the new action is bound to. This action will not be applied to this node.
 		 * @param energy The energy that is assigned to the action.
 		 */
-		GraphAction(GraphNodeHandle& initNode, unsigned energy);
+		GraphAction(GraphHandle<GraphNode> initNode, unsigned energy);
 
 		/**
 		 * Get the required flags that determine if this action is invoked on a node.
@@ -81,7 +81,7 @@ class GraphAction : public RefCounted
 		 * Get whether this action can traverse the given edge.
 		 * An action ultimately determines which pathway it takes through the graph.
 		 */
-		virtual bool canTraverseEdge(GraphEdgeHandle handle);
+		virtual bool canTraverseEdge(GraphHandle<GraphEdge> handle);
 
 	protected:
 
@@ -94,6 +94,12 @@ class GraphAction : public RefCounted
 		 * @param required If true, the flag is required on the node for the action to be invoked on it.
 		 */
 		void _addFlag(unsigned long flag, bool required);
+
+		/**
+		 * Action is starting.
+ 		 * If this is called, it will always invoke _complete.
+		 */
+		virtual void _starting() = 0;
 
 		/**
 		 * Action is complete, will no longer traverse edges, and will soon be deleted.
@@ -129,10 +135,10 @@ class GraphAction : public RefCounted
 		bool _stopped = false;
 
 		/// Handle to the curent node this action is associated with.
-		GraphNodeHandle _boundNode;
+		GraphHandle<GraphNode> _boundNode;
 
 		/// Hive this action is traversing. Should always be set to the hive of the initial node.
-		GraphHiveHandle _boundHive;
+		GraphHandle<GraphHive> _boundHive;
 
 		/**
 		 * The number of energy units this action currently contains.

@@ -1,9 +1,9 @@
 #include "SceneRootNode.hpp"
 
 #include "../actions/SceneAction.hpp"
-#include "../GraphException.hpp"
+#include "../actions/SceneStrobeAction.hpp"
+#include "../GraphHandle.hpp"
 #include "../GraphHiveSceneSurface.hpp"
-#include "../GraphNodeHandle.hpp"
 
 SceneRootNode::~SceneRootNode()
 {
@@ -14,31 +14,30 @@ SceneRootNode::SceneRootNode() : GraphNode()
 	_setEnergyCost(1);
 }
 
-GraphHiveSceneSurface* SceneRootNode::generateSceneSurface(unsigned timeOut)
+void SceneRootNode::populateSceneSurface(GraphHandle<GraphHiveSceneSurface> sceneSurface)
 {
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface();
-
-	GraphNodeHandle handle(this);
+	GraphHandle<GraphNode> handle(this);
 
 	// Action will self delete once complete.
-	SceneAction* action = new SceneAction(handle, *surface);
+	SceneAction* action = new SceneAction(handle, sceneSurface);
 
 	action -> incrRef();
 
 	_emitAction(action);
 
-	action -> waitOnComplete(timeOut);
+	action -> decrRef();
+}
 
-	bool completed = action -> isComplete();
+void SceneRootNode::emitStrobe()
+{
+	GraphHandle<GraphNode> handle(this);
+
+	// Action will self delete once complete.
+	SceneStrobeAction* action = new SceneStrobeAction(handle);
+
+	action -> incrRef();
+
+	_emitAction(action);
 
 	action -> decrRef();
-
-	if(!completed)
-	{
-		// The action may still be traversing the graph and writing to the surface, so it can't be safely deleted
-		// here: leaking it is preferable to a use-after-free once the action eventually does complete.
-		throw GraphException(GraphException::SCENE_SURFACE_GENERATION_TIMED_OUT);
-	}
-
-	return surface;
 }

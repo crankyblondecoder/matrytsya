@@ -8,7 +8,7 @@ SerialisableAction::~SerialisableAction()
 {
 }
 
-SerialisableAction::SerialisableAction(GraphNodeHandle& initNode, unsigned energy)
+SerialisableAction::SerialisableAction(GraphHandle<GraphNode>& initNode, unsigned energy)
 	: GraphAction(initNode, energy)
 {
 	// Many actions that are serialisable will need to still be invoked on non-serialising nodes.

@@ -13,7 +13,7 @@ class SceneStrobeAction : public ScriptAction
 
         virtual ~SceneStrobeAction();
 
-		SceneStrobeAction(GraphNodeHandle& initNode);
+		SceneStrobeAction(GraphHandle<GraphNode>& initNode);
 
 	protected:
 

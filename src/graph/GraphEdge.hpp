@@ -5,7 +5,8 @@
 
 #include "../util/RefCounted.hpp"
 
-class GraphNodeHandle;
+template <typename T> class GraphHandle;
+class GraphNode;
 
 /**
  * Edge that describes directed link to another node.
@@ -19,7 +20,7 @@ class GraphEdge : public RefCounted
 		 * Create directed link to a graph node.
 		 * @param toNode Node edge points to.
 		 */
-		GraphEdge(GraphNodeHandle& toNode);
+		GraphEdge(GraphHandle<GraphNode>& toNode);
 
 		/**
 		 * Whether this edge points to a node.
@@ -31,7 +32,7 @@ class GraphEdge : public RefCounted
 		 * Traverse this edge.
 		 * @returns A graph node handle or null if traversal is not possible.
 		 */
-		GraphNodeHandle traverse();
+		GraphHandle<GraphNode> traverse();
 
 		/**
 		 * Get the unique id of this edge.
@@ -52,7 +53,7 @@ class GraphEdge : public RefCounted
 		unsigned _id;
 
 		/** Node this edge points to. */
-        GraphNodeHandle* _toNode;
+        GraphHandle<GraphNode>* _toNode;
 };
 
 #endif

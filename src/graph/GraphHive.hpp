@@ -11,7 +11,7 @@
 #include "GraphHiveCollection.hpp"
 #include "GraphNamed.hpp"
 #include "GraphNodeLocation.hpp"
-#include "GraphNodeHandle.hpp"
+#include "GraphHandle.hpp"
 
 class GraphNode;
 
@@ -45,14 +45,14 @@ class GraphHive : public RefCounted, public GraphNamed
 		 /**
 		  * Remove node from hive.
 		  */
-		 void removeNode(GraphNodeHandle nodeHandle);
+		 void removeNode(GraphHandle<GraphNode> nodeHandle);
 
 		 /**
 		  * Find a node in this hive by name.
 		  * @param nodeName Name of node to find.
 		  * @returns Handle to the node. Invalid handle if no node with that name exists in this hive.
 		  */
-		 GraphNodeHandle getNode(std::string nodeName);
+		 GraphHandle<GraphNode> getNode(std::string nodeName);
 
 		 /**
 		  * Get the thread pool used by this hive to enumerate itself.

@@ -23,7 +23,7 @@ namespace
 	}
 }
 
-GraphHiveSceneSurface::GraphHiveSceneSurface()
+GraphHiveSceneSurface::GraphHiveSceneSurface(GraphHandle<SceneRootNode> sceneRootNode) : _boundRootNode(sceneRootNode)
 {
 	ModelTransform identity;
 
@@ -40,10 +40,44 @@ GraphHiveSceneSurface::~GraphHiveSceneSurface()
 {
 }
 
-void GraphHiveSceneSurface::addVertexes(const std::vector<Vertex>& vertexes)
+void GraphHiveSceneSurface::activate()
+{
+	if(_boundRootNode.isValid())
+	{
+		_boundRootNode.getInstance() -> populateSceneSurface(GraphHandle<GraphHiveSceneSurface>(this));
+	}
+}
+
+void GraphHiveSceneSurface::populateStart()
+{
+	// TODO TEMP Just reset the whole surface.
+
+	_chunks.clear();
+	_modelTransforms.clear();
+
+	ModelTransform identity;
+
+	identity.id = 0;
+	identity.transform[0] = 1.0; identity.transform[1] = 0.0; identity.transform[2] = 0.0; identity.transform[3] = 0.0;
+	identity.transform[4] = 0.0; identity.transform[5] = 1.0; identity.transform[6] = 0.0; identity.transform[7] = 0.0;
+	identity.transform[8] = 0.0; identity.transform[9] = 0.0; identity.transform[10] = 1.0; identity.transform[11] = 0.0;
+	identity.transform[12] = 0.0; identity.transform[13] = 0.0; identity.transform[14] = 0.0; identity.transform[15] = 1.0;
+
+	_modelTransforms.push_back(identity);
+}
+
+void GraphHiveSceneSurface::populateEnd()
+{
+	// TODO TEMP Just always indicate the surface has changed.
+
+	_emitSurfaceChanged();
+}
+
+void GraphHiveSceneSurface::addVertexes(const std::vector<Vertex>& vertexes, unsigned id)
 {
 	Chunk chunk;
 
+	chunk.id = id;
 	chunk.vertexes = vertexes;
 
 	{ SYNC(_lock)
@@ -104,3 +138,6 @@ std::vector<GraphHiveSceneSurface::ModelTransform> GraphHiveSceneSurface::getMod
 	}
 }
 
+void GraphHiveSceneSurface::_close()
+{
+}

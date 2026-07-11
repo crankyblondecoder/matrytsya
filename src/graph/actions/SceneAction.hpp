@@ -18,14 +18,15 @@ class SceneAction : public GraphAction
 
 		/**
 		 * @param initNode Initial node the new action is bound to.
-		 * @param surface Surface this action populates as it visits nodes. Not owned by this.
+		 * @param surface Surface this action populates as it visits nodes.
 		 */
-		SceneAction(GraphNodeHandle& initNode, GraphHiveSceneSurface& surface);
+		SceneAction(GraphHandle<GraphNode> initNode, GraphHandle<GraphHiveSceneSurface> surface);
 
 	protected:
 
 		void _apply(GraphNode* target) override;
 
+		void _starting() override;
 		void _complete() override;
 
     private:
@@ -35,7 +36,7 @@ class SceneAction : public GraphAction
         SceneAction& operator= (const SceneAction& copyFrom);
 
 		/// Surface this action populates as it traverses the graph. Not owned by this.
-		GraphHiveSceneSurface& _surface;
+		GraphHandle<GraphHiveSceneSurface> _surface;
 };
 
 #endif

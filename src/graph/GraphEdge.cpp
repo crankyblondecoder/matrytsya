@@ -1,6 +1,6 @@
 #include "GraphEdge.hpp"
+#include "GraphHandle.hpp"
 #include "GraphNode.hpp"
-#include "GraphNodeHandle.hpp"
 
 std::atomic<unsigned> GraphEdge::_nextId{0};
 
@@ -9,12 +9,12 @@ GraphEdge::~GraphEdge()
 	if(_toNode) delete _toNode;
 }
 
-GraphEdge::GraphEdge(GraphNodeHandle& fromNode) : _id { _nextId++ }
+GraphEdge::GraphEdge(GraphHandle<GraphNode>& fromNode) : _id { _nextId++ }
 {
 	_toNode = 0;
 
 	// Try and make a copy of the handle.
-	GraphNodeHandle* newHandle = new GraphNodeHandle(fromNode);
+	GraphHandle<GraphNode>* newHandle = new GraphHandle<GraphNode>(fromNode);
 
 	if(newHandle -> isValid())
 	{
@@ -36,11 +36,11 @@ bool GraphEdge::isComplete()
 	return _toNode != 0;
 }
 
-GraphNodeHandle GraphEdge::traverse()
+GraphHandle<GraphNode> GraphEdge::traverse()
 {
 	if(_toNode)
 	{
-		GraphNodeHandle retHandle(*_toNode);
+		GraphHandle<GraphNode> retHandle(*_toNode);
 		return retHandle;
 	}
 

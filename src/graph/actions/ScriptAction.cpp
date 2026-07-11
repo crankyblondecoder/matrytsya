@@ -20,7 +20,7 @@ ScriptAction::~ScriptAction()
 	if(_luaState) lua_close(_luaState);
 }
 
-ScriptAction::ScriptAction(GraphNodeHandle& initNode, unsigned energy)
+ScriptAction::ScriptAction(GraphHandle<GraphNode>& initNode, unsigned energy)
 	: GraphAction(initNode, energy)
 {
 	// The script action is likely inherited, so leave the action flag as optional.
@@ -65,6 +65,10 @@ void ScriptAction::_apply(GraphNode* target)
 	}
 }
 
+void ScriptAction::_starting()
+{
+}
+
 void ScriptAction::_complete()
 {
 }
@@ -95,11 +99,21 @@ void ScriptAction::_shareGlobal(const char* name, const char* value)
 
 void ScriptAction::__shareGlobal(const char* name)
 {
-	// Stack on entry: [..., value]
-	lua_rawgeti(_luaState, LUA_REGISTRYINDEX, _sharedEnvRef); // [..., value, sharedTable]
-	lua_insert(_luaState, -2); // [..., sharedTable, value]
-	lua_setfield(_luaState, -2, name); // sharedTable[name] = value; [..., sharedTable]
-	lua_pop(_luaState, 1); // [...]
+	// The caller has already pushed the value to store. Stack on entry: [..., value]
+
+	// _sharedEnvRef is never the live global table, so it has to be fetched from the registry
+	// rather than written to via lua_setglobal. [..., value, sharedTable]
+	lua_rawgeti(_luaState, LUA_REGISTRYINDEX, _sharedEnvRef);
+
+	// lua_setfield needs the table below the value on the stack, so swap the two.
+	// [..., sharedTable, value]
+	lua_insert(_luaState, -2);
+
+	// sharedTable[name] = value; this also pops the value, leaving [..., sharedTable]
+	lua_setfield(_luaState, -2, name);
+
+	// Drop the table reference so the stack is restored to its pre-call depth. [...]
+	lua_pop(_luaState, 1);
 }
 
 bool ScriptAction::_getGlobal(const char* name, bool& value)

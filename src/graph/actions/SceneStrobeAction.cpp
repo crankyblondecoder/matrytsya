@@ -8,10 +8,13 @@ SceneStrobeAction::~SceneStrobeAction()
 {
 }
 
-SceneStrobeAction::SceneStrobeAction(GraphNodeHandle& initNode)
+SceneStrobeAction::SceneStrobeAction(GraphHandle<GraphNode>& initNode)
 	: ScriptAction(initNode)
 {
 	_addFlag(SCENE_STROBE_GRAPH_ACTION, true);
+
+	// Set Lua global variable so that scripts can tell if strobing is active.
+	_shareGlobal("STROBE", true);
 }
 
 void SceneStrobeAction::_apply(GraphNode* target)

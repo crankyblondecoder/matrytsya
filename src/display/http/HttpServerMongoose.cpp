@@ -9,6 +9,10 @@
 
 HttpServerMongoose::HttpServerMongoose(unsigned port) : HttpServerBase(port)
 {
+	// Mongoose defaults to MG_LL_DEBUG, which logs every accept/close. That is too noisy for something as
+	// frequent as data polling, so only let actual errors reach the terminal.
+	mg_log_set(MG_LL_ERROR);
+
 	_mgr = new mg_mgr();
 
 	mg_mgr_init(_mgr);

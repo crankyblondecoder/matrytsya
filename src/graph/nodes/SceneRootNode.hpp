@@ -17,14 +17,14 @@ class SceneRootNode : public GraphNode
         SceneRootNode();
 
 		/**
-		 * Generate a scene surface for the visual scene rooted at this node.
-		 * @note Emits a SceneAction from this node and waits for it to complete before returning.
-		 * @param timeOut Maximum period in ms to wait for the action to complete. Use 0 to wait indefinitely.
-		 * @returns Newly created surface, populated by traversing the scene rooted at this node. Not owned by this;
-		 *          caller is responsible for deleting it.
-		 * @throw GraphException SCENE_SURFACE_GENERATION_TIMED_OUT if the action doesn't complete within timeOut.
+		 * Populate the given scene surface.
 		 */
-		GraphHiveSceneSurface* generateSceneSurface(unsigned timeOut);
+		void populateSceneSurface(GraphHandle<GraphHiveSceneSurface> sceneSurface);
+
+		/**
+		 * Emit a single strobe action from this node immediately.
+		 */
+		void emitStrobe();
 
 	protected:
 

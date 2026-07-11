@@ -14,7 +14,7 @@ class SerialisableAction : public GraphAction
 
         virtual ~SerialisableAction();
 
- 		SerialisableAction(GraphNodeHandle& initNode, unsigned energy);
+ 		SerialisableAction(GraphHandle<GraphNode>& initNode, unsigned energy);
 
 		/**
 		 * Type of serialisable action.

@@ -2,11 +2,9 @@
 
 #include "GraphAction.hpp"
 #include "GraphEdge.hpp"
-#include "GraphEdgeHandle.hpp"
 #include "GraphException.hpp"
+#include "GraphHandle.hpp"
 #include "GraphHive.hpp"
-#include "GraphHiveHandle.hpp"
-#include "GraphNodeHandle.hpp"
 
 std::atomic<unsigned> GraphNode::_nextId{0};
 
@@ -23,7 +21,7 @@ GraphNode::~GraphNode()
 	}
 }
 
-GraphNode::GraphNode() : _id { _nextId++ }
+GraphNode::GraphNode() : _id { _nextId++ }, _hive(nullptr)
 {
 }
 
@@ -32,15 +30,15 @@ unsigned GraphNode::getId()
 	return _id;
 }
 
-GraphHiveHandle GraphNode::getHive()
+GraphHandle<GraphHive> GraphNode::getHive()
 {
 	{ SYNC(_lock)
 
-		return GraphHiveHandle(_hive);
+		return GraphHandle<GraphHive>(_hive);
 	}
 }
 
-bool GraphNode::setHive(GraphHiveHandle hive)
+bool GraphNode::setHive(GraphHandle<GraphHive> hive)
 {
 	if(!hive.isValid()) return false;
 
@@ -101,7 +99,7 @@ void GraphNode::_setEnergyCost(unsigned cost)
 	}
 }
 
-int GraphNode::createEdge(GraphNodeHandle& connectTo)
+int GraphNode::createEdge(GraphHandle<GraphNode>& connectTo)
 {
 	// Default value indicates edge wasn't created.
 	int retHandle = -1;
@@ -236,12 +234,12 @@ GraphEdge* GraphNode::__removeEdge(int edgeHandle)
 	return edge;
 }
 
-GraphEdgeHandle GraphNode::traverse(GraphAction& action)
+GraphHandle<GraphEdge> GraphNode::traverse(GraphAction& action)
 {
 	// Using a handle guarantees that the edge will be availble.
-	GraphEdgeHandle edgeToTraverse(0);
+	GraphHandle<GraphEdge> edgeToTraverse(0);
 
-	std::vector<GraphEdgeHandle> edgesToCheck;
+	std::vector<GraphHandle<GraphEdge>> edgesToCheck;
 	unsigned numEdgesToCheck = 0;
 
 	{ SYNC(_lock)
@@ -252,7 +250,7 @@ GraphEdgeHandle GraphNode::traverse(GraphAction& action)
 			{
 				if(_edges[index] != 0)
 				{
-					GraphEdgeHandle edgeHandle(_edges[index]);
+					GraphHandle<GraphEdge> edgeHandle(_edges[index]);
 
 					edgesToCheck.push_back(edgeHandle);
 					numEdgesToCheck++;
@@ -264,7 +262,7 @@ GraphEdgeHandle GraphNode::traverse(GraphAction& action)
 
 	for(unsigned index = 0; index < numEdgesToCheck; index++)
 	{
-		GraphEdgeHandle edgeHandleToCheck = edgesToCheck[index];
+		GraphHandle<GraphEdge> edgeHandleToCheck = edgesToCheck[index];
 
 		if(action.canTraverseEdge(edgeHandleToCheck))
 		{

@@ -15,7 +15,7 @@ class PingAction : public SerialisableAction
 
         virtual ~PingAction();
 
-		PingAction(GraphNodeHandle& initNode);
+		PingAction(GraphHandle<GraphNode>& initNode);
 
 		/**
 		 * Get the current ping count from the action.
@@ -28,6 +28,7 @@ class PingAction : public SerialisableAction
 
 		void _apply(GraphNode* target) override;
 
+		void _starting() override;
 		void _complete() override;
 
 		SerialisableActionPayload* _serialise() override;

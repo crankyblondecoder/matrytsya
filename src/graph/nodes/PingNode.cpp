@@ -1,6 +1,6 @@
 #include "../actions/PingAction.hpp"
 #include "../graphActionFlagRegister.hpp"
-#include "../GraphNodeHandle.hpp"
+#include "../GraphHandle.hpp"
 #include "PingNode.hpp"
 
 PingNode::~PingNode()
@@ -23,7 +23,7 @@ bool PingNode::ping()
 
 PingAction* PingNode::emitPing(bool wait)
 {
-	GraphNodeHandle handle(this);
+	GraphHandle<GraphNode> handle(this);
 
 	// Action will self delete once complete.
 	PingAction* action = new PingAction(handle);
