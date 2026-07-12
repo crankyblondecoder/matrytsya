@@ -144,7 +144,8 @@ void GraphAction::__complete()
 		_hiveActionRegistered = false;
 
 		// Process any threads waiting on condition.
-		// Exceptions are allowed to pass through because it is a critical situation to potentially have any threads stalled indefinitely.
+		// Exceptions are allowed to pass through because it is a critical situation to potentially have any
+		// threads stalled indefinitely.
 
 		_completeCond.broadcast();
 	}
@@ -182,34 +183,35 @@ void GraphAction::start()
 		throw GraphException(GraphException::Error::RE_ENTRY_NOT_PERMITTED);
 	}
 
-	// Inform any subclass.
-	_starting();
-
-	_started = true;
-
-	_completeCond.unlockMutex();
-
 	bool workSubmitted = false;
 
-	if(_boundNode.isValid())
+	// Inform any subclass.
+	if(_starting())
 	{
-		if(_boundHive.isValid())
-		{
-			// Register as active before work is scheduled so that a work unit which completes
-			// almost immediately on another thread is guaranteed to see this action as registered.
-			_hiveActionHandle = _boundHive.getInstance() -> actionActive(this);
-			_hiveActionRegistered = true;
+		_started = true;
 
-			// Bootstrap into action work cycle.
-			// Ask threadpool to execute actions work unit.
-			try
+		_completeCond.unlockMutex();
+
+		if(_boundNode.isValid())
+		{
+			if(_boundHive.isValid())
 			{
-				workSubmitted = (_boundHive.getInstance()) ->
-					executeWorkUnit(new GraphActionThreadPoolWorkUnit(this));
-			}
-			catch(std::bad_alloc& ex)
-			{
-				workSubmitted = false;
+				// Register as active before work is scheduled so that a work unit which completes
+				// almost immediately on another thread is guaranteed to see this action as registered.
+				_hiveActionHandle = _boundHive.getInstance() -> actionActive(this);
+				_hiveActionRegistered = true;
+
+				// Bootstrap into action work cycle.
+				// Ask threadpool to execute actions work unit.
+				try
+				{
+					workSubmitted = (_boundHive.getInstance()) ->
+						executeWorkUnit(new GraphActionThreadPoolWorkUnit(this));
+				}
+				catch(std::bad_alloc& ex)
+				{
+					workSubmitted = false;
+				}
 			}
 		}
 	}

@@ -97,9 +97,10 @@ class GraphAction : public RefCounted
 
 		/**
 		 * Action is starting.
- 		 * If this is called, it will always invoke _complete.
+ 		 * @note If this is called, it will always invoke _complete.
+		 * @returns True if should continue action application. If false, immediately complete without apply.
 		 */
-		virtual void _starting() = 0;
+		virtual bool _starting() = 0;
 
 		/**
 		 * Action is complete, will no longer traverse edges, and will soon be deleted.

@@ -25,15 +25,6 @@ namespace
 
 GraphHiveSceneSurface::GraphHiveSceneSurface(GraphHandle<SceneRootNode> sceneRootNode) : _boundRootNode(sceneRootNode)
 {
-	ModelTransform identity;
-
-	identity.id = 0;
-	identity.transform[0] = 1.0; identity.transform[1] = 0.0; identity.transform[2] = 0.0; identity.transform[3] = 0.0;
-	identity.transform[4] = 0.0; identity.transform[5] = 1.0; identity.transform[6] = 0.0; identity.transform[7] = 0.0;
-	identity.transform[8] = 0.0; identity.transform[9] = 0.0; identity.transform[10] = 1.0; identity.transform[11] = 0.0;
-	identity.transform[12] = 0.0; identity.transform[13] = 0.0; identity.transform[14] = 0.0; identity.transform[15] = 1.0;
-
-	_modelTransforms.push_back(identity);
 }
 
 GraphHiveSceneSurface::~GraphHiveSceneSurface()
@@ -48,10 +39,8 @@ void GraphHiveSceneSurface::activate()
 	}
 }
 
-void GraphHiveSceneSurface::populateStart()
+void GraphHiveSceneSurface::_populateStart()
 {
-	// TODO TEMP Just reset the whole surface.
-
 	_chunks.clear();
 	_modelTransforms.clear();
 
@@ -66,10 +55,17 @@ void GraphHiveSceneSurface::populateStart()
 	_modelTransforms.push_back(identity);
 }
 
-void GraphHiveSceneSurface::populateEnd()
+void GraphHiveSceneSurface::_populateEnd()
 {
-	// TODO TEMP Just always indicate the surface has changed.
+	{ SYNC(_lock)
 
+		// Move the built chunks and transforms into the scene to make the new scene.
+		// Assume this clears the build vectors.
+		_currentScene.chunks = std::move(_chunks);
+		_currentScene.modelTransforms = std::move(_modelTransforms);
+	}
+
+	// Notify that the surface has changed.
 	_emitSurfaceChanged();
 }
 
@@ -80,61 +76,47 @@ void GraphHiveSceneSurface::addVertexes(const std::vector<Vertex>& vertexes, uns
 	chunk.id = id;
 	chunk.vertexes = vertexes;
 
-	{ SYNC(_lock)
+	chunk.modelTransformIndex = _modelTransforms.size() - 1;
 
-		chunk.modelTransformIndex = _modelTransforms.size() - 1;
-
-		_chunks.push_back(std::move(chunk));
-	}
+	_chunks.push_back(std::move(chunk));
 }
 
 void GraphHiveSceneSurface::addLocalTransform(const Transform& transform, unsigned id)
 {
-	{ SYNC(_lock)
+	// Look for existing transform that matches the ID first.
+	int index = _modelTransforms.size() - 1;
 
-		// Look for existing transform that matches the ID first.
-		int index = _modelTransforms.size() - 1;
-
-		for(; index >= 0; index--)
+	for(; index >= 0; index--)
+	{
+		if(_modelTransforms[index].id == id)
 		{
-			if(_modelTransforms[index].id == id)
-			{
-				break;
-			}
+			break;
 		}
+	}
 
-		ModelTransform modelTransform;
+	ModelTransform modelTransform;
 
-		if(index >= 0)
-		{
-			modelTransform = _modelTransforms[index];
-			_modelTransforms.push_back(modelTransform);
-		}
-		else
-		{
-			modelTransform.id = id;
+	if(index >= 0)
+	{
+		modelTransform = _modelTransforms[index];
+		_modelTransforms.push_back(modelTransform);
+	}
+	else
+	{
+		modelTransform.id = id;
 
-			// Pre-multiplies (This is standard OpenGL behaviour).
-			multiplyTransforms(modelTransform.transform, transform, _modelTransforms.back().transform);
+		// Pre-multiplies (This is standard OpenGL behaviour).
+		multiplyTransforms(modelTransform.transform, transform, _modelTransforms.back().transform);
 
-			_modelTransforms.push_back(modelTransform);
-		}
+		_modelTransforms.push_back(modelTransform);
 	}
 }
 
-std::vector<GraphHiveSceneSurface::Chunk> GraphHiveSceneSurface::getChunks()
+GraphHiveSceneSurface::Scene GraphHiveSceneSurface::getScene()
 {
 	{ SYNC(_lock)
 
-		return _chunks;
-	}
-}
-
-std::vector<GraphHiveSceneSurface::ModelTransform> GraphHiveSceneSurface::getModelTransforms()
-{
-	{ SYNC(_lock)
-
-		return _modelTransforms;
+		return _currentScene;
 	}
 }
 

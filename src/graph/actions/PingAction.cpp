@@ -31,8 +31,9 @@ void PingAction::_apply(GraphNode* target)
 	SerialisableAction::_apply(target);
 }
 
-void PingAction::_starting()
+bool PingAction::_starting()
 {
+	return true;
 }
 
 void PingAction::_complete()

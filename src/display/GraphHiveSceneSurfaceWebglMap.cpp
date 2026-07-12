@@ -151,26 +151,25 @@ void GraphHiveSceneSurfaceWebglMap::_serveData(HttpRequest& request, HttpRespons
 
 	GraphHiveSceneSurface* sceneSurface = _sceneSurface.getInstance();
 
-	std::vector<GraphHiveSceneSurface::Chunk> chunks = sceneSurface -> getChunks();
-	std::vector<GraphHiveSceneSurface::ModelTransform> modelTransforms = sceneSurface -> getModelTransforms();
+	GraphHiveSceneSurface::Scene scene = sceneSurface -> getScene();
 
 	std::string json = "{\"modelTransforms\":[";
 
-	for(std::size_t index = 0; index < modelTransforms.size(); index++)
+	for(std::size_t index = 0; index < scene.modelTransforms.size(); index++)
 	{
 		if(index > 0) json += ",";
 
-		json += "{\"id\":" + std::to_string(modelTransforms[index].id) +
-			",\"transform\":" + jsonVec(modelTransforms[index].transform, 16) + "}";
+		json += "{\"id\":" + std::to_string(scene.modelTransforms[index].id) +
+			",\"transform\":" + jsonVec(scene.modelTransforms[index].transform, 16) + "}";
 	}
 
 	json += "],\"chunks\":[";
 
-	for(std::size_t chunkIndex = 0; chunkIndex < chunks.size(); chunkIndex++)
+	for(std::size_t chunkIndex = 0; chunkIndex < scene.chunks.size(); chunkIndex++)
 	{
 		if(chunkIndex > 0) json += ",";
 
-		const GraphHiveSceneSurface::Chunk& chunk = chunks[chunkIndex];
+		const GraphHiveSceneSurface::Chunk& chunk = scene.chunks[chunkIndex];
 
 		json += "{\"modelTransformIndex\":" + std::to_string(chunk.modelTransformIndex) + ",\"vertexes\":[";
 

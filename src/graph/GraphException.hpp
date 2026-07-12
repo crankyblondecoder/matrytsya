@@ -51,6 +51,8 @@ class GraphException : public Exception
 			ACTION_TELEPORT_FAILED,
 			/// Could not allocate a new isolated Lua state for a script node.
 			SCRIPT_STATE_BAD_ALLOC,
+			/// Whether the request of a hive surface should not have happened.
+			HIVE_SURFACE_BAD_REQUEST,
 			/// Timed out waiting for a scene surface to be generated.
 			SCENE_SURFACE_GENERATION_TIMED_OUT
         };

@@ -24,14 +24,21 @@ class GraphHiveSurface : public RefCounted, public GraphNamed, public EventEmitt
 		virtual void activate() = 0;
 
 		/**
-		 * Inform this surface that population of it has started.
+		 * Request this surface to go into population mode.
+		 * @returns True if could go into population mode, false otherwise. It will return false if already in
+		 *          population mode.
 		 */
-		virtual void populateStart() = 0;
+		bool populateStart();
 
 		/**
-		 * Inform this surface that population of it has ended.
+		 * Request this surface to go out of population mode.
 		 */
-		virtual void populateEnd() = 0;
+		void populateEnd();
+
+		/**
+		 * Get whether this surface is in population mode.
+		 */
+		bool isPopulating();
 
 		/**
 		 * Clean up and dereference this surface.
@@ -49,6 +56,16 @@ class GraphHiveSurface : public RefCounted, public GraphNamed, public EventEmitt
 		virtual void _close() = 0;
 
 		/**
+		 * Subclass hook to inform that population has started.
+		 */
+		virtual void _populateStart() = 0;
+
+		/**
+		 * Subclass hook to inform that population has ended.
+		 */
+		virtual void _populateEnd() = 0;
+
+		/**
 		 * Emit the surface changed event.
 		 */
 		void _emitSurfaceChanged();
@@ -58,6 +75,12 @@ class GraphHiveSurface : public RefCounted, public GraphNamed, public EventEmitt
 		// Disable copying.
 		GraphHiveSurface(const GraphHiveSurface& copyFrom);
 		GraphHiveSurface& operator= (const GraphHiveSurface& copyFrom);
+
+		/// Whether this surface is currently in population mode.
+		bool _populating = false;
+
+		/// Generic lock.
+		ThreadMutex _lock;
 };
 
 #endif

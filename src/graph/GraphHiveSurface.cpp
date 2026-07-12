@@ -1,4 +1,5 @@
 #include "../util/EventListener.hpp"
+#include "GraphException.hpp"
 #include "GraphHiveSurface.hpp"
 #include "GraphHiveSurfaceListener.hpp"
 
@@ -28,5 +29,47 @@ void GraphHiveSurface::close()
 	_close();
 
 	decrRef();
+}
+
+bool GraphHiveSurface::populateStart()
+{
+	{ SYNC(_lock)
+
+		if(_populating) return false;
+
+		_populating = true;
+	}
+
+	_populateStart();
+
+	return true;
+}
+
+void GraphHiveSurface::populateEnd()
+{
+	bool notify = false;
+
+	{ SYNC(_lock)
+
+		if(_populating)
+		{
+			_populating = false;
+			notify = true;
+		}
+		else
+		{
+			throw GraphException(GraphException::HIVE_SURFACE_BAD_REQUEST);
+		}
+	}
+
+	if(notify) _populateEnd();
+}
+
+bool GraphHiveSurface::isPopulating()
+{
+	{ SYNC(_lock)
+
+		return _populating;
+	}
 }
 

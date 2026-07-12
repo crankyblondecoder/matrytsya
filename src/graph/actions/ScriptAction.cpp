@@ -65,8 +65,9 @@ void ScriptAction::_apply(GraphNode* target)
 	}
 }
 
-void ScriptAction::_starting()
+bool ScriptAction::_starting()
 {
+	return true;
 }
 
 void ScriptAction::_complete()

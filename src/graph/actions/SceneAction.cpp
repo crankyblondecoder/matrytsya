@@ -25,12 +25,14 @@ void SceneAction::_apply(GraphNode* target)
 	}
 }
 
-void SceneAction::_starting()
+bool SceneAction::_starting()
 {
 	if(_surface.isValid())
 	{
-		_surface.getInstance() -> populateStart();
+		return _surface.getInstance() -> populateStart();
 	}
+
+	return false;
 }
 
 void SceneAction::_complete()

@@ -30,7 +30,7 @@ class ScriptAction : public GraphAction
 
 		void _apply(GraphNode* target) override;
 
-		void _starting() override;
+		bool _starting() override;
 		void _complete() override;
 
 		/**

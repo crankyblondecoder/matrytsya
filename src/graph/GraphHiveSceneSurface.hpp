@@ -46,16 +46,22 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 			Transform transform;
 		};
 
+		struct Scene
+		{
+			/// Chunks that make up a scene.
+			std::vector<Chunk> chunks;
+
+			/// The model transforms that apply to scene chunks.
+			std::vector<ModelTransform> modelTransforms;
+		};
+
 		virtual void activate() override;
-
-		virtual void populateStart() override;
-
-		virtual void populateEnd() override;
 
 		/**
 		 * Add vertexes to this scene surface to create a new chunk.
 		 * Think of this as adding vertexes to a stream.
 		 * @note The model transform that is ultimately applied to this chunk is the current model transform.
+		 * @note This function is not thread safe.
 		 * @param vertexes Vertexes to add or update (depending on the id).
 		 * @param id Id unique for this scene surface. If it matches and existing chunk, that chunk will be updated.
 		 */
@@ -67,6 +73,7 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		 * list, and the given transform ignored. Otherwise the given transform is pre-multiplied to the last
 		 * stored model transform to make the new model transform which is added to the end of the model transform
 		 * list.
+		 * @note This function is not thread safe.
 		 * @param transform The local transform to add.
 		 * @param id Identifying value stored against the new model transform. This is not required to be unique but
 		 *        any transforms with the same id will be considered to be the effectively the same.
@@ -74,24 +81,18 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		void addLocalTransform(const Transform& transform, unsigned id);
 
 		/**
-		 * Get a copy of the chunks that currently describe this scene surface.
-		 * @note Returns a copy, taken under lock, so that the caller does not have to hold this surface's internal
-		 *       lock while reading the result.
+		 * Get a copy of the surfaces current scene.
 		 */
-		std::vector<Chunk> getChunks();
-
-		/**
-		 * Get a copy of the model transforms that currently apply to this scene surface's chunks.
-		 * @note Returns a copy, taken under lock, so that the caller does not have to hold this surface's internal
-		 *       lock while reading the result.
-		 */
-		std::vector<ModelTransform> getModelTransforms();
-
+		Scene getScene();
 
 	protected:
 
 		// Required by ref counting.
 		virtual ~GraphHiveSceneSurface();
+
+		virtual void _populateStart() override;
+
+		virtual void _populateEnd() override;
 
 		virtual void _close() override;
 
@@ -101,13 +102,16 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		GraphHiveSceneSurface(const GraphHiveSceneSurface& copyFrom);
 		GraphHiveSceneSurface& operator= (const GraphHiveSceneSurface& copyFrom);
 
-		/// Chunks that describe the scene surface.
+		/// Chunks that describe the surface currently being built.
 		std::vector<Chunk> _chunks;
 
-		/// The model transforms that apply to chunks. The last transform in this list is the "current" one.
+		/// The model transforms that apply to the surface chunks currently being built. The last transform in this list is the "current" one.
 		std::vector<ModelTransform> _modelTransforms;
 
-		/// Guards _chunks and _modelTransforms, which may be written to and read from on different threads.
+		/// The currently scene that the surface can display.
+		Scene _currentScene;
+
+		/// Generic lock.
 		ThreadMutex _lock;
 
 		/// The scene root node this scene surface is bound to.
