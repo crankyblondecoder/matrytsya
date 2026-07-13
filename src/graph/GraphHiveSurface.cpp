@@ -3,12 +3,26 @@
 #include "GraphHiveSurface.hpp"
 #include "GraphHiveSurfaceListener.hpp"
 
-GraphHiveSurface::GraphHiveSurface()
+GraphHiveSurface::GraphHiveSurface(GraphHandle<GraphHive> hive) : _hive(hive)
 {
+	if(!hive.isValid())
+	{
+		throw GraphException(GraphException::INVALID_HIVE_HANDLE);
+	}
+
+	// TODO ... Some kind of binding mechanism with the hive.
 }
 
 GraphHiveSurface::~GraphHiveSurface()
 {
+}
+
+void GraphHiveSurface::poke(unsigned nodeId, GraphPoke poke)
+{
+	if(_hive.isValid())
+	{
+		_hive.getInstance() -> poke(nodeId, poke);
+	}
 }
 
 void GraphHiveSurface::_emitSurfaceChanged()

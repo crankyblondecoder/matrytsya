@@ -59,6 +59,13 @@ class GraphHiveSceneSurfaceWebglMap : public GraphHiveSurfaceHttpMap, private Ev
          */
         void __serveRevision(HttpResponse& response);
 
+        /**
+         * Serve a poke request made by the rendered page when a chunk of the scene is clicked on.
+         * @param request The incoming poke request. Must carry a "chunkId" query parameter.
+         * @param response Response to populate.
+         */
+        void __servePoke(HttpRequest& request, HttpResponse& response);
+
         virtual void hiveSurfaceChanged(GraphHandle<GraphHiveSurface> hiveSurface) override;
 
         virtual GraphHiveSurfaceListener* getListener() override;

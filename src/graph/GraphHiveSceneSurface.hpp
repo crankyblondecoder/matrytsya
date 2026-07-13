@@ -5,7 +5,9 @@
 
 #include "../thread/ThreadMutex.hpp"
 #include "GraphHandle.hpp"
+#include "GraphHive.hpp"
 #include "GraphHiveSurface.hpp"
+#include "GraphPoke.hpp"
 #include "graphSceneElements.hpp"
 #include "nodes/SceneRootNode.hpp"
 
@@ -19,16 +21,20 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		/**
 		 * Create a new scene surface.
 		 * @param sceneRootNode The scenes root node.
+		 * @param hive Hive this surface is bound to.
 		 */
-		GraphHiveSceneSurface(GraphHandle<SceneRootNode> sceneRootNode);
+		GraphHiveSceneSurface(GraphHandle<SceneRootNode> sceneRootNode, GraphHandle<GraphHive> hive);
 
 		/**
 		 * Defines a chunk of geometry.
 		 */
 		struct Chunk
 		{
-			/// Id that is unique within a scene surface.
+			/// Unique chunk id.
 			unsigned id;
+
+			/// Id of the node that this chunk is associated with.
+			unsigned nodeId;
 
 			/// The vertexes of the chunk. These _must_ be in multiples of three, i.e. three vertexes per triangle.
 			std::vector<Vertex> vertexes;
@@ -61,11 +67,11 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		 * Add vertexes to this scene surface to create a new chunk.
 		 * Think of this as adding vertexes to a stream.
 		 * @note The model transform that is ultimately applied to this chunk is the current model transform.
-		 * @note This function is not thread safe.
 		 * @param vertexes Vertexes to add or update (depending on the id).
-		 * @param id Id unique for this scene surface. If it matches and existing chunk, that chunk will be updated.
+		 * @param chunkId Id to assign the resultant chunk that is unique to this surface.
+		 * @param id Id of the node the resultant chunk is associated with.
 		 */
-		void addVertexes(const std::vector<Vertex>& vertexes, unsigned id);
+		void addVertexes(const std::vector<Vertex>& vertexes, unsigned chunkId, unsigned nodeId);
 
 		/**
 		 * Add a local transform to the scene.
@@ -73,7 +79,6 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		 * list, and the given transform ignored. Otherwise the given transform is pre-multiplied to the last
 		 * stored model transform to make the new model transform which is added to the end of the model transform
 		 * list.
-		 * @note This function is not thread safe.
 		 * @param transform The local transform to add.
 		 * @param id Identifying value stored against the new model transform. This is not required to be unique but
 		 *        any transforms with the same id will be considered to be the effectively the same.
@@ -84,6 +89,13 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		 * Get a copy of the surfaces current scene.
 		 */
 		Scene getScene();
+
+		/**
+		 * Poke this surface.
+		 * @param chunkId The id of the chunk that is to be poked.
+		 * @param poke Poke to apply.
+		 */
+		void poke(unsigned chunkId, GraphPoke poke);
 
 	protected:
 

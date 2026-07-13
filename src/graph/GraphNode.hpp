@@ -2,6 +2,7 @@
 #define GRAPH_NODE_H
 
 #include <atomic>
+#include <queue>
 
 class GraphAction;
 class GraphEdge;
@@ -11,6 +12,7 @@ class GraphHive;
 #include "GraphActionTargetable.hpp"
 #include "GraphHandle.hpp"
 #include "GraphNamed.hpp"
+#include "GraphPoke.hpp"
 
 // The number of edges a node can have is fixed.
 #define EDGE_ARRAY_SIZE 32
@@ -83,6 +85,11 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 */
 		bool setHive(GraphHandle<GraphHive> hive);
 
+		/**
+		 * Poke this node.
+		 */
+		virtual void poke(GraphPoke poke);
+
     protected:
 
 		// Must be virtual for reference counting auto-delete.
@@ -100,6 +107,21 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 */
 		void _setEnergyCost(unsigned cost);
 
+		/**
+		 * Set whether poking is enabled.
+		 */
+		void enablePoke(bool enable);
+
+		/**
+		 * Get whether there is a poke available to process.
+		 */
+		bool _hasPoke();
+
+		/**
+		 * Get the next poke to process.
+		 */
+		GraphPoke _getPoke();
+
 	private:
 
 		/// Counter used to derive each node's unique id.
@@ -108,7 +130,7 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		/// Unique id of this node.
 		unsigned _id;
 
-		/** The hive this node belongs to. */
+		/// The hive this node belongs to.
 		GraphHandle<GraphHive> _hive;
 
 		/// All edges directed from this node.
@@ -126,8 +148,14 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
         /// Generic lock.
         ThreadMutex _lock;
 
-		/** How much energy it costs for an action to be applied to this node. */
+		/// How much energy it costs for an action to be applied to this node.
 		unsigned _actionEnergyCost = 1;
+
+		/// Whether poking is enabled for this node. If false, all pokes are immediately discarded.
+		bool _pokeEnabled = false;
+
+		/// Current unprocessed node pokes. Protected by the generic lock.
+		std::queue<GraphPoke> _pokes;
 
         // Do not allow copying.
         GraphNode(const GraphNode& copyFrom);

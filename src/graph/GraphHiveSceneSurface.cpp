@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "../thread/thread.hpp"
+#include "GraphHiveSurface.hpp"
 
 namespace
 {
@@ -23,12 +24,34 @@ namespace
 	}
 }
 
-GraphHiveSceneSurface::GraphHiveSceneSurface(GraphHandle<SceneRootNode> sceneRootNode) : _boundRootNode(sceneRootNode)
+GraphHiveSceneSurface::GraphHiveSceneSurface(GraphHandle<SceneRootNode> sceneRootNode, GraphHandle<GraphHive> hive)
+	: GraphHiveSurface(hive), _boundRootNode(sceneRootNode)
 {
 }
 
 GraphHiveSceneSurface::~GraphHiveSceneSurface()
 {
+}
+
+void GraphHiveSceneSurface::poke(unsigned chunkId, GraphPoke poke)
+{
+	// Find the chunk and get the node id.
+	bool found = false;
+	unsigned nodeId = 0;
+
+	{ SYNC(_lock)
+
+		for(const Chunk& chunk : _currentScene.chunks)
+		{
+			if(chunk.id == chunkId)
+			{
+				found = true;
+				nodeId = chunk.nodeId;
+			}
+		}
+	}
+
+	if(found) GraphHiveSurface::poke(nodeId, poke);
 }
 
 void GraphHiveSceneSurface::activate()
@@ -69,46 +92,53 @@ void GraphHiveSceneSurface::_populateEnd()
 	_emitSurfaceChanged();
 }
 
-void GraphHiveSceneSurface::addVertexes(const std::vector<Vertex>& vertexes, unsigned id)
+void GraphHiveSceneSurface::addVertexes(const std::vector<Vertex>& vertexes, unsigned chunkId, unsigned nodeId)
 {
 	Chunk chunk;
 
-	chunk.id = id;
+	chunk.id = chunkId;
+	chunk.nodeId = nodeId;
 	chunk.vertexes = vertexes;
 
-	chunk.modelTransformIndex = _modelTransforms.size() - 1;
+	{ SYNC(_lock)
 
-	_chunks.push_back(std::move(chunk));
+		chunk.modelTransformIndex = _modelTransforms.size() - 1;
+
+		_chunks.push_back(std::move(chunk));
+	}
 }
 
 void GraphHiveSceneSurface::addLocalTransform(const Transform& transform, unsigned id)
 {
-	// Look for existing transform that matches the ID first.
-	int index = _modelTransforms.size() - 1;
+	{ SYNC(_lock)
 
-	for(; index >= 0; index--)
-	{
-		if(_modelTransforms[index].id == id)
+		// Look for existing transform that matches the ID first.
+		int index = _modelTransforms.size() - 1;
+
+		for(; index >= 0; index--)
 		{
-			break;
+			if(_modelTransforms[index].id == id)
+			{
+				break;
+			}
 		}
-	}
 
-	ModelTransform modelTransform;
+		ModelTransform modelTransform;
 
-	if(index >= 0)
-	{
-		modelTransform = _modelTransforms[index];
-		_modelTransforms.push_back(modelTransform);
-	}
-	else
-	{
-		modelTransform.id = id;
+		if(index >= 0)
+		{
+			modelTransform = _modelTransforms[index];
+			_modelTransforms.push_back(modelTransform);
+		}
+		else
+		{
+			modelTransform.id = id;
 
-		// Pre-multiplies (This is standard OpenGL behaviour).
-		multiplyTransforms(modelTransform.transform, transform, _modelTransforms.back().transform);
+			// Pre-multiplies (This is standard OpenGL behaviour).
+			multiplyTransforms(modelTransform.transform, transform, _modelTransforms.back().transform);
 
-		_modelTransforms.push_back(modelTransform);
+			_modelTransforms.push_back(modelTransform);
+		}
 	}
 }
 

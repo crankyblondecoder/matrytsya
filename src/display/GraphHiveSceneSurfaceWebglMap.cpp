@@ -1,10 +1,13 @@
 #include "GraphHiveSceneSurfaceWebglMap.hpp"
 
+#include <array>
 #include <cstddef>
 #include <iomanip>
 #include <sstream>
+#include <stdlib.h>
 
 #include "../graph/GraphHiveSceneSurface.hpp"
+#include "../graph/GraphPoke.hpp"
 #include "../thread/thread.hpp"
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
@@ -123,6 +126,27 @@ void GraphHiveSceneSurfaceWebglMap::__serveRevision(HttpResponse& response)
 	response.setBody("{\"revision\":" + std::to_string(revision) + "}");
 }
 
+void GraphHiveSceneSurfaceWebglMap::__servePoke(HttpRequest& request, HttpResponse& response)
+{
+	std::string chunkIdParam = request.getQueryParam("chunkId");
+
+	if(chunkIdParam.empty())
+	{
+		response.setStatus(400);
+		response.setContentType("application/json");
+		response.setBody("{\"error\":\"missing chunkId\"}");
+
+		return;
+	}
+
+	unsigned chunkId = (unsigned) strtoul(chunkIdParam.c_str(), 0, 10);
+
+	_sceneSurface.getInstance() -> poke(chunkId, GraphPoke(GraphPoke::PokeType::HIT, std::array<int, 4>{0, 0, 0, 0}));
+
+	response.setContentType("application/json");
+	response.setBody("{\"ok\":true}");
+}
+
 void GraphHiveSceneSurfaceWebglMap::hiveSurfaceChanged(GraphHandle<GraphHiveSurface> hiveSurface)
 {
 	{ SYNC(_lock)
@@ -149,6 +173,13 @@ void GraphHiveSceneSurfaceWebglMap::_serveData(HttpRequest& request, HttpRespons
 		return;
 	}
 
+	if(request.getPath() == base + "/poke")
+	{
+		__servePoke(request, response);
+
+		return;
+	}
+
 	GraphHiveSceneSurface* sceneSurface = _sceneSurface.getInstance();
 
 	GraphHiveSceneSurface::Scene scene = sceneSurface -> getScene();
@@ -171,7 +202,8 @@ void GraphHiveSceneSurfaceWebglMap::_serveData(HttpRequest& request, HttpRespons
 
 		const GraphHiveSceneSurface::Chunk& chunk = scene.chunks[chunkIndex];
 
-		json += "{\"modelTransformIndex\":" + std::to_string(chunk.modelTransformIndex) + ",\"vertexes\":[";
+		json += "{\"id\":" + std::to_string(chunk.id) +
+			",\"modelTransformIndex\":" + std::to_string(chunk.modelTransformIndex) + ",\"vertexes\":[";
 
 		for(std::size_t vertexIndex = 0; vertexIndex < chunk.vertexes.size(); vertexIndex++)
 		{

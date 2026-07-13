@@ -121,6 +121,115 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		return [out[0] / len, out[1] / len, out[2] / len];
 	}
 
+	function transformVec4(m, x, y, z, w)
+	{
+		var v = [x, y, z, w];
+		var out = [0, 0, 0, 0];
+
+		for(var row = 0; row < 4; row++)
+		{
+			var sum = 0;
+
+			for(var k = 0; k < 4; k++) sum += m[k * 4 + row] * v[k];
+
+			out[row] = sum;
+		}
+
+		return out;
+	}
+
+	// Standard column-major 4x4 matrix inverse (same a[col * 4 + row] convention as the rest of this file), used
+	// to unproject a clicked screen point back into a world space picking ray.
+	function invertMat4(a)
+	{
+		var a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3];
+		var a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7];
+		var a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11];
+		var a30 = a[12], a31 = a[13], a32 = a[14], a33 = a[15];
+
+		var b00 = a00 * a11 - a01 * a10;
+		var b01 = a00 * a12 - a02 * a10;
+		var b02 = a00 * a13 - a03 * a10;
+		var b03 = a01 * a12 - a02 * a11;
+		var b04 = a01 * a13 - a03 * a11;
+		var b05 = a02 * a13 - a03 * a12;
+		var b06 = a20 * a31 - a21 * a30;
+		var b07 = a20 * a32 - a22 * a30;
+		var b08 = a20 * a33 - a23 * a30;
+		var b09 = a21 * a32 - a22 * a31;
+		var b10 = a21 * a33 - a23 * a31;
+		var b11 = a22 * a33 - a23 * a32;
+
+		var det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+
+		if(!det) return null;
+
+		det = 1.0 / det;
+
+		return [
+			(a11 * b11 - a12 * b10 + a13 * b09) * det,
+			(a02 * b10 - a01 * b11 - a03 * b09) * det,
+			(a31 * b05 - a32 * b04 + a33 * b03) * det,
+			(a22 * b04 - a21 * b05 - a23 * b03) * det,
+			(a12 * b08 - a10 * b11 - a13 * b07) * det,
+			(a00 * b11 - a02 * b08 + a03 * b07) * det,
+			(a32 * b02 - a30 * b05 - a33 * b01) * det,
+			(a20 * b05 - a22 * b02 + a23 * b01) * det,
+			(a10 * b10 - a11 * b08 + a13 * b06) * det,
+			(a01 * b08 - a00 * b10 - a03 * b06) * det,
+			(a30 * b04 - a31 * b02 + a33 * b00) * det,
+			(a21 * b02 - a20 * b04 - a23 * b00) * det,
+			(a11 * b07 - a10 * b09 - a12 * b06) * det,
+			(a00 * b09 - a01 * b07 + a02 * b06) * det,
+			(a31 * b01 - a30 * b03 - a32 * b00) * det,
+			(a20 * b03 - a21 * b01 + a22 * b00) * det
+		];
+	}
+
+	function dot3(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+
+	function cross3(a, b)
+	{
+		return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+	}
+
+	function normalize3(v)
+	{
+		var len = Math.sqrt(dot3(v, v)) || 1;
+
+		return [v[0] / len, v[1] / len, v[2] / len];
+	}
+
+	// Standard Moller-Trumbore ray/triangle intersection. Returns the ray distance to the hit, or null if the
+	// ray misses the triangle or hits behind its origin.
+	function rayTriangleIntersect(origin, dir, v0, v1, v2)
+	{
+		var EPS = 1e-7;
+
+		var e1 = [v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2]];
+		var e2 = [v2[0] - v0[0], v2[1] - v0[1], v2[2] - v0[2]];
+
+		var h = cross3(dir, e2);
+		var a = dot3(e1, h);
+
+		if(Math.abs(a) < EPS) return null;
+
+		var f = 1 / a;
+		var s = [origin[0] - v0[0], origin[1] - v0[1], origin[2] - v0[2]];
+		var u = f * dot3(s, h);
+
+		if(u < 0 || u > 1) return null;
+
+		var q = cross3(s, e1);
+		var v = f * dot3(dir, q);
+
+		if(v < 0 || u + v > 1) return null;
+
+		var t = f * dot3(e2, q);
+
+		return (t > EPS) ? t : null;
+	}
+
 	// -- Camera state, driven by mouse drag (orbit) and wheel (zoom) --
 
 	var camera = { yaw: 0.6, pitch: 0.4, distance: 10, centre: [0, 0, 0] };
@@ -131,8 +240,105 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	// every subsequent load (e.g. from an in-progress animation) would fight the user's own zoom/orbit input.
 	var cameraFitted = false;
 
-	canvas.addEventListener('mousedown', function(e) { dragging = true; lastX = e.clientX; lastY = e.clientY; });
-	window.addEventListener('mouseup', function() { dragging = false; });
+	// Raw positions and their owning chunk ids from the most recently loaded scene, plus the view/projection
+	// matrix used to draw the most recent frame. Together these are enough to pick a chunk under a clicked pixel.
+	var lastPositions = [];
+	var lastTriangleChunkIds = [];
+	var lastViewProj = null;
+
+	// Tracks whether a mousedown started on the canvas, and where, so mouseup can tell a click (poke) apart
+	// from the end of a camera drag.
+	var mouseDownOnCanvas = false;
+	var mouseDownX = 0, mouseDownY = 0;
+
+	// Casts a ray through the given screen point (client coordinates) using the last drawn view/projection
+	// matrix and returns the id of the nearest chunk it hits, or null if nothing was hit.
+	function pickChunkAt(clientX, clientY)
+	{
+		if(!lastViewProj || lastTriangleChunkIds.length === 0) return null;
+
+		var inverse = invertMat4(lastViewProj);
+
+		if(!inverse) return null;
+
+		var rect = canvas.getBoundingClientRect();
+		var ndcX = ((clientX - rect.left) / rect.width) * 2 - 1;
+		var ndcY = 1 - ((clientY - rect.top) / rect.height) * 2;
+
+		var nearPoint = transformVec4(inverse, ndcX, ndcY, -1, 1);
+		var farPoint = transformVec4(inverse, ndcX, ndcY, 1, 1);
+
+		var origin = [nearPoint[0] / nearPoint[3], nearPoint[1] / nearPoint[3], nearPoint[2] / nearPoint[3]];
+		var far = [farPoint[0] / farPoint[3], farPoint[1] / farPoint[3], farPoint[2] / farPoint[3]];
+
+		var dir = normalize3([far[0] - origin[0], far[1] - origin[1], far[2] - origin[2]]);
+
+		var closestT = Infinity;
+		var closestChunkId = null;
+
+		for(var triIndex = 0; triIndex < lastTriangleChunkIds.length; triIndex++)
+		{
+			var base = triIndex * 9;
+
+			var v0 = [lastPositions[base], lastPositions[base + 1], lastPositions[base + 2]];
+			var v1 = [lastPositions[base + 3], lastPositions[base + 4], lastPositions[base + 5]];
+			var v2 = [lastPositions[base + 6], lastPositions[base + 7], lastPositions[base + 8]];
+
+			var hitT = rayTriangleIntersect(origin, dir, v0, v1, v2);
+
+			if(hitT !== null && hitT < closestT)
+			{
+				closestT = hitT;
+				closestChunkId = lastTriangleChunkIds[triIndex];
+			}
+		}
+
+		return closestChunkId;
+	}
+
+	// Pokes the surface backing this map to say the chunk with the given id was clicked on.
+	function pokeChunk(chunkId)
+	{
+		var pokeUrl = window.location.pathname.replace(/\/+$/, '') + '/poke';
+
+		fetch(pokeUrl + '?chunkId=' + chunkId, { method: 'POST' }).catch(function(err)
+		{
+			status.textContent = 'Failed to poke scene: ' + err;
+		});
+	}
+
+	canvas.addEventListener('mousedown', function(e)
+	{
+		dragging = true;
+		mouseDownOnCanvas = true;
+		lastX = e.clientX; lastY = e.clientY;
+		mouseDownX = e.clientX; mouseDownY = e.clientY;
+	});
+	window.addEventListener('mouseup', function(e)
+	{
+		dragging = false;
+
+		if(!mouseDownOnCanvas) return;
+
+		mouseDownOnCanvas = false;
+
+		var moveDist = Math.hypot(e.clientX - mouseDownX, e.clientY - mouseDownY);
+
+		// Real pointing devices (especially trackpads) commonly drift several pixels between mousedown and
+		// mouseup even on a deliberate click, so this needs to be forgiving. At the 0.01 rad/px orbit
+		// sensitivity below, even this much slop is an imperceptible camera nudge if it does turn out to be
+		// the start of a drag.
+		if(moveDist < 4)
+		{
+			var chunkId = pickChunkAt(e.clientX, e.clientY);
+
+			if(chunkId !== null)
+			{
+				console.log('Picked chunk ' + chunkId);
+				pokeChunk(chunkId);
+			}
+		}
+	});
 	window.addEventListener('mousemove', function(e)
 	{
 		if(!dragging) return;
@@ -146,6 +352,7 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		lastX = e.clientX;
 		lastY = e.clientY;
 	});
+
 	canvas.addEventListener('wheel', function(e)
 	{
 		camera.distance *= (1 + (e.deltaY > 0 ? 0.1 : -0.1));
@@ -227,6 +434,7 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		var positions = [];
 		var colors = [];
 		var normals = [];
+		var triangleChunkIds = [];
 
 		var minX = Infinity, minY = Infinity, minZ = Infinity;
 		var maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
@@ -248,6 +456,9 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 					vertex.colour[3] / 255);
 				normals.push(worldNormal[0], worldNormal[1], worldNormal[2]);
 
+				// Every third vertex completes another triangle belonging to this chunk.
+				if(v % 3 === 2) triangleChunkIds.push(chunk.id);
+
 				minX = Math.min(minX, worldPos[0]); maxX = Math.max(maxX, worldPos[0]);
 				minY = Math.min(minY, worldPos[1]); maxY = Math.max(maxY, worldPos[1]);
 				minZ = Math.min(minZ, worldPos[2]); maxZ = Math.max(maxZ, worldPos[2]);
@@ -255,6 +466,9 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		}
 
 		vertexCount = positions.length / 3;
+
+		lastPositions = positions;
+		lastTriangleChunkIds = triangleChunkIds;
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
@@ -297,6 +511,8 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 			var viewProj = multiply(proj, view);
 
+			lastViewProj = viewProj;
+
 			gl.uniformMatrix4fv(uViewProj, false, new Float32Array(viewProj));
 
 			gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -321,6 +537,20 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	var revisionUrl = window.location.pathname.replace(/\/+$/, '') + '/revision';
 	var lastRevision = null;
 	var drawing = false;
+	var pollTimer = null;
+
+	// A refused connection means the server has gone away; retrying on the usual interval would
+	// just spam the console with failed network requests, so stop polling until the page is reloaded.
+	function stopPolling(err)
+	{
+		if(pollTimer !== null)
+		{
+			clearInterval(pollTimer);
+			pollTimer = null;
+		}
+
+		status.textContent = 'Lost connection to server: ' + err;
+	}
 
 	function poll()
 	{
@@ -342,12 +572,12 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 			});
 		}).catch(function(err)
 		{
-			status.textContent = 'Failed to load scene data: ' + err;
+			stopPolling(err);
 		});
 	}
 
 	poll();
-	setInterval(poll, %POLL_INTERVAL_MS%);
+	pollTimer = setInterval(poll, %POLL_INTERVAL_MS%);
 })();
 </script>
 </body>

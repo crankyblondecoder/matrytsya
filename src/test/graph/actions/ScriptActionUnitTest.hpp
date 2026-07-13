@@ -502,7 +502,7 @@ TEST(ScriptActionTest, SceneGeometryNodeExposesVertexToLua)
 
 	action -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(0));
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(0), hiveHandle);
 	GraphHandle<GraphNode> sourceHandle(sourceNode);
 	SceneAction* sceneAction = new SceneAction(sourceHandle, GraphHandle<GraphHiveSceneSurface>(surface));
 
@@ -510,7 +510,8 @@ TEST(ScriptActionTest, SceneGeometryNodeExposesVertexToLua)
 	sceneAction -> start();
 	sceneAction -> waitOnComplete(0);
 
-	std::vector<GraphHiveSceneSurface::Chunk> chunks = surface -> getChunks();
+	GraphHiveSceneSurface::Scene scene = surface -> getScene();
+	std::vector<GraphHiveSceneSurface::Chunk> chunks = scene.chunks;
 
 	ASSERT_EQ(chunks.size(), 1u);
 	ASSERT_EQ(chunks[0].vertexes.size(), 1u);
@@ -565,7 +566,7 @@ TEST(ScriptActionTest, SceneGeometryNodeExposesAddVertexesToLua)
 
 	action -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(0));
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(0), hiveHandle);
 	GraphHandle<GraphNode> sourceHandle(sourceNode);
 	SceneAction* sceneAction = new SceneAction(sourceHandle, GraphHandle<GraphHiveSceneSurface>(surface));
 
@@ -573,7 +574,8 @@ TEST(ScriptActionTest, SceneGeometryNodeExposesAddVertexesToLua)
 	sceneAction -> start();
 	sceneAction -> waitOnComplete(0);
 
-	std::vector<GraphHiveSceneSurface::Chunk> chunks = surface -> getChunks();
+	GraphHiveSceneSurface::Scene scene = surface -> getScene();
+	std::vector<GraphHiveSceneSurface::Chunk> chunks = scene.chunks;
 
 	ASSERT_EQ(chunks.size(), 1u);
 	ASSERT_EQ(chunks[0].vertexes.size(), 3u);

@@ -368,7 +368,7 @@ int main(int argc, char const *argv[])
 		previousNode = petal;
 	}
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root), hiveHandle);
 
 	root -> populateSceneSurface(GraphHandle<GraphHiveSceneSurface>(surface));
 

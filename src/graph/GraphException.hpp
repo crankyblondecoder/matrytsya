@@ -1,8 +1,6 @@
 #ifndef GRAPH_EXCEPTION_H
 #define GRAPH_EXCEPTION_H
 
-#include <string>
-
 #include "../util/Exception.hpp"
 
 /**

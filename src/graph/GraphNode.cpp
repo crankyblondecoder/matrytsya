@@ -1,5 +1,7 @@
 #include "GraphNode.hpp"
 
+#include <iostream>
+
 #include "GraphAction.hpp"
 #include "GraphEdge.hpp"
 #include "GraphException.hpp"
@@ -277,5 +279,43 @@ GraphHandle<GraphEdge> GraphNode::traverse(GraphAction& action)
 void GraphNode::_emitAction(GraphAction* action)
 {
 	action -> start();
+}
+
+void GraphNode::poke(GraphPoke pokeToProcess)
+{
+	std::cout << "Node with id:" << getId() << " was poked." << std::endl;
+
+	{ SYNC(_lock)
+
+		// Discard the poke if poking isn't enabled rather than queuing it up for later.
+		if(_pokeEnabled) _pokes.push(pokeToProcess);
+	}
+}
+
+void GraphNode::enablePoke(bool enable)
+{
+	{ SYNC(_lock)
+
+		_pokeEnabled = enable;
+	}
+}
+
+bool GraphNode::_hasPoke()
+{
+	{ SYNC(_lock)
+
+		return !_pokes.empty();
+	}
+}
+
+GraphPoke GraphNode::_getPoke()
+{
+	{ SYNC(_lock)
+
+		GraphPoke pokeToProcess = _pokes.front();
+		_pokes.pop();
+
+		return pokeToProcess;
+	}
 }
 

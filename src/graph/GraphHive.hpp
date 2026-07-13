@@ -8,10 +8,11 @@
 #include "../thread/ThreadPool.hpp"
 #include "../util/RefCounted.hpp"
 #include "./actions/SerialisableActionPayload.hpp"
+#include "GraphHandle.hpp"
 #include "GraphHiveCollection.hpp"
 #include "GraphNamed.hpp"
 #include "GraphNodeLocation.hpp"
-#include "GraphHandle.hpp"
+#include "GraphPoke.hpp"
 
 class GraphNode;
 
@@ -40,25 +41,33 @@ class GraphHive : public RefCounted, public GraphNamed
 		 * Add a graph node to this hive.
 		 * @note Expects to manage the initial reference count of this node regardless of whether it could be added.
 		 */
-		 void addNode(GraphNode* node);
+		void addNode(GraphNode* node);
 
-		 /**
-		  * Remove node from hive.
-		  */
-		 void removeNode(GraphHandle<GraphNode> nodeHandle);
+		/**
+		 * Remove node from hive.
+		 */
+		void removeNode(GraphHandle<GraphNode> nodeHandle);
 
-		 /**
-		  * Find a node in this hive by name.
-		  * @param nodeName Name of node to find.
-		  * @returns Handle to the node. Invalid handle if no node with that name exists in this hive.
-		  */
-		 GraphHandle<GraphNode> getNode(std::string nodeName);
+		/**
+		 * Find a node in this hive by name.
+		 * @param nodeName Name of node to find.
+		 * @returns Handle to the node. Invalid handle if no node with that name exists in this hive.
+		 */
+		GraphHandle<GraphNode> getNode(std::string nodeName);
 
-		 /**
-		  * Get the thread pool used by this hive to enumerate itself.
-		  * @param numTabs Number of tabs to indent output by.
-		  */
-		 void enumerateThreadPool(unsigned numTabs);
+		/**
+		 * Poke this hive.
+		 * @note If a poke can't be affected, it is simply discarded.
+		 * @param nodeId The id of the node that is to be poked within the hive.
+		 * @param poke Poke to apply.
+		 */
+		void poke(unsigned nodeId, GraphPoke poke);
+
+		/**
+		 * Get the thread pool used by this hive to enumerate itself.
+		 * @param numTabs Number of tabs to indent output by.
+		 */
+		void enumerateThreadPool(unsigned numTabs);
 
 		/**
 		 * Execute a work unit using this hives thread pool.
@@ -121,6 +130,13 @@ class GraphHive : public RefCounted, public GraphNamed
         virtual ~GraphHive();
 
     private:
+
+		/**
+		 * Find a node in this hive by node id.
+		 * @param nodeId Id of node to find.
+		 * @returns Node handle. If no node was found this will be invalid.
+		 */
+		GraphHandle<GraphNode> __findNode(unsigned nodeId);
 
 		/// Thread pool that hive runs actions on.
 		ThreadPool* _threadPool = 0;

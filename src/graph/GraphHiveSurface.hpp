@@ -3,8 +3,11 @@
 
 #include "../util/EventEmitter.hpp"
 #include "../util/RefCounted.hpp"
+#include "GraphHandle.hpp"
+#include "GraphHive.hpp"
 #include "GraphHiveSurfaceListener.hpp"
 #include "GraphNamed.hpp"
+#include "GraphPoke.hpp"
 
 /**
  * Represents a "surface" that a hive can interact with, either for display or input.
@@ -15,7 +18,10 @@ class GraphHiveSurface : public RefCounted, public GraphNamed, public EventEmitt
 {
 	public:
 
-		GraphHiveSurface();
+		/**
+		 * @param hive Hive this surface is bound to. Must be a valid handle.
+		 */
+		GraphHiveSurface(GraphHandle<GraphHive> hive);
 
 		/**
 		 * Activate this surface.
@@ -44,6 +50,13 @@ class GraphHiveSurface : public RefCounted, public GraphNamed, public EventEmitt
 		 * Clean up and dereference this surface.
 		 */
 		virtual void close() final;
+
+		/**
+		 * Poke this surface.
+		 * @param nodeId The id of the node that is to be poked.
+		 * @param poke Poke to apply.
+		 */
+		void poke(unsigned nodeId, GraphPoke poke);
 
 	protected:
 
@@ -81,6 +94,9 @@ class GraphHiveSurface : public RefCounted, public GraphNamed, public EventEmitt
 
 		/// Generic lock.
 		ThreadMutex _lock;
+
+		/// Hive this surface is bound to.
+		GraphHandle<GraphHive> _hive;
 };
 
 #endif

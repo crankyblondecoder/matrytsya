@@ -42,7 +42,7 @@ TEST(SceneTest, GeneratedSceneContainsScriptVertexes)
 	strobeAction -> waitOnComplete(0);
 	strobeAction -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root), hiveHandle);
 
 	SceneAction* sceneAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
 
@@ -51,7 +51,8 @@ TEST(SceneTest, GeneratedSceneContainsScriptVertexes)
 	sceneAction -> waitOnComplete(0);
 	sceneAction -> decrRef();
 
-	std::vector<GraphHiveSceneSurface::Chunk> chunks = surface -> getChunks();
+	GraphHiveSceneSurface::Scene scene = surface -> getScene();
+	std::vector<GraphHiveSceneSurface::Chunk> chunks = scene.chunks;
 
 	ASSERT_EQ(chunks.size(), 1u);
 	ASSERT_EQ(chunks[0].vertexes.size(), 1u);
@@ -107,7 +108,7 @@ TEST(SceneTest, GeneratedSceneKeepsVertexesInScriptOrder)
 	strobeAction -> waitOnComplete(0);
 	strobeAction -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root), hiveHandle);
 
 	SceneAction* sceneAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
 
@@ -116,7 +117,8 @@ TEST(SceneTest, GeneratedSceneKeepsVertexesInScriptOrder)
 	sceneAction -> waitOnComplete(0);
 	sceneAction -> decrRef();
 
-	std::vector<GraphHiveSceneSurface::Chunk> chunks = surface -> getChunks();
+	GraphHiveSceneSurface::Scene scene = surface -> getScene();
+	std::vector<GraphHiveSceneSurface::Chunk> chunks = scene.chunks;
 
 	ASSERT_EQ(chunks.size(), 1u);
 	ASSERT_EQ(chunks[0].vertexes.size(), 3u);
@@ -160,7 +162,7 @@ TEST(SceneTest, GeneratedSceneUsesIdentityTransformWhenNoneApplied)
 	strobeAction -> waitOnComplete(0);
 	strobeAction -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root), hiveHandle);
 
 	SceneAction* sceneAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
 
@@ -169,8 +171,9 @@ TEST(SceneTest, GeneratedSceneUsesIdentityTransformWhenNoneApplied)
 	sceneAction -> waitOnComplete(0);
 	sceneAction -> decrRef();
 
-	std::vector<GraphHiveSceneSurface::Chunk> chunks = surface -> getChunks();
-	std::vector<GraphHiveSceneSurface::ModelTransform> modelTransforms = surface -> getModelTransforms();
+	GraphHiveSceneSurface::Scene scene = surface -> getScene();
+	std::vector<GraphHiveSceneSurface::Chunk> chunks = scene.chunks;
+	std::vector<GraphHiveSceneSurface::ModelTransform> modelTransforms = scene.modelTransforms;
 
 	ASSERT_EQ(chunks.size(), 1u);
 	ASSERT_EQ(modelTransforms.size(), 1u) << "No transform node was traversed, so only the initial identity should exist.";
@@ -242,7 +245,7 @@ TEST(SceneTest, GeneratedSceneCombinesNestedTransformsInTraversalOrder)
 	strobeAction -> waitOnComplete(0);
 	strobeAction -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root), hiveHandle);
 
 	SceneAction* sceneAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
 
@@ -251,8 +254,9 @@ TEST(SceneTest, GeneratedSceneCombinesNestedTransformsInTraversalOrder)
 	sceneAction -> waitOnComplete(0);
 	sceneAction -> decrRef();
 
-	std::vector<GraphHiveSceneSurface::Chunk> chunks = surface -> getChunks();
-	std::vector<GraphHiveSceneSurface::ModelTransform> modelTransforms = surface -> getModelTransforms();
+	GraphHiveSceneSurface::Scene scene = surface -> getScene();
+	std::vector<GraphHiveSceneSurface::Chunk> chunks = scene.chunks;
+	std::vector<GraphHiveSceneSurface::ModelTransform> modelTransforms = scene.modelTransforms;
 
 	ASSERT_EQ(chunks.size(), 1u);
 	ASSERT_EQ(chunks[0].vertexes.size(), 1u);
@@ -314,7 +318,7 @@ TEST(SceneTest, TransformNodeScriptCanReadAndModifyTransform)
 	strobeAction -> waitOnComplete(0);
 	strobeAction -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root), hiveHandle);
 
 	SceneAction* sceneAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
 
@@ -323,8 +327,9 @@ TEST(SceneTest, TransformNodeScriptCanReadAndModifyTransform)
 	sceneAction -> waitOnComplete(0);
 	sceneAction -> decrRef();
 
-	std::vector<GraphHiveSceneSurface::Chunk> chunks = surface -> getChunks();
-	std::vector<GraphHiveSceneSurface::ModelTransform> modelTransforms = surface -> getModelTransforms();
+	GraphHiveSceneSurface::Scene scene = surface -> getScene();
+	std::vector<GraphHiveSceneSurface::Chunk> chunks = scene.chunks;
+	std::vector<GraphHiveSceneSurface::ModelTransform> modelTransforms = scene.modelTransforms;
 
 	const Transform& transform = modelTransforms[chunks[0].modelTransformIndex].transform;
 

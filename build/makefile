@@ -21,6 +21,13 @@ cflags_test = -Wall -std=c++20 -O0 -g -pthread
 export depflags = -std=c++20
 export cname = g++
 
+# Lua's build artifacts (see makefile_lua) land in the same debug/release/test
+# directories as every other module's. "clean" needs their names so it can
+# leave them alone; only "lua_clean" is allowed to remove them.
+luaObjFiles = $(notdir $(wildcard ../src/lua/*.c))
+luaObjFiles := $(luaObjFiles:.c=.o)
+luaArtifacts = lua.a $(luaObjFiles) $(luaObjFiles:.o=.dep) $(luaObjFiles:.o=.depMake)
+
 CXX = $(cname)
 CXXFLAGS = $(cflags)
 
@@ -83,9 +90,14 @@ clean : subDirs
 	-rm $(execName)
 	-rm $(execName_debug)
 	-rm $(execName_test)
-	-rm -rf ./debug/*
-	-rm -rf ./release/*
-	-rm -rf ./test/*
+	-find ./debug ./release ./test -mindepth 1 $(foreach f, $(luaArtifacts), -not -name $(f)) -delete
+
+.PHONY : lua_clean
+lua_clean :
+	@ echo
+	@ echo "*** Clean - Lua ***"
+	@ echo
+	-rm -f $(foreach dir, debug release test, $(foreach f, $(luaArtifacts), $(dir)/$(f)))
 
 .PHONY : test
 test : subDirs $(modules)

@@ -46,6 +46,29 @@ GraphHive::GraphHive(unsigned numThreads)
 	_active = true;
 }
 
+GraphHandle<GraphNode> GraphHive::__findNode(unsigned nodeId)
+{
+	{ SYNC(_lock)
+
+		for(GraphNode* nodePtr : _nodes)
+		{
+			if(nodePtr && nodePtr -> getId() == nodeId)
+			{
+				return GraphHandle<GraphNode>(nodePtr);
+			}
+		}
+	}
+
+	return GraphHandle<GraphNode>(0);
+}
+
+void GraphHive::poke(unsigned nodeId, GraphPoke poke)
+{
+	GraphHandle<GraphNode> found = __findNode(nodeId);
+
+	if(found.isValid()) found.getInstance() -> poke(poke);
+}
+
 unsigned GraphHive::actionActive(GraphAction* action)
 {
 	unsigned retHandle = 0;
