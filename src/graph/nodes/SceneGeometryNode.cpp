@@ -59,6 +59,7 @@ void SceneGeometryNode::addVertexes(double* rawData, unsigned length)
 bool SceneGeometryNode::invoke(lua_State* luaState)
 {
 	__registerVertexBindings(luaState);
+	__registerAnimatingBindings(luaState);
 
 	return ScriptNode::invoke(luaState);
 }
@@ -166,5 +167,34 @@ void SceneGeometryNode::__registerVertexBindings(lua_State* luaState)
 	lua_pushlightuserdata(luaState, this);
 	lua_pushcclosure(luaState, __luaVertexCount, 1);
 	lua_setglobal(luaState, "vertexCount");
+}
+
+int SceneGeometryNode::__luaGetAnimating(lua_State* luaState)
+{
+	SceneGeometryNode* node = static_cast<SceneGeometryNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
+
+	lua_pushboolean(luaState, node -> _animating);
+
+	return 1;
+}
+
+int SceneGeometryNode::__luaSetAnimating(lua_State* luaState)
+{
+	SceneGeometryNode* node = static_cast<SceneGeometryNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
+
+	node -> _animating = lua_toboolean(luaState, 1);
+
+	return 0;
+}
+
+void SceneGeometryNode::__registerAnimatingBindings(lua_State* luaState)
+{
+	lua_pushlightuserdata(luaState, this);
+	lua_pushcclosure(luaState, __luaGetAnimating, 1);
+	lua_setglobal(luaState, "getAnimating");
+
+	lua_pushlightuserdata(luaState, this);
+	lua_pushcclosure(luaState, __luaSetAnimating, 1);
+	lua_setglobal(luaState, "setAnimating");
 }
 
