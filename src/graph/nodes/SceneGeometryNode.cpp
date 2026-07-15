@@ -9,7 +9,7 @@ SceneGeometryNode::~SceneGeometryNode()
 }
 
 SceneGeometryNode::SceneGeometryNode(const std::string& coreScript, const std::string& pokeScript)
-	: ScriptNode(coreScript, pokeScript)
+	: StrobeScriptNode(coreScript, pokeScript)
 {
 	_setEnergyCost(1);
 	_addActionFlag(SCENE_GRAPH_ACTION);
@@ -54,12 +54,12 @@ void SceneGeometryNode::addVertexes(double* rawData, unsigned length)
 	}
 }
 
-bool SceneGeometryNode::invoke(lua_State* luaState)
+void SceneGeometryNode::_registerCoreGlobals(lua_State* luaState)
 {
+	StrobeScriptNode::_registerCoreGlobals(luaState);
+
 	__registerVertexBindings(luaState);
 	__registerAnimatingBindings(luaState);
-
-	return ScriptNode::invoke(luaState);
 }
 
 void SceneGeometryNode::populateSurface(GraphHandle<GraphHiveSceneSurface> surface)
@@ -72,11 +72,6 @@ void SceneGeometryNode::strobe()
 }
 
 SceneActionTarget* SceneGeometryNode::getSceneActionTarget()
-{
-	return this;
-}
-
-StrobeActionTarget* SceneGeometryNode::getStrobeActionTarget()
 {
 	return this;
 }

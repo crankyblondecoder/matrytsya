@@ -10,7 +10,18 @@
 struct lua_State;
 
 /**
- * Graph node that runs a script against a Lua state provided to it when invoked.
+ * Graph node that owns its own isolated, sandboxed Lua states, one for its core script and one for
+ * processing pokes, and runs its scripts against them when invoked/poked.
+ * @note Each state opens only the base, coroutine, math, string, table and utf8 libraries. io, os, package
+ *       and debug are never opened, so neither state has filesystem, process, environment or introspection
+ *       access. Each state's memory is drawn from an allocator private to it and independently capped, so
+ *       the only resources available to either script are those explicitly granted to it.
+ * @note Each state's global environment is reset to fresh before every invoke()/poke, so nothing a script
+ *       sets during one run is visible to the next run of the same script on the same node.
+ * @note Extra globals a subclass registers via _registerCoreGlobals() (e.g. getStrobe(), addVertex())
+ *       are the one exception: they are written into the permanent base table once, the first time
+ *       invoke() runs, and remain callable on every subsequent invoke() without being re-registered.
+ *       Only globals a script itself sets during a run are discarded before the next run.
  */
 class ScriptNode : public GraphNode, public ScriptActionTarget
 {
@@ -24,11 +35,72 @@ class ScriptNode : public GraphNode, public ScriptActionTarget
 		 */
         ScriptNode(const std::string& coreScript, const std::string& pokeScript);
 
-		bool invoke(lua_State* luaState) override;
+		bool invoke() override;
+
+		void setGlobal(const char* name, bool value) override;
+		void setGlobal(const char* name, int value) override;
+		void setGlobal(const char* name, double value) override;
+		void setGlobal(const char* name, const char* value) override;
+
+		bool getGlobal(const char* name, bool& value) override;
+		bool getGlobal(const char* name, int& value) override;
+		bool getGlobal(const char* name, double& value) override;
+		bool getGlobal(const char* name, const char*& value) override;
+
+		/**
+		 * Read a global out of the poke state's environment as it stood immediately after the last poke (or
+		 * as it stood freshly sandboxed, if this node has never been poked). Analogous to getGlobal(), but
+		 * for the poke script's own state rather than the core script's.
+		 * @param name Global name to look up.
+		 * @param value Set to the global's value if found.
+		 * @returns Whether a boolean by that name was found.
+		 */
+		bool getPokeGlobal(const char* name, bool& value);
+
+		/**
+		 * Read a global out of the poke state's environment as it stood immediately after the last poke (or
+		 * as it stood freshly sandboxed, if this node has never been poked). Analogous to getGlobal(), but
+		 * for the poke script's own state rather than the core script's.
+		 * @param name Global name to look up.
+		 * @param value Set to the global's value if found.
+		 * @returns Whether an integer by that name was found.
+		 */
+		bool getPokeGlobal(const char* name, int& value);
+
+		/**
+		 * Read a global out of the poke state's environment as it stood immediately after the last poke (or
+		 * as it stood freshly sandboxed, if this node has never been poked). Analogous to getGlobal(), but
+		 * for the poke script's own state rather than the core script's.
+		 * @param name Global name to look up.
+		 * @param value Set to the global's value if found.
+		 * @returns Whether a number by that name was found.
+		 */
+		bool getPokeGlobal(const char* name, double& value);
+
+		/**
+		 * Read a global out of the poke state's environment as it stood immediately after the last poke (or
+		 * as it stood freshly sandboxed, if this node has never been poked). Analogous to getGlobal(), but
+		 * for the poke script's own state rather than the core script's.
+		 * @param name Global name to look up.
+		 * @param value Set to the global's value if found.
+		 * @returns Whether a string by that name was found.
+		 */
+		bool getPokeGlobal(const char* name, const char*& value);
 
 		ScriptActionTarget* getScriptActionTarget() override;
 
 	protected:
+
+		/**
+		 * Hook called once per node instance, the first time invoke() runs a script, with the core Lua
+		 * state's live global table temporarily pointed at the permanent base env table rather than a
+		 * per-invoke one. Subclasses override this to register extra globals (typically C closures bound
+		 * to this node instance via upvalue) that must remain callable on every future invoke() without
+		 * being re-registered each time. Default implementation does nothing.
+		 * @param luaState The core Lua state, positioned with an empty stack and its live global table
+		 *        temporarily set to the permanent base env table.
+		 */
+		virtual void _registerCoreGlobals(lua_State* luaState) {}
 
 		/**
 		 * Read an optional array field out of the table at the given stack index into a fixed-size double
@@ -68,6 +140,12 @@ class ScriptNode : public GraphNode, public ScriptActionTarget
 		void __compileCoreScript();
 
 		/**
+		 * Compile _pokeScript once and cache the result in _pokeBytecode, mirroring __compileCoreScript().
+		 * _pokeScript never changes after construction, so this only needs to run once.
+		 */
+		void __compilePokeScript();
+
+		/**
 		 * lua_Writer callback passed to lua_dump(); appends each chunk of bytecode it produces to the
 		 * std::string pointed to by userData.
 		 * @param luaState Lua state performing the dump.
@@ -78,6 +156,74 @@ class ScriptNode : public GraphNode, public ScriptActionTarget
 		 */
 		static int __writeBytecode(lua_State* luaState, const void* data, size_t size, void* userData);
 
+		/**
+		 * Create a new Lua state, sandboxed identically to the other state this node owns: opens only the
+		 * base, coroutine, math, string, table and utf8 libraries, strips dofile/loadfile/print/warn, and
+		 * installs the safe __safeLoad() replacement for the global `load`. Saves a registry ref to the
+		 * resulting clean global table into *baseEnvRef.
+		 * @param memoryUsed Byte counter __alloc() tracks this state's allocations against and caps at
+		 *        MEMORY_LIMIT.
+		 * @param baseEnvRef Out-param: registry ref (in the new state) to the clean sandboxed base env
+		 *        table.
+		 * @returns The newly created and sandboxed state.
+		 * @throw GraphException::SCRIPT_STATE_BAD_ALLOC If the state could not be allocated.
+		 */
+		static lua_State* __createSandboxedState(size_t* memoryUsed, int* baseEnvRef);
+
+		/**
+		 * Replace luaState's live global table with a fresh table whose __index metamethod falls through
+		 * to the table referenced by baseEnvRef, so library functions remain visible but no write lands in
+		 * the base table.
+		 * @param luaState State to install the fresh environment into.
+		 * @param baseEnvRef Registry ref (in luaState) to fall through reads to.
+		 */
+		static void __installFreshEnv(lua_State* luaState, int baseEnvRef);
+
+		/**
+		 * Save a registry reference (in luaState) to the table currently installed as luaState's globals
+		 * into *postInvokeEnvRef, unref'ing whatever it previously held. Called immediately after a script
+		 * finishes running so getGlobal() can read back whatever it set.
+		 * @param luaState State whose live global table should be captured.
+		 * @param postInvokeEnvRef In/out: previous ref to unref (if nonzero), then replaced with the new
+		 *        ref.
+		 */
+		static void __captureEnv(lua_State* luaState, int* postInvokeEnvRef);
+
+		/**
+		 * Register this node's core Lua bindings exactly once, the first time it is needed, writing them
+		 * into the permanent base env table (_coreBaseEnvRef) instead of the throwaway per-invoke table so
+		 * they survive every subsequent __installFreshEnv() reset. Does nothing on any call after the
+		 * first.
+		 */
+		void __registerCoreGlobalsOnce();
+
+		/**
+		 * Push GraphPoke's contents as Lua globals (POKE_TYPE, HIT_DURATION, DRAG_VECTOR) onto luaState,
+		 * ahead of running the poke script, so the script can branch on what kind of poke this is.
+		 * @param luaState The poke Lua state, positioned with the fresh per-invoke environment already
+		 *        installed.
+		 * @param poke The poke whose contents should be exposed.
+		 */
+		static void __exposePokeContext(lua_State* luaState, GraphPoke poke);
+
+		/**
+		 * Allocator shared by both persistent Lua states this node owns, capped independently per state via
+		 * userData.
+		 * @param userData Pointer to the size_t byte counter (either &_coreMemoryUsed or &_pokeMemoryUsed)
+		 *        this allocation should be tracked against and capped by MEMORY_LIMIT.
+		 */
+		static void* __alloc(void* userData, void* ptr, size_t oldSize, size_t newSize);
+
+		/**
+		 * Replacement for the sandboxed states' global `load`.
+		 * @note The real `load` accepts precompiled bytecode chunks by default, which can be used to crash or
+		 *       escape the VM. This only accepts source text and always compiles in text-only mode.
+		 */
+		static int __safeLoad(lua_State* luaState);
+
+		/// Maximum number of bytes either persistent Lua state this node owns may have allocated at once.
+		static constexpr size_t MEMORY_LIMIT = 1 * 1024 * 1024;
+
 		/// Main Lua source that is run each time this node is invoked.
 		std::string _coreScript;
 
@@ -87,6 +233,45 @@ class ScriptNode : public GraphNode, public ScriptActionTarget
 		/// Precompiled bytecode of _coreScript, cached once at construction; empty if _coreScript failed
 		/// to compile.
 		std::string _coreBytecode;
+
+		/// Precompiled bytecode of _pokeScript, cached once at construction; empty if _pokeScript failed
+		/// to compile.
+		std::string _pokeBytecode;
+
+		/// Persistent, sandboxed Lua state this node owns for running its core script.
+		lua_State* _coreLuaState = 0;
+
+		/// Persistent, sandboxed Lua state this node owns for running its poke script.
+		lua_State* _pokeLuaState = 0;
+
+		/// Registry ref (in _coreLuaState) to the base env table. Reads that miss the current per-invoke
+		/// env table fall through to this one (stdlib functions, etc.); this is also where
+		/// _registerCoreGlobals() writes each subclass's C-closure bindings, exactly once, so they persist
+		/// across every invoke() even though the per-invoke table itself is discarded and rebuilt each
+		/// time.
+		int _coreBaseEnvRef = 0;
+
+		/// Registry ref (in _coreLuaState) to the table live as globals immediately after the most recent
+		/// invoke() call, or 0 if invoke() has never run.
+		int _corePostInvokeEnvRef = 0;
+
+		/// Whether _registerCoreGlobals() has already run once for this node instance. Guards
+		/// __registerCoreGlobalsOnce() so subclass bindings are installed exactly once, the first time
+		/// invoke() runs a script, instead of being re-registered on every invoke().
+		bool _coreGlobalsRegistered = false;
+
+		/// Registry ref (in _pokeLuaState) to the clean sandboxed base env table.
+		int _pokeBaseEnvRef = 0;
+
+		/// Registry ref (in _pokeLuaState) to the table live as globals immediately after the most recent
+		/// poke, or 0 if this node has never been poked.
+		int _pokePostInvokeEnvRef = 0;
+
+		/// Running total of bytes currently allocated by _coreLuaState via __alloc.
+		size_t _coreMemoryUsed = 0;
+
+		/// Running total of bytes currently allocated by _pokeLuaState via __alloc.
+		size_t _pokeMemoryUsed = 0;
 };
 
 #endif

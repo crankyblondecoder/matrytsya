@@ -287,11 +287,17 @@ void GraphNode::poke(GraphPoke pokeToProcess)
 {
 	if(_pokeEnabled) std::cout << "Node with id:" << getId() << " was poked." << std::endl;
 
+	bool pokeEnabled;
+
 	{ SYNC(_lock)
 
-		// Silently discard the poke if poking isn't enabled.
-		if(_pokeEnabled) _poked(pokeToProcess);
+		pokeEnabled = _pokeEnabled;
 	}
+
+	// _poked() runs a node's poke script, which must not happen while holding _lock (see the note above
+	// __executeScheduledActionWorkUnit() for the same kind of re-entrancy hazard).
+	// Silently discard the poke if poking isn't enabled.
+	if(pokeEnabled) _poked(pokeToProcess);
 }
 
 bool GraphNode::getPokeEnabled()

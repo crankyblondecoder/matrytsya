@@ -39,10 +39,10 @@ namespace
 	// enough to fold every petal in unison on each strobe, since every other petal's transform chains off it.
 	// Elements 1/2/5/6 (Lua 1-based) are transform[0], transform[1], transform[4], transform[5], i.e. exactly
 	// the cos/sin terms _setRotationZ() would have written; math.min() clamps so repeated strobes settle at
-	// maxTilt rather than overshoot past it. Guarded on STROBE so the tilt only advances on strobe actions,
-	// not on every action that happens to invoke this node's script.
+	// maxTilt rather than overshoot past it. Guarded on getStrobe() so the tilt only advances on strobe
+	// actions, not on every action that happens to invoke this node's script.
 	const char* const _PETAL_CLOSE_SCRIPT =
-		"if STROBE then"
+		"if getStrobe() then"
 		"	local t = getTransform();"
 		"	local angle = math.atan(t[2], t[1]);"
 		"	local step = 0.0028;"

@@ -10,7 +10,7 @@ SceneTransformNode::~SceneTransformNode()
 }
 
 SceneTransformNode::SceneTransformNode(const std::string& script, const std::string& pokeScript)
-	: ScriptNode(script, pokeScript)
+	: StrobeScriptNode(script, pokeScript)
 {
 	_setEnergyCost(1);
 	_addActionFlag(SCENE_GRAPH_ACTION);
@@ -22,11 +22,11 @@ void SceneTransformNode::setTransform(Transform transform)
 	for(int i = 0; i < 16; i++) _transform[i] = transform[i];
 }
 
-bool SceneTransformNode::invoke(lua_State* luaState)
+void SceneTransformNode::_registerCoreGlobals(lua_State* luaState)
 {
-	__registerTransformBindings(luaState);
+	StrobeScriptNode::_registerCoreGlobals(luaState);
 
-	return ScriptNode::invoke(luaState);
+	__registerTransformBindings(luaState);
 }
 
 void SceneTransformNode::populateSurface(GraphHandle<GraphHiveSceneSurface> surface)
@@ -39,11 +39,6 @@ void SceneTransformNode::strobe()
 }
 
 SceneActionTarget* SceneTransformNode::getSceneActionTarget()
-{
-	return this;
-}
-
-StrobeActionTarget* SceneTransformNode::getStrobeActionTarget()
 {
 	return this;
 }

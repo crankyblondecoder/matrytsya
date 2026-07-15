@@ -4,9 +4,8 @@
 #include <string>
 
 #include "../actionTargets/SceneActionTarget.hpp"
-#include "../actionTargets/StrobeActionTarget.hpp"
 #include "../graphSceneElements.hpp"
-#include "ScriptNode.hpp"
+#include "StrobeScriptNode.hpp"
 
 class GraphHiveSceneSurface;
 
@@ -16,7 +15,7 @@ struct lua_State;
  * Graph node that represents a transform applied to scene geometry.
  * Its script can read and modify the current transform via the getTransform()/setTransform() Lua globals.
  */
-class SceneTransformNode : public ScriptNode, public SceneActionTarget, public StrobeActionTarget
+class SceneTransformNode : public StrobeScriptNode, public SceneActionTarget
 {
     public:
 
@@ -34,16 +33,15 @@ class SceneTransformNode : public ScriptNode, public SceneActionTarget, public S
 		 */
 		void setTransform(Transform transform);
 
-		bool invoke(lua_State* luaState) override;
-
 		void populateSurface(GraphHandle<GraphHiveSceneSurface> surface) override;
 
 		void strobe() override;
 
 		SceneActionTarget* getSceneActionTarget() override;
-		StrobeActionTarget* getStrobeActionTarget() override;
 
 	protected:
+
+		void _registerCoreGlobals(lua_State* luaState) override;
 
     private:
 

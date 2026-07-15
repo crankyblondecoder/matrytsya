@@ -7,13 +7,12 @@
 
 #include "../graphSceneElements.hpp"
 #include "../actionTargets/SceneActionTarget.hpp"
-#include "../actionTargets/StrobeActionTarget.hpp"
-#include "ScriptNode.hpp"
+#include "StrobeScriptNode.hpp"
 
 /**
  * Graph node that represents scene geometry.
  */
-class SceneGeometryNode : public ScriptNode, public SceneActionTarget, public StrobeActionTarget
+class SceneGeometryNode : public StrobeScriptNode, public SceneActionTarget
 {
     public:
 
@@ -38,16 +37,15 @@ class SceneGeometryNode : public ScriptNode, public SceneActionTarget, public St
 		 */
 		void addVertexes(double* rawData, unsigned length);
 
-		bool invoke(lua_State* luaState) override;
-
 		void populateSurface(GraphHandle<GraphHiveSceneSurface> surface) override;
 
 		void strobe() override;
 
 		SceneActionTarget* getSceneActionTarget() override;
-		StrobeActionTarget* getStrobeActionTarget() override;
 
 	protected:
+
+		void _registerCoreGlobals(lua_State* luaState) override;
 
     private:
 

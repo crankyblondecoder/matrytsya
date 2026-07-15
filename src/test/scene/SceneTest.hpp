@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 
 #include "../../graph/actions/SceneAction.hpp"
-#include "../../graph/actions/SceneStrobeAction.hpp"
+#include "../../graph/actions/StrobeAction.hpp"
 #include "../../graph/GraphHandle.hpp"
 #include "../../graph/GraphHive.hpp"
 #include "../../graph/GraphHiveSceneSurface.hpp"
@@ -35,7 +35,7 @@ TEST(SceneTest, GeneratedSceneContainsScriptVertexes)
 	root -> createEdge(geometryHandle);
 
 	GraphHandle<GraphNode> rootHandle(root);
-	SceneStrobeAction* strobeAction = new SceneStrobeAction(rootHandle);
+	StrobeAction* strobeAction = new StrobeAction(rootHandle);
 
 	strobeAction -> incrRef();
 	strobeAction -> start();
@@ -101,7 +101,7 @@ TEST(SceneTest, GeneratedSceneKeepsVertexesInScriptOrder)
 	root -> createEdge(geometryHandle);
 
 	GraphHandle<GraphNode> rootHandle(root);
-	SceneStrobeAction* strobeAction = new SceneStrobeAction(rootHandle);
+	StrobeAction* strobeAction = new StrobeAction(rootHandle);
 
 	strobeAction -> incrRef();
 	strobeAction -> start();
@@ -155,7 +155,7 @@ TEST(SceneTest, GeneratedSceneUsesIdentityTransformWhenNoneApplied)
 	root -> createEdge(geometryHandle);
 
 	GraphHandle<GraphNode> rootHandle(root);
-	SceneStrobeAction* strobeAction = new SceneStrobeAction(rootHandle);
+	StrobeAction* strobeAction = new StrobeAction(rootHandle);
 
 	strobeAction -> incrRef();
 	strobeAction -> start();
@@ -238,7 +238,7 @@ TEST(SceneTest, GeneratedSceneCombinesNestedTransformsInTraversalOrder)
 	translateNode -> createEdge(geometryHandle);
 
 	GraphHandle<GraphNode> rootHandle(root);
-	SceneStrobeAction* strobeAction = new SceneStrobeAction(rootHandle);
+	StrobeAction* strobeAction = new StrobeAction(rootHandle);
 
 	strobeAction -> incrRef();
 	strobeAction -> start();
@@ -311,7 +311,7 @@ TEST(SceneTest, TransformNodeScriptCanReadAndModifyTransform)
 	transformNode -> createEdge(geometryHandle);
 
 	GraphHandle<GraphNode> rootHandle(root);
-	SceneStrobeAction* strobeAction = new SceneStrobeAction(rootHandle);
+	StrobeAction* strobeAction = new StrobeAction(rootHandle);
 
 	strobeAction -> incrRef();
 	strobeAction -> start();

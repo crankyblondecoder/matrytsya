@@ -1,7 +1,7 @@
 #include "SceneRootNode.hpp"
 
 #include "../actions/SceneAction.hpp"
-#include "../actions/SceneStrobeAction.hpp"
+#include "../actions/StrobeAction.hpp"
 #include "../GraphHandle.hpp"
 #include "../GraphHiveSceneSurface.hpp"
 
@@ -33,7 +33,7 @@ void SceneRootNode::emitStrobe()
 	GraphHandle<GraphNode> handle(this);
 
 	// Action will self delete once complete.
-	SceneStrobeAction* action = new SceneStrobeAction(handle);
+	StrobeAction* action = new StrobeAction(handle);
 
 	action -> incrRef();
 
