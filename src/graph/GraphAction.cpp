@@ -22,6 +22,27 @@ GraphAction::GraphAction(GraphHandle<GraphNode> initNode, unsigned energy) : _bo
 	}
 }
 
+void GraphAction::applyScheduled(GraphHandle<GraphNode> nodeHandle)
+{
+	{ SYNC(_lock)
+
+		// Sanity check, these two handles should always point to the same node if this function is called.
+		if(_boundNode != nodeHandle)
+		{
+			throw GraphException(GraphException::INVALID_NODE_HANDLE);
+		}
+	}
+
+	if(nodeHandle.isValid()) _apply(nodeHandle.getInstance());
+
+	if(!(__traverse() && __executeWorkUnit())) __complete();
+}
+
+void GraphAction::setApplyToInitialNode()
+{
+	_applyToInitNode = true;
+}
+
 unsigned long GraphAction::getRequiredFlags()
 {
 	return _requiredFlags;
@@ -30,6 +51,12 @@ unsigned long GraphAction::getRequiredFlags()
 unsigned long GraphAction::getOptionalFlags()
 {
 	return _optionalFlags;
+}
+
+unsigned long GraphAction::getEdgeTraversalFlags()
+{
+	// For the moment just combine both required and optional flags.
+	return _requiredFlags | _optionalFlags;
 }
 
 void GraphAction::_addFlag(unsigned long flag, bool required)
@@ -118,7 +145,7 @@ void GraphAction::__consumeEnergy(unsigned amount)
 
 unsigned GraphAction::getEnergyLevel()
 {
-	{ SYNC(_workLock)
+	{ SYNC(_lock)
 
 		return _energy;
 	}
@@ -235,97 +262,137 @@ void GraphAction::work()
 	// owns the mutex.
 
 	bool apply = false;
+	bool traverse = false;
 	bool execWorkUnit = false;
-	bool complete = true;
+	bool complete = false;
 
 	GraphNode* curBoundNode = 0;
 	GraphHandle<GraphNode> prevBoundNodeHandle(0);
 
-	{ SYNC(_workLock)
+	{ SYNC(_lock)
 
 		if(_boundNode.isValid())
 		{
 			curBoundNode = _boundNode.getInstance();
 
-			if(!_initTraverse)
+			if(!_initTraverse || _applyToInitNode)
 			{
 				// Act on currently bound node.
 				if(curBoundNode -> canActionTarget(this)) apply = true;
 
+				// Do any energy accounting.
 				// Always consume energy even when action can't target the bound node. This ensures that actions
 				// "always die" with certainty. If it was only consumed upon application of a target then potentially
 				// an action can get into an infinite loop (this happened in early unit tests).
-					// Do any energy accounting.
 				__consumeEnergy(curBoundNode -> getEnergyCost());
 			}
-			else
-			{
-				// Stops acting on first bound node.
-				_initTraverse = false;
-			}
 
-			if(_energy > 0)
-			{
-				prevBoundNodeHandle = _boundNode;
-
-				GraphHandle<GraphEdge> edgeToTraverse = curBoundNode -> traverse(*this);
-
-				if(edgeToTraverse.isValid())
-				{
-					_traversedEdges.push_back(edgeToTraverse.getInstance() -> getId());
-
-					_boundNode = edgeToTraverse.getInstance() -> traverse();
-
-					if(_boundNode.isValid())
-					{
-						execWorkUnit = true;
-					}
-				}
-				else
-				{
-					_boundNode.clear();
-				}
-			}
+			_initTraverse = false;
 		}
 	}
 
-	// Note: Make sure a handle still keeps a reference to this node pointer until after the action is applied.
-	if(apply) _apply(curBoundNode);
+	if(apply)
+	{
+		// Note: Successfully scheduling an action means traversal, work unit execution and action completion
+		// are processed later on.
+
+		if(!_boundNode.getInstance() -> scheduleAction(GraphHandle<GraphAction>(this)))
+		{
+			// Couldn't schedule this action with the node so just try and keep action traversal going.
+			traverse = true;
+		}
+	}
+	else
+	{
+		// Still should attempt to traverse, even if not applied.
+		traverse = true;
+	}
+
+	if(traverse)
+	{
+		if(__traverse())
+		{
+			execWorkUnit = true;
+		}
+		else
+		{
+			// Can't traverse, which means action is complete.
+			execWorkUnit = false;
+			complete = true;
+		}
+	}
 
 	if(execWorkUnit)
 	{
-		// Previous bound node handle _must_ be non-null if execWorkUnit is true.
-
-		// Create and schedule another work unit for the newly bound valid node. This makes sure
-		// actions don't hog thread time.
-		GraphHandle<GraphHive> hiveHandle = prevBoundNodeHandle.getInstance() -> getHive();
-
-		if(hiveHandle.isValid())
-		{
-			try
-			{
-				if((hiveHandle.getInstance()) ->
-					executeWorkUnit(new GraphActionThreadPoolWorkUnit(this)))
-				{
-					// Work successfully scheduled.
-					complete = false;
-				}
-			}
-			catch(std::bad_alloc& ex)
-			{
-				complete = true;
-			}
-		}
+		// Being unable to execute a work unit forces an action to be complete.
+		complete = !__executeWorkUnit();
 	}
-
-	// Previous bound node handle will not be valid unless it is required to be cleared at this point.
-	if(prevBoundNodeHandle.isValid()) prevBoundNodeHandle.clear();
 
 	if(complete)
 	{
 		// Action has completed.
 		__complete();
 	}
+}
+
+bool GraphAction::__traverse()
+{
+	bool traversed = false;
+
+	{ SYNC(_lock)
+
+		if(_energy > 0 && _boundNode.isValid())
+		{
+			GraphHandle<GraphEdge> edgeToTraverse = _boundNode.getInstance() -> traverse(*this);
+
+			if(edgeToTraverse.isValid())
+			{
+				_traversedEdges.push_back(edgeToTraverse.getInstance() -> getId());
+
+				_boundNode = edgeToTraverse.getInstance() -> traverse();
+
+				traversed = _boundNode.isValid();
+			}
+			else
+			{
+				_boundNode.clear();
+			}
+		}
+	}
+
+	return traversed;
+}
+
+bool GraphAction::__executeWorkUnit()
+{
+	bool executed = false;
+
+	GraphHandle<GraphHive> hiveHandle(0);
+
+	{ SYNC(_lock)
+
+		if(_boundNode.isValid())
+		{
+			hiveHandle = _boundNode.getInstance() -> getHive();
+		}
+	}
+
+	if(hiveHandle.isValid())
+	{
+		// Create and schedule another work unit for the currently bound valid node.
+
+		try
+		{
+			executed = (hiveHandle.getInstance()) ->
+				executeWorkUnit(new GraphActionThreadPoolWorkUnit(this));
+		}
+		catch(std::bad_alloc& ex)
+		{
+			executed = false;
+		}
+	}
+
+	return executed;
 }
 
 void GraphAction::abortWork()

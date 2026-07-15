@@ -244,6 +244,7 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	// matrix used to draw the most recent frame. Together these are enough to pick a chunk under a clicked pixel.
 	var lastPositions = [];
 	var lastTriangleChunkIds = [];
+	var lastChunkPokeable = {};
 	var lastViewProj = null;
 
 	// Tracks whether a mousedown started on the canvas, and where, so mouseup can tell a click (poke) apart
@@ -332,7 +333,7 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		{
 			var chunkId = pickChunkAt(e.clientX, e.clientY);
 
-			if(chunkId !== null)
+			if(chunkId !== null && lastChunkPokeable[chunkId])
 			{
 				console.log('Picked chunk ' + chunkId);
 				pokeChunk(chunkId);
@@ -435,6 +436,7 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		var colors = [];
 		var normals = [];
 		var triangleChunkIds = [];
+		var chunkPokeable = {};
 
 		var minX = Infinity, minY = Infinity, minZ = Infinity;
 		var maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
@@ -443,6 +445,8 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		{
 			var chunk = data.chunks[c];
 			var modelTransform = data.modelTransforms[chunk.modelTransformIndex].transform;
+
+			chunkPokeable[chunk.id] = !!chunk.pokeable;
 
 			for(var v = 0; v < chunk.vertexes.length; v++)
 			{
@@ -469,6 +473,7 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 		lastPositions = positions;
 		lastTriangleChunkIds = triangleChunkIds;
+		lastChunkPokeable = chunkPokeable;
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);

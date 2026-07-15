@@ -29,6 +29,8 @@ class TeleportNode : public GraphNode, public SerialisableActionTarget
 
 	protected:
 
+		void _poked(GraphPoke poke) override;
+
     private:
 
 		/// Location that received actions are teleported to.

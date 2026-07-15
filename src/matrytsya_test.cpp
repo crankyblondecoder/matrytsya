@@ -306,7 +306,8 @@ int main(int argc, char const *argv[])
 	SceneRootNode* root = new SceneRootNode();
 	hive -> addNode(root);
 
-	SceneGeometryNode* body = new SceneGeometryNode("");
+	SceneGeometryNode* body = new SceneGeometryNode("", "");
+	body -> setPokeEnabled(true);
 	hive -> addNode(body);
 	GraphHandle<GraphNode> bodyHandle(body);
 
@@ -348,7 +349,7 @@ int main(int argc, char const *argv[])
 		_hsvToRgb(hue, 0.85, 0.95, baseR, baseG, baseB);
 		_hsvToRgb(hue, 0.25, 1.0, tipR, tipG, tipB);
 
-		SceneTransformNode* petalTransform = new SceneTransformNode(i == 0 ? _PETAL_CLOSE_SCRIPT : "");
+		SceneTransformNode* petalTransform = new SceneTransformNode(i == 0 ? _PETAL_CLOSE_SCRIPT : "", "");
 		hive -> addNode(petalTransform);
 		GraphHandle<GraphNode> petalTransformHandle(petalTransform);
 
@@ -356,7 +357,7 @@ int main(int argc, char const *argv[])
 
 		previousNode -> createEdge(petalTransformHandle);
 
-		SceneGeometryNode* petal = new SceneGeometryNode("");
+		SceneGeometryNode* petal = new SceneGeometryNode("", "");
 		hive -> addNode(petal);
 		GraphHandle<GraphNode> petalHandle(petal);
 

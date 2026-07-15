@@ -88,7 +88,33 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		/**
 		 * Poke this node.
 		 */
-		virtual void poke(GraphPoke poke);
+		virtual void poke(GraphPoke poke) final;
+
+		/**
+		 * Get whether poking is enabled.
+		 */
+		bool getPokeEnabled();
+
+		/**
+		 * Set whether poking is enabled.
+		 */
+		void setPokeEnabled(bool enable);
+
+		/**
+		 * Schedule a graph action to be applied on this node.
+		 * If the action can't be processed immediately, it is placed on a queue for later execution.
+		 * @note The order of action application to this node is preserved.
+		 * @param action Action to schedule to apply to this node.
+		 * @returns True if could be scheduled. False otherwise.
+		 */
+		bool scheduleAction(GraphHandle<GraphAction> action);
+
+		/**
+		 * Call in point for a thread work unit to process a scheduled action and potentially create a new
+		 * work unit for further processing if the action queue is not empty.
+		 * @param abort If true, the thread pool work unit was not assigned a thread.
+		 */
+		void processScheduledAction(bool abort);
 
     protected:
 
@@ -108,21 +134,14 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		void _setEnergyCost(unsigned cost);
 
 		/**
-		 * Set whether poking is enabled.
+		 * Subclass hook to notify that this node has been poked.
 		 */
-		void enablePoke(bool enable);
-
-		/**
-		 * Get whether there is a poke available to process.
-		 */
-		bool _hasPoke();
-
-		/**
-		 * Get the next poke to process.
-		 */
-		GraphPoke _getPoke();
+		virtual void _poked(GraphPoke poke) = 0;
 
 	private:
+
+        /// Generic lock.
+        ThreadMutex _lock;
 
 		/// Counter used to derive each node's unique id.
 		static std::atomic<unsigned> _nextId;
@@ -145,17 +164,17 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		/// Whether this node is in the process of decoupling or has been decoupled from all edges it contains.
 		std::atomic<bool> _decoupled{false};
 
-        /// Generic lock.
-        ThreadMutex _lock;
-
 		/// How much energy it costs for an action to be applied to this node.
 		unsigned _actionEnergyCost = 1;
 
 		/// Whether poking is enabled for this node. If false, all pokes are immediately discarded.
 		bool _pokeEnabled = false;
 
-		/// Current unprocessed node pokes. Protected by the generic lock.
-		std::queue<GraphPoke> _pokes;
+		/// Queue of actions waiting to be applied to this node.
+		std::queue<GraphHandle<GraphAction>> _scheduledActions;
+
+		/// Whether a work unit is currently active, or about to become active, for draining _scheduledActions.
+		bool _scheduledActionProcessing = false;
 
         // Do not allow copying.
         GraphNode(const GraphNode& copyFrom);
@@ -167,6 +186,13 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 * @returns Point to graph edge that needs to be deleted outside of lock.
 		 */
         GraphEdge* __removeEdge(int handle);
+
+		/**
+		 * Create and submit a work unit to the hive to continue draining the scheduled action queue.
+		 * @note Must be called with _scheduledActionProcessing already set to true and outside of _lock.
+		 * @returns True if the work unit could be submitted. False otherwise.
+		 */
+		bool __executeScheduledActionWorkUnit();
 };
 
 #endif

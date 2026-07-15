@@ -36,6 +36,9 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 			/// Id of the node that this chunk is associated with.
 			unsigned nodeId;
 
+			/// Whether this chunk can be poked.
+			bool pokeable = false;
+
 			/// The vertexes of the chunk. These _must_ be in multiples of three, i.e. three vertexes per triangle.
 			std::vector<Vertex> vertexes;
 
@@ -70,8 +73,9 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		 * @param vertexes Vertexes to add or update (depending on the id).
 		 * @param chunkId Id to assign the resultant chunk that is unique to this surface.
 		 * @param id Id of the node the resultant chunk is associated with.
+		 * @param pokeable Whether the resultant chunk can be poked.
 		 */
-		void addVertexes(const std::vector<Vertex>& vertexes, unsigned chunkId, unsigned nodeId);
+		void addVertexes(const std::vector<Vertex>& vertexes, unsigned chunkId, unsigned nodeId, bool pokeable);
 
 		/**
 		 * Add a local transform to the scene.

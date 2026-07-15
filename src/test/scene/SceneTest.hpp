@@ -26,7 +26,7 @@ TEST(SceneTest, GeneratedSceneContainsScriptVertexes)
 		"	colour = {10, 20, 30, 40},"
 		"	texCoords = {0.5, 0.6},"
 		"	normal = {0, 0, 1}"
-		"})");
+		"})", "");
 
 	hive -> addNode(root);
 	hive -> addNode(geometryNode);
@@ -92,7 +92,7 @@ TEST(SceneTest, GeneratedSceneKeepsVertexesInScriptOrder)
 		"	Vertex{posn = {1, 0, 0}},"
 		"	Vertex{posn = {0, 1, 0}},"
 		"	Vertex{posn = {0, 0, 1}}"
-		"})");
+		"})", "");
 
 	hive -> addNode(root);
 	hive -> addNode(geometryNode);
@@ -146,7 +146,7 @@ TEST(SceneTest, GeneratedSceneUsesIdentityTransformWhenNoneApplied)
 	GraphHandle<GraphHive> hiveHandle(hive);
 
 	SceneRootNode* root = new SceneRootNode();
-	SceneGeometryNode* geometryNode = new SceneGeometryNode("addVertex(Vertex{posn = {1, 2, 3}})");
+	SceneGeometryNode* geometryNode = new SceneGeometryNode("addVertex(Vertex{posn = {1, 2, 3}})", "");
 
 	hive -> addNode(root);
 	hive -> addNode(geometryNode);
@@ -203,9 +203,9 @@ TEST(SceneTest, GeneratedSceneCombinesNestedTransformsInTraversalOrder)
 	GraphHandle<GraphHive> hiveHandle(hive);
 
 	SceneRootNode* root = new SceneRootNode();
-	SceneTransformNode* scaleNode = new SceneTransformNode("");
-	SceneTransformNode* translateNode = new SceneTransformNode("");
-	SceneGeometryNode* geometryNode = new SceneGeometryNode("addVertex(Vertex{posn = {1, 2, 3}})");
+	SceneTransformNode* scaleNode = new SceneTransformNode("", "");
+	SceneTransformNode* translateNode = new SceneTransformNode("", "");
+	SceneGeometryNode* geometryNode = new SceneGeometryNode("addVertex(Vertex{posn = {1, 2, 3}})", "");
 
 	double scaleTransform[16] = {
 		2.0, 0.0, 0.0, 0.0,
@@ -297,8 +297,8 @@ TEST(SceneTest, TransformNodeScriptCanReadAndModifyTransform)
 	SceneTransformNode* transformNode = new SceneTransformNode(
 		"local t = getTransform();"
 		"t[13] = t[13] + 5;"
-		"setTransform(t);");
-	SceneGeometryNode* geometryNode = new SceneGeometryNode("addVertex(Vertex{posn = {1, 2, 3}})");
+		"setTransform(t);", "");
+	SceneGeometryNode* geometryNode = new SceneGeometryNode("addVertex(Vertex{posn = {1, 2, 3}})", "");
 
 	hive -> addNode(root);
 	hive -> addNode(transformNode);

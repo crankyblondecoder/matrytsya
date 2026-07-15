@@ -7,22 +7,23 @@
 
 #include "../graphSceneElements.hpp"
 #include "../actionTargets/SceneActionTarget.hpp"
-#include "../actionTargets/SceneStrobeActionTarget.hpp"
+#include "../actionTargets/StrobeActionTarget.hpp"
 #include "ScriptNode.hpp"
 
 /**
  * Graph node that represents scene geometry.
  */
-class SceneGeometryNode : public ScriptNode, public SceneActionTarget, public SceneStrobeActionTarget
+class SceneGeometryNode : public ScriptNode, public SceneActionTarget, public StrobeActionTarget
 {
     public:
 
         virtual ~SceneGeometryNode();
 
 		/**
-		 * @param script Lua source code that this node runs when invoked.
+		 * @param coreScript Lua source code that this node runs when invoked.
+		 * @param pokeScript Lua source code that this node runs when poked.
 		 */
-        SceneGeometryNode(const std::string& script);
+        SceneGeometryNode(const std::string& coreScript, const std::string& pokeScript);
 
 		/**
 		 * Add vertexes to the list of vertexes for this scene node.
@@ -44,7 +45,7 @@ class SceneGeometryNode : public ScriptNode, public SceneActionTarget, public Sc
 		void strobe() override;
 
 		SceneActionTarget* getSceneActionTarget() override;
-		SceneStrobeActionTarget* getSceneStrobeActionTarget() override;
+		StrobeActionTarget* getStrobeActionTarget() override;
 
 	protected:
 

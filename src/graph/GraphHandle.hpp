@@ -85,6 +85,26 @@ template <typename T> class GraphHandle
 		}
 
 		/**
+		 * Compare two handles for equality.
+		 * @param compareTo Handle to compare against.
+		 * @returns True if both handles reference the same instance pointer.
+		 */
+		bool operator== (const GraphHandle<T>& compareTo) const
+		{
+			return _referencedInstance == compareTo._referencedInstance;
+		}
+
+		/**
+		 * Compare two handles for inequality.
+		 * @param compareTo Handle to compare against.
+		 * @returns True if the handles reference different instance pointers.
+		 */
+		bool operator!= (const GraphHandle<T>& compareTo) const
+		{
+			return _referencedInstance != compareTo._referencedInstance;
+		}
+
+		/**
 		 * Clear the handle, i.e. De-reference the pointed to instance and make this handle invalid.
 		 */
 		void clear()

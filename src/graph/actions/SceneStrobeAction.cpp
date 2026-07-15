@@ -1,6 +1,6 @@
 #include "SceneStrobeAction.hpp"
 
-#include "../actionTargets/SceneStrobeActionTarget.hpp"
+#include "../actionTargets/StrobeActionTarget.hpp"
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphNode.hpp"
 
@@ -19,7 +19,7 @@ SceneStrobeAction::SceneStrobeAction(GraphHandle<GraphNode>& initNode)
 
 void SceneStrobeAction::_apply(GraphNode* target)
 {
-	SceneStrobeActionTarget* strobeTarget = target -> getSceneStrobeActionTarget();
+	StrobeActionTarget* strobeTarget = target -> getStrobeActionTarget();
 
 	if(strobeTarget)
 	{

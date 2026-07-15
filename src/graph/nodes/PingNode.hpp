@@ -35,6 +35,8 @@ class PingNode : public GraphNode, public PingActionTarget
 
 	protected:
 
+		void _poked(GraphPoke poke) override;
+
     private:
 
 		unsigned _pingCount = 0;

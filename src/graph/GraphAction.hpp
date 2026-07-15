@@ -44,6 +44,11 @@ class GraphAction : public RefCounted
         virtual unsigned long getOptionalFlags() final;
 
 		/**
+		 * Get flags that apply to edge traversal.
+		 */
+		virtual unsigned long getEdgeTraversalFlags() final;
+
+		/**
 		 * Start traversal of graph.
 		 * @note This is not re-entrant.
 		 */
@@ -80,8 +85,22 @@ class GraphAction : public RefCounted
 		/**
 		 * Get whether this action can traverse the given edge.
 		 * An action ultimately determines which pathway it takes through the graph.
+		 * @note Standard behaviour is to not traverse an edge that has already been traversed.
 		 */
 		virtual bool canTraverseEdge(GraphHandle<GraphEdge> handle);
+
+		/**
+		 * If called, this action will be applied to the initial node.
+		 * @note This _must_ be called prior to starting the action.
+		 */
+		void setApplyToInitialNode();
+
+		/**
+		 * Apply this action to the given node as a result of the node scheduling it.
+		 * @note This should _only_ be used by a graph nodes action scheduling mechanism.
+		 * @param nodeHandle Node to apply this action to.
+		 */
+		void applyScheduled(GraphHandle<GraphNode> nodeHandle);
 
 	protected:
 
@@ -114,8 +133,8 @@ class GraphAction : public RefCounted
 
     private:
 
-		/// Work only lock.
-        ThreadMutex _workLock;
+		/// Generic lock.
+        ThreadMutex _lock;
 
 		/// For any thread that wants to wait on the action completing.
 		ThreadCondition _completeCond;
@@ -123,9 +142,12 @@ class GraphAction : public RefCounted
 		/// Whether the action has been started.
 		bool _started = false;
 
+		/// Whether to apply to the initial node.
+		bool _applyToInitNode = false;
+
 		/**
 		 * Whether the initial traverse has occurred.
-		 * This exists to stop the action from being applied to the initial bound node.
+		 * This exists to stop the action from being applied to the initial bound node if not required.
 		 */
 		bool _initTraverse = true;
 
@@ -168,6 +190,18 @@ class GraphAction : public RefCounted
 
 		/// List of id's of edges this action has already traversed.
 		std::vector<unsigned> _traversedEdges;
+
+		/**
+		 * Traverse to the next node.
+		 * @returns True if could traverse, false otherwise.
+		 */
+		bool __traverse();
+
+		/**
+		 * Execute a work unit for this action.
+		 * @returns True if could execute the work unit, false otherwise.
+		 */
+		bool __executeWorkUnit();
 
 		/**
 		 * Action is complete.

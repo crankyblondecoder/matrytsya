@@ -9,7 +9,8 @@ SceneTransformNode::~SceneTransformNode()
 {
 }
 
-SceneTransformNode::SceneTransformNode(const std::string& script) : ScriptNode(script)
+SceneTransformNode::SceneTransformNode(const std::string& script, const std::string& pokeScript)
+	: ScriptNode(script, pokeScript)
 {
 	_setEnergyCost(1);
 	_addActionFlag(SCENE_GRAPH_ACTION);
@@ -42,7 +43,7 @@ SceneActionTarget* SceneTransformNode::getSceneActionTarget()
 	return this;
 }
 
-SceneStrobeActionTarget* SceneTransformNode::getSceneStrobeActionTarget()
+StrobeActionTarget* SceneTransformNode::getStrobeActionTarget()
 {
 	return this;
 }

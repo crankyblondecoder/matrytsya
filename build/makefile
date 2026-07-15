@@ -87,17 +87,17 @@ clean : subDirs
 	@ echo
 	@ echo "*** Clean ***"
 	@ echo
-	-rm $(execName)
-	-rm $(execName_debug)
-	-rm $(execName_test)
-	-find ./debug ./release ./test -mindepth 1 $(foreach f, $(luaArtifacts), -not -name $(f)) -delete
+	@ -rm -f $(execName)
+	@ -rm -f $(execName_debug)
+	@ -rm -f $(execName_test)
+	@ -find ./debug ./release ./test -mindepth 1 $(foreach f, $(luaArtifacts), -not -name $(f)) -delete
 
 .PHONY : lua_clean
 lua_clean :
 	@ echo
 	@ echo "*** Clean - Lua ***"
 	@ echo
-	-rm -f $(foreach dir, debug release test, $(foreach f, $(luaArtifacts), $(dir)/$(f)))
+	@ -rm -f $(foreach dir, debug release test, $(foreach f, $(luaArtifacts), $(dir)/$(f)))
 
 .PHONY : test
 test : subDirs $(modules)

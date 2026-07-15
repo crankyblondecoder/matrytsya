@@ -45,3 +45,7 @@ SerialisableActionTarget* TeleportNode::getSerialisableActionTarget()
 {
 	return this;
 }
+
+void TeleportNode::_poked(GraphPoke poke)
+{
+}

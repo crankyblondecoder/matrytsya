@@ -3,7 +3,7 @@
 
 #include "actionTargets/PingActionTarget.hpp"
 #include "actionTargets/SceneActionTarget.hpp"
-#include "actionTargets/SceneStrobeActionTarget.hpp"
+#include "actionTargets/StrobeActionTarget.hpp"
 #include "actionTargets/ScriptActionTarget.hpp"
 #include "actionTargets/SerialisableActionTarget.hpp"
 
@@ -31,6 +31,11 @@ class GraphActionTargetable
 		 */
 		bool hasActionTarget(unsigned long actionFlag);
 
+		/**
+		 * Get action flags of actions this target supports.
+		 */
+		unsigned long getActionFlags();
+
 		/// Get the target for the ping action.
 		virtual PingActionTarget* getPingActionTarget();
 
@@ -43,8 +48,8 @@ class GraphActionTargetable
 		/// Get the target for the scene action.
 		virtual SceneActionTarget* getSceneActionTarget();
 
-		/// Get the target for the scene strobe action.
-		virtual SceneStrobeActionTarget* getSceneStrobeActionTarget();
+		/// Get the target for the strobe action.
+		virtual StrobeActionTarget* getStrobeActionTarget();
 
 	protected:
 
@@ -61,6 +66,7 @@ class GraphActionTargetable
 
 	private:
 
+		/// Flags that determine whether an action can target this targetable.
 		std::atomic<unsigned long> _actionFlags{0};
 };
 

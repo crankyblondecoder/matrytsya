@@ -47,3 +47,7 @@ unsigned PingNode::getPingCount()
 	return _pingCount;
 }
 
+void PingNode::_poked(GraphPoke poke)
+{
+}
+

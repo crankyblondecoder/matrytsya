@@ -92,12 +92,13 @@ void GraphHiveSceneSurface::_populateEnd()
 	_emitSurfaceChanged();
 }
 
-void GraphHiveSceneSurface::addVertexes(const std::vector<Vertex>& vertexes, unsigned chunkId, unsigned nodeId)
+void GraphHiveSceneSurface::addVertexes(const std::vector<Vertex>& vertexes, unsigned chunkId, unsigned nodeId, bool pokeable)
 {
 	Chunk chunk;
 
 	chunk.id = chunkId;
 	chunk.nodeId = nodeId;
+	chunk.pokeable = pokeable;
 	chunk.vertexes = vertexes;
 
 	{ SYNC(_lock)

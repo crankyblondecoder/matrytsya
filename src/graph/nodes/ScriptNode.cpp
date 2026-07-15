@@ -10,18 +10,25 @@ ScriptNode::~ScriptNode()
 {
 }
 
-ScriptNode::ScriptNode(const std::string& script) : GraphNode(), _script{script}
+ScriptNode::ScriptNode(const std::string& coreScript, const std::string& pokeScript)
+	: GraphNode(), _coreScript{coreScript}, _pokeScript(pokeScript)
 {
 	_setEnergyCost(1);
 
 	// Supports script action.
 	_addActionFlag(SCRIPT_GRAPH_ACTION);
+
+	__compileCoreScript();
 }
 
 bool ScriptNode::invoke(lua_State* luaState)
 {
-	// Mode "t" refuses precompiled bytecode chunks, which could otherwise be used to crash or escape the VM.
-	if(luaL_loadbufferx(luaState, _script.c_str(), _script.size(), "script", "t") != LUA_OK)
+	if(_coreBytecode.empty()) return false;
+
+	// Mode "b" only accepts bytecode. _coreBytecode is compiled from _coreScript once, at construction, by
+	// this class itself rather than supplied by the script being run, so it never crosses the trust boundary
+	// that the "t"-only loading elsewhere in this module guards against.
+	if(luaL_loadbufferx(luaState, _coreBytecode.data(), _coreBytecode.size(), "script", "b") != LUA_OK)
 	{
 		lua_pop(luaState, 1);
 		return false;
@@ -39,6 +46,33 @@ bool ScriptNode::invoke(lua_State* luaState)
 ScriptActionTarget* ScriptNode::getScriptActionTarget()
 {
 	return this;
+}
+
+void ScriptNode::_poked(GraphPoke poke)
+{
+	// TODO: run _pokeScript against a Lua state.
+}
+
+void ScriptNode::__compileCoreScript()
+{
+	lua_State* scratchState = luaL_newstate();
+
+	if(!scratchState) return;
+
+	// Mode "t" refuses precompiled bytecode chunks, which could otherwise be used to crash or escape the VM.
+	if(luaL_loadbufferx(scratchState, _coreScript.c_str(), _coreScript.size(), "script", "t") == LUA_OK)
+	{
+		// Strip debug info: invoke() never inspects line numbers or names from a failed pcall.
+		lua_dump(scratchState, __writeBytecode, &_coreBytecode, 1);
+	}
+
+	lua_close(scratchState);
+}
+
+int ScriptNode::__writeBytecode(lua_State*, const void* data, size_t size, void* userData)
+{
+	static_cast<std::string*>(userData) -> append(static_cast<const char*>(data), size);
+	return 0;
 }
 
 void ScriptNode::_readDoubleArray(lua_State* luaState, int tableIndex, const char* field, double* out, int count)

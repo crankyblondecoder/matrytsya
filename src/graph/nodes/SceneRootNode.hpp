@@ -28,6 +28,8 @@ class SceneRootNode : public GraphNode
 
 	protected:
 
+		void _poked(GraphPoke poke) override;
+
 	private:
 
         // Do not allow copying.

@@ -39,6 +39,20 @@ class GraphEdge : public RefCounted
 		 */
 		unsigned getId();
 
+		/**
+		 * Add an action flag to this edge.
+		 * This determines if an action is allowed to traverse this edge.
+		 * @note If no action flags are set, then all actions are allowed to traverse this edge.
+		 * @param actionFlag Action flag from action flag register.
+		 */
+		void addActionFlag(unsigned long actionFlag);
+
+		/**
+		 * Determine whether this edge can be traversed based on its action flags.
+		 * @param actionFlags Action flags to check against.
+		 */
+		bool canTraverse(unsigned long actionFlags);
+
 	protected:
 
 		// This is a requirement of being ref counted.
@@ -54,6 +68,9 @@ class GraphEdge : public RefCounted
 
 		/** Node this edge points to. */
         GraphHandle<GraphNode>* _toNode;
+
+		/// Flags that determine whether an action can traverse this edge.
+		std::atomic<unsigned long> _actionFlags{0};
 };
 
 #endif

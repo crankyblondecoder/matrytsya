@@ -3,6 +3,7 @@
 #include "./thread/ThreadUnitTest.hpp"
 #include "./thread/ThreadConditionUnitTest.hpp"
 #include "./ping/PingTest.hpp"
+#include "./graph/GraphEdgeUnitTest.hpp"
 #include "./graph/actions/ActionFactoryUnitTest.hpp"
 #include "./graph/actions/ScriptActionUnitTest.hpp"
 #include "./scene/SceneTest.hpp"

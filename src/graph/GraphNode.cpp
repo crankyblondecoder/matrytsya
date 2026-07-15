@@ -7,6 +7,7 @@
 #include "GraphException.hpp"
 #include "GraphHandle.hpp"
 #include "GraphHive.hpp"
+#include "GraphNodeScheduledActionThreadPoolWorkUnit.hpp"
 
 std::atomic<unsigned> GraphNode::_nextId{0};
 
@@ -256,7 +257,6 @@ GraphHandle<GraphEdge> GraphNode::traverse(GraphAction& action)
 
 					edgesToCheck.push_back(edgeHandle);
 					numEdgesToCheck++;
-
 				}
 			}
 		}
@@ -266,7 +266,9 @@ GraphHandle<GraphEdge> GraphNode::traverse(GraphAction& action)
 	{
 		GraphHandle<GraphEdge> edgeHandleToCheck = edgesToCheck[index];
 
-		if(action.canTraverseEdge(edgeHandleToCheck))
+		// Both the edge and the action must allow traversal.
+		if(edgeHandleToCheck.getInstance() -> canTraverse(action.getEdgeTraversalFlags()) &&
+				action.canTraverseEdge(edgeHandleToCheck))
 		{
 			edgeToTraverse = edgeHandleToCheck;
 			break;
@@ -283,16 +285,21 @@ void GraphNode::_emitAction(GraphAction* action)
 
 void GraphNode::poke(GraphPoke pokeToProcess)
 {
-	std::cout << "Node with id:" << getId() << " was poked." << std::endl;
+	if(_pokeEnabled) std::cout << "Node with id:" << getId() << " was poked." << std::endl;
 
 	{ SYNC(_lock)
 
-		// Discard the poke if poking isn't enabled rather than queuing it up for later.
-		if(_pokeEnabled) _pokes.push(pokeToProcess);
+		// Silently discard the poke if poking isn't enabled.
+		if(_pokeEnabled) _poked(pokeToProcess);
 	}
 }
 
-void GraphNode::enablePoke(bool enable)
+bool GraphNode::getPokeEnabled()
+{
+	return _pokeEnabled;
+}
+
+void GraphNode::setPokeEnabled(bool enable)
 {
 	{ SYNC(_lock)
 
@@ -300,22 +307,107 @@ void GraphNode::enablePoke(bool enable)
 	}
 }
 
-bool GraphNode::_hasPoke()
+bool GraphNode::scheduleAction(GraphHandle<GraphAction> action)
 {
+	if(!action.isValid()) return false;
+
+	bool submitWorkUnit = false;
+
 	{ SYNC(_lock)
 
-		return !_pokes.empty();
+		// Once decoupled, a node can no longer have actions applied to it.
+		if(_decoupled) return false;
+
+		_scheduledActions.push(action);
+
+		// Only the transition from an idle queue to a non-idle queue needs to kick off a work unit. Any
+		// other push will be picked up by the work unit currently draining the queue.
+		if(!_scheduledActionProcessing)
+		{
+			_scheduledActionProcessing = true;
+			submitWorkUnit = true;
+		}
+	}
+
+	if(submitWorkUnit && !__executeScheduledActionWorkUnit())
+	{
+		{ SYNC(_lock)
+
+			_scheduledActionProcessing = false;
+		}
+	}
+
+	return true;
+}
+
+void GraphNode::processScheduledAction(bool abort)
+{
+	GraphHandle<GraphAction> action(0);
+	bool moreWork = false;
+
+	if(!abort)
+	{
+		{ SYNC(_lock)
+
+			if(!_scheduledActions.empty())
+			{
+				action = _scheduledActions.front();
+				_scheduledActions.pop();
+			}
+		}
+
+		// Applied outside of the lock as this could re-enter this node, eg via _emitAction. _scheduledActionProcessing
+		// is deliberately left true across this call so that any action concurrently pushed by scheduleAction is left
+		// queued rather than being dispatched to a new work unit, which would let it jump ahead of this one.
+		if(action.isValid()) action.getInstance() -> applyScheduled(GraphHandle<GraphNode>(this));
+
+		{ SYNC(_lock)
+
+			moreWork = !_scheduledActions.empty();
+
+			if(!moreWork) _scheduledActionProcessing = false;
+		}
+	}
+	else
+	{
+		// The work unit was never given a thread. Leave the queue untouched and stop processing here; the
+		// next call to scheduleAction will resume draining the queue from where it was left off.
+		{ SYNC(_lock)
+
+			_scheduledActionProcessing = false;
+		}
+	}
+
+	if(moreWork && !__executeScheduledActionWorkUnit())
+	{
+		{ SYNC(_lock)
+
+			_scheduledActionProcessing = false;
+		}
 	}
 }
 
-GraphPoke GraphNode::_getPoke()
+bool GraphNode::__executeScheduledActionWorkUnit()
 {
-	{ SYNC(_lock)
+	// Note: This must not be called while holding _lock, as executeWorkUnit may invoke abort() synchronously,
+	//       which in turn calls back into processScheduledAction and re-acquires _lock.
 
-		GraphPoke pokeToProcess = _pokes.front();
-		_pokes.pop();
+	bool submitted = false;
 
-		return pokeToProcess;
+	GraphHandle<GraphHive> hive = getHive();
+
+	if(hive.isValid())
+	{
+		try
+		{
+			submitted = hive.getInstance() -> executeWorkUnit(new GraphNodeScheduledActionThreadPoolWorkUnit(this));
+		}
+		catch(std::bad_alloc& ex)
+		{
+			submitted = false;
+		}
 	}
+
+	return submitted;
 }
 

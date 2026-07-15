@@ -46,3 +46,18 @@ GraphHandle<GraphNode> GraphEdge::traverse()
 
 	return 0;
 }
+
+void GraphEdge::addActionFlag(unsigned long actionFlag)
+{
+	_actionFlags |= actionFlag;
+}
+
+bool GraphEdge::canTraverse(unsigned long actionFlags)
+{
+	// No action flags set defaults to anything can traverse.
+	if(!_actionFlags) return true;
+
+	// This now checks for specific flags being present.
+	return actionFlags & _actionFlags;
+}
+

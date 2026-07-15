@@ -16,6 +16,11 @@ void GraphActionTargetable::_addActionFlag(unsigned long actionFlag)
 	_actionFlags |= actionFlag;
 }
 
+unsigned long GraphActionTargetable::getActionFlags()
+{
+	return _actionFlags;
+}
+
 bool GraphActionTargetable::canActionTarget(GraphAction* graphAction)
 {
 	// The actions required flags take precedence over its optional flags.
@@ -51,7 +56,7 @@ SceneActionTarget* GraphActionTargetable::getSceneActionTarget()
 	return 0;
 }
 
-SceneStrobeActionTarget* GraphActionTargetable::getSceneStrobeActionTarget()
+StrobeActionTarget* GraphActionTargetable::getStrobeActionTarget()
 {
 	return 0;
 }

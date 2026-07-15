@@ -70,6 +70,10 @@ class ScriptEmitterNode : public GraphNode
 
 			return action;
 		}
+
+	protected:
+
+		void _poked(GraphPoke poke) override {}
 };
 
 /**
@@ -142,6 +146,10 @@ class ScriptProbeNode : public GraphNode, public ScriptActionTarget
 		bool bytecodeBlocked() { return _bytecodeBlocked; }
 		bool memoryLimited() { return _memoryLimited; }
 
+	protected:
+
+		void _poked(GraphPoke poke) override {}
+
 	private:
 
 		bool _invoked = false;
@@ -181,6 +189,10 @@ class ScriptGlobalWriterNode : public GraphNode, public ScriptActionTarget
 		}
 
 		ScriptActionTarget* getScriptActionTarget() override { return this; }
+
+	protected:
+
+		void _poked(GraphPoke poke) override {}
 
 	private:
 
@@ -224,6 +236,10 @@ class ScriptGlobalReaderNode : public GraphNode, public ScriptActionTarget
 		bool wasInvoked() { return _invoked; }
 		bool wasNil() { return _wasNil; }
 		int getValue() { return _value; }
+
+	protected:
+
+		void _poked(GraphPoke poke) override {}
 
 	private:
 
@@ -439,10 +455,10 @@ TEST(ScriptActionTest, ScriptNodesAccumulateCounter)
 
 	// The nodes must _not_ be allocated on the stack because of auto-delete once de-referenced.
 	PingNode* rootNode = new PingNode();
-	ScriptNode* node1 = new ScriptNode("counter = counter + 3");
-	ScriptNode* node2 = new ScriptNode("counter = counter + 4");
-	ScriptNode* node3 = new ScriptNode("counter = counter + 5");
-	ScriptNode* node4 = new ScriptNode("counter = counter + 6");
+	ScriptNode* node1 = new ScriptNode("counter = counter + 3", "");
+	ScriptNode* node2 = new ScriptNode("counter = counter + 4", "");
+	ScriptNode* node3 = new ScriptNode("counter = counter + 5", "");
+	ScriptNode* node4 = new ScriptNode("counter = counter + 6", "");
 
 	hive -> addNode(rootNode);
 	hive -> addNode(node1);
@@ -489,7 +505,7 @@ TEST(ScriptActionTest, SceneGeometryNodeExposesVertexToLua)
 		"	colour = {10, 20, 30, 40},"
 		"	texCoords = {0.5, 0.6},"
 		"	normal = {0, 0, 1}"
-		"})");
+		"})", "");
 
 	hive -> addNode(sourceNode);
 	hive -> addNode(geometryNode);
@@ -553,7 +569,7 @@ TEST(ScriptActionTest, SceneGeometryNodeExposesAddVertexesToLua)
 		"	Vertex{posn = {1, 0, 0}},"
 		"	Vertex{posn = {0, 1, 0}},"
 		"	Vertex{posn = {0, 0, 1}}"
-		"})");
+		"})", "");
 
 	hive -> addNode(sourceNode);
 	hive -> addNode(geometryNode);
@@ -611,7 +627,7 @@ TEST(ScriptActionTest, SceneGeometryNodeExposesVertexCountToLua)
 		"addVertex(Vertex{posn = {1, 2, 3}})\n"
 		"countAfterOne = vertexCount()\n"
 		"addVertexes({Vertex{posn = {4, 5, 6}}, Vertex{posn = {7, 8, 9}}})\n"
-		"countAfterMany = vertexCount()\n");
+		"countAfterMany = vertexCount()\n", "");
 
 	hive -> addNode(sourceNode);
 	hive -> addNode(geometryNode);

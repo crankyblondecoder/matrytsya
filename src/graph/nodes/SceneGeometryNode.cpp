@@ -8,14 +8,12 @@ SceneGeometryNode::~SceneGeometryNode()
 {
 }
 
-SceneGeometryNode::SceneGeometryNode(const std::string& script) : ScriptNode(script)
+SceneGeometryNode::SceneGeometryNode(const std::string& coreScript, const std::string& pokeScript)
+	: ScriptNode(coreScript, pokeScript)
 {
 	_setEnergyCost(1);
 	_addActionFlag(SCENE_GRAPH_ACTION);
 	_addActionFlag(SCENE_STROBE_GRAPH_ACTION);
-
-	// Scene geometry is what a scene surface's chunks are clicked on behalf of, so it must accept pokes.
-	enablePoke(true);
 }
 
 void SceneGeometryNode::addVertexes(std::vector<Vertex> vertexesToAdd)
@@ -66,7 +64,7 @@ bool SceneGeometryNode::invoke(lua_State* luaState)
 
 void SceneGeometryNode::populateSurface(GraphHandle<GraphHiveSceneSurface> surface)
 {
-	if(surface.isValid()) surface.getInstance() -> addVertexes(_vertexes, getId(), getId());
+	if(surface.isValid()) surface.getInstance() -> addVertexes(_vertexes, getId(), getId(), getPokeEnabled());
 }
 
 void SceneGeometryNode::strobe()
@@ -78,7 +76,7 @@ SceneActionTarget* SceneGeometryNode::getSceneActionTarget()
 	return this;
 }
 
-SceneStrobeActionTarget* SceneGeometryNode::getSceneStrobeActionTarget()
+StrobeActionTarget* SceneGeometryNode::getStrobeActionTarget()
 {
 	return this;
 }

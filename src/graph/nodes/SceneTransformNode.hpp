@@ -4,7 +4,7 @@
 #include <string>
 
 #include "../actionTargets/SceneActionTarget.hpp"
-#include "../actionTargets/SceneStrobeActionTarget.hpp"
+#include "../actionTargets/StrobeActionTarget.hpp"
 #include "../graphSceneElements.hpp"
 #include "ScriptNode.hpp"
 
@@ -16,7 +16,7 @@ struct lua_State;
  * Graph node that represents a transform applied to scene geometry.
  * Its script can read and modify the current transform via the getTransform()/setTransform() Lua globals.
  */
-class SceneTransformNode : public ScriptNode, public SceneActionTarget, public SceneStrobeActionTarget
+class SceneTransformNode : public ScriptNode, public SceneActionTarget, public StrobeActionTarget
 {
     public:
 
@@ -24,8 +24,9 @@ class SceneTransformNode : public ScriptNode, public SceneActionTarget, public S
 
 		/**
 		 * @param script Lua source code that this node runs when invoked.
+		 * @param pokeScript Lua source code that this node runs when poked.
 		 */
-        SceneTransformNode(const std::string& script);
+        SceneTransformNode(const std::string& script, const std::string& pokeScript);
 
 		/**
 		 * Set the transform applied to this
@@ -40,7 +41,7 @@ class SceneTransformNode : public ScriptNode, public SceneActionTarget, public S
 		void strobe() override;
 
 		SceneActionTarget* getSceneActionTarget() override;
-		SceneStrobeActionTarget* getSceneStrobeActionTarget() override;
+		StrobeActionTarget* getStrobeActionTarget() override;
 
 	protected:
 

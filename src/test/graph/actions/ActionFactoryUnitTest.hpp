@@ -56,6 +56,10 @@ class CapturingNode : public GraphNode, public PingActionTarget, public Serialis
 
         SerialisableActionPayload* getCapturedPayload() { return _capturedPayload; }
 
+    protected:
+
+        void _poked(GraphPoke poke) override {}
+
     private:
 
         /// Most recent payload delivered via send(); null until the first send().

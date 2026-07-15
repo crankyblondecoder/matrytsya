@@ -41,3 +41,7 @@ void SceneRootNode::emitStrobe()
 
 	action -> decrRef();
 }
+
+void SceneRootNode::_poked(GraphPoke poke)
+{
+}

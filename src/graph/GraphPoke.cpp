@@ -1,6 +1,6 @@
 #include "GraphPoke.hpp"
 
-GraphPoke::GraphPoke(PokeType type, std::array<int, 4> magnitudes) : _type{type}, _magnitudes{magnitudes}
+GraphPoke::GraphPoke(PokeType type, PokeData data) : _type{type}, _data{data}
 {
 }
 
@@ -13,7 +13,15 @@ GraphPoke::PokeType GraphPoke::getType()
 	return _type;
 }
 
-std::array<int, 4> GraphPoke::getMagnitudes()
+int GraphPoke::getHitDuration()
 {
-	return _magnitudes;
+	return _data.hitDuration;
 }
+
+void GraphPoke::getDragVector(float vectorToPopulate[3])
+{
+	vectorToPopulate[0] = _data.dragVector[0];
+	vectorToPopulate[1] = _data.dragVector[1];
+	vectorToPopulate[2] = _data.dragVector[2];
+}
+

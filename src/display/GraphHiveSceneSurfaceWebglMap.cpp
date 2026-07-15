@@ -1,6 +1,5 @@
 #include "GraphHiveSceneSurfaceWebglMap.hpp"
 
-#include <array>
 #include <cstddef>
 #include <iomanip>
 #include <sstream>
@@ -141,7 +140,10 @@ void GraphHiveSceneSurfaceWebglMap::__servePoke(HttpRequest& request, HttpRespon
 
 	unsigned chunkId = (unsigned) strtoul(chunkIdParam.c_str(), 0, 10);
 
-	_sceneSurface.getInstance() -> poke(chunkId, GraphPoke(GraphPoke::PokeType::HIT, std::array<int, 4>{0, 0, 0, 0}));
+	GraphPoke::PokeData data;
+	data.hitDuration = 0;
+
+	_sceneSurface.getInstance() -> poke(chunkId, GraphPoke(GraphPoke::PokeType::HIT, data));
 
 	response.setContentType("application/json");
 	response.setBody("{\"ok\":true}");
@@ -203,7 +205,8 @@ void GraphHiveSceneSurfaceWebglMap::_serveData(HttpRequest& request, HttpRespons
 		const GraphHiveSceneSurface::Chunk& chunk = scene.chunks[chunkIndex];
 
 		json += "{\"id\":" + std::to_string(chunk.id) +
-			",\"modelTransformIndex\":" + std::to_string(chunk.modelTransformIndex) + ",\"vertexes\":[";
+			",\"modelTransformIndex\":" + std::to_string(chunk.modelTransformIndex) +
+			",\"pokeable\":" + (chunk.pokeable ? "true" : "false") + ",\"vertexes\":[";
 
 		for(std::size_t vertexIndex = 0; vertexIndex < chunk.vertexes.size(); vertexIndex++)
 		{

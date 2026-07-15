@@ -1,8 +1,6 @@
 #ifndef GRAPH_POKE_H
 #define GRAPH_POKE_H
 
-#include <array>
-
 /**
  * Defines a graph "poke".
  * A poke is an interaction with the graph from outside the hive.
@@ -24,11 +22,29 @@ class GraphPoke
 			DRAG
 		};
 
+		/// Type of data that is passed to poke.
+		union PokeData
+		{
+			struct
+			{
+				/// Hit duration in milliseconds.
+				int hitDuration;
+			};
+
+			// Nothing for GRAB at this stage.
+
+			struct
+			{
+				/// Drag vector in world coordinates.
+				float dragVector[3];
+			};
+		};
+
 		/**
 		 * @param type Type of poke.
 		 * @param magnitudes The poke magnitudes. The meaning of which is type specific.
 		 */
-		GraphPoke(PokeType type, std::array<int, 4> magnitudes);
+		GraphPoke(PokeType type, PokeData data);
 
 		virtual ~GraphPoke();
 
@@ -38,10 +54,15 @@ class GraphPoke
 		PokeType getType();
 
 		/**
-		 * Get the magnitudes associated with this poke.
-		 * The meaning of magnitudes is poke type specific.
+		 * For the HIT poke, get the duration of the hit.
 		 */
-		std::array<int, 4> getMagnitudes();
+		int getHitDuration();
+
+		/**
+		 * Get the drag vector associated with the DRAG poke type.
+		 * @param vectorToPopulate Populate this array with the drag vector.
+		 */
+		void getDragVector(float vectorToPopulate[3]);
 
 	protected:
 
@@ -50,8 +71,8 @@ class GraphPoke
 		/// Type of this poke.
 		PokeType _type;
 
-		/// Magnitudes of the poke. The meaning of this is poke type specific.
-		std::array<int, 4> _magnitudes;
+		/// Data related to the poke. How this is interpreted is specific to the poke type.
+		PokeData _data;
 };
 
 #endif
