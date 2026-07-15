@@ -2,14 +2,12 @@
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphHiveSceneSurface.hpp"
 
-#include "../../lua/lua.hpp"
-
 SceneGeometryNode::~SceneGeometryNode()
 {
 }
 
-SceneGeometryNode::SceneGeometryNode(const std::string& coreScript, const std::string& pokeScript)
-	: StrobeScriptNode(coreScript, pokeScript)
+SceneGeometryNode::SceneGeometryNode()
+	: GraphNode()
 {
 	_setEnergyCost(1);
 	_addActionFlag(SCENE_GRAPH_ACTION);
@@ -54,12 +52,14 @@ void SceneGeometryNode::addVertexes(double* rawData, unsigned length)
 	}
 }
 
-void SceneGeometryNode::_registerCoreGlobals(lua_State* luaState)
+bool SceneGeometryNode::getAnimating()
 {
-	StrobeScriptNode::_registerCoreGlobals(luaState);
+	return _animating;
+}
 
-	__registerVertexBindings(luaState);
-	__registerAnimatingBindings(luaState);
+void SceneGeometryNode::setAnimating(bool animating)
+{
+	_animating = animating;
 }
 
 void SceneGeometryNode::populateSurface(GraphHandle<GraphHiveSceneSurface> surface)
@@ -71,123 +71,21 @@ void SceneGeometryNode::strobe()
 {
 }
 
+void SceneGeometryNode::setStrobe(bool flag)
+{
+	_strobe = flag;
+}
+
 SceneActionTarget* SceneGeometryNode::getSceneActionTarget()
 {
 	return this;
 }
 
-int SceneGeometryNode::__luaVertexConstructor(lua_State* luaState)
+StrobeActionTarget* SceneGeometryNode::getStrobeActionTarget()
 {
-	luaL_checktype(luaState, 1, LUA_TTABLE);
-
-	Vertex* vertex = static_cast<Vertex*>(lua_newuserdatauv(luaState, sizeof(Vertex), 0));
-	*vertex = Vertex{};
-
-	_readDoubleArray(luaState, 1, "posn", vertex -> posn, 3);
-	_readByteArray(luaState, 1, "colour", vertex -> colour, 4);
-	_readDoubleArray(luaState, 1, "texCoords", vertex -> texCoords, 2);
-	_readDoubleArray(luaState, 1, "normal", vertex -> normal, 3);
-
-	luaL_setmetatable(luaState, VERTEX_METATABLE);
-
-	return 1;
+	return this;
 }
 
-Vertex SceneGeometryNode::__checkVertex(lua_State* luaState, int index)
+void SceneGeometryNode::_poked(GraphPoke poke)
 {
-	return *static_cast<Vertex*>(luaL_checkudata(luaState, index, VERTEX_METATABLE));
 }
-
-int SceneGeometryNode::__luaAddVertex(lua_State* luaState)
-{
-	Vertex vertex = __checkVertex(luaState, 1);
-	SceneGeometryNode* node = static_cast<SceneGeometryNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
-
-	node -> addVertexes({vertex});
-
-	return 0;
-}
-
-int SceneGeometryNode::__luaAddVertexes(lua_State* luaState)
-{
-	luaL_checktype(luaState, 1, LUA_TTABLE);
-
-	SceneGeometryNode* node = static_cast<SceneGeometryNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
-
-	lua_Integer count = luaL_len(luaState, 1);
-
-	std::vector<Vertex> vertexesToAdd;
-	vertexesToAdd.reserve(count > 0 ? static_cast<size_t>(count) : 0);
-
-	for(lua_Integer i = 1; i <= count; i++)
-	{
-		lua_geti(luaState, 1, i); // [..., vertexes, vertex]
-		vertexesToAdd.push_back(__checkVertex(luaState, -1));
-		lua_pop(luaState, 1); // [..., vertexes]
-	}
-
-	node -> addVertexes(vertexesToAdd);
-
-	return 0;
-}
-
-int SceneGeometryNode::__luaVertexCount(lua_State* luaState)
-{
-	SceneGeometryNode* node = static_cast<SceneGeometryNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
-
-	lua_pushinteger(luaState, static_cast<lua_Integer>(node -> _vertexes.size()));
-
-	return 1;
-}
-
-void SceneGeometryNode::__registerVertexBindings(lua_State* luaState)
-{
-	// Only creates the metatable the first time it is seen by this lua_State; a no-op on later calls.
-	luaL_newmetatable(luaState, VERTEX_METATABLE);
-	lua_pop(luaState, 1);
-
-	lua_pushcfunction(luaState, __luaVertexConstructor);
-	lua_setglobal(luaState, "Vertex");
-
-	lua_pushlightuserdata(luaState, this);
-	lua_pushcclosure(luaState, __luaAddVertex, 1);
-	lua_setglobal(luaState, "addVertex");
-
-	lua_pushlightuserdata(luaState, this);
-	lua_pushcclosure(luaState, __luaAddVertexes, 1);
-	lua_setglobal(luaState, "addVertexes");
-
-	lua_pushlightuserdata(luaState, this);
-	lua_pushcclosure(luaState, __luaVertexCount, 1);
-	lua_setglobal(luaState, "vertexCount");
-}
-
-int SceneGeometryNode::__luaGetAnimating(lua_State* luaState)
-{
-	SceneGeometryNode* node = static_cast<SceneGeometryNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
-
-	lua_pushboolean(luaState, node -> _animating);
-
-	return 1;
-}
-
-int SceneGeometryNode::__luaSetAnimating(lua_State* luaState)
-{
-	SceneGeometryNode* node = static_cast<SceneGeometryNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
-
-	node -> _animating = lua_toboolean(luaState, 1);
-
-	return 0;
-}
-
-void SceneGeometryNode::__registerAnimatingBindings(lua_State* luaState)
-{
-	lua_pushlightuserdata(luaState, this);
-	lua_pushcclosure(luaState, __luaGetAnimating, 1);
-	lua_setglobal(luaState, "getAnimating");
-
-	lua_pushlightuserdata(luaState, this);
-	lua_pushcclosure(luaState, __luaSetAnimating, 1);
-	lua_setglobal(luaState, "setAnimating");
-}
-

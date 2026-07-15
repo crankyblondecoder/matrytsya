@@ -1,31 +1,26 @@
 #ifndef SCENE_TRANSFORM_NODE_H
 #define SCENE_TRANSFORM_NODE_H
 
-#include <string>
+#include <atomic>
 
 #include "../actionTargets/SceneActionTarget.hpp"
+#include "../actionTargets/StrobeActionTarget.hpp"
+#include "../GraphNode.hpp"
 #include "../graphSceneElements.hpp"
-#include "StrobeScriptNode.hpp"
 
 class GraphHiveSceneSurface;
 
-struct lua_State;
-
 /**
- * Graph node that represents a transform applied to scene geometry.
- * Its script can read and modify the current transform via the getTransform()/setTransform() Lua globals.
+ * Graph node that represents a transform applied to scene geometry, set directly through its C++ API
+ * rather than a Lua script.
  */
-class SceneTransformNode : public StrobeScriptNode, public SceneActionTarget
+class SceneTransformNode : public GraphNode, public SceneActionTarget, public StrobeActionTarget
 {
     public:
 
         virtual ~SceneTransformNode();
 
-		/**
-		 * @param script Lua source code that this node runs when invoked.
-		 * @param pokeScript Lua source code that this node runs when poked.
-		 */
-        SceneTransformNode(const std::string& script, const std::string& pokeScript);
+        SceneTransformNode();
 
 		/**
 		 * Set the transform applied to this
@@ -37,42 +32,21 @@ class SceneTransformNode : public StrobeScriptNode, public SceneActionTarget
 
 		void strobe() override;
 
+		void setStrobe(bool flag) override;
+
 		SceneActionTarget* getSceneActionTarget() override;
+
+		StrobeActionTarget* getStrobeActionTarget() override;
 
 	protected:
 
-		void _registerCoreGlobals(lua_State* luaState) override;
+		void _poked(GraphPoke poke) override;
 
     private:
 
         // Do not allow copying.
         SceneTransformNode(const SceneTransformNode& copyFrom);
         SceneTransformNode& operator= (const SceneTransformNode& copyFrom);
-
-		/**
-		 * Lua-facing `getTransform()`: returns the current transform of the node bound as this closure's
-		 * upvalue as a 16 element array table, in column-major order.
-		 * @param luaState Lua state the call is running against; upvalue 1 is a light userdata pointing at
-		 *        the target SceneTransformNode.
-		 * @returns Always 1 (the constructed array table is left on the stack).
-		 */
-		static int __luaGetTransform(lua_State* luaState);
-
-		/**
-		 * Lua-facing `setTransform(transform)`: sets the transform of the node bound as this closure's
-		 * upvalue from a 16 element array table, in column-major order.
-		 * @param luaState Lua state the call is running against; argument 1 is the array table and upvalue 1
-		 *        is a light userdata pointing at the target SceneTransformNode.
-		 * @returns Always 0.
-		 */
-		static int __luaSetTransform(lua_State* luaState);
-
-		/**
-		 * Register the `getTransform()`/`setTransform()` global functions against luaState, binding each to
-		 * this node instance via upvalue.
-		 * @param luaState Lua state to register the globals against.
-		 */
-		void __registerTransformBindings(lua_State* luaState);
 
 		/**
 		 * The local transform applied to the geometry.
@@ -86,6 +60,9 @@ class SceneTransformNode : public StrobeScriptNode, public SceneActionTarget
 			0.0, 0.0, 1.0, 0.0,
 			0.0, 0.0, 0.0, 1.0
 		};
+
+		/// Flag to indicate if this node is currently marked as strobing.
+		std::atomic<bool> _strobe = false;
 };
 
 #endif

@@ -2,27 +2,24 @@
 #define SCENE_GEOMETRY_NODE_H
 
 #include <atomic>
-#include <string>
 #include <vector>
 
-#include "../graphSceneElements.hpp"
 #include "../actionTargets/SceneActionTarget.hpp"
-#include "StrobeScriptNode.hpp"
+#include "../actionTargets/StrobeActionTarget.hpp"
+#include "../GraphNode.hpp"
+#include "../graphSceneElements.hpp"
 
 /**
- * Graph node that represents scene geometry.
+ * Graph node that represents scene geometry, with vertexes populated directly through its C++ API rather
+ * than a Lua script.
  */
-class SceneGeometryNode : public StrobeScriptNode, public SceneActionTarget
+class SceneGeometryNode : public GraphNode, public SceneActionTarget, public StrobeActionTarget
 {
     public:
 
         virtual ~SceneGeometryNode();
 
-		/**
-		 * @param coreScript Lua source code that this node runs when invoked.
-		 * @param pokeScript Lua source code that this node runs when poked.
-		 */
-        SceneGeometryNode(const std::string& coreScript, const std::string& pokeScript);
+        SceneGeometryNode();
 
 		/**
 		 * Add vertexes to the list of vertexes for this scene node.
@@ -37,101 +34,35 @@ class SceneGeometryNode : public StrobeScriptNode, public SceneActionTarget
 		 */
 		void addVertexes(double* rawData, unsigned length);
 
+		/**
+		 * Get whether this node is currently in animating mode.
+		 */
+		bool getAnimating();
+
+		/**
+		 * Set whether this node is in animating mode.
+		 */
+		void setAnimating(bool animating);
+
 		void populateSurface(GraphHandle<GraphHiveSceneSurface> surface) override;
 
 		void strobe() override;
 
+		void setStrobe(bool flag) override;
+
 		SceneActionTarget* getSceneActionTarget() override;
+
+		StrobeActionTarget* getStrobeActionTarget() override;
 
 	protected:
 
-		void _registerCoreGlobals(lua_State* luaState) override;
+		void _poked(GraphPoke poke) override;
 
     private:
 
         // Do not allow copying.
         SceneGeometryNode(const SceneGeometryNode& copyFrom);
         SceneGeometryNode& operator= (const SceneGeometryNode& copyFrom);
-
-		/**
-		 * Lua-facing constructor for the Vertex type: `Vertex{posn = {...}, colour = {...}, texCoords = {...},
-		 * normal = {...}}`. Builds a Vertex userdata from the fields present in the table argument, leaving
-		 * any field that is absent zeroed.
-		 * @param luaState Lua state the call is running against; argument 1 is the field table.
-		 * @returns Always 1 (the constructed Vertex userdata is left on the stack).
-		 */
-		static int __luaVertexConstructor(lua_State* luaState);
-
-		/**
-		 * Type-check a Vertex userdata argument and copy out the Vertex it holds.
-		 * @param luaState Lua state the call is running against.
-		 * @param index Stack index of the Vertex userdata argument.
-		 * @returns The Vertex the userdata at that index holds.
-		 */
-		static Vertex __checkVertex(lua_State* luaState, int index);
-
-		/**
-		 * Lua-facing `addVertex(vertex)`: appends a Vertex built by __luaVertexConstructor() to the node
-		 * bound as this closure's upvalue.
-		 * @param luaState Lua state the call is running against; argument 1 is the Vertex userdata and
-		 *        upvalue 1 is a light userdata pointing at the target SceneGeometryNode.
-		 * @returns Always 0.
-		 */
-		static int __luaAddVertex(lua_State* luaState);
-
-		/**
-		 * Lua-facing `addVertexes(vertexes)`: appends every Vertex in the given array-style table to the
-		 * node bound as this closure's upvalue, in a single call.
-		 * @param luaState Lua state the call is running against; argument 1 is a table of Vertex userdata
-		 *        (indexes 1..#vertexes) and upvalue 1 is a light userdata pointing at the target
-		 *        SceneGeometryNode.
-		 * @returns Always 0.
-		 */
-		static int __luaAddVertexes(lua_State* luaState);
-
-		/**
-		 * Lua-facing `vertexCount()`: returns the number of vertexes currently held by the node bound as
-		 * this closure's upvalue.
-		 * @param luaState Lua state the call is running against; upvalue 1 is a light userdata pointing at
-		 *        the target SceneGeometryNode.
-		 * @returns Always 1 (the vertex count is left on the stack).
-		 */
-		static int __luaVertexCount(lua_State* luaState);
-
-		/**
-		 * Register the `Vertex` constructor and `addVertex()`/`addVertexes()`/`vertexCount()` global
-		 * functions against luaState, binding each to this node instance via upvalue.
-		 * @param luaState Lua state to register the globals against.
-		 */
-		void __registerVertexBindings(lua_State* luaState);
-
-		/**
-		 * Lua-facing `getAnimating()`: returns whether the node bound as this closure's upvalue is
-		 * currently in animating mode.
-		 * @param luaState Lua state the call is running against; upvalue 1 is a light userdata pointing at
-		 *        the target SceneGeometryNode.
-		 * @returns Always 1 (the animating flag is left on the stack).
-		 */
-		static int __luaGetAnimating(lua_State* luaState);
-
-		/**
-		 * Lua-facing `setAnimating(animating)`: sets whether the node bound as this closure's upvalue is
-		 * in animating mode.
-		 * @param luaState Lua state the call is running against; argument 1 is the animating boolean and
-		 *        upvalue 1 is a light userdata pointing at the target SceneGeometryNode.
-		 * @returns Always 0.
-		 */
-		static int __luaSetAnimating(lua_State* luaState);
-
-		/**
-		 * Register the `getAnimating()`/`setAnimating()` global functions against luaState, binding each to
-		 * this node instance via upvalue.
-		 * @param luaState Lua state to register the globals against.
-		 */
-		void __registerAnimatingBindings(lua_State* luaState);
-
-		/// Metatable name used to type-check Vertex userdata passed into addVertex().
-		static constexpr const char* VERTEX_METATABLE = "SceneGeometryNode.Vertex";
 
 		/**
 		 * The vertexes that make up the scene object this node defines.
@@ -142,6 +73,9 @@ class SceneGeometryNode : public StrobeScriptNode, public SceneActionTarget
 
 		/// Flag to indicate if this node is in animating mode.
 		std::atomic<bool> _animating = false;
+
+		/// Flag to indicate if this node is currently marked as strobing.
+		std::atomic<bool> _strobe = false;
 };
 
 #endif

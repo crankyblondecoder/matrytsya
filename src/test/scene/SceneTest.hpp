@@ -8,9 +8,9 @@
 #include "../../graph/GraphHandle.hpp"
 #include "../../graph/GraphHive.hpp"
 #include "../../graph/GraphHiveSceneSurface.hpp"
-#include "../../graph/nodes/SceneGeometryNode.hpp"
+#include "../../graph/nodes/SceneGeometryScriptNode.hpp"
 #include "../../graph/nodes/SceneRootNode.hpp"
-#include "../../graph/nodes/SceneTransformNode.hpp"
+#include "../../graph/nodes/SceneTransformScriptNode.hpp"
 
 TEST(SceneTest, GeneratedSceneContainsScriptVertexes)
 {
@@ -20,7 +20,7 @@ TEST(SceneTest, GeneratedSceneContainsScriptVertexes)
 	// The nodes must _not_ be allocated on the stack because of auto-delete once de-referenced.
 	SceneRootNode* root = new SceneRootNode();
 
-	SceneGeometryNode* geometryNode = new SceneGeometryNode(
+	SceneGeometryScriptNode* geometryNode = new SceneGeometryScriptNode(
 		"addVertex(Vertex{"
 		"	posn = {1, 2, 3},"
 		"	colour = {10, 20, 30, 40},"
@@ -87,7 +87,7 @@ TEST(SceneTest, GeneratedSceneKeepsVertexesInScriptOrder)
 
 	SceneRootNode* root = new SceneRootNode();
 
-	SceneGeometryNode* geometryNode = new SceneGeometryNode(
+	SceneGeometryScriptNode* geometryNode = new SceneGeometryScriptNode(
 		"addVertexes({"
 		"	Vertex{posn = {1, 0, 0}},"
 		"	Vertex{posn = {0, 1, 0}},"
@@ -146,7 +146,7 @@ TEST(SceneTest, GeneratedSceneUsesIdentityTransformWhenNoneApplied)
 	GraphHandle<GraphHive> hiveHandle(hive);
 
 	SceneRootNode* root = new SceneRootNode();
-	SceneGeometryNode* geometryNode = new SceneGeometryNode("addVertex(Vertex{posn = {1, 2, 3}})", "");
+	SceneGeometryScriptNode* geometryNode = new SceneGeometryScriptNode("addVertex(Vertex{posn = {1, 2, 3}})", "");
 
 	hive -> addNode(root);
 	hive -> addNode(geometryNode);
@@ -203,9 +203,9 @@ TEST(SceneTest, GeneratedSceneCombinesNestedTransformsInTraversalOrder)
 	GraphHandle<GraphHive> hiveHandle(hive);
 
 	SceneRootNode* root = new SceneRootNode();
-	SceneTransformNode* scaleNode = new SceneTransformNode("", "");
-	SceneTransformNode* translateNode = new SceneTransformNode("", "");
-	SceneGeometryNode* geometryNode = new SceneGeometryNode("addVertex(Vertex{posn = {1, 2, 3}})", "");
+	SceneTransformScriptNode* scaleNode = new SceneTransformScriptNode("", "");
+	SceneTransformScriptNode* translateNode = new SceneTransformScriptNode("", "");
+	SceneGeometryScriptNode* geometryNode = new SceneGeometryScriptNode("addVertex(Vertex{posn = {1, 2, 3}})", "");
 
 	double scaleTransform[16] = {
 		2.0, 0.0, 0.0, 0.0,
@@ -294,11 +294,11 @@ TEST(SceneTest, TransformNodeScriptCanReadAndModifyTransform)
 	GraphHandle<GraphHive> hiveHandle(hive);
 
 	SceneRootNode* root = new SceneRootNode();
-	SceneTransformNode* transformNode = new SceneTransformNode(
+	SceneTransformScriptNode* transformNode = new SceneTransformScriptNode(
 		"local t = getTransform();"
 		"t[13] = t[13] + 5;"
 		"setTransform(t);", "");
-	SceneGeometryNode* geometryNode = new SceneGeometryNode("addVertex(Vertex{posn = {1, 2, 3}})", "");
+	SceneGeometryScriptNode* geometryNode = new SceneGeometryScriptNode("addVertex(Vertex{posn = {1, 2, 3}})", "");
 
 	hive -> addNode(root);
 	hive -> addNode(transformNode);

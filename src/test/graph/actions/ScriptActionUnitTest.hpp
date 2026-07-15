@@ -12,7 +12,7 @@
 #include "../../../graph/graphActionFlagRegister.hpp"
 #include "../../../graph/graphSceneElements.hpp"
 #include "../../../graph/nodes/PingNode.hpp"
-#include "../../../graph/nodes/SceneGeometryNode.hpp"
+#include "../../../graph/nodes/SceneGeometryScriptNode.hpp"
 #include "../../../graph/nodes/ScriptNode.hpp"
 
 /**
@@ -120,7 +120,7 @@ class AccumulatingScriptAction : public ScriptAction
 };
 
 /**
- * ScriptAction subclass that captures a SceneGeometryNode script's vertexCount() readings, published as
+ * ScriptAction subclass that captures a SceneGeometryScriptNode script's vertexCount() readings, published as
  * globals, so the test can assert on them directly rather than via script-side error() checks.
  */
 class VertexCountCapturingScriptAction : public ScriptAction
@@ -272,14 +272,14 @@ TEST(ScriptActionTest, ScriptNodesAccumulateCounter)
 	hive -> shutdown();
 }
 
-TEST(ScriptActionTest, SceneGeometryNodeExposesVertexToLua)
+TEST(ScriptActionTest, SceneGeometryScriptNodeExposesVertexToLua)
 {
 	GraphHive* hive = new GraphHive(2);
 	GraphHandle<GraphHive> hiveHandle(hive);
 
 	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
 
-	SceneGeometryNode* geometryNode = new SceneGeometryNode(
+	SceneGeometryScriptNode* geometryNode = new SceneGeometryScriptNode(
 		"addVertex(Vertex{"
 		"	posn = {1, 2, 3},"
 		"	colour = {10, 20, 30, 40},"
@@ -337,14 +337,14 @@ TEST(ScriptActionTest, SceneGeometryNodeExposesVertexToLua)
 	hive -> shutdown();
 }
 
-TEST(ScriptActionTest, SceneGeometryNodeExposesAddVertexesToLua)
+TEST(ScriptActionTest, SceneGeometryScriptNodeExposesAddVertexesToLua)
 {
 	GraphHive* hive = new GraphHive(2);
 	GraphHandle<GraphHive> hiveHandle(hive);
 
 	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
 
-	SceneGeometryNode* geometryNode = new SceneGeometryNode(
+	SceneGeometryScriptNode* geometryNode = new SceneGeometryScriptNode(
 		"addVertexes({"
 		"	Vertex{posn = {1, 0, 0}},"
 		"	Vertex{posn = {0, 1, 0}},"
@@ -395,14 +395,14 @@ TEST(ScriptActionTest, SceneGeometryNodeExposesAddVertexesToLua)
 	hive -> shutdown();
 }
 
-TEST(ScriptActionTest, SceneGeometryNodeExposesVertexCountToLua)
+TEST(ScriptActionTest, SceneGeometryScriptNodeExposesVertexCountToLua)
 {
 	GraphHive* hive = new GraphHive(2);
 	GraphHandle<GraphHive> hiveHandle(hive);
 
 	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
 
-	SceneGeometryNode* geometryNode = new SceneGeometryNode(
+	SceneGeometryScriptNode* geometryNode = new SceneGeometryScriptNode(
 		"countBefore = vertexCount()\n"
 		"addVertex(Vertex{posn = {1, 2, 3}})\n"
 		"countAfterOne = vertexCount()\n"

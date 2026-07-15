@@ -3,8 +3,9 @@
 #include "graph/GraphHiveSceneSurface.hpp"
 #include "graph/graphSceneElements.hpp"
 #include "graph/nodes/SceneGeometryNode.hpp"
+#include "graph/nodes/SceneGeometryScriptNode.hpp"
 #include "graph/nodes/SceneRootNode.hpp"
-#include "graph/nodes/SceneTransformNode.hpp"
+#include "graph/nodes/SceneTransformScriptNode.hpp"
 #include "display/GraphHiveSceneSurfaceWebglMap.hpp"
 #include "display/http/HttpServer.hpp"
 
@@ -128,9 +129,9 @@ namespace
 	}
 
 	/**
-	 * A single vertex's worth of data, laid out in the same field order that SceneGeometryNode::addVertexes()
-	 * expects to unpack from a flat double buffer (colour and texCoords/normal excluded here are filled in by
-	 * _appendVertex()).
+	 * A single vertex's worth of data, laid out in the same field order that SceneGeometryNode's and
+	 * SceneGeometryScriptNode's addVertexes() expect to unpack from a flat double buffer (colour and
+	 * texCoords/normal excluded here are filled in by _appendVertex()).
 	 */
 	struct _RawVertex
 	{
@@ -141,7 +142,8 @@ namespace
 	};
 
 	// Appends one vertex's worth of raw serial data (position, colour + fixed opaque alpha, texture
-	// coordinates, normal) to a flat buffer suitable for SceneGeometryNode::addVertexes(double*, unsigned).
+	// coordinates, normal) to a flat buffer suitable for addVertexes(double*, unsigned) on either
+	// SceneGeometryNode or SceneGeometryScriptNode.
 	void _appendVertex(std::vector<double>& data, const _RawVertex& vertex)
 	{
 		data.insert(data.end(), {
@@ -306,7 +308,7 @@ int main(int argc, char const *argv[])
 	SceneRootNode* root = new SceneRootNode();
 	hive -> addNode(root);
 
-	SceneGeometryNode* body = new SceneGeometryNode("", "");
+	SceneGeometryScriptNode* body = new SceneGeometryScriptNode("", "");
 	body -> setPokeEnabled(true);
 	hive -> addNode(body);
 	GraphHandle<GraphNode> bodyHandle(body);
@@ -349,7 +351,7 @@ int main(int argc, char const *argv[])
 		_hsvToRgb(hue, 0.85, 0.95, baseR, baseG, baseB);
 		_hsvToRgb(hue, 0.25, 1.0, tipR, tipG, tipB);
 
-		SceneTransformNode* petalTransform = new SceneTransformNode(i == 0 ? _PETAL_CLOSE_SCRIPT : "", "");
+		SceneTransformScriptNode* petalTransform = new SceneTransformScriptNode(i == 0 ? _PETAL_CLOSE_SCRIPT : "", "");
 		hive -> addNode(petalTransform);
 		GraphHandle<GraphNode> petalTransformHandle(petalTransform);
 
@@ -357,7 +359,7 @@ int main(int argc, char const *argv[])
 
 		previousNode -> createEdge(petalTransformHandle);
 
-		SceneGeometryNode* petal = new SceneGeometryNode("", "");
+		SceneGeometryNode* petal = new SceneGeometryNode();
 		hive -> addNode(petal);
 		GraphHandle<GraphNode> petalHandle(petal);
 

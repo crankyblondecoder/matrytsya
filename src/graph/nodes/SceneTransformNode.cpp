@@ -3,14 +3,12 @@
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphHiveSceneSurface.hpp"
 
-#include "../../lua/lua.hpp"
-
 SceneTransformNode::~SceneTransformNode()
 {
 }
 
-SceneTransformNode::SceneTransformNode(const std::string& script, const std::string& pokeScript)
-	: StrobeScriptNode(script, pokeScript)
+SceneTransformNode::SceneTransformNode()
+	: GraphNode()
 {
 	_setEnergyCost(1);
 	_addActionFlag(SCENE_GRAPH_ACTION);
@@ -22,13 +20,6 @@ void SceneTransformNode::setTransform(Transform transform)
 	for(int i = 0; i < 16; i++) _transform[i] = transform[i];
 }
 
-void SceneTransformNode::_registerCoreGlobals(lua_State* luaState)
-{
-	StrobeScriptNode::_registerCoreGlobals(luaState);
-
-	__registerTransformBindings(luaState);
-}
-
 void SceneTransformNode::populateSurface(GraphHandle<GraphHiveSceneSurface> surface)
 {
 	if(surface.isValid()) surface.getInstance() -> addLocalTransform(_transform, getId());
@@ -38,49 +29,21 @@ void SceneTransformNode::strobe()
 {
 }
 
+void SceneTransformNode::setStrobe(bool flag)
+{
+	_strobe = flag;
+}
+
 SceneActionTarget* SceneTransformNode::getSceneActionTarget()
 {
 	return this;
 }
 
-int SceneTransformNode::__luaGetTransform(lua_State* luaState)
+StrobeActionTarget* SceneTransformNode::getStrobeActionTarget()
 {
-	SceneTransformNode* node = static_cast<SceneTransformNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
-
-	lua_createtable(luaState, 16, 0); // [transform]
-
-	for(int i = 0; i < 16; i++)
-	{
-		lua_pushnumber(luaState, node -> _transform[i]);
-		lua_seti(luaState, -2, i + 1); // [transform]
-	}
-
-	return 1;
+	return this;
 }
 
-int SceneTransformNode::__luaSetTransform(lua_State* luaState)
+void SceneTransformNode::_poked(GraphPoke poke)
 {
-	luaL_checktype(luaState, 1, LUA_TTABLE);
-
-	SceneTransformNode* node = static_cast<SceneTransformNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
-
-	for(int i = 0; i < 16; i++)
-	{
-		lua_geti(luaState, 1, i + 1); // [transform, element]
-		node -> _transform[i] = lua_tonumber(luaState, -1);
-		lua_pop(luaState, 1); // [transform]
-	}
-
-	return 0;
-}
-
-void SceneTransformNode::__registerTransformBindings(lua_State* luaState)
-{
-	lua_pushlightuserdata(luaState, this);
-	lua_pushcclosure(luaState, __luaGetTransform, 1);
-	lua_setglobal(luaState, "getTransform");
-
-	lua_pushlightuserdata(luaState, this);
-	lua_pushcclosure(luaState, __luaSetTransform, 1);
-	lua_setglobal(luaState, "setTransform");
 }
