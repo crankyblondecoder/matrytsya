@@ -1,18 +1,17 @@
 #ifndef SCENE_GEOMETRY_SCRIPT_NODE_H
 #define SCENE_GEOMETRY_SCRIPT_NODE_H
 
-#include <atomic>
 #include <string>
 #include <vector>
 
 #include "../graphSceneElements.hpp"
 #include "../actionTargets/SceneActionTarget.hpp"
-#include "StrobeScriptNode.hpp"
+#include "AnimateScriptNode.hpp"
 
 /**
  * Graph node that represents scene geometry.
  */
-class SceneGeometryScriptNode : public StrobeScriptNode, public SceneActionTarget
+class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarget
 {
     public:
 
@@ -105,31 +104,6 @@ class SceneGeometryScriptNode : public StrobeScriptNode, public SceneActionTarge
 		 */
 		void __registerVertexBindings(lua_State* luaState);
 
-		/**
-		 * Lua-facing `getAnimating()`: returns whether the node bound as this closure's upvalue is
-		 * currently in animating mode.
-		 * @param luaState Lua state the call is running against; upvalue 1 is a light userdata pointing at
-		 *        the target SceneGeometryScriptNode.
-		 * @returns Always 1 (the animating flag is left on the stack).
-		 */
-		static int __luaGetAnimating(lua_State* luaState);
-
-		/**
-		 * Lua-facing `setAnimating(animating)`: sets whether the node bound as this closure's upvalue is
-		 * in animating mode.
-		 * @param luaState Lua state the call is running against; argument 1 is the animating boolean and
-		 *        upvalue 1 is a light userdata pointing at the target SceneGeometryScriptNode.
-		 * @returns Always 0.
-		 */
-		static int __luaSetAnimating(lua_State* luaState);
-
-		/**
-		 * Register the `getAnimating()`/`setAnimating()` global functions against luaState, binding each to
-		 * this node instance via upvalue.
-		 * @param luaState Lua state to register the globals against.
-		 */
-		void __registerAnimatingBindings(lua_State* luaState);
-
 		/// Metatable name used to type-check Vertex userdata passed into addVertex().
 		static constexpr const char* VERTEX_METATABLE = "SceneGeometryScriptNode.Vertex";
 
@@ -139,9 +113,6 @@ class SceneGeometryScriptNode : public StrobeScriptNode, public SceneActionTarge
 		 * @note There is no indexing at this stage.
 		 */
 		std::vector<Vertex> _vertexes;
-
-		/// Flag to indicate if this node is in animating mode.
-		std::atomic<bool> _animating = false;
 };
 
 #endif

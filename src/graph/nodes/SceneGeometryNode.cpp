@@ -52,16 +52,6 @@ void SceneGeometryNode::addVertexes(double* rawData, unsigned length)
 	}
 }
 
-bool SceneGeometryNode::getAnimating()
-{
-	return _animating;
-}
-
-void SceneGeometryNode::setAnimating(bool animating)
-{
-	_animating = animating;
-}
-
 void SceneGeometryNode::populateSurface(GraphHandle<GraphHiveSceneSurface> surface)
 {
 	if(surface.isValid()) surface.getInstance() -> addVertexes(_vertexes, getId(), getId(), getPokeEnabled());

@@ -9,7 +9,7 @@ SceneGeometryScriptNode::~SceneGeometryScriptNode()
 }
 
 SceneGeometryScriptNode::SceneGeometryScriptNode(const std::string& coreScript, const std::string& pokeScript)
-	: StrobeScriptNode(coreScript, pokeScript)
+	: AnimateScriptNode(coreScript, pokeScript)
 {
 	_setEnergyCost(1);
 	_addActionFlag(SCENE_GRAPH_ACTION);
@@ -56,10 +56,9 @@ void SceneGeometryScriptNode::addVertexes(double* rawData, unsigned length)
 
 void SceneGeometryScriptNode::_registerCoreGlobals(lua_State* luaState)
 {
-	StrobeScriptNode::_registerCoreGlobals(luaState);
+	AnimateScriptNode::_registerCoreGlobals(luaState);
 
 	__registerVertexBindings(luaState);
-	__registerAnimatingBindings(luaState);
 }
 
 void SceneGeometryScriptNode::populateSurface(GraphHandle<GraphHiveSceneSurface> surface)
@@ -160,34 +159,5 @@ void SceneGeometryScriptNode::__registerVertexBindings(lua_State* luaState)
 	lua_pushlightuserdata(luaState, this);
 	lua_pushcclosure(luaState, __luaVertexCount, 1);
 	lua_setglobal(luaState, "vertexCount");
-}
-
-int SceneGeometryScriptNode::__luaGetAnimating(lua_State* luaState)
-{
-	SceneGeometryScriptNode* node = static_cast<SceneGeometryScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
-
-	lua_pushboolean(luaState, node -> _animating);
-
-	return 1;
-}
-
-int SceneGeometryScriptNode::__luaSetAnimating(lua_State* luaState)
-{
-	SceneGeometryScriptNode* node = static_cast<SceneGeometryScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
-
-	node -> _animating = lua_toboolean(luaState, 1);
-
-	return 0;
-}
-
-void SceneGeometryScriptNode::__registerAnimatingBindings(lua_State* luaState)
-{
-	lua_pushlightuserdata(luaState, this);
-	lua_pushcclosure(luaState, __luaGetAnimating, 1);
-	lua_setglobal(luaState, "getAnimating");
-
-	lua_pushlightuserdata(luaState, this);
-	lua_pushcclosure(luaState, __luaSetAnimating, 1);
-	lua_setglobal(luaState, "setAnimating");
 }
 

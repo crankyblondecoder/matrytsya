@@ -10,7 +10,7 @@ SceneTransformScriptNode::~SceneTransformScriptNode()
 }
 
 SceneTransformScriptNode::SceneTransformScriptNode(const std::string& script, const std::string& pokeScript)
-	: StrobeScriptNode(script, pokeScript)
+	: AnimateScriptNode(script, pokeScript)
 {
 	_setEnergyCost(1);
 	_addActionFlag(SCENE_GRAPH_ACTION);
@@ -24,7 +24,7 @@ void SceneTransformScriptNode::setTransform(Transform transform)
 
 void SceneTransformScriptNode::_registerCoreGlobals(lua_State* luaState)
 {
-	StrobeScriptNode::_registerCoreGlobals(luaState);
+	AnimateScriptNode::_registerCoreGlobals(luaState);
 
 	__registerTransformBindings(luaState);
 }

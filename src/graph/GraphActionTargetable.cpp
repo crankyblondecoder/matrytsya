@@ -61,3 +61,8 @@ StrobeActionTarget* GraphActionTargetable::getStrobeActionTarget()
 	return 0;
 }
 
+AnimateActionTarget* GraphActionTargetable::getAnimateActionTarget()
+{
+	return 0;
+}
+

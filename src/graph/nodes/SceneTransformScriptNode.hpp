@@ -5,7 +5,7 @@
 
 #include "../actionTargets/SceneActionTarget.hpp"
 #include "../graphSceneElements.hpp"
-#include "StrobeScriptNode.hpp"
+#include "AnimateScriptNode.hpp"
 
 class GraphHiveSceneSurface;
 
@@ -15,7 +15,7 @@ struct lua_State;
  * Graph node that represents a transform applied to scene geometry.
  * Its script can read and modify the current transform via the getTransform()/setTransform() Lua globals.
  */
-class SceneTransformScriptNode : public StrobeScriptNode, public SceneActionTarget
+class SceneTransformScriptNode : public AnimateScriptNode, public SceneActionTarget
 {
     public:
 

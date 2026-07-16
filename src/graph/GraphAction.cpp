@@ -7,12 +7,14 @@
 #include "GraphHive.hpp"
 #include "GraphNode.hpp"
 
+std::atomic<unsigned> GraphAction::_nextId{1};
+
 GraphAction::~GraphAction()
 {
 	_boundNode.clear();
 }
 
-GraphAction::GraphAction(GraphHandle<GraphNode> initNode, unsigned energy) : _boundNode(initNode), _boundHive(0)
+GraphAction::GraphAction(GraphHandle<GraphNode> initNode, unsigned energy) : _id { _nextId++ }, _boundNode(initNode), _boundHive(0)
 {
 	_energy = energy;
 
@@ -20,6 +22,11 @@ GraphAction::GraphAction(GraphHandle<GraphNode> initNode, unsigned energy) : _bo
 	{
 		_boundHive = initNode.getInstance() -> getHive();
 	}
+}
+
+unsigned GraphAction::getId()
+{
+	return _id;
 }
 
 void GraphAction::applyScheduled(GraphHandle<GraphNode> nodeHandle)

@@ -49,6 +49,11 @@ class GraphAction : public RefCounted
 		virtual unsigned long getEdgeTraversalFlags() final;
 
 		/**
+		 * Get the unique id of this action.
+		 */
+		unsigned getId();
+
+		/**
 		 * Start traversal of graph.
 		 * @note This is not re-entrant.
 		 */
@@ -135,6 +140,12 @@ class GraphAction : public RefCounted
 
 		/// Generic lock.
         ThreadMutex _lock;
+
+		/// Counter used to derive each action's unique id.
+		static std::atomic<unsigned> _nextId;
+
+		/// Unique id of this action.
+		unsigned _id;
 
 		/// For any thread that wants to wait on the action completing.
 		ThreadCondition _completeCond;

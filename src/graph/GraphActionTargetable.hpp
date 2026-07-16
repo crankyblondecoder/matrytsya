@@ -1,6 +1,7 @@
 #ifndef GRAPH_ACTION_TARGETABLE_H
 #define GRAPH_ACTION_TARGETABLE_H
 
+#include "actionTargets/AnimateActionTarget.hpp"
 #include "actionTargets/PingActionTarget.hpp"
 #include "actionTargets/SceneActionTarget.hpp"
 #include "actionTargets/StrobeActionTarget.hpp"
@@ -50,6 +51,9 @@ class GraphActionTargetable
 
 		/// Get the target for the strobe action.
 		virtual StrobeActionTarget* getStrobeActionTarget();
+
+		/// Get the target for the animate action.
+		virtual AnimateActionTarget* getAnimateActionTarget();
 
 	protected:
 

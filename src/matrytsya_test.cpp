@@ -41,9 +41,11 @@ namespace
 	// Elements 1/2/5/6 (Lua 1-based) are transform[0], transform[1], transform[4], transform[5], i.e. exactly
 	// the cos/sin terms _setRotationZ() would have written; math.min() clamps so repeated strobes settle at
 	// maxTilt rather than overshoot past it. Guarded on getStrobe() so the tilt only advances on strobe
-	// actions, not on every action that happens to invoke this node's script.
+	// actions, not on every action that happens to invoke this node's script, and on getAnimating() so it
+	// stays put until an AnimateAction (emitted by the flower centre's own poke script once clicked, see
+	// _BODY_CLICK_SCRIPT below) has marked this node as animating.
 	const char* const _PETAL_CLOSE_SCRIPT =
-		"if getStrobe() then"
+		"if getStrobe() and getAnimating() then"
 		"	local t = getTransform();"
 		"	local angle = math.atan(t[2], t[1]);"
 		"	local step = 0.0028;"
@@ -298,6 +300,12 @@ namespace
 		return vertexes;
 	}
 
+	// Kicks off the petal close animation on click: the flower centre's poke script itself calls
+	// setAnimating(true, true), which flips its own animating flag and emits an AnimateAction that
+	// propagates the flag to every connected AnimateActionTarget downstream (starting with petalTransform0,
+	// see _PETAL_CLOSE_SCRIPT).
+	const char* const _BODY_CLICK_SCRIPT = "setAnimating(true, true)";
+
 }
 
 int main(int argc, char const *argv[])
@@ -308,7 +316,7 @@ int main(int argc, char const *argv[])
 	SceneRootNode* root = new SceneRootNode();
 	hive -> addNode(root);
 
-	SceneGeometryScriptNode* body = new SceneGeometryScriptNode("", "");
+	SceneGeometryScriptNode* body = new SceneGeometryScriptNode("", _BODY_CLICK_SCRIPT);
 	body -> setPokeEnabled(true);
 	hive -> addNode(body);
 	GraphHandle<GraphNode> bodyHandle(body);
@@ -384,17 +392,18 @@ int main(int argc, char const *argv[])
 	httpServer.start();
 
 	std::cout << "Listening on http://localhost:" << httpServer.getPort() << "/" << std::endl;
+	std::cout << "Click the flower centre to start the petal close animation." << std::endl;
 
 	signal(SIGINT, _handleSigInt);
 
-	// Don't start folding the petals until a browser has actually loaded the page; otherwise the animation
-	// could run to completion, or well past it, before anyone is around to see it.
+	// The strobe/populate loop must not start until the webgl map has served at least one request, or scene
+	// population stalls; this is unrelated to the animation itself, which stays a no-op (see
+	// _PETAL_CLOSE_SCRIPT's getAnimating() guard) until the flower centre is clicked regardless of when the
+	// loop below starts.
 	while(_running && !webglMap.hasReceivedFirstRequest())
 	{
 		webglMap.waitForFirstRequest(500);
 	}
-
-	if(_running) std::cout << "Browser connected, starting petal close animation." << std::endl;
 
 	while(_running)
 	{

@@ -1,14 +1,14 @@
 #ifndef SCENE_ROOT_NODE_H
 #define SCENE_ROOT_NODE_H
 
-#include "../GraphNode.hpp"
+#include "StrobeEmitterNode.hpp"
 
 class GraphHiveSceneSurface;
 
 /**
  * Graph node that roots a visual scene.
  */
-class SceneRootNode : public GraphNode
+class SceneRootNode : public StrobeEmitterNode
 {
     public:
 
@@ -20,11 +20,6 @@ class SceneRootNode : public GraphNode
 		 * Populate the given scene surface.
 		 */
 		void populateSceneSurface(GraphHandle<GraphHiveSceneSurface> sceneSurface);
-
-		/**
-		 * Emit a single strobe action from this node immediately.
-		 */
-		void emitStrobe();
 
 	protected:
 

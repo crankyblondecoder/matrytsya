@@ -13,8 +13,9 @@
 #define SCENE_GRAPH_ACTION 0x00000008
 /// Supports strobing hive scene related nodes.
 #define SCENE_STROBE_GRAPH_ACTION 0x00000010
+/// Supports triggering and controlling animation.
+#define ANIMATE_GRAPH_ACTION 0x00000020
 
-//#define _GRAPH_ACTION 0x00000020
 //#define _GRAPH_ACTION 0x00000040
 //#define _GRAPH_ACTION 0x00000080
 

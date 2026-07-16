@@ -222,6 +222,8 @@ void ScriptNode::_poked(GraphPoke poke)
 {
 	if(_pokeBytecode.empty()) return;
 
+	__registerPokeGlobalsOnce();
+
 	__exposePokeContext(_pokeLuaState, poke);
 
 	if(luaL_loadbufferx(_pokeLuaState, _pokeBytecode.data(), _pokeBytecode.size(), "script", "b") == LUA_OK)
@@ -326,28 +328,38 @@ void ScriptNode::__captureEnv(lua_State* luaState, int* postInvokeEnvRef)
 
 void ScriptNode::__registerCoreGlobalsOnce()
 {
-	if(_coreGlobalsRegistered) return;
+	__registerGlobalsOnce(_coreLuaState, _coreBaseEnvRef, _coreGlobalsRegistered);
+}
+
+void ScriptNode::__registerPokeGlobalsOnce()
+{
+	__registerGlobalsOnce(_pokeLuaState, _pokeBaseEnvRef, _pokeGlobalsRegistered);
+}
+
+void ScriptNode::__registerGlobalsOnce(lua_State* luaState, int baseEnvRef, bool& registered)
+{
+	if(registered) return;
 
 	// Save whatever is currently live as globals (e.g. globals just written by setGlobal() ahead of this
 	// invoke()), so those writes aren't lost by temporarily swapping globals to the base table below.
-	lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [currentEnv]
-	int currentEnvRef = luaL_ref(_coreLuaState, LUA_REGISTRYINDEX); // [ ]
+	lua_rawgeti(luaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [currentEnv]
+	int currentEnvRef = luaL_ref(luaState, LUA_REGISTRYINDEX); // [ ]
 
 	// Temporarily make the permanent base table live as globals, so _registerCoreGlobals()'s
 	// lua_setglobal() calls land there instead of the current per-invoke table, and so they survive
 	// every future __installFreshEnv() reset.
-	lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, _coreBaseEnvRef); // [base]
-	lua_rawseti(_coreLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [ ]
+	lua_rawgeti(luaState, LUA_REGISTRYINDEX, baseEnvRef); // [base]
+	lua_rawseti(luaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [ ]
 
-	_registerCoreGlobals(_coreLuaState);
+	_registerCoreGlobals(luaState);
 
 	// Restore the env that was live before; its metatable already falls through to the base table, so it
 	// picks up the newly registered bindings the same way it already picks up stdlib functions.
-	lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, currentEnvRef); // [currentEnv]
-	lua_rawseti(_coreLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [ ]
-	luaL_unref(_coreLuaState, LUA_REGISTRYINDEX, currentEnvRef);
+	lua_rawgeti(luaState, LUA_REGISTRYINDEX, currentEnvRef); // [currentEnv]
+	lua_rawseti(luaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [ ]
+	luaL_unref(luaState, LUA_REGISTRYINDEX, currentEnvRef);
 
-	_coreGlobalsRegistered = true;
+	registered = true;
 }
 
 void ScriptNode::__exposePokeContext(lua_State* luaState, GraphPoke poke)

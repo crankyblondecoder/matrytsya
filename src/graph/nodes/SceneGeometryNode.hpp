@@ -34,16 +34,6 @@ class SceneGeometryNode : public GraphNode, public SceneActionTarget, public Str
 		 */
 		void addVertexes(double* rawData, unsigned length);
 
-		/**
-		 * Get whether this node is currently in animating mode.
-		 */
-		bool getAnimating();
-
-		/**
-		 * Set whether this node is in animating mode.
-		 */
-		void setAnimating(bool animating);
-
 		void populateSurface(GraphHandle<GraphHiveSceneSurface> surface) override;
 
 		void strobe() override;
@@ -70,9 +60,6 @@ class SceneGeometryNode : public GraphNode, public SceneActionTarget, public Str
 		 * @note There is no indexing at this stage.
 		 */
 		std::vector<Vertex> _vertexes;
-
-		/// Flag to indicate if this node is in animating mode.
-		std::atomic<bool> _animating = false;
 
 		/// Flag to indicate if this node is currently marked as strobing.
 		std::atomic<bool> _strobe = false;
