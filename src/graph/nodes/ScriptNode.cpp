@@ -65,12 +65,9 @@ bool ScriptNode::invoke()
 	// Note: lua_pcall already pops the function and any error message off the stack on failure, unlike
 	// luaL_loadbufferx, which leaves an error message on the stack that has to be popped explicitly.
 
-	// Capture the environment the script just ran against before replacing it, so getGlobal() can still
-	// read back whatever it set; then immediately re-prime a fresh environment for the next invoke() (or
-	// for ScriptAction::setGlobal() calls that happen before it).
-	__captureEnv(_coreLuaState, &_corePostInvokeEnvRef);
-	__installFreshEnv(_coreLuaState, _coreBaseEnvRef);
-
+	// The environment the script just ran against is left live rather than replaced, so any global it set
+	// (or that setGlobal() staged ahead of this invoke()) is still there, as the starting state, the next
+	// time this node is invoked.
 	return success;
 }
 
@@ -100,9 +97,7 @@ void ScriptNode::setGlobal(const char* name, const char* value)
 
 bool ScriptNode::getGlobal(const char* name, bool& value)
 {
-	int envRef = _corePostInvokeEnvRef ? _corePostInvokeEnvRef : _coreBaseEnvRef;
-
-	lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, envRef); // [env]
+	lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
 	lua_getfield(_coreLuaState, -1, name); // [env, value]
 
 	bool found = lua_isboolean(_coreLuaState, -1);
@@ -114,9 +109,7 @@ bool ScriptNode::getGlobal(const char* name, bool& value)
 
 bool ScriptNode::getGlobal(const char* name, int& value)
 {
-	int envRef = _corePostInvokeEnvRef ? _corePostInvokeEnvRef : _coreBaseEnvRef;
-
-	lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, envRef); // [env]
+	lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
 	lua_getfield(_coreLuaState, -1, name); // [env, value]
 
 	bool found = lua_isinteger(_coreLuaState, -1);
@@ -128,9 +121,7 @@ bool ScriptNode::getGlobal(const char* name, int& value)
 
 bool ScriptNode::getGlobal(const char* name, double& value)
 {
-	int envRef = _corePostInvokeEnvRef ? _corePostInvokeEnvRef : _coreBaseEnvRef;
-
-	lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, envRef); // [env]
+	lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
 	lua_getfield(_coreLuaState, -1, name); // [env, value]
 
 	bool found = lua_isnumber(_coreLuaState, -1);
@@ -142,9 +133,7 @@ bool ScriptNode::getGlobal(const char* name, double& value)
 
 bool ScriptNode::getGlobal(const char* name, const char*& value)
 {
-	int envRef = _corePostInvokeEnvRef ? _corePostInvokeEnvRef : _coreBaseEnvRef;
-
-	lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, envRef); // [env]
+	lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
 	lua_getfield(_coreLuaState, -1, name); // [env, value]
 
 	bool found = lua_isstring(_coreLuaState, -1);
@@ -159,9 +148,7 @@ bool ScriptNode::getGlobal(const char* name, const char*& value)
 
 bool ScriptNode::getPokeGlobal(const char* name, bool& value)
 {
-	int envRef = _pokePostInvokeEnvRef ? _pokePostInvokeEnvRef : _pokeBaseEnvRef;
-
-	lua_rawgeti(_pokeLuaState, LUA_REGISTRYINDEX, envRef); // [env]
+	lua_rawgeti(_pokeLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
 	lua_getfield(_pokeLuaState, -1, name); // [env, value]
 
 	bool found = lua_isboolean(_pokeLuaState, -1);
@@ -173,9 +160,7 @@ bool ScriptNode::getPokeGlobal(const char* name, bool& value)
 
 bool ScriptNode::getPokeGlobal(const char* name, int& value)
 {
-	int envRef = _pokePostInvokeEnvRef ? _pokePostInvokeEnvRef : _pokeBaseEnvRef;
-
-	lua_rawgeti(_pokeLuaState, LUA_REGISTRYINDEX, envRef); // [env]
+	lua_rawgeti(_pokeLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
 	lua_getfield(_pokeLuaState, -1, name); // [env, value]
 
 	bool found = lua_isinteger(_pokeLuaState, -1);
@@ -187,9 +172,7 @@ bool ScriptNode::getPokeGlobal(const char* name, int& value)
 
 bool ScriptNode::getPokeGlobal(const char* name, double& value)
 {
-	int envRef = _pokePostInvokeEnvRef ? _pokePostInvokeEnvRef : _pokeBaseEnvRef;
-
-	lua_rawgeti(_pokeLuaState, LUA_REGISTRYINDEX, envRef); // [env]
+	lua_rawgeti(_pokeLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
 	lua_getfield(_pokeLuaState, -1, name); // [env, value]
 
 	bool found = lua_isnumber(_pokeLuaState, -1);
@@ -201,9 +184,7 @@ bool ScriptNode::getPokeGlobal(const char* name, double& value)
 
 bool ScriptNode::getPokeGlobal(const char* name, const char*& value)
 {
-	int envRef = _pokePostInvokeEnvRef ? _pokePostInvokeEnvRef : _pokeBaseEnvRef;
-
-	lua_rawgeti(_pokeLuaState, LUA_REGISTRYINDEX, envRef); // [env]
+	lua_rawgeti(_pokeLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
 	lua_getfield(_pokeLuaState, -1, name); // [env, value]
 
 	bool found = lua_isstring(_pokeLuaState, -1);
@@ -235,8 +216,8 @@ void ScriptNode::_poked(GraphPoke poke)
 		lua_pop(_pokeLuaState, 1);
 	}
 
-	__captureEnv(_pokeLuaState, &_pokePostInvokeEnvRef);
-	__installFreshEnv(_pokeLuaState, _pokeBaseEnvRef);
+	// The environment the poke script just ran against is left live rather than replaced, so any global it
+	// set is still there, as the starting state, the next time this node is poked.
 }
 
 void ScriptNode::__compileCoreScript()
@@ -315,15 +296,6 @@ void ScriptNode::__installFreshEnv(lua_State* luaState, int baseEnvRef)
 
 	// Reads not found in env fall through to the base table; writes only ever land in env.
 	lua_rawseti(luaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
-}
-
-void ScriptNode::__captureEnv(lua_State* luaState, int* postInvokeEnvRef)
-{
-	lua_rawgeti(luaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
-
-	if(*postInvokeEnvRef) luaL_unref(luaState, LUA_REGISTRYINDEX, *postInvokeEnvRef);
-
-	*postInvokeEnvRef = luaL_ref(luaState, LUA_REGISTRYINDEX); // [ ]
 }
 
 void ScriptNode::__registerCoreGlobalsOnce()

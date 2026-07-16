@@ -16,13 +16,14 @@ struct lua_State;
  *       and debug are never opened, so neither state has filesystem, process, environment or introspection
  *       access. Each state's memory is drawn from an allocator private to it and independently capped, so
  *       the only resources available to either script are those explicitly granted to it.
- * @note Each state's global environment is reset to fresh before every invoke()/poke, so nothing a script
- *       sets during one run is visible to the next run of the same script on the same node.
- * @note Extra globals a subclass registers via _registerCoreGlobals() (e.g. getStrobe(), addVertex())
- *       are the one exception: they are written into each state's permanent base table once - the first
- *       time invoke() runs for the core state, the first time a poke happens for the poke state - and
- *       remain callable on every subsequent invoke()/poke without being re-registered. Only globals a
- *       script itself sets during a run are discarded before the next run.
+ * @note Each state's global environment persists across every invoke()/poke: a global a script sets during
+ *       one run is still visible as its own starting state on the next run of the same script on the same
+ *       node, so a script can keep state (e.g. a running counter or a direction flag) in an ordinary global
+ *       instead of smuggling it through some other channel.
+ * @note Extra globals a subclass registers via _registerCoreGlobals() (e.g. getStrobe(), addVertex()) are
+ *       written into each state's permanent base table once - the first time invoke() runs for the core
+ *       state, the first time a poke happens for the poke state - and remain callable on every subsequent
+ *       invoke()/poke without being re-registered, the same as any other global the script has already set.
  */
 class ScriptNode : public GraphNode, public ScriptActionTarget
 {
@@ -173,29 +174,20 @@ class ScriptNode : public GraphNode, public ScriptActionTarget
 		static lua_State* __createSandboxedState(size_t* memoryUsed, int* baseEnvRef);
 
 		/**
-		 * Replace luaState's live global table with a fresh table whose __index metamethod falls through
-		 * to the table referenced by baseEnvRef, so library functions remain visible but no write lands in
-		 * the base table.
+		 * Install a fresh table as luaState's live global table, with its __index metamethod falling
+		 * through to the table referenced by baseEnvRef, so library functions remain visible but no write
+		 * lands in the base table. Called once per state, at construction, to seed the persistent
+		 * environment that state's invoke()/poke calls run against and write into from then on.
 		 * @param luaState State to install the fresh environment into.
 		 * @param baseEnvRef Registry ref (in luaState) to fall through reads to.
 		 */
 		static void __installFreshEnv(lua_State* luaState, int baseEnvRef);
 
 		/**
-		 * Save a registry reference (in luaState) to the table currently installed as luaState's globals
-		 * into *postInvokeEnvRef, unref'ing whatever it previously held. Called immediately after a script
-		 * finishes running so getGlobal() can read back whatever it set.
-		 * @param luaState State whose live global table should be captured.
-		 * @param postInvokeEnvRef In/out: previous ref to unref (if nonzero), then replaced with the new
-		 *        ref.
-		 */
-		static void __captureEnv(lua_State* luaState, int* postInvokeEnvRef);
-
-		/**
 		 * Register this node's core Lua bindings exactly once, the first time it is needed, writing them
-		 * into the permanent base env table (_coreBaseEnvRef) instead of the throwaway per-invoke table so
-		 * they survive every subsequent __installFreshEnv() reset. Does nothing on any call after the
-		 * first.
+		 * into the permanent base env table (_coreBaseEnvRef) instead of the persistent live env table so
+		 * they remain callable even if a script overwrites a global of the same name in its own env. Does
+		 * nothing on any call after the first.
 		 */
 		void __registerCoreGlobalsOnce();
 
@@ -265,16 +257,11 @@ class ScriptNode : public GraphNode, public ScriptActionTarget
 		/// Persistent, sandboxed Lua state this node owns for running its poke script.
 		lua_State* _pokeLuaState = 0;
 
-		/// Registry ref (in _coreLuaState) to the base env table. Reads that miss the current per-invoke
-		/// env table fall through to this one (stdlib functions, etc.); this is also where
-		/// _registerCoreGlobals() writes each subclass's C-closure bindings, exactly once, so they persist
-		/// across every invoke() even though the per-invoke table itself is discarded and rebuilt each
-		/// time.
+		/// Registry ref (in _coreLuaState) to the base env table. Reads that miss the persistent live env
+		/// table fall through to this one (stdlib functions, etc.); this is also where
+		/// _registerCoreGlobals() writes each subclass's C-closure bindings, exactly once, so they are
+		/// visible even if a script's own env does not (yet) shadow them with a global of the same name.
 		int _coreBaseEnvRef = 0;
-
-		/// Registry ref (in _coreLuaState) to the table live as globals immediately after the most recent
-		/// invoke() call, or 0 if invoke() has never run.
-		int _corePostInvokeEnvRef = 0;
 
 		/// Whether _registerCoreGlobals() has already run once for this node instance. Guards
 		/// __registerCoreGlobalsOnce() so subclass bindings are installed exactly once, the first time
@@ -283,10 +270,6 @@ class ScriptNode : public GraphNode, public ScriptActionTarget
 
 		/// Registry ref (in _pokeLuaState) to the clean sandboxed base env table.
 		int _pokeBaseEnvRef = 0;
-
-		/// Registry ref (in _pokeLuaState) to the table live as globals immediately after the most recent
-		/// poke, or 0 if this node has never been poked.
-		int _pokePostInvokeEnvRef = 0;
 
 		/// Whether _registerCoreGlobals() has already run once against the poke state for this node
 		/// instance. Guards __registerPokeGlobalsOnce() so subclass bindings are installed exactly once,

@@ -33,24 +33,36 @@ namespace
 	// A finer-grained, more frequent step reads as smoother motion than a coarser one at the same overall
 	// closing duration; the webgl map's poll interval is tightened to match so the browser doesn't skip frames.
 	const unsigned _STROBE_INTERVAL_US = 40000;
+	const unsigned _STROBE_FREQUENCY_HZ = 1000000 / _STROBE_INTERVAL_US;
 	const unsigned _WEBGL_POLL_INTERVAL_MS = 50;
 
 	// Runs against the first petal's transform node only: that node's matrix is the sole place the shared
 	// outward tilt lives (see the petalPlacement comment below), so nudging its rotation-Z component here is
 	// enough to fold every petal in unison on each strobe, since every other petal's transform chains off it.
 	// Elements 1/2/5/6 (Lua 1-based) are transform[0], transform[1], transform[4], transform[5], i.e. exactly
-	// the cos/sin terms _setRotationZ() would have written; math.min() clamps so repeated strobes settle at
-	// maxTilt rather than overshoot past it. Guarded on getStrobe() so the tilt only advances on strobe
-	// actions, not on every action that happens to invoke this node's script, and on getAnimating() so it
-	// stays put until an AnimateAction (emitted by the flower centre's own poke script once clicked, see
+	// the cos/sin terms _setRotationZ() would have written. Guarded on getStrobe() so the tilt only advances
+	// on strobe actions, not on every action that happens to invoke this node's script, and on getAnimating()
+	// so it stays paused until an AnimateAction (emitted by the flower centre's toggling poke script, see
 	// _BODY_CLICK_SCRIPT below) has marked this node as animating.
+	//
+	// Bounces between fully open (angle 0) and fully closed (angle maxTilt) forever rather than clamping at
+	// maxTilt, so the direction has to survive between strobes. ScriptNode's core state now persists its
+	// globals across every invoke() (see its class comment), so the ordinary global `opening` just keeps its
+	// value from the previous strobe; it starts nil (falsy), which reads the same as false, so the first ever
+	// strobe closes the flower before it opens.
 	const char* const _PETAL_CLOSE_SCRIPT =
 		"if getStrobe() and getAnimating() then"
 		"	local t = getTransform();"
 		"	local angle = math.atan(t[2], t[1]);"
 		"	local step = 0.0028;"
 		"	local maxTilt = 1.5;"
-		"	angle = math.min(angle + step, maxTilt);"
+		"	if opening then"
+		"		angle = angle - step;"
+		"		if angle <= 0 then angle = 0; opening = false; end"
+		"	else"
+		"		angle = angle + step;"
+		"		if angle >= maxTilt then angle = maxTilt; opening = true; end"
+		"	end"
 		"	local c = math.cos(angle);"
 		"	local s = math.sin(angle);"
 		"	t[1] = c; t[2] = s; t[5] = -s; t[6] = c;"
@@ -300,11 +312,11 @@ namespace
 		return vertexes;
 	}
 
-	// Kicks off the petal close animation on click: the flower centre's poke script itself calls
-	// setAnimating(true, true), which flips its own animating flag and emits an AnimateAction that
-	// propagates the flag to every connected AnimateActionTarget downstream (starting with petalTransform0,
-	// see _PETAL_CLOSE_SCRIPT).
-	const char* const _BODY_CLICK_SCRIPT = "setAnimating(true, true)";
+	// Toggles the petal animation on/off on click: the flower centre's poke script flips its own animating
+	// flag and emits an AnimateAction that propagates the new flag to every connected AnimateActionTarget
+	// downstream (starting with petalTransform0, see _PETAL_CLOSE_SCRIPT), which pauses or resumes the
+	// open/close bounce in place without resetting its progress.
+	const char* const _BODY_CLICK_SCRIPT = "setAnimating(not getAnimating(), true)";
 
 }
 
@@ -315,6 +327,7 @@ int main(int argc, char const *argv[])
 
 	SceneRootNode* root = new SceneRootNode();
 	hive -> addNode(root);
+	GraphHandle<GraphNode> rootHandle(root);
 
 	SceneGeometryScriptNode* body = new SceneGeometryScriptNode("", _BODY_CLICK_SCRIPT);
 	body -> setPokeEnabled(true);
@@ -392,11 +405,11 @@ int main(int argc, char const *argv[])
 	httpServer.start();
 
 	std::cout << "Listening on http://localhost:" << httpServer.getPort() << "/" << std::endl;
-	std::cout << "Click the flower centre to start the petal close animation." << std::endl;
+	std::cout << "Click the flower centre to toggle the petal open/close animation." << std::endl;
 
 	signal(SIGINT, _handleSigInt);
 
-	// The strobe/populate loop must not start until the webgl map has served at least one request, or scene
+	// The population loop must not start until the webgl map has served at least one request, or scene
 	// population stalls; this is unrelated to the animation itself, which stays a no-op (see
 	// _PETAL_CLOSE_SCRIPT's getAnimating() guard) until the flower centre is clicked regardless of when the
 	// loop below starts.
@@ -405,16 +418,20 @@ int main(int argc, char const *argv[])
 		webglMap.waitForFirstRequest(500);
 	}
 
+	// Strobing is now driven by the hive's own scheduler thread rather than being pumped manually from here;
+	// this loop only has to keep the surface populated with the latest scene state.
+	hive -> setStrobeEmitter(rootHandle, _STROBE_FREQUENCY_HZ);
+
 	while(_running)
 	{
-		root -> emitStrobe();
-
 		// webglMap is bound to this surface for its whole lifetime; it picks up the refreshed contents via the
 		// surface changed event fired by populateEnd().
 		root -> populateSceneSurface(GraphHandle<GraphHiveSceneSurface>(surface));
 
 		usleep(_STROBE_INTERVAL_US);
 	}
+
+	hive -> clearStrobeEmitter(rootHandle);
 
 	httpServer.stop();
 

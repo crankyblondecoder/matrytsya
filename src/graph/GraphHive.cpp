@@ -4,6 +4,7 @@
 #include "../thread/ThreadPool.hpp"
 #include "GraphException.hpp"
 #include "GraphHive.hpp"
+#include "GraphHiveStrobeScheduler.hpp"
 #include "GraphNode.hpp"
 
 GraphHive::~GraphHive()
@@ -27,11 +28,22 @@ GraphHive::GraphHive(unsigned numThreads)
 			std::string msg = "Critical error: thread pool did not become active.";
 			throw std::runtime_error(msg);
 		}
+
+		// Dedicated thread that drives per-node strobe emission.
+		_strobeScheduler = new GraphHiveStrobeScheduler();
+		_strobeScheduler -> start();
 	}
 	catch(ThreadException& ex)
 	{
-		std::string msg = "Critical error: thread pool creation failed -> " +
+		std::string msg = "Critical error: hive threading creation failed -> " +
 			ex.getSubsystemErrorString();
+
+		if(_strobeScheduler)
+		{
+			_strobeScheduler -> stop(true);
+			delete _strobeScheduler;
+			_strobeScheduler = 0;
+		}
 
 		if(_threadPool)
 		{
@@ -67,6 +79,26 @@ void GraphHive::poke(unsigned nodeId, GraphPoke poke)
 	GraphHandle<GraphNode> found = __findNode(nodeId);
 
 	if(found.isValid()) found.getInstance() -> poke(poke);
+}
+
+void GraphHive::setStrobeEmitter(GraphHandle<GraphNode> nodeHandle, unsigned frequencyHz)
+{
+	{ SYNC(_lock)
+
+		if(!_active) return;
+	}
+
+	_strobeScheduler -> setEmitter(nodeHandle, frequencyHz);
+}
+
+void GraphHive::clearStrobeEmitter(GraphHandle<GraphNode> nodeHandle)
+{
+	{ SYNC(_lock)
+
+		if(!_active) return;
+	}
+
+	if(nodeHandle.isValid()) _strobeScheduler -> removeEmitter(nodeHandle.getInstance());
 }
 
 unsigned GraphHive::actionActive(GraphAction* action)
@@ -358,6 +390,15 @@ void GraphHive::shutdown()
 		_active = false;
 	}
 
+	// Stop strobe emission before tearing anything down: emitStrobe() schedules work onto the
+	// thread pool, so the scheduler thread must not be running when the pool and nodes go away.
+	if(_strobeScheduler)
+	{
+		_strobeScheduler -> stop(true);
+		delete _strobeScheduler;
+		_strobeScheduler = 0;
+	}
+
 	// Required so that active count wait can terminate.
 	try
 	{
@@ -497,6 +538,9 @@ void GraphHive::removeNode(GraphHandle<GraphNode> nodeHandle)
 
 	if(decouple)
 	{
+		// A node that is removed from the hive must also stop being a strobe emitter.
+		if(_strobeScheduler) _strobeScheduler -> removeEmitter(nodeToFind);
+
 		nodeToFind -> decouple();
 		nodeToFind -> decrRef();
 	}

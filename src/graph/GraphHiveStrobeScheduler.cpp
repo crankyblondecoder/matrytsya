@@ -1,0 +1,202 @@
+#include "GraphHiveStrobeScheduler.hpp"
+
+#include "GraphNode.hpp"
+#include "nodes/StrobeEmitterNode.hpp"
+
+// Longest the run loop will sleep when nothing is imminently due. Bounds shutdown latency and lets
+// the loop periodically re-evaluate even if a wake signal is somehow missed.
+#define MAX_STROBE_WAIT_MS 1000
+
+// Shortest sleep the run loop will ever perform. Guards against a zero-length busy spin, noting that
+// ThreadCondition::waitTimeout(0) returns immediately rather than blocking.
+#define MIN_STROBE_WAIT_MS 1
+
+#define NS_PER_SEC 1000000000L
+
+// -- timespec helpers --
+
+/// True if time a is at or after time b.
+static bool timespecGE(const struct timespec& a, const struct timespec& b)
+{
+	if(a.tv_sec != b.tv_sec) return a.tv_sec > b.tv_sec;
+
+	return a.tv_nsec >= b.tv_nsec;
+}
+
+/// Advance t by the given number of nanoseconds.
+static void timespecAddNs(struct timespec& t, long ns)
+{
+	t.tv_sec += ns / NS_PER_SEC;
+	t.tv_nsec += ns % NS_PER_SEC;
+
+	if(t.tv_nsec >= NS_PER_SEC)
+	{
+		t.tv_sec += 1;
+		t.tv_nsec -= NS_PER_SEC;
+	}
+}
+
+/// Whole milliseconds from now until future. Negative if future is already in the past.
+static long timespecMsUntil(const struct timespec& future, const struct timespec& now)
+{
+	long seconds = (long)future.tv_sec - (long)now.tv_sec;
+	long nanos = future.tv_nsec - now.tv_nsec;
+
+	return (seconds * 1000L) + (nanos / 1000000L);
+}
+
+GraphHiveStrobeScheduler::GraphHiveStrobeScheduler()
+{
+}
+
+GraphHiveStrobeScheduler::~GraphHiveStrobeScheduler()
+{
+	// _entries destructs here, releasing each node handle. stop() must have been called already so
+	// the run loop is no longer touching _entries.
+}
+
+void GraphHiveStrobeScheduler::setEmitter(GraphHandle<GraphNode> node, unsigned frequencyHz)
+{
+	if(!node.isValid() || frequencyHz == 0) return;
+
+	StrobeEmitterNode* emitter = dynamic_cast<StrobeEmitterNode*>(node.getInstance());
+
+	// Only nodes that can actually emit strobes are scheduled.
+	if(!emitter) return;
+
+	long periodNs = NS_PER_SEC / (long)frequencyHz;
+
+	_cond.lockMutex();
+
+	struct timespec nextDue;
+	clock_gettime(CLOCK_MONOTONIC, &nextDue);
+	timespecAddNs(nextDue, periodNs);
+
+	bool updated = false;
+
+	for(StrobeEntry& entry : _entries)
+	{
+		if(entry.handle == node)
+		{
+			entry.periodNs = periodNs;
+			entry.nextDue = nextDue;
+			updated = true;
+			break;
+		}
+	}
+
+	if(!updated)
+	{
+		StrobeEntry entry{ node, emitter, periodNs, nextDue };
+		_entries.push_back(entry);
+	}
+
+	// Wake the run loop so it re-evaluates the soonest due time.
+	_cond.signal();
+
+	_cond.unlockMutex();
+}
+
+void GraphHiveStrobeScheduler::removeEmitter(GraphNode* node)
+{
+	if(!node) return;
+
+	// Hold the removed entry's handle so its final decrRef happens outside the lock.
+	GraphHandle<GraphNode> removed(0);
+
+	_cond.lockMutex();
+
+	for(std::vector<StrobeEntry>::iterator it = _entries.begin(); it != _entries.end(); ++it)
+	{
+		if(it -> handle.getInstance() == node)
+		{
+			// Copy the handle out (incrRef) so erasing the entry can't drop the ref to zero inside
+			// the lock.
+			removed = it -> handle;
+			_entries.erase(it);
+			break;
+		}
+	}
+
+	// Wake the run loop so it re-evaluates the soonest due time.
+	_cond.signal();
+
+	_cond.unlockMutex();
+
+	// 'removed' goes out of scope here, decrRef'ing the node outside the lock.
+}
+
+void GraphHiveStrobeScheduler::threadEntry()
+{
+	while(!_getQuit())
+	{
+		// Handles keep the due nodes alive for the duration of emission; the raw emitter pointers
+		// are valid while their handles are held.
+		std::vector<GraphHandle<GraphNode>> dueHandles;
+		std::vector<StrobeEmitterNode*> dueEmitters;
+
+		unsigned waitMs = MAX_STROBE_WAIT_MS;
+
+		_cond.lockMutex();
+
+		struct timespec now;
+		clock_gettime(CLOCK_MONOTONIC, &now);
+
+		for(StrobeEntry& entry : _entries)
+		{
+			if(timespecGE(now, entry.nextDue))
+			{
+				dueHandles.push_back(entry.handle);
+				dueEmitters.push_back(entry.emitter);
+
+				// Advance to the next future emission, skipping any cycles that were missed while
+				// the loop was busy or asleep.
+				do
+				{
+					timespecAddNs(entry.nextDue, entry.periodNs);
+				}
+				while(timespecGE(now, entry.nextDue));
+			}
+
+			// Track the soonest upcoming emission so the wait is no longer than necessary.
+			long ms = timespecMsUntil(entry.nextDue, now);
+
+			if(ms < 0) ms = 0;
+
+			if(ms < (long)waitMs) waitMs = (unsigned)ms;
+		}
+
+		_cond.unlockMutex();
+
+		// Emit outside the lock, per the "no external calls inside a sync block" rule.
+		for(StrobeEmitterNode* emitter : dueEmitters)
+		{
+			try
+			{
+				emitter -> emitStrobe();
+			}
+			catch(...)
+			{
+				// A single bad emission must not bring down the scheduler thread.
+			}
+		}
+
+		// Never allow a zero-length spin wait.
+		if(waitMs < MIN_STROBE_WAIT_MS) waitMs = MIN_STROBE_WAIT_MS;
+
+		_cond.lockMutex();
+
+		// Re-check under the lock so a quit signalled via _quitRequested can't be missed.
+		if(!_getQuit()) _cond.waitTimeout(waitMs);
+
+		_cond.unlockMutex();
+	}
+}
+
+void GraphHiveStrobeScheduler::_quitRequested()
+{
+	// Wake the run loop if it is blocked in waitTimeout so it observes the quit flag promptly.
+	_cond.lockMutex();
+	_cond.broadcast();
+	_cond.unlockMutex();
+}

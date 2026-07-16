@@ -15,6 +15,7 @@
 #include "GraphPoke.hpp"
 
 class GraphNode;
+class GraphHiveStrobeScheduler;
 
 /**
  * A "Hive" is a container for nodes.
@@ -27,7 +28,7 @@ class GraphHive : public RefCounted, public GraphNamed
 		/**
 		 * Constructor
 		 * @note Will wait on its internal thread pool to become active.
-		 * @param numThreads The number of threads to create for the hive to do processing on.
+		 * @param numThreads The number of threads to create for the thread pool that the hive does processing on.
 		 */
 		GraphHive(unsigned numThreads);
 
@@ -62,6 +63,24 @@ class GraphHive : public RefCounted, public GraphNamed
 		 * @param poke Poke to apply.
 		 */
 		void poke(unsigned nodeId, GraphPoke poke);
+
+		/**
+		 * Register a node as a periodic strobe emitter within this hive, or update an existing
+		 * registration's frequency.
+		 * @note Silently ignored if the node is not a StrobeEmitterNode, the handle is invalid or
+		 *       frequencyHz is 0. The node stops being an emitter automatically when it is removed
+		 *       or decoupled from the hive.
+		 * @param nodeHandle Handle of the node to register.
+		 * @param frequencyHz Emission frequency in Hz (emissions per second).
+		 */
+		void setStrobeEmitter(GraphHandle<GraphNode> nodeHandle, unsigned frequencyHz);
+
+		/**
+		 * Remove a node as a periodic strobe emitter within this hive.
+		 * @note Safe to call for a node that is not currently a strobe emitter (no-op).
+		 * @param nodeHandle Handle of the node to remove.
+		 */
+		void clearStrobeEmitter(GraphHandle<GraphNode> nodeHandle);
 
 		/**
 		 * Get the thread pool used by this hive to enumerate itself.
@@ -140,6 +159,9 @@ class GraphHive : public RefCounted, public GraphNamed
 
 		/// Thread pool that hive runs actions on.
 		ThreadPool* _threadPool = 0;
+
+		/// Dedicated thread that drives per-node strobe emission for this hive.
+		GraphHiveStrobeScheduler* _strobeScheduler = 0;
 
 		/// Hive collection this hive is part of.
 		GraphHiveCollection* _collection = 0;

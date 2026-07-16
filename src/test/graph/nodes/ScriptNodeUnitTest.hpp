@@ -80,25 +80,32 @@ TEST(ScriptNodeTest, CoreStateHasNoOsFilesystemOrIntrospectionAccess)
 }
 
 /**
- * A node's core state resets to a fresh environment before every invoke(), so nothing a previous run left
- * behind is visible to the next run of the same script on the same node.
+ * A node's core state carries its global environment forward across invoke() calls, so a global one run
+ * sets is still there, as the starting state, for the next run of the same script on the same node.
  */
-TEST(ScriptNodeTest, CoreStateResetsFreshBeforeEveryInvoke)
+TEST(ScriptNodeTest, CoreStateGlobalsPersistAcrossInvoke)
 {
-	ScriptNode* node = new ScriptNode("wasSeenBefore = (leftover ~= nil)\nleftover = true", "");
+	ScriptNode* node = new ScriptNode(
+		"wasSeenBefore = (counter ~= nil)\n"
+		"counter = (counter or 0) + 1\n", "");
 
 	ScriptActionTarget* target = node -> getScriptActionTarget();
 
 	ASSERT_TRUE(target -> invoke());
 
 	bool wasSeenBefore = true;
+	int counter = 0;
 	ASSERT_TRUE(target -> getGlobal("wasSeenBefore", wasSeenBefore));
 	EXPECT_FALSE(wasSeenBefore) << "First invoke() should start from a clean environment.";
+	ASSERT_TRUE(target -> getGlobal("counter", counter));
+	EXPECT_EQ(counter, 1);
 
 	ASSERT_TRUE(target -> invoke());
 
 	ASSERT_TRUE(target -> getGlobal("wasSeenBefore", wasSeenBefore));
-	EXPECT_FALSE(wasSeenBefore) << "A global set by one invoke() should not survive into the next invoke().";
+	EXPECT_TRUE(wasSeenBefore) << "A global set by one invoke() should survive into the next invoke().";
+	ASSERT_TRUE(target -> getGlobal("counter", counter));
+	EXPECT_EQ(counter, 2) << "The global's value should carry forward and accumulate across invokes.";
 
 	node -> decrRef();
 }

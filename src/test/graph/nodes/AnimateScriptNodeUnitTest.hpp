@@ -46,8 +46,8 @@ TEST(AnimateScriptNodeTest, DefaultAnimatingStateIsFalse)
 
 /**
  * setAnimating() called from Lua without the emit argument (or with it false) flips the node's own
- * animating flag. Unlike a plain Lua global, that flag is node state rather than part of the per-invoke
- * Lua environment, so it must still be set on the next invoke even though the Lua globals themselves reset.
+ * animating flag. That flag is node state rather than a Lua global, so it must still be set on the next
+ * invoke via getAnimating() regardless of what the script itself does with its own globals.
  */
 TEST(AnimateScriptNodeTest, SetAnimatingFromLuaPersistsAcrossInvokesWithoutEmitting)
 {
@@ -67,7 +67,8 @@ TEST(AnimateScriptNodeTest, SetAnimatingFromLuaPersistsAcrossInvokesWithoutEmitt
 	EXPECT_FALSE(priorAnimating) << "Node should not have been animating before the first setAnimating() call.";
 	EXPECT_TRUE(afterAnimating) << "setAnimating(true) should be reflected immediately by getAnimating().";
 
-	// Second invoke: the Lua globals reset, but the animating flag itself is node state and must persist.
+	// Second invoke: the script re-reads getAnimating() into priorAnimating itself, exercising that the
+	// animating flag (node state, not a Lua global) is what persisted, not the priorAnimating global.
 	ASSERT_TRUE(target -> invoke());
 
 	ASSERT_TRUE(target -> getGlobal("priorAnimating", priorAnimating));

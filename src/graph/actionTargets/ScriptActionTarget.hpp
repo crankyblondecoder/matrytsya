@@ -57,8 +57,8 @@ class ScriptActionTarget : virtual public ActionTarget
 		virtual void setGlobal(const char* name, const char* value) {}
 
 		/**
-		 * Read a global out of this target's own environment as it stood immediately after the last
-		 * invoke() call (or setGlobal() call, if invoke() has not yet run since construction).
+		 * Read a global out of this target's own environment as it currently stands - i.e. as last left by
+		 * invoke() or setGlobal(), whichever ran most recently.
 		 * @param name Global name to look up.
 		 * @param value Set to the global's value if found.
 		 * @returns Whether a boolean by that name was found.
@@ -68,8 +68,8 @@ class ScriptActionTarget : virtual public ActionTarget
 		virtual bool getGlobal(const char* name, bool& value) { return false; }
 
 		/**
-		 * Read a global out of this target's own environment as it stood immediately after the last
-		 * invoke() call (or setGlobal() call, if invoke() has not yet run since construction).
+		 * Read a global out of this target's own environment as it currently stands - i.e. as last left by
+		 * invoke() or setGlobal(), whichever ran most recently.
 		 * @param name Global name to look up.
 		 * @param value Set to the global's value if found.
 		 * @returns Whether an integer by that name was found.
@@ -79,8 +79,8 @@ class ScriptActionTarget : virtual public ActionTarget
 		virtual bool getGlobal(const char* name, int& value) { return false; }
 
 		/**
-		 * Read a global out of this target's own environment as it stood immediately after the last
-		 * invoke() call (or setGlobal() call, if invoke() has not yet run since construction).
+		 * Read a global out of this target's own environment as it currently stands - i.e. as last left by
+		 * invoke() or setGlobal(), whichever ran most recently.
 		 * @param name Global name to look up.
 		 * @param value Set to the global's value if found.
 		 * @returns Whether a number by that name was found.
@@ -90,8 +90,8 @@ class ScriptActionTarget : virtual public ActionTarget
 		virtual bool getGlobal(const char* name, double& value) { return false; }
 
 		/**
-		 * Read a global out of this target's own environment as it stood immediately after the last
-		 * invoke() call (or setGlobal() call, if invoke() has not yet run since construction).
+		 * Read a global out of this target's own environment as it currently stands - i.e. as last left by
+		 * invoke() or setGlobal(), whichever ran most recently.
 		 * @param name Global name to look up.
 		 * @param value Set to the global's value if found.
 		 * @returns Whether a string by that name was found.
