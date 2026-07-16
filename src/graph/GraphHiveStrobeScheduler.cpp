@@ -55,14 +55,9 @@ GraphHiveStrobeScheduler::~GraphHiveStrobeScheduler()
 	// the run loop is no longer touching _entries.
 }
 
-void GraphHiveStrobeScheduler::setEmitter(GraphHandle<GraphNode> node, unsigned frequencyHz)
+void GraphHiveStrobeScheduler::setEmitter(GraphHandle<StrobeEmitterNode> node, unsigned frequencyHz)
 {
 	if(!node.isValid() || frequencyHz == 0) return;
-
-	StrobeEmitterNode* emitter = dynamic_cast<StrobeEmitterNode*>(node.getInstance());
-
-	// Only nodes that can actually emit strobes are scheduled.
-	if(!emitter) return;
 
 	long periodNs = NS_PER_SEC / (long)frequencyHz;
 
@@ -87,7 +82,7 @@ void GraphHiveStrobeScheduler::setEmitter(GraphHandle<GraphNode> node, unsigned 
 
 	if(!updated)
 	{
-		StrobeEntry entry{ node, emitter, periodNs, nextDue };
+		StrobeEntry entry{ node, periodNs, nextDue };
 		_entries.push_back(entry);
 	}
 
@@ -102,7 +97,7 @@ void GraphHiveStrobeScheduler::removeEmitter(GraphNode* node)
 	if(!node) return;
 
 	// Hold the removed entry's handle so its final decrRef happens outside the lock.
-	GraphHandle<GraphNode> removed(0);
+	GraphHandle<StrobeEmitterNode> removed(0);
 
 	_cond.lockMutex();
 
@@ -132,8 +127,7 @@ void GraphHiveStrobeScheduler::threadEntry()
 	{
 		// Handles keep the due nodes alive for the duration of emission; the raw emitter pointers
 		// are valid while their handles are held.
-		std::vector<GraphHandle<GraphNode>> dueHandles;
-		std::vector<StrobeEmitterNode*> dueEmitters;
+		std::vector<GraphHandle<StrobeEmitterNode>> dueEmitters;
 
 		unsigned waitMs = MAX_STROBE_WAIT_MS;
 
@@ -146,8 +140,7 @@ void GraphHiveStrobeScheduler::threadEntry()
 		{
 			if(timespecGE(now, entry.nextDue))
 			{
-				dueHandles.push_back(entry.handle);
-				dueEmitters.push_back(entry.emitter);
+				dueEmitters.push_back(entry.handle);
 
 				// Advance to the next future emission, skipping any cycles that were missed while
 				// the loop was busy or asleep.
@@ -169,11 +162,11 @@ void GraphHiveStrobeScheduler::threadEntry()
 		_cond.unlockMutex();
 
 		// Emit outside the lock, per the "no external calls inside a sync block" rule.
-		for(StrobeEmitterNode* emitter : dueEmitters)
+		for(GraphHandle<StrobeEmitterNode> emitter : dueEmitters)
 		{
 			try
 			{
-				emitter -> emitStrobe();
+				if(emitter.isValid()) emitter.getInstance() -> emitStrobe();
 			}
 			catch(...)
 			{

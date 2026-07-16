@@ -9,6 +9,16 @@
 
 GraphHive::~GraphHive()
 {
+	// shutdown() (if it ran) already stopped the scheduler thread; only the actual deallocation is
+	// deferred to here. Since this destructor only runs once nothing holds a reference to this hive,
+	// nothing can be concurrently inside setStrobeEmitter()/clearStrobeEmitter()/removeNode() using
+	// _strobeScheduler, so it's safe to delete without any additional locking.
+	if(_strobeScheduler)
+	{
+		_strobeScheduler -> stop(true);
+		delete _strobeScheduler;
+		_strobeScheduler = 0;
+	}
 }
 
 GraphHive::GraphHive(unsigned numThreads)
@@ -81,7 +91,7 @@ void GraphHive::poke(unsigned nodeId, GraphPoke poke)
 	if(found.isValid()) found.getInstance() -> poke(poke);
 }
 
-void GraphHive::setStrobeEmitter(GraphHandle<GraphNode> nodeHandle, unsigned frequencyHz)
+void GraphHive::setStrobeEmitter(GraphHandle<StrobeEmitterNode> nodeHandle, unsigned frequencyHz)
 {
 	{ SYNC(_lock)
 
@@ -91,7 +101,7 @@ void GraphHive::setStrobeEmitter(GraphHandle<GraphNode> nodeHandle, unsigned fre
 	_strobeScheduler -> setEmitter(nodeHandle, frequencyHz);
 }
 
-void GraphHive::clearStrobeEmitter(GraphHandle<GraphNode> nodeHandle)
+void GraphHive::clearStrobeEmitter(GraphHandle<StrobeEmitterNode> nodeHandle)
 {
 	{ SYNC(_lock)
 
@@ -392,12 +402,9 @@ void GraphHive::shutdown()
 
 	// Stop strobe emission before tearing anything down: emitStrobe() schedules work onto the
 	// thread pool, so the scheduler thread must not be running when the pool and nodes go away.
-	if(_strobeScheduler)
-	{
-		_strobeScheduler -> stop(true);
-		delete _strobeScheduler;
-		_strobeScheduler = 0;
-	}
+	// The scheduler object itself is only actually deleted in ~GraphHive(), once nothing can still
+	// be referencing this hive to reach it.
+	if(_strobeScheduler) _strobeScheduler -> stop(true);
 
 	// Required so that active count wait can terminate.
 	try

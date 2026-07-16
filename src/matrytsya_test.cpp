@@ -328,6 +328,7 @@ int main(int argc, char const *argv[])
 	SceneRootNode* root = new SceneRootNode();
 	hive -> addNode(root);
 	GraphHandle<GraphNode> rootHandle(root);
+	GraphHandle<StrobeEmitterNode> strobeEmitterHandle(root);
 
 	SceneGeometryScriptNode* body = new SceneGeometryScriptNode("", _BODY_CLICK_SCRIPT);
 	body -> setPokeEnabled(true);
@@ -420,7 +421,7 @@ int main(int argc, char const *argv[])
 
 	// Strobing is now driven by the hive's own scheduler thread rather than being pumped manually from here;
 	// this loop only has to keep the surface populated with the latest scene state.
-	hive -> setStrobeEmitter(rootHandle, _STROBE_FREQUENCY_HZ);
+	hive -> setStrobeEmitter(strobeEmitterHandle, _STROBE_FREQUENCY_HZ);
 
 	while(_running)
 	{
@@ -431,7 +432,7 @@ int main(int argc, char const *argv[])
 		usleep(_STROBE_INTERVAL_US);
 	}
 
-	hive -> clearStrobeEmitter(rootHandle);
+	hive -> clearStrobeEmitter(strobeEmitterHandle);
 
 	httpServer.stop();
 

@@ -34,7 +34,7 @@ class GraphHiveStrobeScheduler : public Thread
 		 * @param node Handle of the node to register.
 		 * @param frequencyHz Emission frequency in Hz (emissions per second).
 		 */
-		void setEmitter(GraphHandle<GraphNode> node, unsigned frequencyHz);
+		void setEmitter(GraphHandle<StrobeEmitterNode> node, unsigned frequencyHz);
 
 		/**
 		 * Remove a node as a strobe emitter.
@@ -59,10 +59,7 @@ class GraphHiveStrobeScheduler : public Thread
 		struct StrobeEntry
 		{
 			/// Keeps the node alive and provides identity for lookup/removal.
-			GraphHandle<GraphNode> handle;
-
-			/// Cached emitter view of the same object (validated dynamic_cast of handle).
-			StrobeEmitterNode* emitter;
+			GraphHandle<StrobeEmitterNode> handle;
 
 			/// Emission period in nanoseconds, derived from frequency.
 			long periodNs;

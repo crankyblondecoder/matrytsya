@@ -13,6 +13,7 @@
 #include "GraphNamed.hpp"
 #include "GraphNodeLocation.hpp"
 #include "GraphPoke.hpp"
+#include "nodes/StrobeEmitterNode.hpp"
 
 class GraphNode;
 class GraphHiveStrobeScheduler;
@@ -73,14 +74,14 @@ class GraphHive : public RefCounted, public GraphNamed
 		 * @param nodeHandle Handle of the node to register.
 		 * @param frequencyHz Emission frequency in Hz (emissions per second).
 		 */
-		void setStrobeEmitter(GraphHandle<GraphNode> nodeHandle, unsigned frequencyHz);
+		void setStrobeEmitter(GraphHandle<StrobeEmitterNode> nodeHandle, unsigned frequencyHz);
 
 		/**
 		 * Remove a node as a periodic strobe emitter within this hive.
 		 * @note Safe to call for a node that is not currently a strobe emitter (no-op).
 		 * @param nodeHandle Handle of the node to remove.
 		 */
-		void clearStrobeEmitter(GraphHandle<GraphNode> nodeHandle);
+		void clearStrobeEmitter(GraphHandle<StrobeEmitterNode> nodeHandle);
 
 		/**
 		 * Get the thread pool used by this hive to enumerate itself.
