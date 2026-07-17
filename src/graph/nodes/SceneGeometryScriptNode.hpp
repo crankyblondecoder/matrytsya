@@ -15,8 +15,6 @@ class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarg
 {
     public:
 
-        virtual ~SceneGeometryScriptNode();
-
 		/**
 		 * @param coreScript Lua source code that this node runs when invoked.
 		 * @param pokeScript Lua source code that this node runs when poked.
@@ -43,6 +41,9 @@ class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarg
 		SceneActionTarget* getSceneActionTarget() override;
 
 	protected:
+
+		// Ref counted.
+        virtual ~SceneGeometryScriptNode();
 
 		void _registerCoreGlobals(lua_State* luaState) override;
 

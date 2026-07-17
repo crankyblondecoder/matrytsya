@@ -115,7 +115,7 @@ TEST(AnimateScriptNodeTest, AnimateActionTriggeredFromLuaScriptPropagatesToConne
 	hive -> addNode(downstreamNode);
 
 	GraphHandle<GraphNode> downstreamHandle(downstreamNode);
-	triggerNode -> createEdge(downstreamHandle);
+	triggerNode -> createEdge(downstreamHandle, {});
 
 	GraphHandle<GraphNode> triggerHandle(triggerNode);
 	ScriptAction* action = new ScriptAction(triggerHandle);
@@ -165,7 +165,7 @@ TEST(AnimateScriptNodeTest, SetAnimatingWithoutEmitArgumentDoesNotPropagate)
 	hive -> addNode(downstreamNode);
 
 	GraphHandle<GraphNode> downstreamHandle(downstreamNode);
-	triggerNode -> createEdge(downstreamHandle);
+	triggerNode -> createEdge(downstreamHandle, {});
 
 	GraphHandle<GraphNode> triggerHandle(triggerNode);
 	ScriptAction* action = new ScriptAction(triggerHandle);
@@ -208,7 +208,7 @@ TEST(AnimateScriptNodeTest, SequentialAnimateActionsResolveToFinalState)
 	hive -> addNode(downstreamNode);
 
 	GraphHandle<GraphNode> downstreamHandle(downstreamNode);
-	triggerNode -> createEdge(downstreamHandle);
+	triggerNode -> createEdge(downstreamHandle, {});
 
 	GraphHandle<GraphNode> triggerHandle(triggerNode);
 	ScriptAction* action = new ScriptAction(triggerHandle);

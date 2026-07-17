@@ -30,8 +30,6 @@ class ScriptNode : public GraphNode, public ScriptActionTarget
 {
     public:
 
-        virtual ~ScriptNode() = 0;
-
 		/**
 		 * @param coreScript Main Lua source code that this node runs when invoked.
 		 * @param pokeScript The script that is called for processing a poke.
@@ -93,6 +91,9 @@ class ScriptNode : public GraphNode, public ScriptActionTarget
 		ScriptActionTarget* getScriptActionTarget() override;
 
 	protected:
+
+		// Ref counted.
+        virtual ~ScriptNode();
 
 		/**
 		 * Hook called once per Lua state this node owns - once the first time invoke() runs a script

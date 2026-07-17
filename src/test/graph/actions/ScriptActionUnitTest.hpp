@@ -167,8 +167,8 @@ TEST(ScriptActionTest, GlobalsAreIsolatedPerNode)
 	GraphHandle<GraphNode> writerHandle(writerNode);
 	GraphHandle<GraphNode> readerHandle(readerNode);
 
-	sourceNode -> createEdge(writerHandle);
-	writerNode -> createEdge(readerHandle);
+	sourceNode -> createEdge(writerHandle, {});
+	writerNode -> createEdge(readerHandle, {});
 
 	ScriptAction* action = sourceNode -> emitScript(true);
 
@@ -200,8 +200,8 @@ TEST(ScriptActionTest, ExplicitlySharedGlobalsAreVisibleToEveryNode)
 	GraphHandle<GraphNode> reader1Handle(readerNode1);
 	GraphHandle<GraphNode> reader2Handle(readerNode2);
 
-	sourceNode -> createEdge(reader1Handle);
-	readerNode1 -> createEdge(reader2Handle);
+	sourceNode -> createEdge(reader1Handle, {});
+	readerNode1 -> createEdge(reader2Handle, {});
 
 	GraphHandle<GraphNode> sourceHandle(sourceNode);
 	SharingScriptAction* action = new SharingScriptAction(sourceHandle);
@@ -251,10 +251,10 @@ TEST(ScriptActionTest, ScriptNodesAccumulateCounter)
 	GraphHandle<GraphNode> node3Handle(node3);
 	GraphHandle<GraphNode> node4Handle(node4);
 
-	rootNode -> createEdge(node1Handle);
-	node1 -> createEdge(node2Handle);
-	node2 -> createEdge(node3Handle);
-	node3 -> createEdge(node4Handle);
+	rootNode -> createEdge(node1Handle, {});
+	node1 -> createEdge(node2Handle, {});
+	node2 -> createEdge(node3Handle, {});
+	node3 -> createEdge(node4Handle, {});
 
 	GraphHandle<GraphNode> rootHandle(rootNode);
 
@@ -292,7 +292,7 @@ TEST(ScriptActionTest, SceneGeometryScriptNodeExposesVertexToLua)
 
 	GraphHandle<GraphNode> geometryHandle(geometryNode);
 
-	sourceNode -> createEdge(geometryHandle);
+	sourceNode -> createEdge(geometryHandle, {});
 
 	ScriptAction* action = sourceNode -> emitScript(true);
 
@@ -356,7 +356,7 @@ TEST(ScriptActionTest, SceneGeometryScriptNodeExposesAddVertexesToLua)
 
 	GraphHandle<GraphNode> geometryHandle(geometryNode);
 
-	sourceNode -> createEdge(geometryHandle);
+	sourceNode -> createEdge(geometryHandle, {});
 
 	ScriptAction* action = sourceNode -> emitScript(true);
 
@@ -414,7 +414,7 @@ TEST(ScriptActionTest, SceneGeometryScriptNodeExposesVertexCountToLua)
 
 	GraphHandle<GraphNode> geometryHandle(geometryNode);
 
-	sourceNode -> createEdge(geometryHandle);
+	sourceNode -> createEdge(geometryHandle, {});
 
 	GraphHandle<GraphNode> sourceHandle(sourceNode);
 	VertexCountCapturingScriptAction* action = new VertexCountCapturingScriptAction(sourceHandle);

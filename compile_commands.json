@@ -1,5 +1,39 @@
 [
   {
+    "file": "../../src/persist/HiveBuilder.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "HiveBuilder.o",
+      "../../src/persist/HiveBuilder.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "HiveBuilder.o"
+  },
+  {
+    "file": "../../src/persist/json/JsonHiveLoader.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "json/JsonHiveLoader.o",
+      "../../src/persist/json/JsonHiveLoader.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "json/JsonHiveLoader.o"
+  },
+  {
     "file": "../../src/graph/GraphAction.cpp",
     "arguments": [
       "/usr/bin/g++",

@@ -13,8 +13,6 @@ class PingNode : public GraphNode, public PingActionTarget
 {
     public:
 
-        virtual ~PingNode();
-
         PingNode();
 
 		bool ping() override;
@@ -34,6 +32,9 @@ class PingNode : public GraphNode, public PingActionTarget
 		PingActionTarget* getPingActionTarget() override;
 
 	protected:
+
+		// Ref counted.
+        virtual ~PingNode();
 
 		void _poked(GraphPoke poke) override;
 

@@ -1,0 +1,18 @@
+srcFiles = HiveBuilder.cpp \
+json/JsonHiveLoader.cpp
+
+objFiles = $(srcFiles:.cpp=.o)
+
+CXX = $(cname)
+CXXFLAGS = $(cflags)
+
+# Tell make to search other paths. Separate multiple with ":"
+VPATH = ../../src/persist
+
+persist.a : $(objFiles)
+	@ echo
+	@ echo "*** Building - Persist Module ***"
+	@ echo
+	ar rcs persist.a $(objFiles)
+
+-include ../makefile_std_dep

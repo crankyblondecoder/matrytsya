@@ -9,7 +9,7 @@ GraphEdge::~GraphEdge()
 	if(_toNode) delete _toNode;
 }
 
-GraphEdge::GraphEdge(GraphHandle<GraphNode>& fromNode) : _id { _nextId++ }
+GraphEdge::GraphEdge(GraphHandle<GraphNode>& fromNode, std::vector<unsigned long> actionFlags) : _id { _nextId++ }
 {
 	_toNode = 0;
 
@@ -23,6 +23,11 @@ GraphEdge::GraphEdge(GraphHandle<GraphNode>& fromNode) : _id { _nextId++ }
 	else
 	{
 		delete newHandle;
+	}
+
+	for(unsigned long flag : actionFlags)
+	{
+		_actionFlags |= flag;
 	}
 }
 

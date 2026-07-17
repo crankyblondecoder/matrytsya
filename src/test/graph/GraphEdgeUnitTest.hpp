@@ -21,7 +21,7 @@ namespace
 		GraphHandle<GraphNode> targetHandle(targetNode);
 		targetNode -> decrRef();
 
-		return new GraphEdge(targetHandle);
+		return new GraphEdge(targetHandle, {});
 	}
 }
 

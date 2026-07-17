@@ -1,0 +1,53 @@
+#ifndef HIVE_BUILDER_H
+#define HIVE_BUILDER_H
+
+#include <string>
+
+class GraphHive;
+class GraphNode;
+class HiveLoader;
+struct HiveNodeDescriptor;
+
+/**
+ * Builds a fully populated GraphHive from any HiveLoader.
+ * @note Format-agnostic: all hive data (name, nodes, edges, strobe emitters) comes from the loader,
+ *       so a new persisted format only needs a new HiveLoader subclass, never a change here.
+ */
+class HiveBuilder
+{
+	public:
+
+		/**
+		 * Build a fully populated hive from a loader.
+		 * @param loader Loader supplying the hive's name, nodes, edges and strobe emitter registrations.
+		 * @param numThreads Number of threads to give the constructed hive's thread pool.
+		 * @returns Newly allocated, fully wired GraphHive. Caller takes ownership of the initial reference.
+		 * @throw PersistException On any structural problem in the loader's data.
+		 */
+		static GraphHive* build(HiveLoader& loader, unsigned numThreads);
+
+	private:
+
+		// Not instantiable.
+		HiveBuilder();
+		HiveBuilder(const HiveBuilder& copyFrom);
+		HiveBuilder& operator= (const HiveBuilder& copyFrom);
+
+		/**
+		 * Create the concrete GraphNode subclass described by a descriptor, populated with all of its
+		 * type-specific data.
+		 * @param descriptor Descriptor of the node to create.
+		 * @returns Newly allocated node.
+		 * @throw PersistException(UNKNOWN_NODE_TYPE) If the descriptor's type is not recognised.
+		 */
+		static GraphNode* __createNode(const HiveNodeDescriptor& descriptor);
+
+		/**
+		 * Translate an action flag name into its bit value.
+		 * @param name Action flag name, as it appears in graphActionFlagRegister.hpp.
+		 * @throw PersistException(UNKNOWN_ACTION_FLAG) If the name is not recognised.
+		 */
+		static unsigned long __actionFlagFromName(const std::string& name);
+};
+
+#endif

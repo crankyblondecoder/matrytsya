@@ -15,8 +15,6 @@ class StrobeScriptNode : public ScriptNode, public StrobeActionTarget
 {
     public:
 
-        virtual ~StrobeScriptNode() = 0;
-
 		/**
 		 * @param coreScript Main Lua source code that this node runs when invoked.
 		 * @param pokeScript The script that is called for processing a poke.
@@ -28,6 +26,9 @@ class StrobeScriptNode : public ScriptNode, public StrobeActionTarget
 		StrobeActionTarget* getStrobeActionTarget() override;
 
 	protected:
+
+		// Ref counted.
+        virtual ~StrobeScriptNode() = 0;
 
 		void _registerCoreGlobals(lua_State* luaState) override;
 

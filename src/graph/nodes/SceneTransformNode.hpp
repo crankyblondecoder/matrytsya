@@ -18,15 +18,13 @@ class SceneTransformNode : public GraphNode, public SceneActionTarget, public St
 {
     public:
 
-        virtual ~SceneTransformNode();
-
         SceneTransformNode();
 
 		/**
 		 * Set the transform applied to this
 		 * @param transform The transform to set.
 		 */
-		void setTransform(Transform transform);
+		void setTransform(const Transform transform);
 
 		void populateSurface(GraphHandle<GraphHiveSceneSurface> surface) override;
 
@@ -39,6 +37,9 @@ class SceneTransformNode : public GraphNode, public SceneActionTarget, public St
 		StrobeActionTarget* getStrobeActionTarget() override;
 
 	protected:
+
+		// Ref counted.
+        virtual ~SceneTransformNode();
 
 		void _poked(GraphPoke poke) override;
 

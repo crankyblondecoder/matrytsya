@@ -37,15 +37,17 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 * ie The edge is directed from this node to another node.
 		 * @note Only nodes can create edges.
 		 * @param connectTo Handle of node to form edge to.
-         * @returns Handle to use to refer to the created edge (local to this node only). -1 if could not be added.
+		 * @param actionFlags Action flags to add to edge. These will determine which actions can traverse this edge.
+		 *        Leave blank for no restriction.
+         * @returns Handle of created edge. Will be invalid if edge could not be created.
 		 */
-		int createEdge(GraphHandle<GraphNode>& connectTo);
+		GraphHandle<GraphEdge> createEdge(GraphHandle<GraphNode>& connectTo, std::vector<unsigned long> actionFlags);
 
 		/**
 		 * Remove edge from this node.
-		 * @param handle Handle of edge to remove. As returned by createEdge.
+		 * @param handle Handle of edge to remove.
 		 */
-        void removeEdge(int handle);
+        void removeEdge(GraphHandle<GraphEdge> handle);
 
 		/**
 		 * Find the next node to traverse to.
@@ -182,10 +184,11 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 
 		/**
 		 * Remove edge from this node.
-		 * @param handle Handle of edge to remove. As returned by createEdge.
+		 * @note This method needs to be externally locked.
+		 * @param edgeIndex Index into edges array of edge to remove.
 		 * @returns Point to graph edge that needs to be deleted outside of lock.
 		 */
-        GraphEdge* __removeEdge(int handle);
+        GraphEdge* __removeEdge(int edgeIndex);
 
 		/**
 		 * Create and submit a work unit to the hive to continue draining the scheduled action queue.

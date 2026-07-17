@@ -1,16 +1,20 @@
+#include "display/GraphHiveSceneSurfaceWebglMap.hpp"
+#include "display/http/HttpServer.hpp"
 #include "graph/GraphHandle.hpp"
 #include "graph/GraphHive.hpp"
 #include "graph/GraphHiveSceneSurface.hpp"
+#include "graph/GraphNode.hpp"
 #include "graph/graphSceneElements.hpp"
-#include "graph/nodes/SceneGeometryNode.hpp"
-#include "graph/nodes/SceneGeometryScriptNode.hpp"
 #include "graph/nodes/SceneRootNode.hpp"
-#include "graph/nodes/SceneTransformScriptNode.hpp"
-#include "display/GraphHiveSceneSurfaceWebglMap.hpp"
-#include "display/http/HttpServer.hpp"
+#include "graph/nodes/StrobeEmitterNode.hpp"
+#include "persist/HiveBuilder.hpp"
+#include "persist/json/JsonHiveLoader.hpp"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 
 #include <cmath>
 #include <iostream>
+#include <string>
 #include <vector>
 
 #include <signal.h>
@@ -68,6 +72,12 @@ namespace
 		"	t[1] = c; t[2] = s; t[5] = -s; t[6] = c;"
 		"	setTransform(t);"
 		"end";
+
+	// Toggles the petal animation on/off on click: the flower centre's poke script flips its own animating
+	// flag and emits an AnimateAction that propagates the new flag to every connected AnimateActionTarget
+	// downstream (starting with petalTransform0, see _PETAL_CLOSE_SCRIPT), which pauses or resumes the
+	// open/close bounce in place without resetting its progress.
+	const char* const _BODY_CLICK_SCRIPT = "setAnimating(not getAnimating(), true)";
 
 	void _setIdentity(Transform transform)
 	{
@@ -143,9 +153,8 @@ namespace
 	}
 
 	/**
-	 * A single vertex's worth of data, laid out in the same field order that SceneGeometryNode's and
-	 * SceneGeometryScriptNode's addVertexes() expect to unpack from a flat double buffer (colour and
-	 * texCoords/normal excluded here are filled in by _appendVertex()).
+	 * A single vertex's worth of data, in the field layout the "vertexes" entries of hiveSchema.json
+	 * expect (colour holds only R, G, B here; alpha is always emitted as fully opaque by _writeVertexes()).
 	 */
 	struct _RawVertex
 	{
@@ -155,31 +164,17 @@ namespace
 		double normal[3];
 	};
 
-	// Appends one vertex's worth of raw serial data (position, colour + fixed opaque alpha, texture
-	// coordinates, normal) to a flat buffer suitable for addVertexes(double*, unsigned) on either
-	// SceneGeometryNode or SceneGeometryScriptNode.
-	void _appendVertex(std::vector<double>& data, const _RawVertex& vertex)
-	{
-		data.insert(data.end(), {
-
-			vertex.posn[0], vertex.posn[1], vertex.posn[2],
-			vertex.colour[0], vertex.colour[1], vertex.colour[2], 255.0,
-			vertex.texCoords[0], vertex.texCoords[1],
-			vertex.normal[0], vertex.normal[1], vertex.normal[2]
-		});
-	}
-
 	// Builds the raw vertex data for a single petal laid out flat along local +X, base at the origin,
 	// tapering to a point at both the base and the tip. Colour is interpolated along the petal's length from
 	// baseColour (attachment point) to tipColour, giving the gradient; shape is identical for every petal,
 	// only the colours differ per call.
-	std::vector<double> _buildPetalVertexes(double baseR, double baseG, double baseB, double tipR, double tipG, double tipB)
+	std::vector<_RawVertex> _buildPetalVertexes(double baseR, double baseG, double baseB, double tipR, double tipG, double tipB)
 	{
 		const double length = 2.2;
 		const double maxHalfWidth = 0.45;
 		const int segments = 10;
 
-		std::vector<double> vertexes;
+		std::vector<_RawVertex> vertexes;
 
 		_RawVertex prevLeft{}, prevRight{};
 
@@ -198,13 +193,13 @@ namespace
 
 			if(i > 0)
 			{
-				_appendVertex(vertexes, prevLeft);
-				_appendVertex(vertexes, prevRight);
-				_appendVertex(vertexes, right);
+				vertexes.push_back(prevLeft);
+				vertexes.push_back(prevRight);
+				vertexes.push_back(right);
 
-				_appendVertex(vertexes, prevLeft);
-				_appendVertex(vertexes, right);
-				_appendVertex(vertexes, left);
+				vertexes.push_back(prevLeft);
+				vertexes.push_back(right);
+				vertexes.push_back(left);
 			}
 
 			prevLeft = left;
@@ -252,14 +247,14 @@ namespace
 
 	// Builds the raw vertex data for a half-sphere dome, as a latitude/longitude grid from the equator up to
 	// the pole, plus a flat base cap closing the underside.
-	std::vector<double> _buildHalfSphereBodyVertexes()
+	std::vector<_RawVertex> _buildHalfSphereBodyVertexes()
 	{
 		const double apexR = 1.0, apexG = 0.85, apexB = 0.2;
 		const double rimR = 0.3, rimG = 0.5, rimB = 0.15;
 		const int latitudeSegments = 10;
 		const int longitudeSegments = 20;
 
-		std::vector<double> vertexes;
+		std::vector<_RawVertex> vertexes;
 
 		auto ring = [&](int latIndex)
 		{
@@ -280,13 +275,13 @@ namespace
 				const _RawVertex& topLeft = currRing[lonIndex];
 				const _RawVertex& topRight = currRing[lonIndex + 1];
 
-				_appendVertex(vertexes, bottomLeft);
-				_appendVertex(vertexes, bottomRight);
-				_appendVertex(vertexes, topRight);
+				vertexes.push_back(bottomLeft);
+				vertexes.push_back(bottomRight);
+				vertexes.push_back(topRight);
 
-				_appendVertex(vertexes, bottomLeft);
-				_appendVertex(vertexes, topRight);
-				_appendVertex(vertexes, topLeft);
+				vertexes.push_back(bottomLeft);
+				vertexes.push_back(topRight);
+				vertexes.push_back(topLeft);
 			}
 
 			prevRing = currRing;
@@ -304,42 +299,150 @@ namespace
 			flatA.normal[0] = 0.0; flatA.normal[1] = -1.0; flatA.normal[2] = 0.0;
 			flatB.normal[0] = 0.0; flatB.normal[1] = -1.0; flatB.normal[2] = 0.0;
 
-			_appendVertex(vertexes, centre);
-			_appendVertex(vertexes, flatB);
-			_appendVertex(vertexes, flatA);
+			vertexes.push_back(centre);
+			vertexes.push_back(flatB);
+			vertexes.push_back(flatA);
 		}
 
 		return vertexes;
 	}
 
-	// Toggles the petal animation on/off on click: the flower centre's poke script flips its own animating
-	// flag and emits an AnimateAction that propagates the new flag to every connected AnimateActionTarget
-	// downstream (starting with petalTransform0, see _PETAL_CLOSE_SCRIPT), which pauses or resumes the
-	// open/close bounce in place without resetting its progress.
-	const char* const _BODY_CLICK_SCRIPT = "setAnimating(not getAnimating(), true)";
+	using JsonWriter = rapidjson::Writer<rapidjson::StringBuffer>;
 
-}
+	// Writes a "vertexes" member matching hiveSchema.json's vertex def: colour is widened from vertex.colour's
+	// RGB triplet to the schema's RGBA quadruplet by always emitting a fully opaque alpha.
+	void _writeVertexes(JsonWriter& writer, const std::vector<_RawVertex>& vertexes)
+	{
+		writer.Key("vertexes");
+		writer.StartArray();
 
-int main(int argc, char const *argv[])
-{
-	GraphHive* hive = new GraphHive(2);
-	GraphHandle<GraphHive> hiveHandle(hive);
+		for(const _RawVertex& vertex : vertexes)
+		{
+			writer.StartObject();
 
-	SceneRootNode* root = new SceneRootNode();
-	hive -> addNode(root);
-	GraphHandle<GraphNode> rootHandle(root);
-	GraphHandle<StrobeEmitterNode> strobeEmitterHandle(root);
+			writer.Key("posn");
+			writer.StartArray();
+			for(double v : vertex.posn) writer.Double(v);
+			writer.EndArray();
 
-	SceneGeometryScriptNode* body = new SceneGeometryScriptNode("", _BODY_CLICK_SCRIPT);
-	body -> setPokeEnabled(true);
-	hive -> addNode(body);
-	GraphHandle<GraphNode> bodyHandle(body);
+			writer.Key("colour");
+			writer.StartArray();
+			for(double v : vertex.colour) writer.Int(static_cast<int>(v));
+			writer.Int(255);
+			writer.EndArray();
 
-	std::vector<double> bodyVertexes = _buildHalfSphereBodyVertexes();
-	body -> addVertexes(bodyVertexes.data(), bodyVertexes.size());
+			writer.Key("texCoords");
+			writer.StartArray();
+			for(double v : vertex.texCoords) writer.Double(v);
+			writer.EndArray();
 
-	root -> createEdge(bodyHandle);
+			writer.Key("normal");
+			writer.StartArray();
+			for(double v : vertex.normal) writer.Double(v);
+			writer.EndArray();
 
+			writer.EndObject();
+		}
+
+		writer.EndArray();
+	}
+
+	// Writes a single-edge "edges" member, or nothing at all if toName is empty (the flower is a single
+	// chain, so every node has at most one outgoing edge).
+	void _writeEdgeTo(JsonWriter& writer, const std::string& toName)
+	{
+		if(toName.empty()) return;
+
+		writer.Key("edges");
+		writer.StartArray();
+		writer.StartObject();
+		writer.Key("toNodeName");
+		writer.String(toName.c_str());
+		writer.EndObject();
+		writer.EndArray();
+	}
+
+	void _writeSceneRootNode(JsonWriter& writer, const std::string& name, const std::string& edgeTo)
+	{
+		writer.StartObject();
+
+		writer.Key("type");
+		writer.String("SceneRootNode");
+		writer.Key("name");
+		writer.String(name.c_str());
+
+		_writeEdgeTo(writer, edgeTo);
+
+		writer.EndObject();
+	}
+
+	void _writeSceneGeometryScriptNode(JsonWriter& writer, const std::string& name, bool pokeEnabled,
+		const std::string& coreScript, const std::string& pokeScript,
+		const std::vector<_RawVertex>& vertexes, const std::string& edgeTo)
+	{
+		writer.StartObject();
+
+		writer.Key("type");
+		writer.String("SceneGeometryScriptNode");
+		writer.Key("name");
+		writer.String(name.c_str());
+		writer.Key("pokeEnabled");
+		writer.Bool(pokeEnabled);
+		writer.Key("coreScript");
+		writer.String(coreScript.c_str());
+		writer.Key("pokeScript");
+		writer.String(pokeScript.c_str());
+
+		_writeVertexes(writer, vertexes);
+		_writeEdgeTo(writer, edgeTo);
+
+		writer.EndObject();
+	}
+
+	void _writeSceneTransformScriptNode(JsonWriter& writer, const std::string& name,
+		const std::string& coreScript, const std::string& pokeScript,
+		const Transform transform, const std::string& edgeTo)
+	{
+		writer.StartObject();
+
+		writer.Key("type");
+		writer.String("SceneTransformScriptNode");
+		writer.Key("name");
+		writer.String(name.c_str());
+		writer.Key("coreScript");
+		writer.String(coreScript.c_str());
+		writer.Key("pokeScript");
+		writer.String(pokeScript.c_str());
+
+		writer.Key("transform");
+		writer.StartArray();
+		for(int i = 0; i < 16; i++) writer.Double(transform[i]);
+		writer.EndArray();
+
+		_writeEdgeTo(writer, edgeTo);
+
+		writer.EndObject();
+	}
+
+	void _writeSceneGeometryNode(JsonWriter& writer, const std::string& name,
+		const std::vector<_RawVertex>& vertexes, const std::string& edgeTo)
+	{
+		writer.StartObject();
+
+		writer.Key("type");
+		writer.String("SceneGeometryNode");
+		writer.Key("name");
+		writer.String(name.c_str());
+
+		_writeVertexes(writer, vertexes);
+		_writeEdgeTo(writer, edgeTo);
+
+		writer.EndObject();
+	}
+
+	// Builds the flower hive as JSON matching hiveSchema.json: a SceneRootNode strobe emitter chained to the
+	// clickable body, then each petal's transform node followed by that petal's geometry node, in turn.
+	//
 	// A GraphNode only ever traverses a single outgoing edge per action (see GraphNode::traverse), so the
 	// whole flower has to be laid out as one chain rather than as siblings branching off root: body, then
 	// each petal's transform node followed by that petal's geometry node, in turn.
@@ -349,49 +452,75 @@ int main(int argc, char const *argv[])
 	// change relative to the previous petal. The first petal is placed directly from the body's identity
 	// frame; every petal after that just adds the fixed angular step, since rotations about the same axis
 	// compose additively.
-	Transform petalPlacement;
+	std::string _buildHiveJson()
 	{
-		Transform tilt, translateOut;
+		rapidjson::StringBuffer buffer;
+		JsonWriter writer(buffer);
 
-		_setRotationZ(tilt, _PETAL_TILT_ANGLE_RADIANS);
-		_setTranslation(translateOut, _BODY_RADIUS, 0.0, 0.0);
-		_multiplyTransforms(petalPlacement, translateOut, tilt);
+		writer.StartObject();
+
+		writer.Key("name");
+		writer.String("Flower");
+
+		writer.Key("nodes");
+		writer.StartArray();
+
+		_writeSceneRootNode(writer, "root", "body");
+
+		std::vector<_RawVertex> bodyVertexes = _buildHalfSphereBodyVertexes();
+		_writeSceneGeometryScriptNode(writer, "body", true, "", _BODY_CLICK_SCRIPT, bodyVertexes, "petalTransform0");
+
+		Transform petalPlacement;
+		{
+			Transform tilt, translateOut;
+
+			_setRotationZ(tilt, _PETAL_TILT_ANGLE_RADIANS);
+			_setTranslation(translateOut, _BODY_RADIUS, 0.0, 0.0);
+			_multiplyTransforms(petalPlacement, translateOut, tilt);
+		}
+
+		Transform petalAngleStep;
+		_setRotationY(petalAngleStep, _TWO_PI / _PETAL_COUNT);
+
+		for(int i = 0; i < _PETAL_COUNT; i++)
+		{
+			double hue = static_cast<double>(i) / _PETAL_COUNT;
+
+			double baseR, baseG, baseB;
+			double tipR, tipG, tipB;
+
+			_hsvToRgb(hue, 0.85, 0.95, baseR, baseG, baseB);
+			_hsvToRgb(hue, 0.25, 1.0, tipR, tipG, tipB);
+
+			std::string transformName = "petalTransform" + std::to_string(i);
+			std::string petalName = "petal" + std::to_string(i);
+			std::string nextTransformName = (i + 1 < _PETAL_COUNT) ? ("petalTransform" + std::to_string(i + 1)) : "";
+
+			_writeSceneTransformScriptNode(writer, transformName, i == 0 ? _PETAL_CLOSE_SCRIPT : "", "",
+				i == 0 ? petalPlacement : petalAngleStep, petalName);
+
+			std::vector<_RawVertex> petalVertexes = _buildPetalVertexes(baseR, baseG, baseB, tipR, tipG, tipB);
+			_writeSceneGeometryNode(writer, petalName, petalVertexes, nextTransformName);
+		}
+
+		writer.EndArray();
+		writer.EndObject();
+
+		return buffer.GetString();
 	}
+}
 
-	Transform petalAngleStep;
-	_setRotationY(petalAngleStep, _TWO_PI / _PETAL_COUNT);
+int main(int argc, char const *argv[])
+{
+	JsonHiveLoader loader(_buildHiveJson());
 
-	GraphNode* previousNode = body;
+	GraphHive* hive = HiveBuilder::build(loader, 2);
+	GraphHandle<GraphHive> hiveHandle(hive);
 
-	for(int i = 0; i < _PETAL_COUNT; i++)
-	{
-		double hue = static_cast<double>(i) / _PETAL_COUNT;
+	GraphHandle<GraphNode> rootHandle = hive -> getNode("root");
+	SceneRootNode* root = dynamic_cast<SceneRootNode*>(rootHandle.getInstance());
 
-		double baseR, baseG, baseB;
-		double tipR, tipG, tipB;
-
-		_hsvToRgb(hue, 0.85, 0.95, baseR, baseG, baseB);
-		_hsvToRgb(hue, 0.25, 1.0, tipR, tipG, tipB);
-
-		SceneTransformScriptNode* petalTransform = new SceneTransformScriptNode(i == 0 ? _PETAL_CLOSE_SCRIPT : "", "");
-		hive -> addNode(petalTransform);
-		GraphHandle<GraphNode> petalTransformHandle(petalTransform);
-
-		petalTransform -> setTransform(i == 0 ? petalPlacement : petalAngleStep);
-
-		previousNode -> createEdge(petalTransformHandle);
-
-		SceneGeometryNode* petal = new SceneGeometryNode();
-		hive -> addNode(petal);
-		GraphHandle<GraphNode> petalHandle(petal);
-
-		std::vector<double> petalVertexes = _buildPetalVertexes(baseR, baseG, baseB, tipR, tipG, tipB);
-		petal -> addVertexes(petalVertexes.data(), petalVertexes.size());
-
-		petalTransform -> createEdge(petalHandle);
-
-		previousNode = petal;
-	}
+	GraphHandle<StrobeEmitterNode> strobeEmitterHandle(root);
 
 	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root), hiveHandle);
 

@@ -32,7 +32,7 @@ TEST(SceneTest, GeneratedSceneContainsScriptVertexes)
 	hive -> addNode(geometryNode);
 
 	GraphHandle<GraphNode> geometryHandle(geometryNode);
-	root -> createEdge(geometryHandle);
+	root -> createEdge(geometryHandle, {});
 
 	GraphHandle<GraphNode> rootHandle(root);
 	StrobeAction* strobeAction = new StrobeAction(rootHandle);
@@ -98,7 +98,7 @@ TEST(SceneTest, GeneratedSceneKeepsVertexesInScriptOrder)
 	hive -> addNode(geometryNode);
 
 	GraphHandle<GraphNode> geometryHandle(geometryNode);
-	root -> createEdge(geometryHandle);
+	root -> createEdge(geometryHandle, {});
 
 	GraphHandle<GraphNode> rootHandle(root);
 	StrobeAction* strobeAction = new StrobeAction(rootHandle);
@@ -152,7 +152,7 @@ TEST(SceneTest, GeneratedSceneUsesIdentityTransformWhenNoneApplied)
 	hive -> addNode(geometryNode);
 
 	GraphHandle<GraphNode> geometryHandle(geometryNode);
-	root -> createEdge(geometryHandle);
+	root -> createEdge(geometryHandle, {});
 
 	GraphHandle<GraphNode> rootHandle(root);
 	StrobeAction* strobeAction = new StrobeAction(rootHandle);
@@ -233,9 +233,9 @@ TEST(SceneTest, GeneratedSceneCombinesNestedTransformsInTraversalOrder)
 	GraphHandle<GraphNode> translateHandle(translateNode);
 	GraphHandle<GraphNode> geometryHandle(geometryNode);
 
-	root -> createEdge(scaleHandle);
-	scaleNode -> createEdge(translateHandle);
-	translateNode -> createEdge(geometryHandle);
+	root -> createEdge(scaleHandle, {});
+	scaleNode -> createEdge(translateHandle, {});
+	translateNode -> createEdge(geometryHandle, {});
 
 	GraphHandle<GraphNode> rootHandle(root);
 	StrobeAction* strobeAction = new StrobeAction(rootHandle);
@@ -307,8 +307,8 @@ TEST(SceneTest, TransformNodeScriptCanReadAndModifyTransform)
 	GraphHandle<GraphNode> transformHandle(transformNode);
 	GraphHandle<GraphNode> geometryHandle(geometryNode);
 
-	root -> createEdge(transformHandle);
-	transformNode -> createEdge(geometryHandle);
+	root -> createEdge(transformHandle, {});
+	transformNode -> createEdge(geometryHandle, {});
 
 	GraphHandle<GraphNode> rootHandle(root);
 	StrobeAction* strobeAction = new StrobeAction(rootHandle);

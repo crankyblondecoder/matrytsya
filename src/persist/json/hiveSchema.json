@@ -49,10 +49,10 @@
 		"edge": {
 			"description": "A directed link from a node to another node within the same hive.",
 			"type": "object",
-			"required": ["to"],
+			"required": ["toNodeName"],
 			"additionalProperties": false,
 			"properties": {
-				"to": {
+				"toNodeName": {
 					"$ref": "#/$defs/nodeName",
 					"description": "Name of the node, within this hive, that this edge is directed to."
 				},

@@ -15,7 +15,7 @@ SceneTransformNode::SceneTransformNode()
 	_addActionFlag(SCENE_STROBE_GRAPH_ACTION);
 }
 
-void SceneTransformNode::setTransform(Transform transform)
+void SceneTransformNode::setTransform(const Transform transform)
 {
 	for(int i = 0; i < 16; i++) _transform[i] = transform[i];
 }

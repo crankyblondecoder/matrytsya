@@ -14,8 +14,6 @@ class AnimateScriptNode : public StrobeScriptNode, public AnimateActionTarget
 {
     public:
 
-        virtual ~AnimateScriptNode() = 0;
-
 		/**
 		 * @param coreScript Main Lua source code that this node runs when invoked.
 		 * @param pokeScript The script that is called for processing a poke.
@@ -28,6 +26,9 @@ class AnimateScriptNode : public StrobeScriptNode, public AnimateActionTarget
 		AnimateActionTarget* getAnimateActionTarget() override;
 
 	protected:
+
+		// Ref counted.
+        virtual ~AnimateScriptNode() = 0;
 
 		void _registerCoreGlobals(lua_State* luaState) override;
 

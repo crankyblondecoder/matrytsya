@@ -102,23 +102,23 @@ void GraphNode::_setEnergyCost(unsigned cost)
 	}
 }
 
-int GraphNode::createEdge(GraphHandle<GraphNode>& connectTo)
+GraphHandle<GraphEdge> GraphNode::createEdge(GraphHandle<GraphNode>& connectTo, std::vector<unsigned long> actionFlags)
 {
-	// Default value indicates edge wasn't created.
-	int retHandle = -1;
+	int retIndex = -1;
+	GraphHandle<GraphEdge> retHandle(0);
 
 	if(connectTo.isValid())
 	{
 		{ SYNC(_lock)
 
-			if(_decoupled || !(_edgeCount < EDGE_ARRAY_SIZE)) return -1;
+			if(_decoupled || !(_edgeCount < EDGE_ARRAY_SIZE)) return retHandle;
 
 			// Find first available edge slot.
 			for(int index = 0; index < EDGE_ARRAY_SIZE; index++)
 			{
 				if(!_edgeAlloc[index])
 				{
-					retHandle = index;
+					retIndex = index;
 					_edgeAlloc[index] = true;
 					_edgeCount++;
 					break;
@@ -126,20 +126,20 @@ int GraphNode::createEdge(GraphHandle<GraphNode>& connectTo)
 			}
 		}
 
-		if(retHandle > -1)
+		if(retIndex > -1)
 		{
 			GraphEdge* edge = 0;
 
 			try
 			{
 				// Edges are immutable and should not exist if not fully connected.
-				edge = new GraphEdge(connectTo);
+				edge = new GraphEdge(connectTo, actionFlags);
 			}
 			catch(std::bad_alloc& ex)
 			{
 				{ SYNC(_lock)
 
-					_edgeAlloc[retHandle] = false;
+					_edgeAlloc[retIndex] = false;
 					_edgeCount--;
 				}
 
@@ -149,7 +149,7 @@ int GraphNode::createEdge(GraphHandle<GraphNode>& connectTo)
 			{
 				{ SYNC(_lock)
 
-					_edgeAlloc[retHandle] = false;
+					_edgeAlloc[retIndex] = false;
 					_edgeCount--;
 				}
 
@@ -164,14 +164,14 @@ int GraphNode::createEdge(GraphHandle<GraphNode>& connectTo)
 
 					if(_decoupled)
 					{
-						_edgeAlloc[retHandle] = false;
+						_edgeAlloc[retIndex] = false;
 						_edgeCount--;
-						retHandle = -1;
+						retIndex = -1;
 						deleteEdge = true;
 					}
 					else
 					{
-						_edges[retHandle] = edge;
+						_edges[retIndex] = edge;
 						edge -> incrRef();
 					}
 				}
@@ -185,11 +185,11 @@ int GraphNode::createEdge(GraphHandle<GraphNode>& connectTo)
 			{
 				{ SYNC(_lock)
 
-					_edgeAlloc[retHandle] = false;
+					_edgeAlloc[retIndex] = false;
 					_edgeCount--;
 				}
 
-				retHandle = -1;
+				retIndex = -1;
 				deleteEdge = true;
 			}
 
@@ -198,16 +198,35 @@ int GraphNode::createEdge(GraphHandle<GraphNode>& connectTo)
 		}
 	}
 
+	if(retIndex != -1)
+	{
+		{ SYNC(_lock)
+
+			retHandle = _edges[retIndex];
+		}
+	}
+
 	return retHandle;
 }
 
-void GraphNode::removeEdge(int edgeHandle)
+void GraphNode::removeEdge(GraphHandle<GraphEdge> edgeHandle)
 {
 	GraphEdge* edgeToDelete = 0;
 
     { SYNC(_lock)
 
-		edgeToDelete = __removeEdge(edgeHandle);
+		int foundIndex = -1;
+
+		for(int index = 0; index < EDGE_ARRAY_SIZE; index++)
+		{
+			if(_edges[index] && edgeHandle == _edges[index])
+			{
+				foundIndex = index;
+				break;
+			}
+		}
+
+		if(foundIndex >= 0) edgeToDelete = __removeEdge(foundIndex);
 	}
 
 	if(edgeToDelete) edgeToDelete -> decrRef();

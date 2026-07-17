@@ -86,7 +86,7 @@ TEST(ActionFactoryTest, PingRoundTrip)
     GraphHandle<GraphNode> targetHandle(targetNode);
 
     // Connect source → target so the action is applied (and serialised) at the target.
-    sourceNode -> createEdge(targetHandle);
+    sourceNode -> createEdge(targetHandle, {});
 
     PingAction* original = sourceNode -> emitPing(true);
 

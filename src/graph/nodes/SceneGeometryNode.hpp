@@ -17,8 +17,6 @@ class SceneGeometryNode : public GraphNode, public SceneActionTarget, public Str
 {
     public:
 
-        virtual ~SceneGeometryNode();
-
         SceneGeometryNode();
 
 		/**
@@ -45,6 +43,9 @@ class SceneGeometryNode : public GraphNode, public SceneActionTarget, public Str
 		StrobeActionTarget* getStrobeActionTarget() override;
 
 	protected:
+
+		// Ref counted.
+        virtual ~SceneGeometryNode();
 
 		void _poked(GraphPoke poke) override;
 

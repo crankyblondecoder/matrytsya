@@ -2,6 +2,7 @@
 #define GRAPH_EDGE_H
 
 #include <atomic>
+#include <vector>
 
 #include "../util/RefCounted.hpp"
 
@@ -19,8 +20,10 @@ class GraphEdge : public RefCounted
 		/**
 		 * Create directed link to a graph node.
 		 * @param toNode Node edge points to.
+		 * @param actionFlags List of action flags to add to edge. These determine if action is allowed to traverse
+		 *        this edge. Leave list empty for no traversal restriction.
 		 */
-		GraphEdge(GraphHandle<GraphNode>& toNode);
+		GraphEdge(GraphHandle<GraphNode>& toNode, std::vector<unsigned long> actionFlags);
 
 		/**
 		 * Whether this edge points to a node.

@@ -12,8 +12,6 @@ class SceneRootNode : public StrobeEmitterNode
 {
     public:
 
-        virtual ~SceneRootNode();
-
         SceneRootNode();
 
 		/**
@@ -22,6 +20,9 @@ class SceneRootNode : public StrobeEmitterNode
 		void populateSceneSurface(GraphHandle<GraphHiveSceneSurface> sceneSurface);
 
 	protected:
+
+		// Ref counted.
+        virtual ~SceneRootNode();
 
 		void _poked(GraphPoke poke) override;
 

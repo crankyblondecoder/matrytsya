@@ -19,8 +19,6 @@ class SceneTransformScriptNode : public AnimateScriptNode, public SceneActionTar
 {
     public:
 
-        virtual ~SceneTransformScriptNode();
-
 		/**
 		 * @param script Lua source code that this node runs when invoked.
 		 * @param pokeScript Lua source code that this node runs when poked.
@@ -31,7 +29,7 @@ class SceneTransformScriptNode : public AnimateScriptNode, public SceneActionTar
 		 * Set the transform applied to this
 		 * @param transform The transform to set.
 		 */
-		void setTransform(Transform transform);
+		void setTransform(const Transform transform);
 
 		void populateSurface(GraphHandle<GraphHiveSceneSurface> surface) override;
 
@@ -40,6 +38,9 @@ class SceneTransformScriptNode : public AnimateScriptNode, public SceneActionTar
 		SceneActionTarget* getSceneActionTarget() override;
 
 	protected:
+
+		// Ref counted.
+        virtual ~SceneTransformScriptNode();
 
 		void _registerCoreGlobals(lua_State* luaState) override;
 

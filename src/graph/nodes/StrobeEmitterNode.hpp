@@ -11,8 +11,6 @@ class StrobeEmitterNode : public GraphNode
 {
     public:
 
-        virtual ~StrobeEmitterNode() = 0;
-
         StrobeEmitterNode();
 
 		/**
@@ -21,6 +19,9 @@ class StrobeEmitterNode : public GraphNode
 		void emitStrobe();
 
 	protected:
+
+		// Ref counted.
+        virtual ~StrobeEmitterNode() = 0;
 
     private:
 

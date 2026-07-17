@@ -1,0 +1,96 @@
+# Lua Node API
+
+This document describes the Lua bindings available to a hive's `coreScript`/`pokeScript` sources, on a
+per concrete node type basis. The concrete node types are those listed under `#/$defs/node` in
+`json/hiveSchema.json`. Only node types with a `scriptSource` (`coreScript` + `pokeScript`) run Lua at all;
+the others are listed for completeness and have no Lua surface.
+
+Each Lua-scripted node owns two separate, sandboxed Lua states: one that `coreScript` runs against
+(invoked each time the node fires), and one that `pokeScript` runs against (invoked each time the node is
+poked, only relevant if `pokeEnabled` is set). Bindings described as "core" or "poke" below are only
+callable from the corresponding script; bindings with no such qualifier are registered into both states
+and callable from either.
+
+## Sandboxing
+
+Every Lua state a script runs in, whether core or poke, is sandboxed identically:
+
+- Only the base, coroutine, math, string, table and utf8 standard libraries are opened. `io`, `os`,
+  `package` and `debug` are never opened, so scripts have no filesystem, process, environment or
+  introspection access.
+- `dofile`, `loadfile`, `print` and `warn` are removed from the base library.
+- The global `load` is replaced with a version that only accepts source text, never precompiled bytecode.
+- Memory is capped independently per state (core and poke are counted separately) at 1 MiB. An allocation
+  that would exceed the cap fails.
+- A state's global environment persists across invocations: a global a script sets on one run is still
+  visible as the starting state on the next run of that same script on that same node instance. This lets
+  a script keep state (e.g. a counter or direction flag) in an ordinary global.
+
+## Bindings common to all Lua-scripted nodes
+
+These are registered by `ScriptNode`, `StrobeScriptNode` and `AnimateScriptNode`, and so are available to
+every concrete node type that has a `scriptSource` (currently `SceneGeometryScriptNode` and
+`SceneTransformScriptNode`), in both the core and poke states.
+
+| Function | Description |
+|---|---|
+| `getStrobe()` | Returns `true` if this node is currently marked as strobing, `false` otherwise. |
+| `getAnimating()` | Returns `true` if this node is currently in animating mode, `false` otherwise. |
+| `setAnimating(animating, [emitAnimateAction])` | Sets whether this node is in animating mode. `animating` is a boolean. `emitAnimateAction` is an optional boolean (default `false`); if `true` and the mode actually changed, an `AnimateAction` is emitted from this node. |
+
+### Poke-only context globals
+
+The following globals are set immediately before `pokeScript` runs, describing the poke that triggered it.
+They are only meaningful (and only set) in the poke state, not the core state:
+
+| Global | Type | Description |
+|---|---|---|
+| `POKE_TYPE` | string | One of `"HIT"`, `"GRAB"`, `"DRAG"`. |
+| `HIT_DURATION` | integer | Hit duration in milliseconds. Only meaningful when `POKE_TYPE == "HIT"`. |
+| `DRAG_VECTOR` | array table of 3 numbers | Drag vector in world coordinates, `{x, y, z}`. Only meaningful when `POKE_TYPE == "DRAG"`. |
+
+## `pingNode`
+
+No `scriptSource`; this node type never runs Lua.
+
+## `teleportNode`
+
+No `scriptSource`; this node type never runs Lua.
+
+## `sceneRootNode`
+
+No `scriptSource`; this node type never runs Lua.
+
+## `sceneGeometryNode`
+
+No `scriptSource`; its `vertexes` are set directly from JSON rather than by a script.
+
+## `sceneGeometryScriptNode`
+
+Represents scene geometry whose vertexes are populated by `coreScript` (typically once, though it may add
+more on later invocations). In addition to the [common bindings](#bindings-common-to-all-lua-scripted-nodes)
+above:
+
+| Function | Description |
+|---|---|
+| `Vertex{posn = {...}, colour = {...}, texCoords = {...}, normal = {...}}` | Constructs a `Vertex` userdata. All fields are optional; any field left out is zeroed. `posn` and `normal` are 3-element arrays of numbers (X, Y, Z). `colour` is a 4-element array of integers 0-255 (R, G, B, A). `texCoords` is a 2-element array of numbers (U, V). |
+| `addVertex(vertex)` | Appends a single `Vertex` (as built by the `Vertex` constructor) to this node's vertex list. |
+| `addVertexes(vertexes)` | Appends every `Vertex` in the given array-style table (indexes `1..#vertexes`) to this node's vertex list in one call. |
+| `vertexCount()` | Returns the number of vertexes currently held by this node. |
+
+Vertexes are appended in the order added; each consecutive triplet defines a triangle with
+counter-clockwise winding order for the front face, matching the `vertexes` array in the JSON schema.
+
+## `sceneTransformNode`
+
+No `scriptSource`; its `transform` is set directly from JSON rather than by a script.
+
+## `sceneTransformScriptNode`
+
+Represents a transform applied to scene geometry, which `coreScript` can read and modify. In addition to
+the [common bindings](#bindings-common-to-all-lua-scripted-nodes) above:
+
+| Function | Description |
+|---|---|
+| `getTransform()` | Returns the node's current transform as a 16-element array table, in column-major order, matching the `transform` array in the JSON schema. |
+| `setTransform(transform)` | Sets the node's transform from a 16-element array table, in column-major order. |

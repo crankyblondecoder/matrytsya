@@ -13,8 +13,6 @@ class TeleportNode : public GraphNode, public SerialisableActionTarget
 {
     public:
 
-        virtual ~TeleportNode();
-
 		/**
 		 * @param destination Location of the node that receives the teleported actions.
 		 */
@@ -28,6 +26,9 @@ class TeleportNode : public GraphNode, public SerialisableActionTarget
 		SerialisableActionTarget* getSerialisableActionTarget() override;
 
 	protected:
+
+		// Ref counted.
+        virtual ~TeleportNode();
 
 		void _poked(GraphPoke poke) override;
 
