@@ -9,12 +9,13 @@
 
 /**
  * Graph node that combines ScriptNode's Lua scripting with strobe action support.
+ * @note This class is only intended to be inherited and not directly part of the graph.
  */
 class StrobeScriptNode : public ScriptNode, public StrobeActionTarget
 {
     public:
 
-        virtual ~StrobeScriptNode();
+        virtual ~StrobeScriptNode() = 0;
 
 		/**
 		 * @param coreScript Main Lua source code that this node runs when invoked.

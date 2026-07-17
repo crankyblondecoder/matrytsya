@@ -1,7 +1,6 @@
 #ifndef ANIMATE_SCRIPT_NODE_H
 #define ANIMATE_SCRIPT_NODE_H
 
-#include <atomic>
 #include <string>
 
 #include "../actionTargets/AnimateActionTarget.hpp"
@@ -9,12 +8,13 @@
 
 /**
  * Graph node that combines StrobeScriptNode's strobing support with animate action support.
+ * @note This class is only intended to be inherited and not directly part of the graph.
  */
 class AnimateScriptNode : public StrobeScriptNode, public AnimateActionTarget
 {
     public:
 
-        virtual ~AnimateScriptNode();
+        virtual ~AnimateScriptNode() = 0;
 
 		/**
 		 * @param coreScript Main Lua source code that this node runs when invoked.

@@ -136,6 +136,23 @@
     "output": "GraphHiveSurface.o"
   },
   {
+    "file": "../../src/graph/GraphHiveStrobeScheduler.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphHiveStrobeScheduler.o",
+      "../../src/graph/GraphHiveStrobeScheduler.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphHiveStrobeScheduler.o"
+  },
+  {
     "file": "../../src/graph/GraphNamed.cpp",
     "arguments": [
       "/usr/bin/g++",

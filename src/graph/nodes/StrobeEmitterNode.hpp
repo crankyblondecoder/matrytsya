@@ -5,12 +5,13 @@
 
 /**
  * Graph node that emits strobe actions from itself.
+ * @note This class is only intended to be inherited and not directly part of the graph.
  */
 class StrobeEmitterNode : public GraphNode
 {
     public:
 
-        virtual ~StrobeEmitterNode();
+        virtual ~StrobeEmitterNode() = 0;
 
         StrobeEmitterNode();
 

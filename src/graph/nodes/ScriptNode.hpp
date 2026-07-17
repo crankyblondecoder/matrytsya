@@ -12,6 +12,7 @@ struct lua_State;
 /**
  * Graph node that owns its own isolated, sandboxed Lua states, one for its core script and one for
  * processing pokes, and runs its scripts against them when invoked/poked.
+ * @note This class is only intended to be inherited and not directly part of the graph.
  * @note Each state opens only the base, coroutine, math, string, table and utf8 libraries. io, os, package
  *       and debug are never opened, so neither state has filesystem, process, environment or introspection
  *       access. Each state's memory is drawn from an allocator private to it and independently capped, so
@@ -29,7 +30,7 @@ class ScriptNode : public GraphNode, public ScriptActionTarget
 {
     public:
 
-        virtual ~ScriptNode();
+        virtual ~ScriptNode() = 0;
 
 		/**
 		 * @param coreScript Main Lua source code that this node runs when invoked.
