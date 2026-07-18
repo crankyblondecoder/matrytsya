@@ -6,16 +6,12 @@
 #include "graph/GraphNode.hpp"
 #include "graph/graphSceneElements.hpp"
 #include "graph/nodes/SceneRootNode.hpp"
-#include "graph/nodes/StrobeEmitterNode.hpp"
 #include "persist/HiveBuilder.hpp"
 #include "persist/json/JsonHiveLoader.hpp"
-#include "rapidjson/stringbuffer.h"
-#include "rapidjson/writer.h"
 
 #include <cmath>
 #include <iostream>
 #include <string>
-#include <vector>
 
 #include <signal.h>
 #include <unistd.h>
@@ -44,16 +40,16 @@ namespace
 	// outward tilt lives (see the petalPlacement comment below), so nudging its rotation-Z component here is
 	// enough to fold every petal in unison on each strobe, since every other petal's transform chains off it.
 	// Elements 1/2/5/6 (Lua 1-based) are transform[0], transform[1], transform[4], transform[5], i.e. exactly
-	// the cos/sin terms _setRotationZ() would have written. Guarded on getStrobe() so the tilt only advances
+	// the cos/sin terms a rotation-Z matrix would have there. Guarded on getStrobe() so the tilt only advances
 	// on strobe actions, not on every action that happens to invoke this node's script, and on getAnimating()
 	// so it stays paused until an AnimateAction (emitted by the flower centre's toggling poke script, see
 	// _BODY_CLICK_SCRIPT below) has marked this node as animating.
 	//
 	// Bounces between fully open (angle 0) and fully closed (angle maxTilt) forever rather than clamping at
-	// maxTilt, so the direction has to survive between strobes. ScriptNode's core state now persists its
-	// globals across every invoke() (see its class comment), so the ordinary global `opening` just keeps its
-	// value from the previous strobe; it starts nil (falsy), which reads the same as false, so the first ever
-	// strobe closes the flower before it opens.
+	// maxTilt, so the direction has to survive between strobes. ScriptNode's core state persists its globals
+	// across every invoke() (see its class comment), so the ordinary global `opening` just keeps its value
+	// from the previous strobe; it starts nil (falsy), which reads the same as false, so the first ever strobe
+	// closes the flower before it opens.
 	const char* const _PETAL_CLOSE_SCRIPT =
 		"if getStrobe() and getAnimating() then"
 		"	local t = getTransform();"
@@ -131,317 +127,210 @@ namespace
 		}
 	}
 
-	void _hsvToRgb(double hue, double saturation, double value, double& r, double& g, double& b)
+	// Turns arbitrary text into a JSON string literal (quotes included): escapes the two characters that
+	// would otherwise break out of a JSON string, and collapses any run of newlines/tabs down to a single
+	// space so a nicely indented, multi-line Lua script (see _bodyVertexScript()/_petalVertexScript() below)
+	// still lands as one valid JSON string value. None of the hand-written Lua below actually needs the quote
+	// escaping - Vertex{} tables use bare identifier keys throughout - but doing it generically here means a
+	// future script doesn't have to remember to avoid quotes.
+	std::string _jsonString(const std::string& text)
 	{
-		double chroma = value * saturation;
-		double huePrime = hue * 6.0;
-		double x = chroma * (1.0 - std::fabs(std::fmod(huePrime, 2.0) - 1.0));
-		double m = value - chroma;
+		std::string result;
+		result.reserve(text.size() + 2);
+		result += '"';
 
-		double rp = 0.0, gp = 0.0, bp = 0.0;
-
-		if(huePrime < 1.0)      { rp = chroma; gp = x;      bp = 0.0;    }
-		else if(huePrime < 2.0) { rp = x;      gp = chroma; bp = 0.0;    }
-		else if(huePrime < 3.0) { rp = 0.0;    gp = chroma; bp = x;      }
-		else if(huePrime < 4.0) { rp = 0.0;    gp = x;      bp = chroma; }
-		else if(huePrime < 5.0) { rp = x;      gp = 0.0;    bp = chroma; }
-		else                    { rp = chroma; gp = 0.0;    bp = x;      }
-
-		r = rp + m;
-		g = gp + m;
-		b = bp + m;
-	}
-
-	/**
-	 * A single vertex's worth of data, in the field layout the "vertexes" entries of hiveSchema.json
-	 * expect (colour holds only R, G, B here; alpha is always emitted as fully opaque by _writeVertexes()).
-	 */
-	struct _RawVertex
-	{
-		double posn[3];
-		double colour[3];
-		double texCoords[2];
-		double normal[3];
-	};
-
-	// Builds the raw vertex data for a single petal laid out flat along local +X, base at the origin,
-	// tapering to a point at both the base and the tip. Colour is interpolated along the petal's length from
-	// baseColour (attachment point) to tipColour, giving the gradient; shape is identical for every petal,
-	// only the colours differ per call.
-	std::vector<_RawVertex> _buildPetalVertexes(double baseR, double baseG, double baseB, double tipR, double tipG, double tipB)
-	{
-		const double length = 2.2;
-		const double maxHalfWidth = 0.45;
-		const int segments = 10;
-
-		std::vector<_RawVertex> vertexes;
-
-		_RawVertex prevLeft{}, prevRight{};
-
-		for(int i = 0; i <= segments; i++)
+		for(char c : text)
 		{
-			double t = static_cast<double>(i) / segments;
-			double x = t * length;
-			double halfWidth = maxHalfWidth * std::sin((_TWO_PI / 2.0) * t);
-
-			double colourR = (baseR + (tipR - baseR) * t) * 255.0;
-			double colourG = (baseG + (tipG - baseG) * t) * 255.0;
-			double colourB = (baseB + (tipB - baseB) * t) * 255.0;
-
-			_RawVertex left{ {x, 0.0, halfWidth}, {colourR, colourG, colourB}, {t, 0.0}, {0.0, 1.0, 0.0} };
-			_RawVertex right{ {x, 0.0, -halfWidth}, {colourR, colourG, colourB}, {t, 1.0}, {0.0, 1.0, 0.0} };
-
-			if(i > 0)
+			switch(c)
 			{
-				vertexes.push_back(prevLeft);
-				vertexes.push_back(prevRight);
-				vertexes.push_back(right);
+				case '"':  result += "\\\""; break;
+				case '\\': result += "\\\\"; break;
 
-				vertexes.push_back(prevLeft);
-				vertexes.push_back(right);
-				vertexes.push_back(left);
+				case '\n': case '\r': case '\t':
+
+					if(!result.empty() && result.back() != ' ') result += ' ';
+					break;
+
+				default: result += c;
 			}
-
-			prevLeft = left;
-			prevRight = right;
 		}
 
-		return vertexes;
+		result += '"';
+		return result;
 	}
 
-	// One latitude ring of the half-sphere body, from the equator (latIndex 0) up to the pole (latIndex ==
-	// latitudeSegments). Colour is interpolated by latitude, from rimColour at the equator to apexColour at
-	// the pole.
-	std::vector<_RawVertex> _sphereRing(int latIndex, int latitudeSegments, int longitudeSegments, double radius,
-		double rimR, double rimG, double rimB, double apexR, double apexG, double apexB)
+	std::string _transformJson(const Transform transform)
 	{
-		double latFraction = static_cast<double>(latIndex) / latitudeSegments;
-		double phi = latFraction * (_TWO_PI / 4.0);
-		double y = radius * std::sin(phi);
-		double r = radius * std::cos(phi);
+		std::string json = "[";
 
-		double colourR = (rimR + (apexR - rimR) * latFraction) * 255.0;
-		double colourG = (rimG + (apexG - rimG) * latFraction) * 255.0;
-		double colourB = (rimB + (apexB - rimB) * latFraction) * 255.0;
-
-		std::vector<_RawVertex> ringVertexes;
-		ringVertexes.reserve(longitudeSegments + 1);
-
-		for(int lonIndex = 0; lonIndex <= longitudeSegments; lonIndex++)
+		for(int i = 0; i < 16; i++)
 		{
-			double theta = (static_cast<double>(lonIndex) / longitudeSegments) * _TWO_PI;
-			double x = r * std::cos(theta);
-			double z = r * std::sin(theta);
-
-			ringVertexes.push_back(_RawVertex{
-
-				{x, y, z},
-				{colourR, colourG, colourB},
-				{static_cast<double>(lonIndex) / longitudeSegments, latFraction},
-				{x / radius, y / radius, z / radius}
-			});
+			if(i > 0) json += ",";
+			json += std::to_string(transform[i]);
 		}
 
-		return ringVertexes;
+		json += "]";
+		return json;
 	}
 
-	// Builds the raw vertex data for a half-sphere dome, as a latitude/longitude grid from the equator up to
-	// the pole, plus a flat base cap closing the underside.
-	std::vector<_RawVertex> _buildHalfSphereBodyVertexes()
+	// Builds the half-sphere body's geometry procedurally, the same latitude/longitude grid plus flat base cap
+	// that _buildHalfSphereBodyVertexes() used to build in C++, just run as this node's coreScript instead.
+	//
+	// Guarded on vertexCount() == 0 because coreScript runs again on every strobe tick this node's invoke()
+	// sees (ScriptNode persists its Lua globals across invocations, but addVertex() only ever appends to
+	// SceneGeometryScriptNode's vertex list - nothing clears it - so without this guard every strobe would
+	// pile another copy of the whole dome onto the last).
+	//
+	// ringVertex() recomputes a ring point's position/colour/texCoord from scratch on every call, including
+	// for the flat base cap, rather than reusing a Vertex built by an earlier ring() call: Vertex is opaque
+	// userdata on the Lua side (only Vertex{} constructs one and addVertex()/addVertexes() consume one), so
+	// there is no way to read a field back out of an existing Vertex to copy it with a different normal.
+	std::string _bodyVertexScript()
 	{
-		const double apexR = 1.0, apexG = 0.85, apexB = 0.2;
-		const double rimR = 0.3, rimG = 0.5, rimB = 0.15;
-		const int latitudeSegments = 10;
-		const int longitudeSegments = 20;
+		return "if vertexCount() == 0 then\n\tlocal radius = " + std::to_string(_BODY_RADIUS) + R"LUA(
+	local latSeg = 10
+	local lonSeg = 20
+	local apexR, apexG, apexB = 255, 216.75, 51
+	local rimR, rimG, rimB = 76.5, 127.5, 38.25
 
-		std::vector<_RawVertex> vertexes;
+	local function ringVertex(latIndex, lonIndex, nx, ny, nz)
+		local latFraction = latIndex / latSeg
+		local phi = latFraction * (math.pi / 2)
+		local y = radius * math.sin(phi)
+		local r = radius * math.cos(phi)
+		local cR = rimR + (apexR - rimR) * latFraction
+		local cG = rimG + (apexG - rimG) * latFraction
+		local cB = rimB + (apexB - rimB) * latFraction
+		local theta = (lonIndex / lonSeg) * (2 * math.pi)
+		local x = r * math.cos(theta)
+		local z = r * math.sin(theta)
+		if not nx then nx, ny, nz = x / radius, y / radius, z / radius end
+		return Vertex{posn = {x, y, z}, colour = {cR, cG, cB, 255}, texCoords = {lonIndex / lonSeg, latFraction}, normal = {nx, ny, nz}}
+	end
 
-		auto ring = [&](int latIndex)
-		{
-			return _sphereRing(latIndex, latitudeSegments, longitudeSegments, _BODY_RADIUS,
-				rimR, rimG, rimB, apexR, apexG, apexB);
-		};
+	local function ring(latIndex)
+		local verts = {}
+		for lon = 0, lonSeg do verts[lon + 1] = ringVertex(latIndex, lon) end
+		return verts
+	end
 
-		std::vector<_RawVertex> prevRing = ring(0);
+	local prevRing = ring(0)
 
-		for(int latIndex = 1; latIndex <= latitudeSegments; latIndex++)
-		{
-			std::vector<_RawVertex> currRing = ring(latIndex);
+	for lat = 1, latSeg do
+		local currRing = ring(lat)
 
-			for(int lonIndex = 0; lonIndex < longitudeSegments; lonIndex++)
-			{
-				const _RawVertex& bottomLeft = prevRing[lonIndex];
-				const _RawVertex& bottomRight = prevRing[lonIndex + 1];
-				const _RawVertex& topLeft = currRing[lonIndex];
-				const _RawVertex& topRight = currRing[lonIndex + 1];
+		for lon = 1, lonSeg do
+			local bottomLeft, bottomRight = prevRing[lon], prevRing[lon + 1]
+			local topLeft, topRight = currRing[lon], currRing[lon + 1]
 
-				vertexes.push_back(bottomLeft);
-				vertexes.push_back(bottomRight);
-				vertexes.push_back(topRight);
+			addVertex(bottomLeft); addVertex(bottomRight); addVertex(topRight)
+			addVertex(bottomLeft); addVertex(topRight); addVertex(topLeft)
+		end
 
-				vertexes.push_back(bottomLeft);
-				vertexes.push_back(topRight);
-				vertexes.push_back(topLeft);
-			}
+		prevRing = currRing
+	end
 
-			prevRing = currRing;
-		}
+	for lon = 0, lonSeg - 1 do
+		local centre = Vertex{posn = {0, 0, 0}, colour = {rimR, rimG, rimB, 255}, texCoords = {0.5, 0.5}, normal = {0, -1, 0}}
+		local flatA = ringVertex(0, lon, 0, -1, 0)
+		local flatB = ringVertex(0, lon + 1, 0, -1, 0)
 
-		// Flat base cap, closing off the underside of the dome at the equator.
-		std::vector<_RawVertex> baseRing = ring(0);
-		_RawVertex centre{ {0.0, 0.0, 0.0}, {rimR * 255.0, rimG * 255.0, rimB * 255.0}, {0.5, 0.5}, {0.0, -1.0, 0.0} };
-
-		for(int lonIndex = 0; lonIndex < longitudeSegments; lonIndex++)
-		{
-			_RawVertex flatA = baseRing[lonIndex];
-			_RawVertex flatB = baseRing[lonIndex + 1];
-
-			flatA.normal[0] = 0.0; flatA.normal[1] = -1.0; flatA.normal[2] = 0.0;
-			flatB.normal[0] = 0.0; flatB.normal[1] = -1.0; flatB.normal[2] = 0.0;
-
-			vertexes.push_back(centre);
-			vertexes.push_back(flatB);
-			vertexes.push_back(flatA);
-		}
-
-		return vertexes;
+		addVertex(centre); addVertex(flatB); addVertex(flatA)
+	end
+end
+)LUA";
 	}
 
-	using JsonWriter = rapidjson::Writer<rapidjson::StringBuffer>;
-
-	// Writes a "vertexes" member matching hiveSchema.json's vertex def: colour is widened from vertex.colour's
-	// RGB triplet to the schema's RGBA quadruplet by always emitting a fully opaque alpha.
-	void _writeVertexes(JsonWriter& writer, const std::vector<_RawVertex>& vertexes)
+	// Builds one petal's tapered-strip geometry procedurally, the same shape _buildPetalVertexes() used to
+	// build in C++, coloured by a base-to-tip gradient computed from hsvToRgb(hue, ...) (a Lua transcription
+	// of the C++ _hsvToRgb() this file used to have) so each of the 7 petal nodes only differs by the single
+	// `hue` value spliced in below. See _bodyVertexScript() for why this is guarded on vertexCount() == 0.
+	std::string _petalVertexScript(double hue)
 	{
-		writer.Key("vertexes");
-		writer.StartArray();
+		return "if vertexCount() == 0 then\n\tlocal hue = " + std::to_string(hue) + R"LUA(
+	local length, maxHalfWidth, segments = 2.2, 0.45, 10
 
-		for(const _RawVertex& vertex : vertexes)
-		{
-			writer.StartObject();
+	local function hsvToRgb(h, sat, val)
+		local chroma = val * sat
+		local huePrime = h * 6
+		local x = chroma * (1 - math.abs((huePrime % 2) - 1))
+		local m = val - chroma
+		local rp, gp, bp
 
-			writer.Key("posn");
-			writer.StartArray();
-			for(double v : vertex.posn) writer.Double(v);
-			writer.EndArray();
+		if huePrime < 1 then rp, gp, bp = chroma, x, 0
+		elseif huePrime < 2 then rp, gp, bp = x, chroma, 0
+		elseif huePrime < 3 then rp, gp, bp = 0, chroma, x
+		elseif huePrime < 4 then rp, gp, bp = 0, x, chroma
+		elseif huePrime < 5 then rp, gp, bp = x, 0, chroma
+		else rp, gp, bp = chroma, 0, x
+		end
 
-			writer.Key("colour");
-			writer.StartArray();
-			for(double v : vertex.colour) writer.Int(static_cast<int>(v));
-			writer.Int(255);
-			writer.EndArray();
+		return (rp + m) * 255, (gp + m) * 255, (bp + m) * 255
+	end
 
-			writer.Key("texCoords");
-			writer.StartArray();
-			for(double v : vertex.texCoords) writer.Double(v);
-			writer.EndArray();
+	local baseR, baseG, baseB = hsvToRgb(hue, 0.85, 0.95)
+	local tipR, tipG, tipB = hsvToRgb(hue, 0.25, 1.0)
 
-			writer.Key("normal");
-			writer.StartArray();
-			for(double v : vertex.normal) writer.Double(v);
-			writer.EndArray();
+	local prevLeft, prevRight
 
-			writer.EndObject();
-		}
+	for i = 0, segments do
+		local t = i / segments
+		local x = t * length
+		local halfWidth = maxHalfWidth * math.sin(math.pi * t)
+		local cR = baseR + (tipR - baseR) * t
+		local cG = baseG + (tipG - baseG) * t
+		local cB = baseB + (tipB - baseB) * t
 
-		writer.EndArray();
+		local left = Vertex{posn = {x, 0, halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 0}, normal = {0, 1, 0}}
+		local right = Vertex{posn = {x, 0, -halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 1}, normal = {0, 1, 0}}
+
+		if i > 0 then
+			addVertex(prevLeft); addVertex(prevRight); addVertex(right)
+			addVertex(prevLeft); addVertex(right); addVertex(left)
+		end
+
+		prevLeft, prevRight = left, right
+	end
+end
+)LUA";
 	}
 
-	// Writes a single-edge "edges" member, or nothing at all if toName is empty (the flower is a single
-	// chain, so every node has at most one outgoing edge).
-	void _writeEdgeTo(JsonWriter& writer, const std::string& toName)
+	std::string _sceneRootNodeJson(const std::string& name, const std::string& edgeTo)
 	{
-		if(toName.empty()) return;
-
-		writer.Key("edges");
-		writer.StartArray();
-		writer.StartObject();
-		writer.Key("toNodeName");
-		writer.String(toName.c_str());
-		writer.EndObject();
-		writer.EndArray();
+		return "{\"type\":\"SceneRootNode\",\"name\":" + _jsonString(name) +
+			",\"edges\":[{\"toNodeName\":" + _jsonString(edgeTo) + "}]}";
 	}
 
-	void _writeSceneRootNode(JsonWriter& writer, const std::string& name, const std::string& edgeTo)
+	std::string _sceneGeometryScriptNodeJson(const std::string& name, bool pokeEnabled,
+		const std::string& coreScript, const std::string& pokeScript, const std::string& edgeTo)
 	{
-		writer.StartObject();
+		std::string json = "{\"type\":\"SceneGeometryScriptNode\",\"name\":" + _jsonString(name) +
+			",\"pokeEnabled\":" + (pokeEnabled ? "true" : "false") +
+			",\"coreScript\":" + _jsonString(coreScript) +
+			",\"pokeScript\":" + _jsonString(pokeScript);
 
-		writer.Key("type");
-		writer.String("SceneRootNode");
-		writer.Key("name");
-		writer.String(name.c_str());
+		if(!edgeTo.empty()) json += ",\"edges\":[{\"toNodeName\":" + _jsonString(edgeTo) + "}]";
 
-		_writeEdgeTo(writer, edgeTo);
-
-		writer.EndObject();
+		json += "}";
+		return json;
 	}
 
-	void _writeSceneGeometryScriptNode(JsonWriter& writer, const std::string& name, bool pokeEnabled,
-		const std::string& coreScript, const std::string& pokeScript,
-		const std::vector<_RawVertex>& vertexes, const std::string& edgeTo)
+	std::string _sceneTransformScriptNodeJson(const std::string& name, const std::string& coreScript,
+		const std::string& pokeScript, const Transform transform, const std::string& edgeTo)
 	{
-		writer.StartObject();
-
-		writer.Key("type");
-		writer.String("SceneGeometryScriptNode");
-		writer.Key("name");
-		writer.String(name.c_str());
-		writer.Key("pokeEnabled");
-		writer.Bool(pokeEnabled);
-		writer.Key("coreScript");
-		writer.String(coreScript.c_str());
-		writer.Key("pokeScript");
-		writer.String(pokeScript.c_str());
-
-		_writeVertexes(writer, vertexes);
-		_writeEdgeTo(writer, edgeTo);
-
-		writer.EndObject();
+		return "{\"type\":\"SceneTransformScriptNode\",\"name\":" + _jsonString(name) +
+			",\"coreScript\":" + _jsonString(coreScript) +
+			",\"pokeScript\":" + _jsonString(pokeScript) +
+			",\"transform\":" + _transformJson(transform) +
+			",\"edges\":[{\"toNodeName\":" + _jsonString(edgeTo) + "}]}";
 	}
 
-	void _writeSceneTransformScriptNode(JsonWriter& writer, const std::string& name,
-		const std::string& coreScript, const std::string& pokeScript,
-		const Transform transform, const std::string& edgeTo)
-	{
-		writer.StartObject();
-
-		writer.Key("type");
-		writer.String("SceneTransformScriptNode");
-		writer.Key("name");
-		writer.String(name.c_str());
-		writer.Key("coreScript");
-		writer.String(coreScript.c_str());
-		writer.Key("pokeScript");
-		writer.String(pokeScript.c_str());
-
-		writer.Key("transform");
-		writer.StartArray();
-		for(int i = 0; i < 16; i++) writer.Double(transform[i]);
-		writer.EndArray();
-
-		_writeEdgeTo(writer, edgeTo);
-
-		writer.EndObject();
-	}
-
-	void _writeSceneGeometryNode(JsonWriter& writer, const std::string& name,
-		const std::vector<_RawVertex>& vertexes, const std::string& edgeTo)
-	{
-		writer.StartObject();
-
-		writer.Key("type");
-		writer.String("SceneGeometryNode");
-		writer.Key("name");
-		writer.String(name.c_str());
-
-		_writeVertexes(writer, vertexes);
-		_writeEdgeTo(writer, edgeTo);
-
-		writer.EndObject();
-	}
-
-	// Builds the flower hive as JSON matching hiveSchema.json: a SceneRootNode strobe emitter chained to the
-	// clickable body, then each petal's transform node followed by that petal's geometry node, in turn.
+	// Builds the flower hive as a single JSON string matching hiveSchema.json: a SceneRootNode chained to the
+	// clickable body, then each petal's transform node followed by that petal's geometry node, in turn, plus a
+	// strobeEmitters entry registering root so the hive itself drives strobing from the moment it's built.
+	// Unlike the vertex-heavy nodes, there's no procedural shortcut available for the structure itself -
+	// HiveBuilder needs an explicit node/edge for each part of the flower - so this stays a direct, literal
+	// assembly of hiveSchema.json text via string concatenation, no writer object involved.
 	//
 	// A GraphNode only ever traverses a single outgoing edge per action (see GraphNode::traverse), so the
 	// whole flower has to be laid out as one chain rather than as siblings branching off root: body, then
@@ -454,59 +343,34 @@ namespace
 	// compose additively.
 	std::string _buildHiveJson()
 	{
-		rapidjson::StringBuffer buffer;
-		JsonWriter writer(buffer);
+		Transform tilt, translateOut, petalPlacement;
 
-		writer.StartObject();
-
-		writer.Key("name");
-		writer.String("Flower");
-
-		writer.Key("nodes");
-		writer.StartArray();
-
-		_writeSceneRootNode(writer, "root", "body");
-
-		std::vector<_RawVertex> bodyVertexes = _buildHalfSphereBodyVertexes();
-		_writeSceneGeometryScriptNode(writer, "body", true, "", _BODY_CLICK_SCRIPT, bodyVertexes, "petalTransform0");
-
-		Transform petalPlacement;
-		{
-			Transform tilt, translateOut;
-
-			_setRotationZ(tilt, _PETAL_TILT_ANGLE_RADIANS);
-			_setTranslation(translateOut, _BODY_RADIUS, 0.0, 0.0);
-			_multiplyTransforms(petalPlacement, translateOut, tilt);
-		}
+		_setRotationZ(tilt, _PETAL_TILT_ANGLE_RADIANS);
+		_setTranslation(translateOut, _BODY_RADIUS, 0.0, 0.0);
+		_multiplyTransforms(petalPlacement, translateOut, tilt);
 
 		Transform petalAngleStep;
 		_setRotationY(petalAngleStep, _TWO_PI / _PETAL_COUNT);
 
+		std::string nodes = _sceneRootNodeJson("root", "body") + "," +
+			_sceneGeometryScriptNodeJson("body", true, _bodyVertexScript(), _BODY_CLICK_SCRIPT, "petalTransform0");
+
 		for(int i = 0; i < _PETAL_COUNT; i++)
 		{
-			double hue = static_cast<double>(i) / _PETAL_COUNT;
-
-			double baseR, baseG, baseB;
-			double tipR, tipG, tipB;
-
-			_hsvToRgb(hue, 0.85, 0.95, baseR, baseG, baseB);
-			_hsvToRgb(hue, 0.25, 1.0, tipR, tipG, tipB);
-
 			std::string transformName = "petalTransform" + std::to_string(i);
 			std::string petalName = "petal" + std::to_string(i);
 			std::string nextTransformName = (i + 1 < _PETAL_COUNT) ? ("petalTransform" + std::to_string(i + 1)) : "";
 
-			_writeSceneTransformScriptNode(writer, transformName, i == 0 ? _PETAL_CLOSE_SCRIPT : "", "",
+			nodes += "," + _sceneTransformScriptNodeJson(transformName, i == 0 ? _PETAL_CLOSE_SCRIPT : "", "",
 				i == 0 ? petalPlacement : petalAngleStep, petalName);
 
-			std::vector<_RawVertex> petalVertexes = _buildPetalVertexes(baseR, baseG, baseB, tipR, tipG, tipB);
-			_writeSceneGeometryNode(writer, petalName, petalVertexes, nextTransformName);
+			double hue = static_cast<double>(i) / _PETAL_COUNT;
+
+			nodes += "," + _sceneGeometryScriptNodeJson(petalName, false, _petalVertexScript(hue), "", nextTransformName);
 		}
 
-		writer.EndArray();
-		writer.EndObject();
-
-		return buffer.GetString();
+		return "{\"name\":\"Flower\",\"nodes\":[" + nodes + "],\"strobeEmitters\":[{\"node\":\"root\",\"frequencyHz\":" +
+			std::to_string(_STROBE_FREQUENCY_HZ) + "}]}";
 	}
 }
 
@@ -520,11 +384,10 @@ int main(int argc, char const *argv[])
 	GraphHandle<GraphNode> rootHandle = hive -> getNode("root");
 	SceneRootNode* root = dynamic_cast<SceneRootNode*>(rootHandle.getInstance());
 
-	GraphHandle<StrobeEmitterNode> strobeEmitterHandle(root);
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root), hiveHandle);
-
-	root -> populateSceneSurface(GraphHandle<GraphHiveSceneSurface>(surface));
+	hive -> addSurface(surface);
+	surface -> strobe();
 
 	HttpServer httpServer(8080);
 
@@ -540,32 +403,25 @@ int main(int argc, char const *argv[])
 	signal(SIGINT, _handleSigInt);
 
 	// The population loop must not start until the webgl map has served at least one request, or scene
-	// population stalls; this is unrelated to the animation itself, which stays a no-op (see
-	// _PETAL_CLOSE_SCRIPT's getAnimating() guard) until the flower centre is clicked regardless of when the
-	// loop below starts.
+	// population stalls; this is unrelated to strobing, which the hive has already been driving on its own
+	// scheduler thread since _buildHiveJson()'s strobeEmitters entry was registered at build time, and which
+	// stays a no-op (see _PETAL_CLOSE_SCRIPT's getAnimating() guard) until the flower centre is clicked
+	// regardless of when the loop below starts.
 	while(_running && !webglMap.hasReceivedFirstRequest())
 	{
 		webglMap.waitForFirstRequest(500);
 	}
 
-	// Strobing is now driven by the hive's own scheduler thread rather than being pumped manually from here;
-	// this loop only has to keep the surface populated with the latest scene state.
-	hive -> setStrobeEmitter(strobeEmitterHandle, _STROBE_FREQUENCY_HZ);
-
 	while(_running)
 	{
 		// webglMap is bound to this surface for its whole lifetime; it picks up the refreshed contents via the
 		// surface changed event fired by populateEnd().
-		root -> populateSceneSurface(GraphHandle<GraphHiveSceneSurface>(surface));
+		surface -> strobe();
 
 		usleep(_STROBE_INTERVAL_US);
 	}
 
-	hive -> clearStrobeEmitter(strobeEmitterHandle);
-
 	httpServer.stop();
-
-	surface -> close();
 
 	hive -> shutdown();
 

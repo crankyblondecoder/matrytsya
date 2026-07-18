@@ -18,10 +18,13 @@ class GraphHiveSurface : public RefCounted, public GraphNamed, public EventEmitt
 {
 	public:
 
+		GraphHiveSurface();
+
 		/**
-		 * @param hive Hive this surface is bound to. Must be a valid handle.
+		 * Set the hive this surface is bound to.
+		 * @param hive Hive this surface is to be bound to. Must be a valid handle.
 		 */
-		GraphHiveSurface(GraphHandle<GraphHive> hive);
+		void setHive(GraphHandle<GraphHive> hive);
 
 		/**
 		 * Activate this surface.
@@ -56,7 +59,13 @@ class GraphHiveSurface : public RefCounted, public GraphNamed, public EventEmitt
 		 * @param nodeId The id of the node that is to be poked.
 		 * @param poke Poke to apply.
 		 */
-		void poke(unsigned nodeId, GraphPoke poke);
+		virtual void poke(unsigned nodeId, GraphPoke poke);
+
+		/**
+		 * Strobe this surface.
+		 * This causes it to update/regenerate if required.
+		 */
+		virtual void strobe() = 0;
 
 	protected:
 

@@ -42,7 +42,9 @@ TEST(SceneTest, GeneratedSceneContainsScriptVertexes)
 	strobeAction -> waitOnComplete(0);
 	strobeAction -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root), hiveHandle);
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+
+	surface -> setHive(hiveHandle);
 
 	SceneAction* sceneAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
 
@@ -108,7 +110,9 @@ TEST(SceneTest, GeneratedSceneKeepsVertexesInScriptOrder)
 	strobeAction -> waitOnComplete(0);
 	strobeAction -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root), hiveHandle);
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+
+	surface -> setHive(hiveHandle);
 
 	SceneAction* sceneAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
 
@@ -162,7 +166,9 @@ TEST(SceneTest, GeneratedSceneUsesIdentityTransformWhenNoneApplied)
 	strobeAction -> waitOnComplete(0);
 	strobeAction -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root), hiveHandle);
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+
+	surface -> setHive(hiveHandle);
 
 	SceneAction* sceneAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
 
@@ -245,7 +251,9 @@ TEST(SceneTest, GeneratedSceneCombinesNestedTransformsInTraversalOrder)
 	strobeAction -> waitOnComplete(0);
 	strobeAction -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root), hiveHandle);
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+
+	surface -> setHive(hiveHandle);
 
 	SceneAction* sceneAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
 
@@ -318,7 +326,9 @@ TEST(SceneTest, TransformNodeScriptCanReadAndModifyTransform)
 	strobeAction -> waitOnComplete(0);
 	strobeAction -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root), hiveHandle);
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+
+	surface -> setHive(hiveHandle);
 
 	SceneAction* sceneAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
 

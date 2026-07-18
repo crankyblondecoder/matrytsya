@@ -3,14 +3,18 @@
 #include "GraphHiveSurface.hpp"
 #include "GraphHiveSurfaceListener.hpp"
 
-GraphHiveSurface::GraphHiveSurface(GraphHandle<GraphHive> hive) : _hive(hive)
+GraphHiveSurface::GraphHiveSurface() : _hive(0)
+{
+}
+
+void GraphHiveSurface::setHive(GraphHandle<GraphHive> hive)
 {
 	if(!hive.isValid())
 	{
 		throw GraphException(GraphException::INVALID_HIVE_HANDLE);
 	}
 
-	// TODO ... Some kind of binding mechanism with the hive.
+	_hive = hive;
 }
 
 GraphHiveSurface::~GraphHiveSurface()

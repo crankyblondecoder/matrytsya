@@ -17,6 +17,7 @@
 
 class GraphNode;
 class GraphHiveStrobeScheduler;
+class GraphHiveSurface;
 
 /**
  * A "Hive" is a container for nodes.
@@ -64,6 +65,24 @@ class GraphHive : public RefCounted, public GraphNamed
 		 * @param poke Poke to apply.
 		 */
 		void poke(unsigned nodeId, GraphPoke poke);
+
+		/**
+		 * Add a graph hive surface to this hive.
+		 * @note Expects to manage the initial reference count of this surface regardless of whether it could be added.
+		 */
+		void addSurface(GraphHiveSurface* surface);
+
+		/**
+		 * Remove surface from hive.
+		 */
+		void removeSurface(GraphHandle<GraphHiveSurface> surfaceHandle);
+
+		/**
+		 * Find a surface in this hive by name.
+		 * @param surfaceName Name of surface to find.
+		 * @returns Handle to the surface. Invalid handle if no surface with that name exists in this hive.
+		 */
+		GraphHandle<GraphHiveSurface> getSurface(std::string surfaceName);
 
 		/**
 		 * Register a node as a periodic strobe emitter within this hive, or update an existing
@@ -169,6 +188,9 @@ class GraphHive : public RefCounted, public GraphNamed
 
 		/// Nodes contained in this hive.
 		std::vector<GraphNode*>	_nodes;
+
+		/// Surfaces contained in this hive.
+		std::vector<GraphHiveSurface*> _surfaces;
 
 		/// Currently active actions within the hive.
 		std::vector<GraphAction*> _activeActions;

@@ -5,6 +5,7 @@
 #include "GraphException.hpp"
 #include "GraphHive.hpp"
 #include "GraphHiveStrobeScheduler.hpp"
+#include "GraphHiveSurface.hpp"
 #include "GraphNode.hpp"
 
 GraphHive::~GraphHive()
@@ -404,7 +405,14 @@ void GraphHive::shutdown()
 	// thread pool, so the scheduler thread must not be running when the pool and nodes go away.
 	// The scheduler object itself is only actually deleted in ~GraphHive(), once nothing can still
 	// be referencing this hive to reach it.
-	if(_strobeScheduler) _strobeScheduler -> stop(true);
+	if(_strobeScheduler)
+	{
+		_strobeScheduler -> stop(true);
+
+		// The scheduler thread is stopped, so nothing can still be iterating _entries; release the
+		// held node handles now rather than waiting for ~GraphHive to delete the scheduler.
+		_strobeScheduler -> clearEmitters();
+	}
 
 	// Required so that active count wait can terminate.
 	try
@@ -441,6 +449,19 @@ void GraphHive::shutdown()
 			node -> decrRef();
 
 			_nodes[index] = 0;
+		}
+	}
+
+	for(unsigned index = 0; index < _surfaces.size(); index++)
+	{
+		GraphHiveSurface* surface = _surfaces[index];
+
+		if(surface)
+		{
+			// close() handles both the subclass cleanup hook and the decrRef of the hive-owned reference.
+			surface -> close();
+
+			_surfaces[index] = 0;
 		}
 	}
 
@@ -573,6 +594,99 @@ GraphHandle<GraphNode> GraphHive::getNode(std::string nodeName)
 	}
 
 	return GraphHandle<GraphNode>(foundNode);
+}
+
+void GraphHive::addSurface(GraphHiveSurface* surface)
+{
+	// Increment the ref to the surface so that shutdown can't delete it pre-maturely.
+	if(!surface -> incrRef()) return;
+
+	bool added = false;
+
+	{ SYNC(_lock)
+
+		if(_active)
+		{
+			for(unsigned index = 0; index < _surfaces.size(); index++)
+			{
+				if(!_surfaces[index])
+				{
+					_surfaces[index] = surface;
+					added = true;
+					break;
+				}
+			}
+
+			if(!added)
+			{
+				// No spare slot available.
+				_surfaces.push_back(surface);
+
+				added = true;
+			}
+		}
+	}
+
+	if(added)
+	{
+		surface -> setHive(GraphHandle<GraphHive>(this));
+	}
+	else
+	{
+		// If not added then because this hive manages the initial ref of the surface, decr-ref it.
+		surface -> decrRef();
+	}
+
+	// Remove the ref added at the beginning of this function.
+	surface -> decrRef();
+}
+
+void GraphHive::removeSurface(GraphHandle<GraphHiveSurface> surfaceHandle)
+{
+	if(!surfaceHandle.isValid()) return;
+
+	GraphHiveSurface* surfaceToFind = surfaceHandle.getInstance();
+	bool removed = false;
+
+	{ SYNC(_lock)
+
+		if(!_active) return;
+
+		for(unsigned index = 0; index < _surfaces.size(); index++)
+		{
+			if(_surfaces[index] == surfaceToFind)
+			{
+				removed = true;
+				_surfaces[index] = 0;
+				break;
+			}
+		}
+	}
+
+	// close() handles both the subclass cleanup hook and the decrRef of the hive-owned reference.
+	if(removed) surfaceToFind -> close();
+}
+
+GraphHandle<GraphHiveSurface> GraphHive::getSurface(std::string surfaceName)
+{
+	GraphHiveSurface* foundSurface = 0;
+
+	{ SYNC(_lock)
+
+		if(_active)
+		{
+			for(GraphHiveSurface* surface : _surfaces)
+			{
+				if(surface && surface -> getName() == surfaceName)
+				{
+					foundSurface = surface;
+					break;
+				}
+			}
+		}
+	}
+
+	return GraphHandle<GraphHiveSurface>(foundSurface);
 }
 
 void GraphHive::enumerateThreadPool(unsigned numTabs)

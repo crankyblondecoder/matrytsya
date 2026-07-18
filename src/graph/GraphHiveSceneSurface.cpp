@@ -24,13 +24,21 @@ namespace
 	}
 }
 
-GraphHiveSceneSurface::GraphHiveSceneSurface(GraphHandle<SceneRootNode> sceneRootNode, GraphHandle<GraphHive> hive)
-	: GraphHiveSurface(hive), _boundRootNode(sceneRootNode)
+GraphHiveSceneSurface::GraphHiveSceneSurface(GraphHandle<SceneRootNode> sceneRootNode)
+	: _boundRootNode(sceneRootNode)
 {
 }
 
 GraphHiveSceneSurface::~GraphHiveSceneSurface()
 {
+}
+
+void GraphHiveSceneSurface::strobe()
+{
+	if(_boundRootNode.isValid())
+	{
+		_boundRootNode.getInstance() -> populateSceneSurface(GraphHandle<GraphHiveSceneSurface>(this));
+	}
 }
 
 void GraphHiveSceneSurface::poke(unsigned chunkId, GraphPoke poke)

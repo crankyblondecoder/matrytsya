@@ -21,9 +21,8 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		/**
 		 * Create a new scene surface.
 		 * @param sceneRootNode The scenes root node.
-		 * @param hive Hive this surface is bound to.
 		 */
-		GraphHiveSceneSurface(GraphHandle<SceneRootNode> sceneRootNode, GraphHandle<GraphHive> hive);
+		GraphHiveSceneSurface(GraphHandle<SceneRootNode> sceneRootNode);
 
 		/**
 		 * Defines a chunk of geometry.
@@ -94,12 +93,9 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		 */
 		Scene getScene();
 
-		/**
-		 * Poke this surface.
-		 * @param chunkId The id of the chunk that is to be poked.
-		 * @param poke Poke to apply.
-		 */
-		void poke(unsigned chunkId, GraphPoke poke);
+		virtual void poke(unsigned chunkId, GraphPoke poke) override;
+
+		virtual void strobe() override;
 
 	protected:
 

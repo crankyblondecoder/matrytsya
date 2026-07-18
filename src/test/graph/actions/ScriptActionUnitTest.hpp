@@ -298,7 +298,9 @@ TEST(ScriptActionTest, SceneGeometryScriptNodeExposesVertexToLua)
 
 	action -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(0), hiveHandle);
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(0));
+
+	surface -> setHive(hiveHandle);
 	GraphHandle<GraphNode> sourceHandle(sourceNode);
 	SceneAction* sceneAction = new SceneAction(sourceHandle, GraphHandle<GraphHiveSceneSurface>(surface));
 
@@ -362,7 +364,9 @@ TEST(ScriptActionTest, SceneGeometryScriptNodeExposesAddVertexesToLua)
 
 	action -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(0), hiveHandle);
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(0));
+
+	surface -> setHive(hiveHandle);
 	GraphHandle<GraphNode> sourceHandle(sourceNode);
 	SceneAction* sceneAction = new SceneAction(sourceHandle, GraphHandle<GraphHiveSceneSurface>(surface));
 

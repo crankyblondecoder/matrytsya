@@ -31,6 +31,8 @@ class GraphHiveStrobeScheduler : public Thread
 		 * Register a node as a strobe emitter, or update the frequency of an already registered node.
 		 * @note If the node is not a StrobeEmitterNode, the handle is invalid or frequencyHz is 0, the
 		 *       call is silently ignored.
+		 * @note Once stop() has been called, registrations are silently ignored: the run loop is no
+		 *       longer around to service (or release) them.
 		 * @param node Handle of the node to register.
 		 * @param frequencyHz Emission frequency in Hz (emissions per second).
 		 */
@@ -42,6 +44,11 @@ class GraphHiveStrobeScheduler : public Thread
 		 * @param node Node to remove. Identity is by pointer.
 		 */
 		void removeEmitter(GraphNode* node);
+
+		/**
+		 * Clear all emitters.
+		 */
+		void clearEmitters();
 
     protected:
 

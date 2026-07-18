@@ -63,6 +63,15 @@ void GraphHiveStrobeScheduler::setEmitter(GraphHandle<StrobeEmitterNode> node, u
 
 	_cond.lockMutex();
 
+	// Once stop() has been called the run loop may have already exited, so a new entry would never
+	// be serviced or released. Checked under the same lock clearEmitters() uses so a registration
+	// can never sneak in after a shutdown has cleared everything out.
+	if(_getQuit())
+	{
+		_cond.unlockMutex();
+		return;
+	}
+
 	struct timespec nextDue;
 	clock_gettime(CLOCK_MONOTONIC, &nextDue);
 	timespecAddNs(nextDue, periodNs);
@@ -119,6 +128,24 @@ void GraphHiveStrobeScheduler::removeEmitter(GraphNode* node)
 	_cond.unlockMutex();
 
 	// 'removed' goes out of scope here, decrRef'ing the node outside the lock.
+}
+
+void GraphHiveStrobeScheduler::clearEmitters()
+{
+	// Swap the entries out so the vector (and each handle's final decrRef) destructs outside the
+	// lock, per the "no external calls inside a sync block" rule.
+	std::vector<StrobeEntry> removed;
+
+	_cond.lockMutex();
+
+	_entries.swap(removed);
+
+	// Wake the run loop so it re-evaluates the soonest due time.
+	_cond.signal();
+
+	_cond.unlockMutex();
+
+	// 'removed' goes out of scope here, decrRef'ing each node outside the lock.
 }
 
 void GraphHiveStrobeScheduler::threadEntry()
