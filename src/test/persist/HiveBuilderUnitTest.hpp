@@ -12,6 +12,7 @@
 #include "../../persist/HiveBuilder.hpp"
 #include "../../persist/HiveLoader.hpp"
 #include "../../persist/HiveNodeDescriptor.hpp"
+#include "../../persist/HiveSurfaceDescriptor.hpp"
 #include "../../persist/PersistException.hpp"
 
 #include <string>
@@ -30,17 +31,29 @@ namespace
 
 			std::string hiveName;
 			std::vector<HiveNodeDescriptor> nodes;
+			std::vector<HiveSurfaceDescriptor> surfaces;
 			std::vector<std::pair<std::string, unsigned>> strobeEmitters;
+			std::vector<std::pair<std::string, unsigned>> strobeSurfaces;
 
 			std::string getHiveName() override {return hiveName;}
 			unsigned getNodeCount() override {return nodes.size();}
 			HiveNodeDescriptor getNode(unsigned index) override {return nodes[index];}
+			unsigned getSurfaceCount() override {return surfaces.size();}
+			HiveSurfaceDescriptor getSurface(unsigned index) override {return surfaces[index];}
 			unsigned getStrobeEmitterCount() override {return strobeEmitters.size();}
 
 			void getStrobeEmitter(unsigned index, std::string& nodeName, unsigned& frequencyHz) override
 			{
 				nodeName = strobeEmitters[index].first;
 				frequencyHz = strobeEmitters[index].second;
+			}
+
+			unsigned getStrobeSurfaceCount() override {return strobeSurfaces.size();}
+
+			void getStrobeSurface(unsigned index, std::string& surfaceName, unsigned& frequencyHz) override
+			{
+				surfaceName = strobeSurfaces[index].first;
+				frequencyHz = strobeSurfaces[index].second;
 			}
 	};
 
@@ -58,6 +71,16 @@ namespace
 		HiveNodeDescriptor descriptor{};
 		descriptor.type = HiveNodeDescriptor::SCENE_ROOT;
 		descriptor.name = name;
+
+		return descriptor;
+	}
+
+	HiveSurfaceDescriptor _makeSceneSurfaceDescriptor(const std::string& name, const std::string& sceneRootNodeName)
+	{
+		HiveSurfaceDescriptor descriptor{};
+		descriptor.type = HiveSurfaceDescriptor::SCENE_SURFACE;
+		descriptor.name = name;
+		descriptor.sceneRootNodeName = sceneRootNodeName;
 
 		return descriptor;
 	}
@@ -222,6 +245,106 @@ TEST(HiveBuilderTest, StrobeEmitterOnNonStrobeEmitterNode_ThrowsStrobeEmitterWro
 	loader.hiveName = "Hive";
 	loader.nodes.push_back(_makePingDescriptor("a"));
 	loader.strobeEmitters.emplace_back("a", 5u);
+
+	EXPECT_THROW(HiveBuilder::build(loader, 1), PersistException);
+}
+
+/**
+ * A full, valid hive with a SceneRootNode, a scene surface bound to it, and a strobe surface
+ * registration builds without throwing and the surface is retrievable by name.
+ */
+TEST(HiveBuilderTest, FullValidHiveWithSurface_BuildsAndRegistersStrobeSurface)
+{
+	FakeHiveLoader loader;
+	loader.hiveName = "Hive";
+	loader.nodes.push_back(_makeSceneRootDescriptor("root"));
+	loader.surfaces.push_back(_makeSceneSurfaceDescriptor("surface1", "root"));
+	loader.strobeSurfaces.emplace_back("surface1", 5u);
+
+	GraphHive* hive = HiveBuilder::build(loader, 2);
+	GraphHandle<GraphHive> hiveHandle(hive);
+
+	EXPECT_TRUE(hive -> getSurface("surface1").isValid());
+
+	hive -> shutdown();
+}
+
+/**
+ * An empty surface name is rejected.
+ */
+TEST(HiveBuilderTest, EmptySurfaceName_ThrowsInvalidSurfaceName)
+{
+	FakeHiveLoader loader;
+	loader.hiveName = "Hive";
+	loader.nodes.push_back(_makeSceneRootDescriptor("root"));
+	loader.surfaces.push_back(_makeSceneSurfaceDescriptor("", "root"));
+
+	EXPECT_THROW(HiveBuilder::build(loader, 1), PersistException);
+}
+
+/**
+ * Two surfaces sharing the same name within one hive are rejected.
+ */
+TEST(HiveBuilderTest, DuplicateSurfaceNames_ThrowsDuplicateSurfaceName)
+{
+	FakeHiveLoader loader;
+	loader.hiveName = "Hive";
+	loader.nodes.push_back(_makeSceneRootDescriptor("root"));
+	loader.surfaces.push_back(_makeSceneSurfaceDescriptor("surface1", "root"));
+	loader.surfaces.push_back(_makeSceneSurfaceDescriptor("surface1", "root"));
+
+	EXPECT_THROW(HiveBuilder::build(loader, 1), PersistException);
+}
+
+/**
+ * A surface whose referenced scene root node name does not exist among this hive's nodes is rejected.
+ */
+TEST(HiveBuilderTest, SurfaceReferencesMissingSceneRootNode_ThrowsSurfaceNodeNotFound)
+{
+	FakeHiveLoader loader;
+	loader.hiveName = "Hive";
+	loader.nodes.push_back(_makeSceneRootDescriptor("root"));
+	loader.surfaces.push_back(_makeSceneSurfaceDescriptor("surface1", "missing"));
+
+	EXPECT_THROW(HiveBuilder::build(loader, 1), PersistException);
+}
+
+/**
+ * A surface whose referenced node exists but isn't a SceneRootNode is rejected.
+ */
+TEST(HiveBuilderTest, SurfaceReferencesWrongTypeNode_ThrowsSurfaceNodeWrongType)
+{
+	FakeHiveLoader loader;
+	loader.hiveName = "Hive";
+	loader.nodes.push_back(_makePingDescriptor("a"));
+	loader.surfaces.push_back(_makeSceneSurfaceDescriptor("surface1", "a"));
+
+	EXPECT_THROW(HiveBuilder::build(loader, 1), PersistException);
+}
+
+/**
+ * A strobe surface registration with a frequency of 0 is rejected rather than silently ignored.
+ */
+TEST(HiveBuilderTest, StrobeSurfaceFrequencyZero_ThrowsInvalidStrobeFrequency)
+{
+	FakeHiveLoader loader;
+	loader.hiveName = "Hive";
+	loader.nodes.push_back(_makeSceneRootDescriptor("root"));
+	loader.surfaces.push_back(_makeSceneSurfaceDescriptor("surface1", "root"));
+	loader.strobeSurfaces.emplace_back("surface1", 0u);
+
+	EXPECT_THROW(HiveBuilder::build(loader, 1), PersistException);
+}
+
+/**
+ * A strobe surface registration referencing a surface name that doesn't exist is rejected.
+ */
+TEST(HiveBuilderTest, StrobeSurfaceTargetNotFound_ThrowsStrobeSurfaceNotFound)
+{
+	FakeHiveLoader loader;
+	loader.hiveName = "Hive";
+	loader.nodes.push_back(_makeSceneRootDescriptor("root"));
+	loader.strobeSurfaces.emplace_back("missing", 5u);
 
 	EXPECT_THROW(HiveBuilder::build(loader, 1), PersistException);
 }

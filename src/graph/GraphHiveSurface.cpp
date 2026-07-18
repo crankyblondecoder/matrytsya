@@ -3,8 +3,13 @@
 #include "GraphHiveSurface.hpp"
 #include "GraphHiveSurfaceListener.hpp"
 
-GraphHiveSurface::GraphHiveSurface() : _hive(0)
+GraphHiveSurface::GraphHiveSurface(Type type) : _type(type), _hive(0)
 {
+}
+
+GraphHiveSurface::Type GraphHiveSurface::getType()
+{
+	return _type;
 }
 
 void GraphHiveSurface::setHive(GraphHandle<GraphHive> hive)

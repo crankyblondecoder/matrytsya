@@ -27,6 +27,13 @@ namespace
 		return type == HiveNodeDescriptor::SCENE_GEOMETRY_SCRIPT || type == HiveNodeDescriptor::SCENE_TRANSFORM_SCRIPT;
 	}
 
+	HiveSurfaceDescriptor::Type __surfaceTypeFromString(const std::string& type)
+	{
+		if(type == "GraphHiveSceneSurface") return HiveSurfaceDescriptor::SCENE_SURFACE;
+
+		throw PersistException(PersistException::UNKNOWN_SURFACE_TYPE);
+	}
+
 	void __readDoubleArray(const rapidjson::Value& arrayValue, double* out, unsigned count, PersistException::Error onError)
 	{
 		if(!arrayValue.IsArray() || arrayValue.Size() != count) throw PersistException(onError);
@@ -248,6 +255,38 @@ namespace
 
 		return descriptor;
 	}
+
+	HiveSurfaceDescriptor __parseSurface(const rapidjson::Value& surfaceValue)
+	{
+		if(!surfaceValue.IsObject() || !surfaceValue.HasMember("type") || !surfaceValue["type"].IsString())
+		{
+			throw PersistException(PersistException::JSON_INVALID_SURFACES);
+		}
+
+		HiveSurfaceDescriptor descriptor{};
+
+		// May throw UNKNOWN_SURFACE_TYPE if "type" is a string but not one of the recognised values.
+		descriptor.type = __surfaceTypeFromString(surfaceValue["type"].GetString());
+
+		if(!surfaceValue.HasMember("name") || !surfaceValue["name"].IsString())
+		{
+			throw PersistException(PersistException::JSON_INVALID_SURFACES);
+		}
+
+		descriptor.name = surfaceValue["name"].GetString();
+
+		if(descriptor.type == HiveSurfaceDescriptor::SCENE_SURFACE)
+		{
+			if(!surfaceValue.HasMember("sceneRootNodeName") || !surfaceValue["sceneRootNodeName"].IsString())
+			{
+				throw PersistException(PersistException::JSON_INVALID_SURFACES);
+			}
+
+			descriptor.sceneRootNodeName = surfaceValue["sceneRootNodeName"].GetString();
+		}
+
+		return descriptor;
+	}
 }
 
 JsonHiveLoader::JsonHiveLoader(const std::string& json)
@@ -283,6 +322,18 @@ JsonHiveLoader::JsonHiveLoader(const std::string& json)
 		_nodes.push_back(__parseNode(nodeValue));
 	}
 
+	if(document.HasMember("surfaces"))
+	{
+		const rapidjson::Value& surfacesValue = document["surfaces"];
+
+		if(!surfacesValue.IsArray()) throw PersistException(PersistException::JSON_INVALID_SURFACES);
+
+		for(auto& surfaceValue : surfacesValue.GetArray())
+		{
+			_surfaces.push_back(__parseSurface(surfaceValue));
+		}
+	}
+
 	if(document.HasMember("strobeEmitters"))
 	{
 		const rapidjson::Value& strobeEmittersValue = document["strobeEmitters"];
@@ -292,14 +343,34 @@ JsonHiveLoader::JsonHiveLoader(const std::string& json)
 		for(auto& strobeEmitterValue : strobeEmittersValue.GetArray())
 		{
 			if(!strobeEmitterValue.IsObject() ||
-				!strobeEmitterValue.HasMember("node") || !strobeEmitterValue["node"].IsString() ||
+				!strobeEmitterValue.HasMember("nodeName") || !strobeEmitterValue["nodeName"].IsString() ||
 				!strobeEmitterValue.HasMember("frequencyHz") || !strobeEmitterValue["frequencyHz"].IsUint())
 			{
 				throw PersistException(PersistException::JSON_INVALID_STROBE_EMITTERS);
 			}
 
 			_strobeEmitters.emplace_back(
-				strobeEmitterValue["node"].GetString(), strobeEmitterValue["frequencyHz"].GetUint());
+				strobeEmitterValue["nodeName"].GetString(), strobeEmitterValue["frequencyHz"].GetUint());
+		}
+	}
+
+	if(document.HasMember("strobeSurfaces"))
+	{
+		const rapidjson::Value& strobeSurfacesValue = document["strobeSurfaces"];
+
+		if(!strobeSurfacesValue.IsArray()) throw PersistException(PersistException::JSON_INVALID_STROBE_SURFACES);
+
+		for(auto& strobeSurfaceValue : strobeSurfacesValue.GetArray())
+		{
+			if(!strobeSurfaceValue.IsObject() ||
+				!strobeSurfaceValue.HasMember("surfaceName") || !strobeSurfaceValue["surfaceName"].IsString() ||
+				!strobeSurfaceValue.HasMember("frequencyHz") || !strobeSurfaceValue["frequencyHz"].IsUint())
+			{
+				throw PersistException(PersistException::JSON_INVALID_STROBE_SURFACES);
+			}
+
+			_strobeSurfaces.emplace_back(
+				strobeSurfaceValue["surfaceName"].GetString(), strobeSurfaceValue["frequencyHz"].GetUint());
 		}
 	}
 }
@@ -323,6 +394,16 @@ HiveNodeDescriptor JsonHiveLoader::getNode(unsigned index)
 	return _nodes[index];
 }
 
+unsigned JsonHiveLoader::getSurfaceCount()
+{
+	return _surfaces.size();
+}
+
+HiveSurfaceDescriptor JsonHiveLoader::getSurface(unsigned index)
+{
+	return _surfaces[index];
+}
+
 unsigned JsonHiveLoader::getStrobeEmitterCount()
 {
 	return _strobeEmitters.size();
@@ -332,4 +413,15 @@ void JsonHiveLoader::getStrobeEmitter(unsigned index, std::string& nodeName, uns
 {
 	nodeName = _strobeEmitters[index].first;
 	frequencyHz = _strobeEmitters[index].second;
+}
+
+unsigned JsonHiveLoader::getStrobeSurfaceCount()
+{
+	return _strobeSurfaces.size();
+}
+
+void JsonHiveLoader::getStrobeSurface(unsigned index, std::string& surfaceName, unsigned& frequencyHz)
+{
+	surfaceName = _strobeSurfaces[index].first;
+	frequencyHz = _strobeSurfaces[index].second;
 }

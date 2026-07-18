@@ -2,10 +2,13 @@
 
 #include "HiveLoader.hpp"
 #include "HiveNodeDescriptor.hpp"
+#include "HiveSurfaceDescriptor.hpp"
 #include "PersistException.hpp"
 #include "../graph/GraphEdge.hpp"
 #include "../graph/GraphHandle.hpp"
 #include "../graph/GraphHive.hpp"
+#include "../graph/GraphHiveSceneSurface.hpp"
+#include "../graph/GraphHiveSurface.hpp"
 #include "../graph/GraphNamed.hpp"
 #include "../graph/GraphNode.hpp"
 #include "../graph/graphActionFlagRegister.hpp"
@@ -103,7 +106,50 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 			}
 		}
 
-		// -- Pass 3: strobe emitters (needs every node to already exist by name) --
+		std::map<std::string, GraphHandle<GraphHiveSurface>> surfacesByName;
+
+		// -- Pass 3: create every surface, indexed by name (needs every node to already exist by name) --
+		unsigned surfaceCount = loader.getSurfaceCount();
+
+		for(unsigned i = 0; i < surfaceCount; i++)
+		{
+			HiveSurfaceDescriptor descriptor = loader.getSurface(i);
+
+			if(descriptor.name.empty())
+			{
+				throw PersistException(PersistException::INVALID_SURFACE_NAME);
+			}
+
+			if(surfacesByName.find(descriptor.name) != surfacesByName.end())
+			{
+				throw PersistException(PersistException::DUPLICATE_SURFACE_NAME);
+			}
+
+			GraphHandle<GraphNode> referencedNode(0);
+
+			if(descriptor.type == HiveSurfaceDescriptor::SCENE_SURFACE)
+			{
+				auto nodeIt = nodesByName.find(descriptor.sceneRootNodeName);
+
+				if(nodeIt == nodesByName.end())
+				{
+					throw PersistException(PersistException::SURFACE_NODE_NOT_FOUND);
+				}
+
+				referencedNode = nodeIt -> second;
+			}
+
+			GraphHiveSurface* surface = __createSurface(descriptor, referencedNode);
+
+			surface -> setName(descriptor.name);
+
+			// Hive manages the surface's initial reference count from here.
+			hive -> addSurface(surface);
+
+			surfacesByName.emplace(descriptor.name, GraphHandle<GraphHiveSurface>(surface));
+		}
+
+		// -- Pass 4: strobe emitters (needs every node to already exist by name) --
 		unsigned strobeEmitterCount = loader.getStrobeEmitterCount();
 
 		for(unsigned i = 0; i < strobeEmitterCount; i++)
@@ -133,6 +179,31 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 			}
 
 			hive -> setStrobeEmitter(GraphHandle<StrobeEmitterNode>(strobeNode), frequencyHz);
+		}
+
+		// -- Pass 5: strobe surfaces (needs every surface to already exist by name) --
+		unsigned strobeSurfaceCount = loader.getStrobeSurfaceCount();
+
+		for(unsigned i = 0; i < strobeSurfaceCount; i++)
+		{
+			std::string surfaceName;
+			unsigned frequencyHz;
+
+			loader.getStrobeSurface(i, surfaceName, frequencyHz);
+
+			if(frequencyHz == 0)
+			{
+				throw PersistException(PersistException::INVALID_STROBE_FREQUENCY);
+			}
+
+			auto targetIt = surfacesByName.find(surfaceName);
+
+			if(targetIt == surfacesByName.end())
+			{
+				throw PersistException(PersistException::STROBE_SURFACE_NOT_FOUND);
+			}
+
+			hive -> setStrobeSurface(targetIt -> second, frequencyHz);
 		}
 	}
 	catch(...)
@@ -205,6 +276,29 @@ GraphNode* HiveBuilder::__createNode(const HiveNodeDescriptor& descriptor)
 		default:
 		{
 			throw PersistException(PersistException::UNKNOWN_NODE_TYPE);
+		}
+	}
+}
+
+GraphHiveSurface* HiveBuilder::__createSurface(const HiveSurfaceDescriptor& descriptor, GraphHandle<GraphNode> referencedNode)
+{
+	switch(descriptor.type)
+	{
+		case HiveSurfaceDescriptor::SCENE_SURFACE:
+		{
+			SceneRootNode* sceneRootNode = dynamic_cast<SceneRootNode*>(referencedNode.getInstance());
+
+			if(!sceneRootNode)
+			{
+				throw PersistException(PersistException::SURFACE_NODE_WRONG_TYPE);
+			}
+
+			return new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(sceneRootNode));
+		}
+
+		default:
+		{
+			throw PersistException(PersistException::UNKNOWN_SURFACE_TYPE);
 		}
 	}
 }

@@ -126,6 +126,10 @@ Reference-counted heap objects inherit from `RefCounted`. Rules:
 - Handle classes (e.g., `GraphNodeHandle`, `GraphEdgeHandle`) provide RAII management — prefer them over raw pointers.
 - Delete ref-counted objects outside of `SYNC` blocks to avoid re-entry.
 
+## Casting
+
+`dynamic_cast` may never be used. Design types so the correct concrete type is known statically (virtual methods, visitor pattern, explicit type tags/enums) instead of discovering it at runtime via RTTI.
+
 ## Error Handling
 
 Each module defines its own exception class that inherits from `Exception`:

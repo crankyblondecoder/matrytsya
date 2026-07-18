@@ -10,6 +10,7 @@
 #include "../../../graph/nodes/PingNode.hpp"
 #include "../../../persist/HiveBuilder.hpp"
 #include "../../../persist/HiveNodeDescriptor.hpp"
+#include "../../../persist/HiveSurfaceDescriptor.hpp"
 #include "../../../persist/PersistException.hpp"
 #include "../../../persist/json/JsonHiveLoader.hpp"
 
@@ -38,7 +39,7 @@ TEST(JsonHiveLoaderTest, FullValidHive_AllSevenNodeTypesParsed)
 				"transform": [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1] },
 			{ "type": "SceneTransformScriptNode", "name": "xformScript1", "coreScript": "", "pokeScript": "" }
 		],
-		"strobeEmitters": [ { "node": "root1", "frequencyHz": 10 } ]
+		"strobeEmitters": [ { "nodeName": "root1", "frequencyHz": 10 } ]
 	})";
 
 	JsonHiveLoader loader(json);
@@ -227,7 +228,96 @@ TEST(JsonHiveLoaderTest, StrobeEmitterMissingFrequencyHz_ThrowsJsonInvalidStrobe
 	std::string json = R"({
 		"name": "Hive",
 		"nodes": [ { "type": "SceneRootNode", "name": "root1" } ],
-		"strobeEmitters": [ { "node": "root1" } ]
+		"strobeEmitters": [ { "nodeName": "root1" } ]
+	})";
+
+	EXPECT_THROW(JsonHiveLoader loader(json), PersistException);
+}
+
+/**
+ * A JSON document with a GraphHiveSceneSurface bound to a SceneRootNode, and a strobeSurfaces
+ * registration, parses into descriptors with the expected fields.
+ */
+TEST(JsonHiveLoaderTest, SurfacesAndStrobeSurfacesParsed)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [ { "type": "SceneRootNode", "name": "root1" } ],
+		"surfaces": [ { "type": "GraphHiveSceneSurface", "name": "surface1", "sceneRootNodeName": "root1" } ],
+		"strobeSurfaces": [ { "surfaceName": "surface1", "frequencyHz": 10 } ]
+	})";
+
+	JsonHiveLoader loader(json);
+
+	ASSERT_EQ(loader.getSurfaceCount(), 1u);
+
+	HiveSurfaceDescriptor surface1 = loader.getSurface(0);
+	EXPECT_EQ(surface1.type, HiveSurfaceDescriptor::SCENE_SURFACE);
+	EXPECT_EQ(surface1.name, "surface1");
+	EXPECT_EQ(surface1.sceneRootNodeName, "root1");
+
+	ASSERT_EQ(loader.getStrobeSurfaceCount(), 1u);
+
+	std::string strobeSurfaceName;
+	unsigned strobeFrequencyHz;
+	loader.getStrobeSurface(0, strobeSurfaceName, strobeFrequencyHz);
+
+	EXPECT_EQ(strobeSurfaceName, "surface1");
+	EXPECT_EQ(strobeFrequencyHz, 10u);
+}
+
+/**
+ * A surface object missing the required "type" member is rejected.
+ */
+TEST(JsonHiveLoaderTest, SurfaceMissingType_ThrowsJsonInvalidSurfaces)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [ { "type": "SceneRootNode", "name": "root1" } ],
+		"surfaces": [ { "name": "surface1", "sceneRootNodeName": "root1" } ]
+	})";
+
+	EXPECT_THROW(JsonHiveLoader loader(json), PersistException);
+}
+
+/**
+ * A surface "type" string that doesn't match any known concrete surface type is rejected.
+ */
+TEST(JsonHiveLoaderTest, SurfaceUnrecognisedType_ThrowsUnknownSurfaceType)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [ { "type": "SceneRootNode", "name": "root1" } ],
+		"surfaces": [ { "type": "NotARealSurfaceType", "name": "surface1", "sceneRootNodeName": "root1" } ]
+	})";
+
+	EXPECT_THROW(JsonHiveLoader loader(json), PersistException);
+}
+
+/**
+ * A GraphHiveSceneSurface missing its required "sceneRootNodeName" is rejected.
+ */
+TEST(JsonHiveLoaderTest, SurfaceMissingSceneRootNode_ThrowsJsonInvalidSurfaces)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [ { "type": "SceneRootNode", "name": "root1" } ],
+		"surfaces": [ { "type": "GraphHiveSceneSurface", "name": "surface1" } ]
+	})";
+
+	EXPECT_THROW(JsonHiveLoader loader(json), PersistException);
+}
+
+/**
+ * A malformed strobeSurfaces entry (missing "frequencyHz") is rejected.
+ */
+TEST(JsonHiveLoaderTest, StrobeSurfaceMissingFrequencyHz_ThrowsJsonInvalidStrobeSurfaces)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [ { "type": "SceneRootNode", "name": "root1" } ],
+		"surfaces": [ { "type": "GraphHiveSceneSurface", "name": "surface1", "sceneRootNodeName": "root1" } ],
+		"strobeSurfaces": [ { "surfaceName": "surface1" } ]
 	})";
 
 	EXPECT_THROW(JsonHiveLoader loader(json), PersistException);
@@ -269,6 +359,29 @@ TEST(JsonHiveLoaderTest, EndToEnd_JsonBuildsWorkingHive)
 	EXPECT_EQ(targetNode -> getPingCount(), 1u);
 
 	action -> decrRef();
+
+	hive -> shutdown();
+}
+
+/**
+ * End-to-end: JSON parsed by JsonHiveLoader and built by HiveBuilder produces a hive whose surface
+ * is actually attached and registered for strobing.
+ */
+TEST(JsonHiveLoaderTest, EndToEnd_JsonBuildsWorkingHiveWithSurface)
+{
+	std::string json = R"({
+		"name": "TestHive",
+		"nodes": [ { "type": "SceneRootNode", "name": "root1" } ],
+		"surfaces": [ { "type": "GraphHiveSceneSurface", "name": "surface1", "sceneRootNodeName": "root1" } ],
+		"strobeSurfaces": [ { "surfaceName": "surface1", "frequencyHz": 10 } ]
+	})";
+
+	JsonHiveLoader loader(json);
+
+	GraphHive* hive = HiveBuilder::build(loader, 2);
+	GraphHandle<GraphHive> hiveHandle(hive);
+
+	EXPECT_TRUE(hive -> getSurface("surface1").isValid());
 
 	hive -> shutdown();
 }

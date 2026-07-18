@@ -9,13 +9,14 @@
 #include "../thread/ThreadCondition.hpp"
 #include "GraphHandle.hpp"
 
-class GraphNode;
 class StrobeEmitterNode;
+class GraphHiveSurface;
 
 /**
  * Dedicated thread owned by a GraphHive that drives per-node strobe emission.
  * Nodes inheriting StrobeEmitterNode can be registered with a frequency; this scheduler invokes
- * emitStrobe() on each registered node at its own cadence.
+ * emitStrobe() on each registered node at its own cadence. GraphHiveSurface instances can similarly
+ * be registered to have strobe() invoked at their own cadence.
  * @note Registration is external: the hive exposes methods that delegate here so that an external
  *       mechanism decides which nodes strobe. Nodes must be removed when they decouple from the hive.
  */
@@ -41,14 +42,36 @@ class GraphHiveStrobeScheduler : public Thread
 		/**
 		 * Remove a node as a strobe emitter.
 		 * @note Safe to call for a node that is not currently registered (no-op).
-		 * @param node Node to remove. Identity is by pointer.
+		 * @param node Handle of the node to remove.
 		 */
-		void removeEmitter(GraphNode* node);
+		void removeEmitter(GraphHandle<StrobeEmitterNode> node);
 
 		/**
 		 * Clear all emitters.
 		 */
 		void clearEmitters();
+
+		/**
+		 * Register a surface to be strobed, or update the frequency of an already registered surface.
+		 * @note If the handle is invalid or frequencyHz is 0, the call is silently ignored.
+		 * @note Once stop() has been called, registrations are silently ignored: the run loop is no
+		 *       longer around to service (or release) them.
+		 * @param surface Handle of the surface to register.
+		 * @param frequencyHz Strobe frequency in Hz (strobes per second).
+		 */
+		void setSurface(GraphHandle<GraphHiveSurface> surface, unsigned frequencyHz);
+
+		/**
+		 * Remove a surface from being strobed.
+		 * @note Safe to call for a surface that is not currently registered (no-op).
+		 * @param surface Handle of the surface to remove.
+		 */
+		void removeSurface(GraphHandle<GraphHiveSurface> surface);
+
+		/**
+		 * Clear all registered surfaces.
+		 */
+		void clearSurfaces();
 
     protected:
 
@@ -75,10 +98,26 @@ class GraphHiveStrobeScheduler : public Thread
 			struct timespec nextDue;
 		};
 
+		/// A single registered strobed surface and its schedule.
+		struct SurfaceEntry
+		{
+			/// Keeps the surface alive and provides identity for lookup/removal.
+			GraphHandle<GraphHiveSurface> handle;
+
+			/// Strobe period in nanoseconds, derived from frequency.
+			long periodNs;
+
+			/// Absolute CLOCK_MONOTONIC time of the next due strobe.
+			struct timespec nextDue;
+		};
+
 		/// Registered emitters. Guarded by _cond's mutex.
 		std::vector<StrobeEntry> _entries;
 
-		/// Guards _entries and provides the timed wait / wake mechanism for the run loop.
+		/// Registered surfaces. Guarded by _cond's mutex.
+		std::vector<SurfaceEntry> _surfaceEntries;
+
+		/// Guards _entries, _surfaceEntries and provides the timed wait / wake mechanism for the run loop.
 		ThreadCondition _cond;
 };
 

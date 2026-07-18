@@ -1,0 +1,327 @@
+{
+	"name": "Flower",
+	"nodes": [
+		{
+			"type": "SceneRootNode",
+			"name": "root",
+			"edges": [
+				{
+					"toNodeName": "body"
+				}
+			]
+		},
+		{
+			"type": "SceneGeometryScriptNode",
+			"name": "body",
+			"pokeEnabled": true,
+			"coreScript": "if vertexCount() == 0 then local radius = 0.900000 local latSeg = 10 local lonSeg = 20 local apexR, apexG, apexB = 255, 216.75, 51 local rimR, rimG, rimB = 76.5, 127.5, 38.25 local function ringVertex(latIndex, lonIndex, nx, ny, nz) local latFraction = latIndex / latSeg local phi = latFraction * (math.pi / 2) local y = radius * math.sin(phi) local r = radius * math.cos(phi) local cR = rimR + (apexR - rimR) * latFraction local cG = rimG + (apexG - rimG) * latFraction local cB = rimB + (apexB - rimB) * latFraction local theta = (lonIndex / lonSeg) * (2 * math.pi) local x = r * math.cos(theta) local z = r * math.sin(theta) if not nx then nx, ny, nz = x / radius, y / radius, z / radius end return Vertex{posn = {x, y, z}, colour = {cR, cG, cB, 255}, texCoords = {lonIndex / lonSeg, latFraction}, normal = {nx, ny, nz}} end local function ring(latIndex) local verts = {} for lon = 0, lonSeg do verts[lon + 1] = ringVertex(latIndex, lon) end return verts end local prevRing = ring(0) for lat = 1, latSeg do local currRing = ring(lat) for lon = 1, lonSeg do local bottomLeft, bottomRight = prevRing[lon], prevRing[lon + 1] local topLeft, topRight = currRing[lon], currRing[lon + 1] addVertex(bottomLeft); addVertex(bottomRight); addVertex(topRight) addVertex(bottomLeft); addVertex(topRight); addVertex(topLeft) end prevRing = currRing end for lon = 0, lonSeg - 1 do local centre = Vertex{posn = {0, 0, 0}, colour = {rimR, rimG, rimB, 255}, texCoords = {0.5, 0.5}, normal = {0, -1, 0}} local flatA = ringVertex(0, lon, 0, -1, 0) local flatB = ringVertex(0, lon + 1, 0, -1, 0) addVertex(centre); addVertex(flatB); addVertex(flatA) end end ",
+			"pokeScript": "setAnimating(not getAnimating(), true)",
+			"edges": [
+				{
+					"toNodeName": "petalTransform0"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformScriptNode",
+			"name": "petalTransform0",
+			"coreScript": "if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); local step = 0.0028; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end",
+			"pokeScript": "",
+			"transform": [
+				0.900447,
+				0.434966,
+				0.0,
+				0.0,
+				-0.434966,
+				0.900447,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				1.0,
+				0.0,
+				0.9,
+				0.0,
+				0.0,
+				1.0
+			],
+			"edges": [
+				{
+					"toNodeName": "petal0"
+				}
+			]
+		},
+		{
+			"type": "SceneGeometryScriptNode",
+			"name": "petal0",
+			"pokeEnabled": false,
+			"coreScript": "if vertexCount() == 0 then local hue = 0.000000 local length, maxHalfWidth, segments = 2.2, 0.45, 10 local function hsvToRgb(h, sat, val) local chroma = val * sat local huePrime = h * 6 local x = chroma * (1 - math.abs((huePrime % 2) - 1)) local m = val - chroma local rp, gp, bp if huePrime < 1 then rp, gp, bp = chroma, x, 0 elseif huePrime < 2 then rp, gp, bp = x, chroma, 0 elseif huePrime < 3 then rp, gp, bp = 0, chroma, x elseif huePrime < 4 then rp, gp, bp = 0, x, chroma elseif huePrime < 5 then rp, gp, bp = x, 0, chroma else rp, gp, bp = chroma, 0, x end return (rp + m) * 255, (gp + m) * 255, (bp + m) * 255 end local baseR, baseG, baseB = hsvToRgb(hue, 0.85, 0.95) local tipR, tipG, tipB = hsvToRgb(hue, 0.25, 1.0) local prevLeft, prevRight for i = 0, segments do local t = i / segments local x = t * length local halfWidth = maxHalfWidth * math.sin(math.pi * t) local cR = baseR + (tipR - baseR) * t local cG = baseG + (tipG - baseG) * t local cB = baseB + (tipB - baseB) * t local left = Vertex{posn = {x, 0, halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 0}, normal = {0, 1, 0}} local right = Vertex{posn = {x, 0, -halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 1}, normal = {0, 1, 0}} if i > 0 then addVertex(prevLeft); addVertex(prevRight); addVertex(right) addVertex(prevLeft); addVertex(right); addVertex(left) end prevLeft, prevRight = left, right end end ",
+			"pokeScript": "",
+			"edges": [
+				{
+					"toNodeName": "petalTransform1"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformScriptNode",
+			"name": "petalTransform1",
+			"coreScript": "",
+			"pokeScript": "",
+			"transform": [
+				0.62349,
+				0.0,
+				-0.781831,
+				0.0,
+				0.0,
+				1.0,
+				0.0,
+				0.0,
+				0.781831,
+				0.0,
+				0.62349,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				1.0
+			],
+			"edges": [
+				{
+					"toNodeName": "petal1"
+				}
+			]
+		},
+		{
+			"type": "SceneGeometryScriptNode",
+			"name": "petal1",
+			"pokeEnabled": false,
+			"coreScript": "if vertexCount() == 0 then local hue = 0.142857 local length, maxHalfWidth, segments = 2.2, 0.45, 10 local function hsvToRgb(h, sat, val) local chroma = val * sat local huePrime = h * 6 local x = chroma * (1 - math.abs((huePrime % 2) - 1)) local m = val - chroma local rp, gp, bp if huePrime < 1 then rp, gp, bp = chroma, x, 0 elseif huePrime < 2 then rp, gp, bp = x, chroma, 0 elseif huePrime < 3 then rp, gp, bp = 0, chroma, x elseif huePrime < 4 then rp, gp, bp = 0, x, chroma elseif huePrime < 5 then rp, gp, bp = x, 0, chroma else rp, gp, bp = chroma, 0, x end return (rp + m) * 255, (gp + m) * 255, (bp + m) * 255 end local baseR, baseG, baseB = hsvToRgb(hue, 0.85, 0.95) local tipR, tipG, tipB = hsvToRgb(hue, 0.25, 1.0) local prevLeft, prevRight for i = 0, segments do local t = i / segments local x = t * length local halfWidth = maxHalfWidth * math.sin(math.pi * t) local cR = baseR + (tipR - baseR) * t local cG = baseG + (tipG - baseG) * t local cB = baseB + (tipB - baseB) * t local left = Vertex{posn = {x, 0, halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 0}, normal = {0, 1, 0}} local right = Vertex{posn = {x, 0, -halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 1}, normal = {0, 1, 0}} if i > 0 then addVertex(prevLeft); addVertex(prevRight); addVertex(right) addVertex(prevLeft); addVertex(right); addVertex(left) end prevLeft, prevRight = left, right end end ",
+			"pokeScript": "",
+			"edges": [
+				{
+					"toNodeName": "petalTransform2"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformScriptNode",
+			"name": "petalTransform2",
+			"coreScript": "",
+			"pokeScript": "",
+			"transform": [
+				0.62349,
+				0.0,
+				-0.781831,
+				0.0,
+				0.0,
+				1.0,
+				0.0,
+				0.0,
+				0.781831,
+				0.0,
+				0.62349,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				1.0
+			],
+			"edges": [
+				{
+					"toNodeName": "petal2"
+				}
+			]
+		},
+		{
+			"type": "SceneGeometryScriptNode",
+			"name": "petal2",
+			"pokeEnabled": false,
+			"coreScript": "if vertexCount() == 0 then local hue = 0.285714 local length, maxHalfWidth, segments = 2.2, 0.45, 10 local function hsvToRgb(h, sat, val) local chroma = val * sat local huePrime = h * 6 local x = chroma * (1 - math.abs((huePrime % 2) - 1)) local m = val - chroma local rp, gp, bp if huePrime < 1 then rp, gp, bp = chroma, x, 0 elseif huePrime < 2 then rp, gp, bp = x, chroma, 0 elseif huePrime < 3 then rp, gp, bp = 0, chroma, x elseif huePrime < 4 then rp, gp, bp = 0, x, chroma elseif huePrime < 5 then rp, gp, bp = x, 0, chroma else rp, gp, bp = chroma, 0, x end return (rp + m) * 255, (gp + m) * 255, (bp + m) * 255 end local baseR, baseG, baseB = hsvToRgb(hue, 0.85, 0.95) local tipR, tipG, tipB = hsvToRgb(hue, 0.25, 1.0) local prevLeft, prevRight for i = 0, segments do local t = i / segments local x = t * length local halfWidth = maxHalfWidth * math.sin(math.pi * t) local cR = baseR + (tipR - baseR) * t local cG = baseG + (tipG - baseG) * t local cB = baseB + (tipB - baseB) * t local left = Vertex{posn = {x, 0, halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 0}, normal = {0, 1, 0}} local right = Vertex{posn = {x, 0, -halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 1}, normal = {0, 1, 0}} if i > 0 then addVertex(prevLeft); addVertex(prevRight); addVertex(right) addVertex(prevLeft); addVertex(right); addVertex(left) end prevLeft, prevRight = left, right end end ",
+			"pokeScript": "",
+			"edges": [
+				{
+					"toNodeName": "petalTransform3"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformScriptNode",
+			"name": "petalTransform3",
+			"coreScript": "",
+			"pokeScript": "",
+			"transform": [
+				0.62349,
+				0.0,
+				-0.781831,
+				0.0,
+				0.0,
+				1.0,
+				0.0,
+				0.0,
+				0.781831,
+				0.0,
+				0.62349,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				1.0
+			],
+			"edges": [
+				{
+					"toNodeName": "petal3"
+				}
+			]
+		},
+		{
+			"type": "SceneGeometryScriptNode",
+			"name": "petal3",
+			"pokeEnabled": false,
+			"coreScript": "if vertexCount() == 0 then local hue = 0.428571 local length, maxHalfWidth, segments = 2.2, 0.45, 10 local function hsvToRgb(h, sat, val) local chroma = val * sat local huePrime = h * 6 local x = chroma * (1 - math.abs((huePrime % 2) - 1)) local m = val - chroma local rp, gp, bp if huePrime < 1 then rp, gp, bp = chroma, x, 0 elseif huePrime < 2 then rp, gp, bp = x, chroma, 0 elseif huePrime < 3 then rp, gp, bp = 0, chroma, x elseif huePrime < 4 then rp, gp, bp = 0, x, chroma elseif huePrime < 5 then rp, gp, bp = x, 0, chroma else rp, gp, bp = chroma, 0, x end return (rp + m) * 255, (gp + m) * 255, (bp + m) * 255 end local baseR, baseG, baseB = hsvToRgb(hue, 0.85, 0.95) local tipR, tipG, tipB = hsvToRgb(hue, 0.25, 1.0) local prevLeft, prevRight for i = 0, segments do local t = i / segments local x = t * length local halfWidth = maxHalfWidth * math.sin(math.pi * t) local cR = baseR + (tipR - baseR) * t local cG = baseG + (tipG - baseG) * t local cB = baseB + (tipB - baseB) * t local left = Vertex{posn = {x, 0, halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 0}, normal = {0, 1, 0}} local right = Vertex{posn = {x, 0, -halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 1}, normal = {0, 1, 0}} if i > 0 then addVertex(prevLeft); addVertex(prevRight); addVertex(right) addVertex(prevLeft); addVertex(right); addVertex(left) end prevLeft, prevRight = left, right end end ",
+			"pokeScript": "",
+			"edges": [
+				{
+					"toNodeName": "petalTransform4"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformScriptNode",
+			"name": "petalTransform4",
+			"coreScript": "",
+			"pokeScript": "",
+			"transform": [
+				0.62349,
+				0.0,
+				-0.781831,
+				0.0,
+				0.0,
+				1.0,
+				0.0,
+				0.0,
+				0.781831,
+				0.0,
+				0.62349,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				1.0
+			],
+			"edges": [
+				{
+					"toNodeName": "petal4"
+				}
+			]
+		},
+		{
+			"type": "SceneGeometryScriptNode",
+			"name": "petal4",
+			"pokeEnabled": false,
+			"coreScript": "if vertexCount() == 0 then local hue = 0.571429 local length, maxHalfWidth, segments = 2.2, 0.45, 10 local function hsvToRgb(h, sat, val) local chroma = val * sat local huePrime = h * 6 local x = chroma * (1 - math.abs((huePrime % 2) - 1)) local m = val - chroma local rp, gp, bp if huePrime < 1 then rp, gp, bp = chroma, x, 0 elseif huePrime < 2 then rp, gp, bp = x, chroma, 0 elseif huePrime < 3 then rp, gp, bp = 0, chroma, x elseif huePrime < 4 then rp, gp, bp = 0, x, chroma elseif huePrime < 5 then rp, gp, bp = x, 0, chroma else rp, gp, bp = chroma, 0, x end return (rp + m) * 255, (gp + m) * 255, (bp + m) * 255 end local baseR, baseG, baseB = hsvToRgb(hue, 0.85, 0.95) local tipR, tipG, tipB = hsvToRgb(hue, 0.25, 1.0) local prevLeft, prevRight for i = 0, segments do local t = i / segments local x = t * length local halfWidth = maxHalfWidth * math.sin(math.pi * t) local cR = baseR + (tipR - baseR) * t local cG = baseG + (tipG - baseG) * t local cB = baseB + (tipB - baseB) * t local left = Vertex{posn = {x, 0, halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 0}, normal = {0, 1, 0}} local right = Vertex{posn = {x, 0, -halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 1}, normal = {0, 1, 0}} if i > 0 then addVertex(prevLeft); addVertex(prevRight); addVertex(right) addVertex(prevLeft); addVertex(right); addVertex(left) end prevLeft, prevRight = left, right end end ",
+			"pokeScript": "",
+			"edges": [
+				{
+					"toNodeName": "petalTransform5"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformScriptNode",
+			"name": "petalTransform5",
+			"coreScript": "",
+			"pokeScript": "",
+			"transform": [
+				0.62349,
+				0.0,
+				-0.781831,
+				0.0,
+				0.0,
+				1.0,
+				0.0,
+				0.0,
+				0.781831,
+				0.0,
+				0.62349,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				1.0
+			],
+			"edges": [
+				{
+					"toNodeName": "petal5"
+				}
+			]
+		},
+		{
+			"type": "SceneGeometryScriptNode",
+			"name": "petal5",
+			"pokeEnabled": false,
+			"coreScript": "if vertexCount() == 0 then local hue = 0.714286 local length, maxHalfWidth, segments = 2.2, 0.45, 10 local function hsvToRgb(h, sat, val) local chroma = val * sat local huePrime = h * 6 local x = chroma * (1 - math.abs((huePrime % 2) - 1)) local m = val - chroma local rp, gp, bp if huePrime < 1 then rp, gp, bp = chroma, x, 0 elseif huePrime < 2 then rp, gp, bp = x, chroma, 0 elseif huePrime < 3 then rp, gp, bp = 0, chroma, x elseif huePrime < 4 then rp, gp, bp = 0, x, chroma elseif huePrime < 5 then rp, gp, bp = x, 0, chroma else rp, gp, bp = chroma, 0, x end return (rp + m) * 255, (gp + m) * 255, (bp + m) * 255 end local baseR, baseG, baseB = hsvToRgb(hue, 0.85, 0.95) local tipR, tipG, tipB = hsvToRgb(hue, 0.25, 1.0) local prevLeft, prevRight for i = 0, segments do local t = i / segments local x = t * length local halfWidth = maxHalfWidth * math.sin(math.pi * t) local cR = baseR + (tipR - baseR) * t local cG = baseG + (tipG - baseG) * t local cB = baseB + (tipB - baseB) * t local left = Vertex{posn = {x, 0, halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 0}, normal = {0, 1, 0}} local right = Vertex{posn = {x, 0, -halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 1}, normal = {0, 1, 0}} if i > 0 then addVertex(prevLeft); addVertex(prevRight); addVertex(right) addVertex(prevLeft); addVertex(right); addVertex(left) end prevLeft, prevRight = left, right end end ",
+			"pokeScript": "",
+			"edges": [
+				{
+					"toNodeName": "petalTransform6"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformScriptNode",
+			"name": "petalTransform6",
+			"coreScript": "",
+			"pokeScript": "",
+			"transform": [
+				0.62349,
+				0.0,
+				-0.781831,
+				0.0,
+				0.0,
+				1.0,
+				0.0,
+				0.0,
+				0.781831,
+				0.0,
+				0.62349,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				1.0
+			],
+			"edges": [
+				{
+					"toNodeName": "petal6"
+				}
+			]
+		},
+		{
+			"type": "SceneGeometryScriptNode",
+			"name": "petal6",
+			"pokeEnabled": false,
+			"coreScript": "if vertexCount() == 0 then local hue = 0.857143 local length, maxHalfWidth, segments = 2.2, 0.45, 10 local function hsvToRgb(h, sat, val) local chroma = val * sat local huePrime = h * 6 local x = chroma * (1 - math.abs((huePrime % 2) - 1)) local m = val - chroma local rp, gp, bp if huePrime < 1 then rp, gp, bp = chroma, x, 0 elseif huePrime < 2 then rp, gp, bp = x, chroma, 0 elseif huePrime < 3 then rp, gp, bp = 0, chroma, x elseif huePrime < 4 then rp, gp, bp = 0, x, chroma elseif huePrime < 5 then rp, gp, bp = x, 0, chroma else rp, gp, bp = chroma, 0, x end return (rp + m) * 255, (gp + m) * 255, (bp + m) * 255 end local baseR, baseG, baseB = hsvToRgb(hue, 0.85, 0.95) local tipR, tipG, tipB = hsvToRgb(hue, 0.25, 1.0) local prevLeft, prevRight for i = 0, segments do local t = i / segments local x = t * length local halfWidth = maxHalfWidth * math.sin(math.pi * t) local cR = baseR + (tipR - baseR) * t local cG = baseG + (tipG - baseG) * t local cB = baseB + (tipB - baseB) * t local left = Vertex{posn = {x, 0, halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 0}, normal = {0, 1, 0}} local right = Vertex{posn = {x, 0, -halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 1}, normal = {0, 1, 0}} if i > 0 then addVertex(prevLeft); addVertex(prevRight); addVertex(right) addVertex(prevLeft); addVertex(right); addVertex(left) end prevLeft, prevRight = left, right end end ",
+			"pokeScript": ""
+		}
+	],
+	"strobeEmitters": [
+		{
+			"nodeName": "root",
+			"frequencyHz": 25
+		}
+	],
+	"surfaces": [
+		{
+			"type": "GraphHiveSceneSurface",
+			"name": "surface",
+			"sceneRootNodeName": "root"
+		}
+	],
+	"strobeSurfaces": [
+		{
+			"surfaceName": "surface",
+			"frequencyHz": 25
+		}
+	]
+}

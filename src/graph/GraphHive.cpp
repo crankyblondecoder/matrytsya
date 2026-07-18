@@ -4,6 +4,7 @@
 #include "../thread/ThreadPool.hpp"
 #include "GraphException.hpp"
 #include "GraphHive.hpp"
+#include "GraphHiveSceneSurface.hpp"
 #include "GraphHiveStrobeScheduler.hpp"
 #include "GraphHiveSurface.hpp"
 #include "GraphNode.hpp"
@@ -12,8 +13,9 @@ GraphHive::~GraphHive()
 {
 	// shutdown() (if it ran) already stopped the scheduler thread; only the actual deallocation is
 	// deferred to here. Since this destructor only runs once nothing holds a reference to this hive,
-	// nothing can be concurrently inside setStrobeEmitter()/clearStrobeEmitter()/removeNode() using
-	// _strobeScheduler, so it's safe to delete without any additional locking.
+	// nothing can be concurrently inside setStrobeEmitter()/clearStrobeEmitter()/removeNode()/
+	// setStrobeSurface()/clearStrobeSurface()/removeSurface() using _strobeScheduler, so it's safe to
+	// delete without any additional locking.
 	if(_strobeScheduler)
 	{
 		_strobeScheduler -> stop(true);
@@ -109,7 +111,27 @@ void GraphHive::clearStrobeEmitter(GraphHandle<StrobeEmitterNode> nodeHandle)
 		if(!_active) return;
 	}
 
-	if(nodeHandle.isValid()) _strobeScheduler -> removeEmitter(nodeHandle.getInstance());
+	if(nodeHandle.isValid()) _strobeScheduler -> removeEmitter(nodeHandle);
+}
+
+void GraphHive::setStrobeSurface(GraphHandle<GraphHiveSurface> surfaceHandle, unsigned frequencyHz)
+{
+	{ SYNC(_lock)
+
+		if(!_active) return;
+	}
+
+	_strobeScheduler -> setSurface(surfaceHandle, frequencyHz);
+}
+
+void GraphHive::clearStrobeSurface(GraphHandle<GraphHiveSurface> surfaceHandle)
+{
+	{ SYNC(_lock)
+
+		if(!_active) return;
+	}
+
+	if(surfaceHandle.isValid()) _strobeScheduler -> removeSurface(surfaceHandle);
 }
 
 unsigned GraphHive::actionActive(GraphAction* action)
@@ -409,9 +431,10 @@ void GraphHive::shutdown()
 	{
 		_strobeScheduler -> stop(true);
 
-		// The scheduler thread is stopped, so nothing can still be iterating _entries; release the
-		// held node handles now rather than waiting for ~GraphHive to delete the scheduler.
+		// The scheduler thread is stopped, so nothing can still be iterating _entries/_surfaceEntries;
+		// release the held handles now rather than waiting for ~GraphHive to delete the scheduler.
 		_strobeScheduler -> clearEmitters();
+		_strobeScheduler -> clearSurfaces();
 	}
 
 	// Required so that active count wait can terminate.
@@ -566,8 +589,10 @@ void GraphHive::removeNode(GraphHandle<GraphNode> nodeHandle)
 
 	if(decouple)
 	{
-		// A node that is removed from the hive must also stop being a strobe emitter.
-		if(_strobeScheduler) _strobeScheduler -> removeEmitter(nodeToFind);
+		// A node that is removed from the hive must also stop being a strobe emitter. Only nodes that
+		// are actually StrobeEmitterNodes can ever be registered, so a failed cast here just means
+		// the node was never an emitter.
+		if(_strobeScheduler) _strobeScheduler -> removeEmitter(GraphHandle<StrobeEmitterNode>(dynamic_cast<StrobeEmitterNode*>(nodeToFind)));
 
 		nodeToFind -> decouple();
 		nodeToFind -> decrRef();
@@ -663,8 +688,14 @@ void GraphHive::removeSurface(GraphHandle<GraphHiveSurface> surfaceHandle)
 		}
 	}
 
-	// close() handles both the subclass cleanup hook and the decrRef of the hive-owned reference.
-	if(removed) surfaceToFind -> close();
+	if(removed)
+	{
+		// A surface that is removed from the hive must also stop being strobed.
+		if(_strobeScheduler) _strobeScheduler -> removeSurface(surfaceHandle);
+
+		// close() handles both the subclass cleanup hook and the decrRef of the hive-owned reference.
+		surfaceToFind -> close();
+	}
 }
 
 GraphHandle<GraphHiveSurface> GraphHive::getSurface(std::string surfaceName)
@@ -687,6 +718,18 @@ GraphHandle<GraphHiveSurface> GraphHive::getSurface(std::string surfaceName)
 	}
 
 	return GraphHandle<GraphHiveSurface>(foundSurface);
+}
+
+GraphHandle<GraphHiveSceneSurface> GraphHive::getSceneSurface(std::string surfaceName)
+{
+	GraphHandle<GraphHiveSurface> surface = getSurface(surfaceName);
+
+	if(surface.isValid() && surface.getInstance() -> getType() == GraphHiveSurface::Type::SCENE_SURFACE)
+	{
+		return GraphHandle<GraphHiveSceneSurface>(static_cast<GraphHiveSceneSurface*>(surface.getInstance()));
+	}
+
+	return GraphHandle<GraphHiveSceneSurface>(0);
 }
 
 void GraphHive::enumerateThreadPool(unsigned numTabs)

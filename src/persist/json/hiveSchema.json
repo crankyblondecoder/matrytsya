@@ -2,7 +2,7 @@
 	"$schema": "https://json-schema.org/draft/2020-12/schema",
 	"$id": "matrytsya/persist/json/hiveSchema.json",
 	"title": "Hive",
-	"description": "Describes the structure of a hive: its nodes, the edges between them, and any strobe emitter registrations. Loaded once to build the initial hive structure. A hive can contain multiple directed cyclic graphs created from the nodes and edges.",
+	"description": "Describes the structure of a hive: its nodes, the edges between them, any strobe emitter registrations, and any surfaces or strobe surface registrations. Loaded once to build the initial hive structure. A hive can contain multiple directed cyclic graphs created from the nodes and edges.",
 	"type": "object",
 	"required": ["name", "nodes"],
 	"additionalProperties": false,
@@ -23,6 +23,16 @@
 			"type": "array",
 			"items": { "$ref": "#/$defs/strobeEmitter" },
 			"description": "Registers a subset of this hive's nodes as periodic strobe emitters. The type of these nodes must be a StrobeEmitterNode subclass, e.g. sceneRootNode."
+		},
+		"surfaces": {
+			"type": "array",
+			"items": { "$ref": "#/$defs/surface" },
+			"description": "Surfaces exposed by this hive, e.g. for display or input. Each surface's name must be unique within this surfaces array; strobeSurfaces refers to surfaces by this name."
+		},
+		"strobeSurfaces": {
+			"type": "array",
+			"items": { "$ref": "#/$defs/strobeSurface" },
+			"description": "Registers a subset of this hive's surfaces to be strobed periodically, causing each to update/regenerate at a fixed frequency."
 		}
 	},
 
@@ -67,10 +77,10 @@
 		"strobeEmitter": {
 			"description": "Registers a node as a periodic strobe emitter, causing it to emit a strobe action at a fixed frequency.",
 			"type": "object",
-			"required": ["node", "frequencyHz"],
+			"required": ["nodeName", "frequencyHz"],
 			"additionalProperties": false,
 			"properties": {
-				"node": {
+				"nodeName": {
 					"$ref": "#/$defs/nodeName",
 					"description": "Name of the node to register as a strobe emitter. It must be a subclass of StrobeEmitterNode."
 				},
@@ -78,6 +88,30 @@
 					"type": "integer",
 					"minimum": 1,
 					"description": "Emission frequency in Hz (emissions per second)."
+				}
+			}
+		},
+
+		"surfaceName": {
+			"type": "string",
+			"minLength": 1,
+			"description": "Name that uniquely identifies a surface within this hive's surfaces array."
+		},
+
+		"strobeSurface": {
+			"description": "Registers a surface to be strobed periodically, causing it to update/regenerate at a fixed frequency.",
+			"type": "object",
+			"required": ["surfaceName", "frequencyHz"],
+			"additionalProperties": false,
+			"properties": {
+				"surfaceName": {
+					"$ref": "#/$defs/surfaceName",
+					"description": "Name of the surface to register as strobed."
+				},
+				"frequencyHz": {
+					"type": "integer",
+					"minimum": 1,
+					"description": "Strobe frequency in Hz (strobes per second)."
 				}
 			}
 		},
@@ -325,6 +359,46 @@
 				{ "$ref": "#/$defs/sceneGeometryScriptNode" },
 				{ "$ref": "#/$defs/sceneTransformNode" },
 				{ "$ref": "#/$defs/sceneTransformScriptNode" }
+			]
+		},
+
+		"surfaceBase": {
+			"description": "Fields common to every GraphHiveSurface, regardless of concrete type.",
+			"type": "object",
+			"required": ["type", "name"],
+			"properties": {
+				"type": {
+					"type": "string",
+					"description": "The type of the hive surface."
+				},
+				"name": {
+					"$ref": "#/$defs/surfaceName"
+				}
+			}
+		},
+
+		"graphHiveSceneSurface": {
+			"description": "A surface that enables the contents of a visual scene pathway to be viewed and interacted with.",
+			"allOf": [
+				{ "$ref": "#/$defs/surfaceBase" },
+				{
+					"required": ["sceneRootNodeName"],
+					"properties": {
+						"type": { "const": "GraphHiveSceneSurface" },
+						"sceneRootNodeName": {
+							"$ref": "#/$defs/nodeName",
+							"description": "Name of the SceneRootNode, within this hive, that this surface is bound to."
+						}
+					}
+				}
+			],
+			"unevaluatedProperties": false
+		},
+
+		"surface": {
+			"description": "Concrete surfaces that can be added directly to a hive.",
+			"oneOf": [
+				{ "$ref": "#/$defs/graphHiveSceneSurface" }
 			]
 		}
 	}

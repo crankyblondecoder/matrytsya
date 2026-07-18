@@ -4,15 +4,17 @@
 #include <string>
 
 #include "HiveNodeDescriptor.hpp"
+#include "HiveSurfaceDescriptor.hpp"
 
 /**
  * Format-agnostic supplier of the data needed to build a hive: its name, its nodes and the edges
- * between them, and its strobe emitter registrations. HiveBuilder drives construction of a
- * GraphHive entirely through this interface, so a new persisted format only needs a new HiveLoader
- * subclass, never a change to HiveBuilder itself.
- * @note Nodes are exposed by index rather than as a stream because HiveBuilder needs every node to
- *       exist before it can wire edges or strobe emitters, which reference nodes by name that may
- *       appear later than the referencing entry.
+ * between them, its surfaces, and its strobe emitter and strobe surface registrations. HiveBuilder
+ * drives construction of a GraphHive entirely through this interface, so a new persisted format
+ * only needs a new HiveLoader subclass, never a change to HiveBuilder itself.
+ * @note Nodes and surfaces are exposed by index rather than as a stream because HiveBuilder needs
+ *       every node/surface to exist before it can wire edges, surfaces, strobe emitters or strobe
+ *       surfaces, all of which reference their targets by name that may appear later than the
+ *       referencing entry.
  */
 class HiveLoader
 {
@@ -37,6 +39,17 @@ class HiveLoader
 		virtual HiveNodeDescriptor getNode(unsigned index) = 0;
 
 		/**
+		 * Get the number of surfaces in the hive being loaded.
+		 */
+		virtual unsigned getSurfaceCount() = 0;
+
+		/**
+		 * Get the descriptor of a single surface.
+		 * @param index Index of the surface, in [0, getSurfaceCount()).
+		 */
+		virtual HiveSurfaceDescriptor getSurface(unsigned index) = 0;
+
+		/**
 		 * Get the number of strobe emitter registrations in the hive being loaded.
 		 */
 		virtual unsigned getStrobeEmitterCount() = 0;
@@ -48,6 +61,19 @@ class HiveLoader
 		 * @param frequencyHz Set to the emission frequency in Hz.
 		 */
 		virtual void getStrobeEmitter(unsigned index, std::string& nodeName, unsigned& frequencyHz) = 0;
+
+		/**
+		 * Get the number of strobe surface registrations in the hive being loaded.
+		 */
+		virtual unsigned getStrobeSurfaceCount() = 0;
+
+		/**
+		 * Get a single strobe surface registration.
+		 * @param index Index of the registration, in [0, getStrobeSurfaceCount()).
+		 * @param surfaceName Set to the name of the surface to register as strobed.
+		 * @param frequencyHz Set to the strobe frequency in Hz.
+		 */
+		virtual void getStrobeSurface(unsigned index, std::string& surfaceName, unsigned& frequencyHz) = 0;
 };
 
 #endif

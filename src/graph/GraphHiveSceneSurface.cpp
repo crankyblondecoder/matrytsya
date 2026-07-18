@@ -25,7 +25,7 @@ namespace
 }
 
 GraphHiveSceneSurface::GraphHiveSceneSurface(GraphHandle<SceneRootNode> sceneRootNode)
-	: _boundRootNode(sceneRootNode)
+	: GraphHiveSurface(Type::SCENE_SURFACE), _boundRootNode(sceneRootNode)
 {
 }
 

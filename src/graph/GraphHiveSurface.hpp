@@ -18,7 +18,22 @@ class GraphHiveSurface : public RefCounted, public GraphNamed, public EventEmitt
 {
 	public:
 
-		GraphHiveSurface();
+		/// Identifies the concrete subclass of a surface, so callers can find a specific kind without an RTTI cast.
+		enum class Type
+		{
+			/// A GraphHiveSceneSurface.
+			SCENE_SURFACE
+		};
+
+		/**
+		 * @param type Concrete type of this surface, as reported by getType().
+		 */
+		GraphHiveSurface(Type type);
+
+		/**
+		 * Get the concrete type of this surface.
+		 */
+		Type getType();
 
 		/**
 		 * Set the hive this surface is bound to.
@@ -97,6 +112,9 @@ class GraphHiveSurface : public RefCounted, public GraphNamed, public EventEmitt
 		// Disable copying.
 		GraphHiveSurface(const GraphHiveSurface& copyFrom);
 		GraphHiveSurface& operator= (const GraphHiveSurface& copyFrom);
+
+		/// Concrete type of this surface.
+		Type _type;
 
 		/// Whether this surface is currently in population mode.
 		bool _populating = false;

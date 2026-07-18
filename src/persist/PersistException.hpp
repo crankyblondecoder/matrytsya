@@ -33,12 +33,22 @@ class PersistException : public Exception
 			EDGE_CREATE_FAILED,
 			/// An edge's action flags contained a name not present in the action flag register.
 			UNKNOWN_ACTION_FLAG,
-			/// A strobe emitter registration's frequencyHz was 0.
+			/// A strobe emitter or strobe surface registration's frequencyHz was 0.
 			INVALID_STROBE_FREQUENCY,
 			/// A strobe emitter registration referenced a node name that does not exist among this hive's nodes.
 			STROBE_EMITTER_NOT_FOUND,
 			/// A strobe emitter registration referenced a node that is not a StrobeEmitterNode subclass.
 			STROBE_EMITTER_WRONG_TYPE,
+			/// A surface's name was empty.
+			INVALID_SURFACE_NAME,
+			/// Two or more surfaces shared the same name within one hive.
+			DUPLICATE_SURFACE_NAME,
+			/// A surface referenced a node name that does not exist among this hive's nodes.
+			SURFACE_NODE_NOT_FOUND,
+			/// A surface referenced a node that exists but is not the concrete type that surface requires.
+			SURFACE_NODE_WRONG_TYPE,
+			/// A strobe surface registration referenced a surface name that does not exist among this hive's surfaces.
+			STROBE_SURFACE_NOT_FOUND,
 
 			// -- JsonHiveLoader errors --
 
@@ -67,7 +77,13 @@ class PersistException : public Exception
 			/// A script node was missing required "coreScript" or "pokeScript", or either was not a string.
 			JSON_INVALID_SCRIPT_SOURCE,
 			/// The top level "strobeEmitters" member was present but not an array, or an entry was malformed.
-			JSON_INVALID_STROBE_EMITTERS
+			JSON_INVALID_STROBE_EMITTERS,
+			/// A surface's "type" string did not match any known concrete surface type.
+			UNKNOWN_SURFACE_TYPE,
+			/// The top level "surfaces" member was present but not an array, or a surface object was malformed.
+			JSON_INVALID_SURFACES,
+			/// The top level "strobeSurfaces" member was present but not an array, or an entry was malformed.
+			JSON_INVALID_STROBE_SURFACES
         };
 
         virtual ~PersistException(){}

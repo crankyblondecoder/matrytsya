@@ -17,6 +17,7 @@
 
 class GraphNode;
 class GraphHiveStrobeScheduler;
+class GraphHiveSceneSurface;
 class GraphHiveSurface;
 
 /**
@@ -85,6 +86,14 @@ class GraphHive : public RefCounted, public GraphNamed
 		GraphHandle<GraphHiveSurface> getSurface(std::string surfaceName);
 
 		/**
+		 * Find a scene surface in this hive by name.
+		 * @param surfaceName Name of surface to find.
+		 * @returns Handle to the surface. Invalid handle if no surface with that name exists in this
+		 *          hive, or it exists but is not a GraphHiveSceneSurface.
+		 */
+		GraphHandle<GraphHiveSceneSurface> getSceneSurface(std::string surfaceName);
+
+		/**
 		 * Register a node as a periodic strobe emitter within this hive, or update an existing
 		 * registration's frequency.
 		 * @note Silently ignored if the node is not a StrobeEmitterNode, the handle is invalid or
@@ -101,6 +110,23 @@ class GraphHive : public RefCounted, public GraphNamed
 		 * @param nodeHandle Handle of the node to remove.
 		 */
 		void clearStrobeEmitter(GraphHandle<StrobeEmitterNode> nodeHandle);
+
+		/**
+		 * Register a surface as being periodically strobed within this hive, or update an existing
+		 * registration's frequency.
+		 * @note Silently ignored if the handle is invalid or frequencyHz is 0. The surface stops being
+		 *       strobed automatically when it is removed from the hive.
+		 * @param surfaceHandle Handle of the surface to register.
+		 * @param frequencyHz Strobe frequency in Hz (strobes per second).
+		 */
+		void setStrobeSurface(GraphHandle<GraphHiveSurface> surfaceHandle, unsigned frequencyHz);
+
+		/**
+		 * Remove a surface from being periodically strobed within this hive.
+		 * @note Safe to call for a surface that is not currently being strobed (no-op).
+		 * @param surfaceHandle Handle of the surface to remove.
+		 */
+		void clearStrobeSurface(GraphHandle<GraphHiveSurface> surfaceHandle);
 
 		/**
 		 * Get the thread pool used by this hive to enumerate itself.

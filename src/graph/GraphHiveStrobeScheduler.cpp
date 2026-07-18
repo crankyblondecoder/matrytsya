@@ -1,6 +1,6 @@
 #include "GraphHiveStrobeScheduler.hpp"
 
-#include "GraphNode.hpp"
+#include "GraphHiveSurface.hpp"
 #include "nodes/StrobeEmitterNode.hpp"
 
 // Longest the run loop will sleep when nothing is imminently due. Bounds shutdown latency and lets
@@ -51,8 +51,8 @@ GraphHiveStrobeScheduler::GraphHiveStrobeScheduler()
 
 GraphHiveStrobeScheduler::~GraphHiveStrobeScheduler()
 {
-	// _entries destructs here, releasing each node handle. stop() must have been called already so
-	// the run loop is no longer touching _entries.
+	// _entries and _surfaceEntries destruct here, releasing each held handle. stop() must have been
+	// called already so the run loop is no longer touching either vector.
 }
 
 void GraphHiveStrobeScheduler::setEmitter(GraphHandle<StrobeEmitterNode> node, unsigned frequencyHz)
@@ -101,9 +101,9 @@ void GraphHiveStrobeScheduler::setEmitter(GraphHandle<StrobeEmitterNode> node, u
 	_cond.unlockMutex();
 }
 
-void GraphHiveStrobeScheduler::removeEmitter(GraphNode* node)
+void GraphHiveStrobeScheduler::removeEmitter(GraphHandle<StrobeEmitterNode> node)
 {
-	if(!node) return;
+	if(!node.isValid()) return;
 
 	// Hold the removed entry's handle so its final decrRef happens outside the lock.
 	GraphHandle<StrobeEmitterNode> removed(0);
@@ -112,7 +112,7 @@ void GraphHiveStrobeScheduler::removeEmitter(GraphNode* node)
 
 	for(std::vector<StrobeEntry>::iterator it = _entries.begin(); it != _entries.end(); ++it)
 	{
-		if(it -> handle.getInstance() == node)
+		if(it -> handle == node)
 		{
 			// Copy the handle out (incrRef) so erasing the entry can't drop the ref to zero inside
 			// the lock.
@@ -148,13 +148,107 @@ void GraphHiveStrobeScheduler::clearEmitters()
 	// 'removed' goes out of scope here, decrRef'ing each node outside the lock.
 }
 
+void GraphHiveStrobeScheduler::setSurface(GraphHandle<GraphHiveSurface> surface, unsigned frequencyHz)
+{
+	if(!surface.isValid() || frequencyHz == 0) return;
+
+	long periodNs = NS_PER_SEC / (long)frequencyHz;
+
+	_cond.lockMutex();
+
+	// Once stop() has been called the run loop may have already exited, so a new entry would never
+	// be serviced or released. Checked under the same lock clearSurfaces() uses so a registration
+	// can never sneak in after a shutdown has cleared everything out.
+	if(_getQuit())
+	{
+		_cond.unlockMutex();
+		return;
+	}
+
+	struct timespec nextDue;
+	clock_gettime(CLOCK_MONOTONIC, &nextDue);
+	timespecAddNs(nextDue, periodNs);
+
+	bool updated = false;
+
+	for(SurfaceEntry& entry : _surfaceEntries)
+	{
+		if(entry.handle == surface)
+		{
+			entry.periodNs = periodNs;
+			entry.nextDue = nextDue;
+			updated = true;
+			break;
+		}
+	}
+
+	if(!updated)
+	{
+		SurfaceEntry entry{ surface, periodNs, nextDue };
+		_surfaceEntries.push_back(entry);
+	}
+
+	// Wake the run loop so it re-evaluates the soonest due time.
+	_cond.signal();
+
+	_cond.unlockMutex();
+}
+
+void GraphHiveStrobeScheduler::removeSurface(GraphHandle<GraphHiveSurface> surface)
+{
+	if(!surface.isValid()) return;
+
+	// Hold the removed entry's handle so its final decrRef happens outside the lock.
+	GraphHandle<GraphHiveSurface> removed(0);
+
+	_cond.lockMutex();
+
+	for(std::vector<SurfaceEntry>::iterator it = _surfaceEntries.begin(); it != _surfaceEntries.end(); ++it)
+	{
+		if(it -> handle == surface)
+		{
+			// Copy the handle out (incrRef) so erasing the entry can't drop the ref to zero inside
+			// the lock.
+			removed = it -> handle;
+			_surfaceEntries.erase(it);
+			break;
+		}
+	}
+
+	// Wake the run loop so it re-evaluates the soonest due time.
+	_cond.signal();
+
+	_cond.unlockMutex();
+
+	// 'removed' goes out of scope here, decrRef'ing the surface outside the lock.
+}
+
+void GraphHiveStrobeScheduler::clearSurfaces()
+{
+	// Swap the entries out so the vector (and each handle's final decrRef) destructs outside the
+	// lock, per the "no external calls inside a sync block" rule.
+	std::vector<SurfaceEntry> removed;
+
+	_cond.lockMutex();
+
+	_surfaceEntries.swap(removed);
+
+	// Wake the run loop so it re-evaluates the soonest due time.
+	_cond.signal();
+
+	_cond.unlockMutex();
+
+	// 'removed' goes out of scope here, decrRef'ing each surface outside the lock.
+}
+
 void GraphHiveStrobeScheduler::threadEntry()
 {
 	while(!_getQuit())
 	{
-		// Handles keep the due nodes alive for the duration of emission; the raw emitter pointers
+		// Handles keep the due nodes/surfaces alive for the duration of emission; the raw pointers
 		// are valid while their handles are held.
 		std::vector<GraphHandle<StrobeEmitterNode>> dueEmitters;
+		std::vector<GraphHandle<GraphHiveSurface>> dueSurfaces;
 
 		unsigned waitMs = MAX_STROBE_WAIT_MS;
 
@@ -186,6 +280,29 @@ void GraphHiveStrobeScheduler::threadEntry()
 			if(ms < (long)waitMs) waitMs = (unsigned)ms;
 		}
 
+		for(SurfaceEntry& entry : _surfaceEntries)
+		{
+			if(timespecGE(now, entry.nextDue))
+			{
+				dueSurfaces.push_back(entry.handle);
+
+				// Advance to the next future strobe, skipping any cycles that were missed while the
+				// loop was busy or asleep.
+				do
+				{
+					timespecAddNs(entry.nextDue, entry.periodNs);
+				}
+				while(timespecGE(now, entry.nextDue));
+			}
+
+			// Track the soonest upcoming strobe so the wait is no longer than necessary.
+			long ms = timespecMsUntil(entry.nextDue, now);
+
+			if(ms < 0) ms = 0;
+
+			if(ms < (long)waitMs) waitMs = (unsigned)ms;
+		}
+
 		_cond.unlockMutex();
 
 		// Emit outside the lock, per the "no external calls inside a sync block" rule.
@@ -198,6 +315,19 @@ void GraphHiveStrobeScheduler::threadEntry()
 			catch(...)
 			{
 				// A single bad emission must not bring down the scheduler thread.
+			}
+		}
+
+		// Strobe outside the lock, per the "no external calls inside a sync block" rule.
+		for(GraphHandle<GraphHiveSurface> surface : dueSurfaces)
+		{
+			try
+			{
+				if(surface.isValid()) surface.getInstance() -> strobe();
+			}
+			catch(...)
+			{
+				// A single bad strobe must not bring down the scheduler thread.
 			}
 		}
 

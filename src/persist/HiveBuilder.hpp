@@ -3,15 +3,20 @@
 
 #include <string>
 
+#include "../graph/GraphHandle.hpp"
+
 class GraphHive;
+class GraphHiveSurface;
 class GraphNode;
 class HiveLoader;
 struct HiveNodeDescriptor;
+struct HiveSurfaceDescriptor;
 
 /**
  * Builds a fully populated GraphHive from any HiveLoader.
- * @note Format-agnostic: all hive data (name, nodes, edges, strobe emitters) comes from the loader,
- *       so a new persisted format only needs a new HiveLoader subclass, never a change here.
+ * @note Format-agnostic: all hive data (name, nodes, edges, surfaces, strobe emitters, strobe
+ *       surfaces) comes from the loader, so a new persisted format only needs a new HiveLoader
+ *       subclass, never a change here.
  */
 class HiveBuilder
 {
@@ -19,7 +24,8 @@ class HiveBuilder
 
 		/**
 		 * Build a fully populated hive from a loader.
-		 * @param loader Loader supplying the hive's name, nodes, edges and strobe emitter registrations.
+		 * @param loader Loader supplying the hive's name, nodes, edges, surfaces and strobe
+		 *        emitter/surface registrations.
 		 * @param numThreads Number of threads to give the constructed hive's thread pool.
 		 * @returns Newly allocated, fully wired GraphHive. Caller takes ownership of the initial reference.
 		 * @throw PersistException On any structural problem in the loader's data.
@@ -41,6 +47,18 @@ class HiveBuilder
 		 * @throw PersistException(UNKNOWN_NODE_TYPE) If the descriptor's type is not recognised.
 		 */
 		static GraphNode* __createNode(const HiveNodeDescriptor& descriptor);
+
+		/**
+		 * Create the concrete GraphHiveSurface subclass described by a descriptor.
+		 * @param descriptor Descriptor of the surface to create.
+		 * @param referencedNode Node this surface binds to, already resolved by name (invalid handle
+		 *        if the descriptor's type does not reference a node).
+		 * @returns Newly allocated surface.
+		 * @throw PersistException(SURFACE_NODE_WRONG_TYPE) If referencedNode exists but is the wrong
+		 *        concrete type for this surface type.
+		 * @throw PersistException(UNKNOWN_SURFACE_TYPE) If the descriptor's type is not recognised.
+		 */
+		static GraphHiveSurface* __createSurface(const HiveSurfaceDescriptor& descriptor, GraphHandle<GraphNode> referencedNode);
 
 		/**
 		 * Translate an action flag name into its bit value.
