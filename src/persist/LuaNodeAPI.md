@@ -73,7 +73,7 @@ above:
 
 | Function | Description |
 |---|---|
-| `Vertex{posn = {...}, colour = {...}, texCoords = {...}, normal = {...}}` | Constructs a `Vertex` userdata. All fields are optional; any field left out is zeroed. `posn` and `normal` are 3-element arrays of numbers (X, Y, Z). `colour` is a 4-element array of integers 0-255 (R, G, B, A). `texCoords` is a 2-element array of numbers (U, V). |
+| `Vertex{posn = {...}, colour = {...}, texCoords = {...}, normal = {...}}` | Constructs a `Vertex` userdata. All fields are optional; any field left out is zeroed. `posn` and `normal` are 3-element arrays of numbers (X, Y, Z); `posn` is in scene geometry units, which by default map one unit to one millimeter. `colour` is a 4-element array of integers 0-255 (R, G, B, A). `texCoords` is a 2-element array of numbers (U, V). |
 | `addVertex(vertex)` | Appends a single `Vertex` (as built by the `Vertex` constructor) to this node's vertex list. |
 | `addVertexes(vertexes)` | Appends every `Vertex` in the given array-style table (indexes `1..#vertexes`) to this node's vertex list in one call. |
 | `vertexCount()` | Returns the number of vertexes currently held by this node. |
@@ -92,5 +92,5 @@ the [common bindings](#bindings-common-to-all-lua-scripted-nodes) above:
 
 | Function | Description |
 |---|---|
-| `getTransform()` | Returns the node's current transform as a 16-element array table, in column-major order, matching the `transform` array in the JSON schema. |
-| `setTransform(transform)` | Sets the node's transform from a 16-element array table, in column-major order. |
+| `getTransform()` | Returns the node's current transform as a 16-element array table, in column-major order, matching the `transform` array in the JSON schema. Translation components are in scene geometry units, which by default map one unit to one millimeter. |
+| `setTransform(transform)` | Sets the node's transform from a 16-element array table, in column-major order. Translation components are in scene geometry units, which by default map one unit to one millimeter. |
