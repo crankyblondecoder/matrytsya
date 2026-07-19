@@ -1,0 +1,72 @@
+{
+  "name": "RoseHive",
+  "nodes": [
+    {
+      "type": "SceneRootNode",
+      "name": "Root",
+      "edges": [
+        {
+          "toNodeName": "StemTransform"
+        }
+      ]
+    },
+    {
+      "type": "SceneTransformNode",
+      "name": "StemTransform",
+      "transform": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+      "edges": [
+        {
+          "toNodeName": "StemGeometry"
+        }
+      ]
+    },
+    {
+      "type": "SceneGeometryScriptNode",
+      "name": "StemGeometry",
+      "pokeEnabled": false,
+      "coreScript": "local segments = 12\nlocal radius = 4\nlocal height = 180\n\nif not STEM_BUILT then\n    local bottom = {}\n    local top = {}\n    for i = 0, segments - 1 do\n        local angle = (i / segments) * 2 * math.pi\n        local x = math.cos(angle) * radius\n        local z = math.sin(angle) * radius\n        bottom[i] = {x, 0, z}\n        top[i] = {x, height, z}\n    end\n\n    for i = 0, segments - 1 do\n        local ni = (i + 1) % segments\n        local b0 = bottom[i]\n        local b1 = bottom[ni]\n        local t0 = top[i]\n        local t1 = top[ni]\n\n        local midAngle = ((i + 0.5) / segments) * 2 * math.pi\n        local nx = math.cos(midAngle)\n        local nz = math.sin(midAngle)\n        local stemColour = {58, 122, 42, 255}\n\n        addVertexes({\n            Vertex{posn = b0, colour = stemColour, normal = {nx, 0, nz}},\n            Vertex{posn = t0, colour = stemColour, normal = {nx, 0, nz}},\n            Vertex{posn = b1, colour = stemColour, normal = {nx, 0, nz}},\n            Vertex{posn = b1, colour = stemColour, normal = {nx, 0, nz}},\n            Vertex{posn = t0, colour = stemColour, normal = {nx, 0, nz}},\n            Vertex{posn = t1, colour = stemColour, normal = {nx, 0, nz}},\n        })\n    end\n\n    STEM_BUILT = true\nend\n",
+      "pokeScript": "-- pokeEnabled is false for this node; no poke behaviour is defined.\n",
+      "edges": [
+        {
+          "toNodeName": "FlowerTransform"
+        }
+      ]
+    },
+    {
+      "type": "SceneTransformNode",
+      "name": "FlowerTransform",
+      "transform": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 180, 0, 1],
+      "edges": [
+        {
+          "toNodeName": "FlowerGeometry"
+        }
+      ]
+    },
+    {
+      "type": "SceneGeometryScriptNode",
+      "name": "FlowerGeometry",
+      "pokeEnabled": false,
+      "coreScript": "local layers = 5\nlocal petalsPerLayer = 6\nlocal goldenAngle = 137.5 * math.pi / 180\n\nif not FLOWER_BUILT then\n    for layer = 0, layers - 1 do\n        local layerRadius = 6 + layer * 9\n        local petalLength = 22 + layer * 5\n        local petalWidth = 10 + layer * 3\n        local curl = 10 - layer * 1.5\n        local layerRotation = layer * goldenAngle\n\n        local red = math.max(120, 210 - layer * 15)\n        local petalColour = {red, 20 + layer * 5, 55 + layer * 5, 255}\n\n        for p = 0, petalsPerLayer - 1 do\n            local angle = layerRotation + p * (2 * math.pi / petalsPerLayer)\n            local cosA = math.cos(angle)\n            local sinA = math.sin(angle)\n\n            local function toWorld(lx, ly, lz)\n                local rx = lx * cosA - lz * sinA\n                local rz = lx * sinA + lz * cosA\n                return {rx + cosA * layerRadius, ly, rz + sinA * layerRadius}\n            end\n\n            local baseLeft = toWorld(0, 0, -petalWidth / 2)\n            local baseRight = toWorld(0, 0, petalWidth / 2)\n            local tipLeft = toWorld(petalLength, curl, -petalWidth / 4)\n            local tipRight = toWorld(petalLength, curl, petalWidth / 4)\n\n            addVertexes({\n                Vertex{posn = baseLeft, colour = petalColour},\n                Vertex{posn = tipRight, colour = petalColour},\n                Vertex{posn = baseRight, colour = petalColour},\n                Vertex{posn = baseLeft, colour = petalColour},\n                Vertex{posn = tipLeft, colour = petalColour},\n                Vertex{posn = tipRight, colour = petalColour},\n            })\n        end\n    end\n\n    FLOWER_BUILT = true\nend\n",
+      "pokeScript": "-- pokeEnabled is false for this node; no poke behaviour is defined.\n"
+    }
+  ],
+  "strobeEmitters": [
+    {
+      "nodeName": "Root",
+      "frequencyHz": 1
+    }
+  ],
+  "surfaces": [
+    {
+      "type": "GraphHiveSceneSurface",
+      "name": "RoseView",
+      "sceneRootNodeName": "Root"
+    }
+  ],
+  "strobeSurfaces": [
+    {
+      "surfaceName": "RoseView",
+      "frequencyHz": 30
+    }
+  ]
+}
