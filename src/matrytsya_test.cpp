@@ -57,7 +57,7 @@ int main(int argc, char const *argv[])
 
 	if(!surface)
 	{
-		std::cerr << "No scene surface named \"RoseView\" in hive definition file: " << _HIVE_JSON_PATH << std::endl;
+		std::cerr << "Could not find scene surface in hive definition file: " << _HIVE_JSON_PATH << std::endl;
 		exit(1);
 	}
 
@@ -70,7 +70,6 @@ int main(int argc, char const *argv[])
 	httpServer.start();
 
 	std::cout << "Listening on http://localhost:" << httpServer.getPort() << "/scene/" << std::endl;
-	std::cout << "Click the flower centre to toggle the petal open/close animation." << std::endl;
 
 	signal(SIGINT, _handleSigInt);
 
