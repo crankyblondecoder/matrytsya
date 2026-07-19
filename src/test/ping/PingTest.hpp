@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include "../../graph/actions/PingAction.hpp"
+#include "../../graph/GraphAction.hpp"
 #include "../../graph/GraphHive.hpp"
 #include "../../graph/GraphHiveCollection.hpp"
 #include "../../graph/GraphHandle.hpp"
@@ -15,6 +16,10 @@
 TEST(PingTest, ActionEnergyRundown)
 {
 	// This creates a hive and runs an action that should cycle until it runs out of energy.
+
+	// Production ping actions start with far more energy than is practical to exhaust with a small
+	// test graph; lower it here so the rundown math below stays tractable.
+	GraphAction::setStartingEnergy(32);
 
 	GraphHive* hive = new GraphHive(2);
 
@@ -57,12 +62,19 @@ TEST(PingTest, ActionEnergyRundown)
 	action -> decrRef();
 
 	hive -> shutdown();
+
+	// Restore the production default so other tests aren't affected.
+	GraphAction::setStartingEnergy(65535);
 }
 
 TEST(PingTest, ActionEnergyRundownWaitOnHive)
 {
 	// This is the same test as ActionEnergyRundown, but waits on the hive's action
 	// activity conditions rather than waiting on the action itself to complete.
+
+	// Production ping actions start with far more energy than is practical to exhaust with a small
+	// test graph; lower it here so the rundown math below stays tractable.
+	GraphAction::setStartingEnergy(32);
 
 	GraphHive* hive = new GraphHive(2);
 
@@ -109,6 +121,9 @@ TEST(PingTest, ActionEnergyRundownWaitOnHive)
 	action -> decrRef();
 
 	hive -> shutdown();
+
+	// Restore the production default so other tests aren't affected.
+	GraphAction::setStartingEnergy(65535);
 }
 
 TEST(PingTest, ActionTeleportBetweenHives)
@@ -117,6 +132,11 @@ TEST(PingTest, ActionTeleportBetweenHives)
 	// teleport node; the teleport node points at the first ping node of hive2's own 5 node ping
 	// cycle. Each time the hive1 action passes through the teleport node it spawns a fresh ping
 	// action (full energy) in hive2.
+
+	// Production ping actions start with far more energy than is practical to exhaust with a small
+	// test graph; lower it here so the rundown math below stays tractable. This also applies to
+	// the fresh ping actions ActionFactory creates on teleportation.
+	GraphAction::setStartingEnergy(32);
 
 	GraphHive* hive1 = new GraphHive(2);
 	GraphHive* hive2 = new GraphHive(2);
@@ -236,6 +256,9 @@ TEST(PingTest, ActionTeleportBetweenHives)
 	action -> decrRef();
 
 	collection.shutdown();
+
+	// Restore the production default so other tests aren't affected.
+	GraphAction::setStartingEnergy(65535);
 }
 
 #endif

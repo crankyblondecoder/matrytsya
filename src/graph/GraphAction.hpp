@@ -107,6 +107,14 @@ class GraphAction : public RefCounted
 		 */
 		void applyScheduled(GraphHandle<GraphNode> nodeHandle);
 
+		/**
+		 * Set the starting energy assigned to subsequently constructed actions that use it as their default,
+		 * including ones created internally by ActionFactory as a result of teleportation.
+		 * @note Intended for unit tests that exercise energy rundown; production code should rely on the
+		 *       default.
+		 */
+		static void setStartingEnergy(unsigned energy);
+
 	protected:
 
 		// This is a requirement of being ref counted.
@@ -135,6 +143,10 @@ class GraphAction : public RefCounted
 		 * Apply this action to a node.
 		 */
 		virtual void _apply(GraphNode* node) = 0;
+
+		/// Starting energy assigned to newly constructed actions that use it as their default. Overridable via
+		/// setStartingEnergy().
+		static unsigned _startingEnergy;
 
     private:
 

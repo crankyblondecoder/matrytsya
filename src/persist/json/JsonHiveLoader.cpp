@@ -344,13 +344,15 @@ JsonHiveLoader::JsonHiveLoader(const std::string& json)
 		{
 			if(!strobeEmitterValue.IsObject() ||
 				!strobeEmitterValue.HasMember("nodeName") || !strobeEmitterValue["nodeName"].IsString() ||
-				!strobeEmitterValue.HasMember("frequencyHz") || !strobeEmitterValue["frequencyHz"].IsUint())
+				(strobeEmitterValue.HasMember("frequencyHz") && !strobeEmitterValue["frequencyHz"].IsUint()))
 			{
 				throw PersistException(PersistException::JSON_INVALID_STROBE_EMITTERS);
 			}
 
-			_strobeEmitters.emplace_back(
-				strobeEmitterValue["nodeName"].GetString(), strobeEmitterValue["frequencyHz"].GetUint());
+			unsigned frequencyHz = strobeEmitterValue.HasMember("frequencyHz") ?
+				strobeEmitterValue["frequencyHz"].GetUint() : 30; // Schema default.
+
+			_strobeEmitters.emplace_back(strobeEmitterValue["nodeName"].GetString(), frequencyHz);
 		}
 	}
 
@@ -364,13 +366,15 @@ JsonHiveLoader::JsonHiveLoader(const std::string& json)
 		{
 			if(!strobeSurfaceValue.IsObject() ||
 				!strobeSurfaceValue.HasMember("surfaceName") || !strobeSurfaceValue["surfaceName"].IsString() ||
-				!strobeSurfaceValue.HasMember("frequencyHz") || !strobeSurfaceValue["frequencyHz"].IsUint())
+				(strobeSurfaceValue.HasMember("frequencyHz") && !strobeSurfaceValue["frequencyHz"].IsUint()))
 			{
 				throw PersistException(PersistException::JSON_INVALID_STROBE_SURFACES);
 			}
 
-			_strobeSurfaces.emplace_back(
-				strobeSurfaceValue["surfaceName"].GetString(), strobeSurfaceValue["frequencyHz"].GetUint());
+			unsigned frequencyHz = strobeSurfaceValue.HasMember("frequencyHz") ?
+				strobeSurfaceValue["frequencyHz"].GetUint() : 30; // Schema default.
+
+			_strobeSurfaces.emplace_back(strobeSurfaceValue["surfaceName"].GetString(), frequencyHz);
 		}
 	}
 }

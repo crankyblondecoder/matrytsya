@@ -19,7 +19,7 @@ class ScriptAction : public GraphAction
 
         virtual ~ScriptAction();
 
-		ScriptAction(GraphHandle<GraphNode>& initNode, unsigned energy = 32);
+		ScriptAction(GraphHandle<GraphNode>& initNode, unsigned energy = _startingEnergy);
 
 	protected:
 

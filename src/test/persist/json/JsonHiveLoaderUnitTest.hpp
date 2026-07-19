@@ -221,9 +221,9 @@ TEST(JsonHiveLoaderTest, ScriptNodeMissingCoreScript_ThrowsJsonInvalidScriptSour
 }
 
 /**
- * A malformed strobeEmitters entry (missing "frequencyHz") is rejected.
+ * A strobeEmitters entry omitting "frequencyHz" defaults to 30 Hz.
  */
-TEST(JsonHiveLoaderTest, StrobeEmitterMissingFrequencyHz_ThrowsJsonInvalidStrobeEmitters)
+TEST(JsonHiveLoaderTest, StrobeEmitterMissingFrequencyHz_DefaultsTo30)
 {
 	std::string json = R"({
 		"name": "Hive",
@@ -231,7 +231,16 @@ TEST(JsonHiveLoaderTest, StrobeEmitterMissingFrequencyHz_ThrowsJsonInvalidStrobe
 		"strobeEmitters": [ { "nodeName": "root1" } ]
 	})";
 
-	EXPECT_THROW(JsonHiveLoader loader(json), PersistException);
+	JsonHiveLoader loader(json);
+
+	ASSERT_EQ(loader.getStrobeEmitterCount(), 1u);
+
+	std::string strobeNodeName;
+	unsigned strobeFrequencyHz;
+	loader.getStrobeEmitter(0, strobeNodeName, strobeFrequencyHz);
+
+	EXPECT_EQ(strobeNodeName, "root1");
+	EXPECT_EQ(strobeFrequencyHz, 30u);
 }
 
 /**
@@ -309,9 +318,9 @@ TEST(JsonHiveLoaderTest, SurfaceMissingSceneRootNode_ThrowsJsonInvalidSurfaces)
 }
 
 /**
- * A malformed strobeSurfaces entry (missing "frequencyHz") is rejected.
+ * A strobeSurfaces entry omitting "frequencyHz" defaults to 30 Hz.
  */
-TEST(JsonHiveLoaderTest, StrobeSurfaceMissingFrequencyHz_ThrowsJsonInvalidStrobeSurfaces)
+TEST(JsonHiveLoaderTest, StrobeSurfaceMissingFrequencyHz_DefaultsTo30)
 {
 	std::string json = R"({
 		"name": "Hive",
@@ -320,7 +329,16 @@ TEST(JsonHiveLoaderTest, StrobeSurfaceMissingFrequencyHz_ThrowsJsonInvalidStrobe
 		"strobeSurfaces": [ { "surfaceName": "surface1" } ]
 	})";
 
-	EXPECT_THROW(JsonHiveLoader loader(json), PersistException);
+	JsonHiveLoader loader(json);
+
+	ASSERT_EQ(loader.getStrobeSurfaceCount(), 1u);
+
+	std::string strobeSurfaceName;
+	unsigned strobeFrequencyHz;
+	loader.getStrobeSurface(0, strobeSurfaceName, strobeFrequencyHz);
+
+	EXPECT_EQ(strobeSurfaceName, "surface1");
+	EXPECT_EQ(strobeFrequencyHz, 30u);
 }
 
 /**

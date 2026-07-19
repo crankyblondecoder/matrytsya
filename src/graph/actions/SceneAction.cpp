@@ -10,7 +10,7 @@ SceneAction::~SceneAction()
 }
 
 SceneAction::SceneAction(GraphHandle<GraphNode> initNode,GraphHandle<GraphHiveSceneSurface> surface)
-	: GraphAction(initNode, 512), _surface(surface)
+	: GraphAction(initNode, _startingEnergy), _surface(surface)
 {
 	_addFlag(SCENE_GRAPH_ACTION, true);
 }

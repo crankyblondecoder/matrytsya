@@ -9,6 +9,8 @@
 
 std::atomic<unsigned> GraphAction::_nextId{1};
 
+unsigned GraphAction::_startingEnergy = 65535;
+
 GraphAction::~GraphAction()
 {
 	_boundNode.clear();
@@ -156,6 +158,11 @@ unsigned GraphAction::getEnergyLevel()
 
 		return _energy;
 	}
+}
+
+void GraphAction::setStartingEnergy(unsigned energy)
+{
+	_startingEnergy = energy;
 }
 
 void GraphAction::__complete()

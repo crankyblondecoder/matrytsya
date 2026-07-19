@@ -1,0 +1,407 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "matrytsya/persist/json/hiveSchema.json",
+	"title": "Hive",
+	"description": "Describes the structure of a hive: its nodes, the edges between them, any strobe emitter registrations, and any surfaces or strobe surface registrations. Loaded once to build the initial hive structure. A hive can contain multiple directed cyclic graphs created from the nodes and edges.",
+	"type": "object",
+	"required": ["name", "nodes"],
+	"additionalProperties": false,
+	"properties": {
+		"name": {
+			"type": "string",
+			"minLength": 1,
+			"maxLength": 128,
+			"description": "Canonical name of the hive. See GRAPH_HIVE_NAME_MAX_LEN."
+		},
+		"nodes": {
+			"type": "array",
+			"minItems": 1,
+			"items": { "$ref": "#/$defs/node" },
+			"description": "Nodes contained in this hive. Each node's name must be unique within this nodes array; edges and strobeEmitters refer to nodes by this name."
+		},
+		"strobeEmitters": {
+			"type": "array",
+			"items": { "$ref": "#/$defs/strobeEmitter" },
+			"description": "Registers a subset of this hive's nodes as periodic strobe emitters. The type of these nodes must be a StrobeEmitterNode subclass, e.g. sceneRootNode."
+		},
+		"surfaces": {
+			"type": "array",
+			"items": { "$ref": "#/$defs/surface" },
+			"description": "Surfaces exposed by this hive, e.g. for display or input. Each surface's name must be unique within this surfaces array; strobeSurfaces refers to surfaces by this name."
+		},
+		"strobeSurfaces": {
+			"type": "array",
+			"items": { "$ref": "#/$defs/strobeSurface" },
+			"description": "Registers a subset of this hive's surfaces to be strobed periodically, causing each to update/regenerate at a fixed frequency."
+		}
+	},
+
+	"$defs": {
+
+		"nodeName": {
+			"type": "string",
+			"minLength": 1,
+			"description": "Name that uniquely identifies a node within this hive's nodes array."
+		},
+
+		"actionFlag": {
+			"enum": [
+				"PING_GRAPH_ACTION",
+				"SERIALISABLE_GRAPH_ACTION",
+				"SCRIPT_GRAPH_ACTION",
+				"SCENE_GRAPH_ACTION",
+				"SCENE_STROBE_GRAPH_ACTION",
+				"ANIMATE_GRAPH_ACTION"
+			],
+			"description": "Used to describe the type of a particular graph action. Some actions may support multiple types."
+		},
+
+		"edge": {
+			"description": "A directed link from a node to another node within the same hive.",
+			"type": "object",
+			"required": ["toNodeName"],
+			"additionalProperties": false,
+			"properties": {
+				"toNodeName": {
+					"$ref": "#/$defs/nodeName",
+					"description": "Name of the node, within this hive, that this edge is directed to."
+				},
+				"actionFlags": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/actionFlag" },
+					"description": "Restricts which types of action may cross this edge: an action can only traverse it if its own action type matches one of the flags listed here. If omitted or empty, this edge places no restriction and any action may traverse it."
+				}
+			}
+		},
+
+		"strobeEmitter": {
+			"description": "Registers a node as a periodic strobe emitter, causing it to emit a strobe action at a fixed frequency.",
+			"type": "object",
+			"required": ["nodeName"],
+			"additionalProperties": false,
+			"properties": {
+				"nodeName": {
+					"$ref": "#/$defs/nodeName",
+					"description": "Name of the node to register as a strobe emitter. It must be a subclass of StrobeEmitterNode."
+				},
+				"frequencyHz": {
+					"type": "integer",
+					"minimum": 1,
+					"default": 30,
+					"description": "Emission frequency in Hz (emissions per second)."
+				}
+			}
+		},
+
+		"surfaceName": {
+			"type": "string",
+			"minLength": 1,
+			"description": "Name that uniquely identifies a surface within this hive's surfaces array."
+		},
+
+		"strobeSurface": {
+			"description": "Registers a surface to be strobed periodically, causing it to update/regenerate at a fixed frequency.",
+			"type": "object",
+			"required": ["surfaceName"],
+			"additionalProperties": false,
+			"properties": {
+				"surfaceName": {
+					"$ref": "#/$defs/surfaceName",
+					"description": "Name of the surface to register as strobed."
+				},
+				"frequencyHz": {
+					"type": "integer",
+					"minimum": 1,
+					"default": 30,
+					"description": "Strobe frequency in Hz (strobes per second)."
+				}
+			}
+		},
+
+		"nodeLocation": {
+			"description": "Identifies a node by the hive that contains it and, if that hive is hosted remotely, the host machine it can be reached on.",
+			"type": "object",
+			"required": ["hiveName", "nodeName"],
+			"additionalProperties": false,
+			"properties": {
+				"hostname": {
+					"type": "string",
+					"default": "localhost",
+					"description": "Hostname of the host machine, if left blank, a hive within the current hive collection is assumed."
+				},
+				"port": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 65535,
+					"default": 0,
+					"description": "Port that the host machine listens on."
+				},
+				"hiveName": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Name of the hive that contains the node."
+				},
+				"nodeName": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Name of the node in that hive that contains it."
+				}
+			}
+		},
+
+		"vertex": {
+			"description": "A single vertex of a piece of scene geometry.",
+			"type": "object",
+			"required": ["posn"],
+			"additionalProperties": false,
+			"properties": {
+				"posn": {
+					"type": "array",
+					"items": { "type": "number" },
+					"minItems": 3,
+					"maxItems": 3,
+					"description": "Position in right hand cartesian coordinates: In order X, Y, Z. By default, one unit maps to one millimeter."
+				},
+				"colour": {
+					"type": "array",
+					"items": { "type": "integer", "minimum": 0, "maximum": 255 },
+					"minItems": 4,
+					"maxItems": 4,
+					"description": "Colour: In order Red, Green, Blue, Alpha."
+				},
+				"texCoords": {
+					"type": "array",
+					"items": { "type": "number" },
+					"minItems": 2,
+					"maxItems": 2,
+					"description": "Texture coordinates: In order U, V."
+				},
+				"normal": {
+					"type": "array",
+					"items": { "type": "number" },
+					"minItems": 3,
+					"maxItems": 3,
+					"description": "Normal in right hand cartesian coordinates (must be normalised): In order X, Y, Z."
+				}
+			}
+		},
+
+		"transform": {
+			"type": "array",
+			"items": { "type": "number" },
+			"minItems": 16,
+			"maxItems": 16,
+			"description": "4x4 transform matrix, standard column-major order of elements. Translation components are in scene geometry units; by default, one unit maps to one millimeter."
+		},
+
+		"nodeBase": {
+			"description": "Fields common to every GraphNode, regardless of concrete type.",
+			"type": "object",
+			"required": ["type", "name"],
+			"properties": {
+				"type": {
+					"type": "string",
+					"description": "The type of the hive graph node."
+				},
+				"name": {
+					"$ref": "#/$defs/nodeName"
+				},
+				"pokeEnabled": {
+					"type": "boolean",
+					"default": false,
+					"description": "Whether poking is enabled for this node."
+				},
+				"edges": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/edge" },
+					"description": "Edges directed from this node to other nodes in this hive."
+				}
+			}
+		},
+
+		"scriptSource": {
+			"description": "The pair of Lua scripts that a ScriptNode-derived node runs.",
+			"type": "object",
+			"required": ["coreScript", "pokeScript"],
+			"properties": {
+				"coreScript": {
+					"type": "string",
+					"description": "Main Lua source code that this node runs when invoked."
+				},
+				"pokeScript": {
+					"type": "string",
+					"description": "Lua source code that this node runs when poked."
+				}
+			}
+		},
+
+		"scriptNodeBase": {
+			"description": "Fields common to ScriptNode and its subclasses. ScriptNode, StrobeScriptNode and AnimateScriptNode are all abstract and cannot be instantiated directly; this def exists purely as a mixin for concrete subclasses such as SceneGeometryScriptNode and SceneTransformScriptNode.",
+			"allOf": [
+				{ "$ref": "#/$defs/nodeBase" },
+				{ "$ref": "#/$defs/scriptSource" }
+			]
+		},
+
+		"pingNode": {
+			"description": "A simple node that just provides a ping point.",
+			"allOf": [
+				{ "$ref": "#/$defs/nodeBase" },
+				{
+					"properties": {
+						"type": { "const": "PingNode" }
+					}
+				}
+			],
+			"unevaluatedProperties": false
+		},
+
+		"teleportNode": {
+			"description": "A node that teleports any serialisable action it receives to another node, possibly hosted by a different hive.",
+			"allOf": [
+				{ "$ref": "#/$defs/nodeBase" },
+				{
+					"required": ["destination"],
+					"properties": {
+						"type": { "const": "TeleportNode" },
+						"destination": {
+							"$ref": "#/$defs/nodeLocation",
+							"description": "Location of the node that receives actions teleported through this node."
+						}
+					}
+				}
+			],
+			"unevaluatedProperties": false
+		},
+
+		"sceneRootNode": {
+			"description": "A StrobeEmitterNode that roots a visual scene.",
+			"allOf": [
+				{ "$ref": "#/$defs/nodeBase" },
+				{
+					"properties": {
+						"type": { "const": "SceneRootNode" }
+					}
+				}
+			],
+			"unevaluatedProperties": false
+		},
+
+		"sceneGeometryNode": {
+			"description": "A node that represents scene geometry, with vertexes set directly rather than by a Lua script.",
+			"allOf": [
+				{ "$ref": "#/$defs/nodeBase" },
+				{
+					"properties": {
+						"type": { "const": "SceneGeometryNode" },
+						"vertexes": {
+							"type": "array",
+							"items": { "$ref": "#/$defs/vertex" },
+							"description": "Vertexes making up the scene object this node defines. Each triplet defines a triangle with counter-clockwise winding order for the front face."
+						}
+					}
+				}
+			],
+			"unevaluatedProperties": false
+		},
+
+		"sceneGeometryScriptNode": {
+			"description": "An AnimateScriptNode that represents scene geometry, with vertexes that can be populated by a Lua script.",
+			"allOf": [
+				{ "$ref": "#/$defs/scriptNodeBase" },
+				{
+					"properties": {
+						"type": { "const": "SceneGeometryScriptNode" },
+						"vertexes": {
+							"type": "array",
+							"items": { "$ref": "#/$defs/vertex" },
+							"description": "Vertexes making up the scene object this node defines. Each triplet defines a triangle with counter-clockwise winding order for the front face."
+						}
+					}
+				}
+			],
+			"unevaluatedProperties": false
+		},
+
+		"sceneTransformNode": {
+			"description": "A node that represents a transform applied to scene geometry, set directly rather than by a Lua script.",
+			"allOf": [
+				{ "$ref": "#/$defs/nodeBase" },
+				{
+					"properties": {
+						"type": { "const": "SceneTransformNode" },
+						"transform": { "$ref": "#/$defs/transform" }
+					}
+				}
+			],
+			"unevaluatedProperties": false
+		},
+
+		"sceneTransformScriptNode": {
+			"description": "An AnimateScriptNode that represents a transform applied to scene geometry, which a Lua script can read and modify via getTransform()/setTransform().",
+			"allOf": [
+				{ "$ref": "#/$defs/scriptNodeBase" },
+				{
+					"properties": {
+						"type": { "const": "SceneTransformScriptNode" },
+						"transform": { "$ref": "#/$defs/transform" }
+					}
+				}
+			],
+			"unevaluatedProperties": false
+		},
+
+		"node": {
+			"description": "Concrete nodes that can be added directly to a hive.",
+			"oneOf": [
+				{ "$ref": "#/$defs/pingNode" },
+				{ "$ref": "#/$defs/teleportNode" },
+				{ "$ref": "#/$defs/sceneRootNode" },
+				{ "$ref": "#/$defs/sceneGeometryNode" },
+				{ "$ref": "#/$defs/sceneGeometryScriptNode" },
+				{ "$ref": "#/$defs/sceneTransformNode" },
+				{ "$ref": "#/$defs/sceneTransformScriptNode" }
+			]
+		},
+
+		"surfaceBase": {
+			"description": "Fields common to every GraphHiveSurface, regardless of concrete type.",
+			"type": "object",
+			"required": ["type", "name"],
+			"properties": {
+				"type": {
+					"type": "string",
+					"description": "The type of the hive surface."
+				},
+				"name": {
+					"$ref": "#/$defs/surfaceName"
+				}
+			}
+		},
+
+		"graphHiveSceneSurface": {
+			"description": "A surface that enables the contents of a visual scene pathway to be viewed and interacted with.",
+			"allOf": [
+				{ "$ref": "#/$defs/surfaceBase" },
+				{
+					"required": ["sceneRootNodeName"],
+					"properties": {
+						"type": { "const": "GraphHiveSceneSurface" },
+						"sceneRootNodeName": {
+							"$ref": "#/$defs/nodeName",
+							"description": "Name of the SceneRootNode, within this hive, that this surface is bound to."
+						}
+					}
+				}
+			],
+			"unevaluatedProperties": false
+		},
+
+		"surface": {
+			"description": "Concrete surfaces that can be added directly to a hive.",
+			"oneOf": [
+				{ "$ref": "#/$defs/graphHiveSceneSurface" }
+			]
+		}
+	}
+}

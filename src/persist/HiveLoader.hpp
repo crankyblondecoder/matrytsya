@@ -58,7 +58,7 @@ class HiveLoader
 		 * Get a single strobe emitter registration.
 		 * @param index Index of the registration, in [0, getStrobeEmitterCount()).
 		 * @param nodeName Set to the name of the node to register as a strobe emitter.
-		 * @param frequencyHz Set to the emission frequency in Hz.
+		 * @param frequencyHz Set to the emission frequency in Hz. Defaults to 30 if not specified.
 		 */
 		virtual void getStrobeEmitter(unsigned index, std::string& nodeName, unsigned& frequencyHz) = 0;
 
@@ -71,7 +71,7 @@ class HiveLoader
 		 * Get a single strobe surface registration.
 		 * @param index Index of the registration, in [0, getStrobeSurfaceCount()).
 		 * @param surfaceName Set to the name of the surface to register as strobed.
-		 * @param frequencyHz Set to the strobe frequency in Hz.
+		 * @param frequencyHz Set to the strobe frequency in Hz. Defaults to 30 if not specified.
 		 */
 		virtual void getStrobeSurface(unsigned index, std::string& surfaceName, unsigned& frequencyHz) = 0;
 };
