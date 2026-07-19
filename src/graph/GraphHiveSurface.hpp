@@ -36,6 +36,17 @@ class GraphHiveSurface : public RefCounted, public GraphNamed, public EventEmitt
 		Type getType();
 
 		/**
+		 * Get whether this surface is the default surface of its kind within its hive.
+		 */
+		bool getDefault();
+
+		/**
+		 * Set whether this surface is the default surface of its kind within its hive.
+		 * @param isDefault Whether this surface is default.
+		 */
+		void setDefault(bool isDefault);
+
+		/**
 		 * Set the hive this surface is bound to.
 		 * @param hive Hive this surface is to be bound to. Must be a valid handle.
 		 */
@@ -115,6 +126,9 @@ class GraphHiveSurface : public RefCounted, public GraphNamed, public EventEmitt
 
 		/// Concrete type of this surface.
 		Type _type;
+
+		/// Whether this surface is the default surface of its kind within its hive.
+		bool _default = false;
 
 		/// Whether this surface is currently in population mode.
 		bool _populating = false;

@@ -94,6 +94,13 @@ class GraphHive : public RefCounted, public GraphNamed
 		GraphHandle<GraphHiveSceneSurface> getSceneSurface(std::string surfaceName);
 
 		/**
+		 * Get the default scene surface in this hive.
+		 * @returns Handle to the first surface, in this hive's surfaces, that is both a
+		 *          GraphHiveSceneSurface and marked as default. Invalid handle if no such surface exists.
+		 */
+		GraphHandle<GraphHiveSceneSurface> getDefaultSceneSurface();
+
+		/**
 		 * Register a node as a periodic strobe emitter within this hive, or update an existing
 		 * registration's frequency.
 		 * @note Silently ignored if the node is not a StrobeEmitterNode, the handle is invalid or

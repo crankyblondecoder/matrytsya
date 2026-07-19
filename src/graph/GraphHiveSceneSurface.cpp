@@ -100,13 +100,16 @@ void GraphHiveSceneSurface::_populateEnd()
 	_emitSurfaceChanged();
 }
 
-void GraphHiveSceneSurface::addVertexes(const std::vector<Vertex>& vertexes, unsigned chunkId, unsigned nodeId, bool pokeable)
+void GraphHiveSceneSurface::addVertexes(const std::vector<Vertex>& vertexes, unsigned chunkId, unsigned nodeId, bool pokeable,
+	bool initialFocus, double focusViewportFraction)
 {
 	Chunk chunk;
 
 	chunk.id = chunkId;
 	chunk.nodeId = nodeId;
 	chunk.pokeable = pokeable;
+	chunk.initialFocus = initialFocus;
+	chunk.focusViewportFraction = focusViewportFraction;
 	chunk.vertexes = vertexes;
 
 	{ SYNC(_lock)

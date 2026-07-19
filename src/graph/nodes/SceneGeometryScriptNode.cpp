@@ -63,7 +63,8 @@ void SceneGeometryScriptNode::_registerCoreGlobals(lua_State* luaState)
 
 void SceneGeometryScriptNode::populateSurface(GraphHandle<GraphHiveSceneSurface> surface)
 {
-	if(surface.isValid()) surface.getInstance() -> addVertexes(_vertexes, getId(), getId(), getPokeEnabled());
+	if(surface.isValid()) surface.getInstance() -> addVertexes(_vertexes, getId(), getId(), getPokeEnabled(), getInitialFocus(),
+		getFocusViewportFraction());
 }
 
 void SceneGeometryScriptNode::strobe()

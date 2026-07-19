@@ -66,6 +66,10 @@ class PersistException : public Exception
 			JSON_INVALID_NODE_BASE,
 			/// A node's "pokeEnabled" member was present but not a boolean.
 			JSON_INVALID_POKE_ENABLED,
+			/// A scene geometry node's "initialFocus" member was present but not a boolean.
+			JSON_INVALID_INITIAL_FOCUS,
+			/// A scene geometry node's "focusViewportFraction" member was present but not a positive number.
+			JSON_INVALID_FOCUS_VIEWPORT_FRACTION,
 			/// A node's "edges" member was present but not an array, or an edge object was malformed.
 			JSON_INVALID_EDGES,
 			/// A TeleportNode's "destination" member was missing, not an object, or missing required fields.
@@ -83,7 +87,9 @@ class PersistException : public Exception
 			/// The top level "surfaces" member was present but not an array, or a surface object was malformed.
 			JSON_INVALID_SURFACES,
 			/// The top level "strobeSurfaces" member was present but not an array, or an entry was malformed.
-			JSON_INVALID_STROBE_SURFACES
+			JSON_INVALID_STROBE_SURFACES,
+			/// A surface's "default" member was present but not a boolean.
+			JSON_INVALID_SURFACE_DEFAULT
         };
 
         virtual ~PersistException(){}

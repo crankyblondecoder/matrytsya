@@ -24,6 +24,9 @@ struct HiveSurfaceDescriptor
 	/// Name of the SceneRootNode, within the same hive, this surface is bound to. Only meaningful
 	/// when type == SCENE_SURFACE.
 	std::string sceneRootNodeName;
+
+	/// Whether this surface is the default surface of its kind within its hive.
+	bool isDefault = false;
 };
 
 #endif

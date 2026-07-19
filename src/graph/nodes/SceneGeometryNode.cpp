@@ -54,7 +54,8 @@ void SceneGeometryNode::addVertexes(double* rawData, unsigned length)
 
 void SceneGeometryNode::populateSurface(GraphHandle<GraphHiveSceneSurface> surface)
 {
-	if(surface.isValid()) surface.getInstance() -> addVertexes(_vertexes, getId(), getId(), getPokeEnabled());
+	if(surface.isValid()) surface.getInstance() -> addVertexes(_vertexes, getId(), getId(), getPokeEnabled(), getInitialFocus(),
+		getFocusViewportFraction());
 }
 
 void SceneGeometryNode::strobe()

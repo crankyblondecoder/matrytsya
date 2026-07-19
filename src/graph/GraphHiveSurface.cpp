@@ -12,6 +12,22 @@ GraphHiveSurface::Type GraphHiveSurface::getType()
 	return _type;
 }
 
+bool GraphHiveSurface::getDefault()
+{
+	{ SYNC(_lock)
+
+		return _default;
+	}
+}
+
+void GraphHiveSurface::setDefault(bool isDefault)
+{
+	{ SYNC(_lock)
+
+		_default = isDefault;
+	}
+}
+
 void GraphHiveSurface::setHive(GraphHandle<GraphHive> hive)
 {
 	if(!hive.isValid())

@@ -44,6 +44,8 @@
 			"type": "SceneGeometryScriptNode",
 			"name": "body",
 			"pokeEnabled": true,
+			"initialFocus": true,
+			"focusViewportFraction": 0.2,
 			"coreScript": "if vertexCount() == 0 then local radius = 0.900000 local latSeg = 10 local lonSeg = 20 local apexR, apexG, apexB = 255, 216.75, 51 local rimR, rimG, rimB = 76.5, 127.5, 38.25 local function ringVertex(latIndex, lonIndex, nx, ny, nz) local latFraction = latIndex / latSeg local phi = latFraction * (math.pi / 2) local y = radius * math.sin(phi) local r = radius * math.cos(phi) local cR = rimR + (apexR - rimR) * latFraction local cG = rimG + (apexG - rimG) * latFraction local cB = rimB + (apexB - rimB) * latFraction local theta = (lonIndex / lonSeg) * (2 * math.pi) local x = r * math.cos(theta) local z = r * math.sin(theta) if not nx then nx, ny, nz = x / radius, y / radius, z / radius end return Vertex{posn = {x, y, z}, colour = {cR, cG, cB, 255}, texCoords = {lonIndex / lonSeg, latFraction}, normal = {nx, ny, nz}} end local function ring(latIndex) local verts = {} for lon = 0, lonSeg do verts[lon + 1] = ringVertex(latIndex, lon) end return verts end local prevRing = ring(0) for lat = 1, latSeg do local currRing = ring(lat) for lon = 1, lonSeg do local bottomLeft, bottomRight = prevRing[lon], prevRing[lon + 1] local topLeft, topRight = currRing[lon], currRing[lon + 1] addVertex(bottomLeft); addVertex(bottomRight); addVertex(topRight) addVertex(bottomLeft); addVertex(topRight); addVertex(topLeft) end prevRing = currRing end for lon = 0, lonSeg - 1 do local centre = Vertex{posn = {0, 0, 0}, colour = {rimR, rimG, rimB, 255}, texCoords = {0.5, 0.5}, normal = {0, -1, 0}} local flatA = ringVertex(0, lon, 0, -1, 0) local flatB = ringVertex(0, lon + 1, 0, -1, 0) addVertex(centre); addVertex(flatB); addVertex(flatA) end end ",
 			"pokeScript": "setAnimating(not getAnimating(), true)",
 			"edges": [
@@ -707,7 +709,8 @@
 		{
 			"type": "GraphHiveSceneSurface",
 			"name": "surface",
-			"sceneRootNodeName": "root"
+			"sceneRootNodeName": "root",
+			"default": true
 		}
 	],
 	"strobeSurfaces": [

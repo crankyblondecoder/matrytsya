@@ -60,7 +60,8 @@
     {
       "type": "GraphHiveSceneSurface",
       "name": "RoseView",
-      "sceneRootNodeName": "Root"
+      "sceneRootNodeName": "Root",
+      "default": true
     }
   ],
   "strobeSurfaces": [

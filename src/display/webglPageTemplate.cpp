@@ -236,9 +236,21 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	var dragging = false;
 	var lastX = 0, lastY = 0;
 
+	// Tweens camera.centre from centreAnimFrom to centreAnimTo over CENTRE_ANIM_MS instead of snapping, so a
+	// right-click recentre reads as a smooth pan rather than a jump-cut. Null when no tween is in flight.
+	var centreAnimFrom = null;
+	var centreAnimTo = null;
+	var centreAnimStartTime = 0;
+	var CENTRE_ANIM_MS = 400;
+
 	// Only auto-fit the camera to the scene once: it's driven off each load's bounding box, and re-fitting on
 	// every subsequent load (e.g. from an in-progress animation) would fight the user's own zoom/orbit input.
 	var cameraFitted = false;
+
+	// Vertical field of view (radians) of the perspective camera. Shared between the initial-focus fit (which
+	// derives the camera distance that makes a focused node span a requested fraction of the viewport) and the
+	// per-frame projection, so the two always agree.
+	var CAMERA_FOVY = Math.PI / 4;
 
 	// Raw positions and their owning chunk ids from the most recently loaded scene, plus the view/projection
 	// matrix used to draw the most recent frame. Together these are enough to pick a chunk under a clicked pixel.
@@ -252,8 +264,18 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	var mouseDownOnCanvas = false;
 	var mouseDownX = 0, mouseDownY = 0;
 
+	// Right-button drag pans camera.centre within the view plane, leaving yaw/pitch/distance alone.
+	// panning tracks an in-flight right drag; rightDragMoved records whether it moved far enough to count
+	// as a pan rather than a stationary right-click, so the contextmenu handler can tell a pan apart from
+	// a recentre click.
+	var panning = false;
+	var panLastX = 0, panLastY = 0;
+	var rightDownX = 0, rightDownY = 0;
+	var rightDragMoved = false;
+
 	// Casts a ray through the given screen point (client coordinates) using the last drawn view/projection
-	// matrix and returns the id of the nearest chunk it hits, or null if nothing was hit.
+	// matrix and returns { chunkId, point } for the nearest chunk it hits (point is the world-space hit
+	// location, needed by the right-click recentre handler below), or null if nothing was hit.
 	function pickChunkAt(clientX, clientY)
 	{
 		if(!lastViewProj || lastTriangleChunkIds.length === 0) return null;
@@ -294,7 +316,12 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 			}
 		}
 
-		return closestChunkId;
+		if(closestChunkId === null) return null;
+
+		return {
+			chunkId: closestChunkId,
+			point: [origin[0] + dir[0] * closestT, origin[1] + dir[1] * closestT, origin[2] + dir[2] * closestT]
+		};
 	}
 
 	// Pokes the surface backing this map to say the chunk with the given id was clicked on.
@@ -310,6 +337,23 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 	canvas.addEventListener('mousedown', function(e)
 	{
+		if(e.button === 2)
+		{
+			// Right button drag-pans; a stationary right-click still falls through to the contextmenu
+			// listener below (pick-to-recentre). Cancel any in-flight recentre tween so the two don't
+			// fight over camera.centre.
+			panning = true;
+			rightDragMoved = false;
+			panLastX = e.clientX; panLastY = e.clientY;
+			rightDownX = e.clientX; rightDownY = e.clientY;
+			centreAnimTo = null;
+			return;
+		}
+
+		// Any other non-left button is ignored; excluding it here stops it being treated as the start of
+		// an orbit drag.
+		if(e.button !== 0) return;
+
 		dragging = true;
 		mouseDownOnCanvas = true;
 		lastX = e.clientX; lastY = e.clientY;
@@ -318,6 +362,7 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	window.addEventListener('mouseup', function(e)
 	{
 		dragging = false;
+		panning = false;
 
 		if(!mouseDownOnCanvas) return;
 
@@ -331,17 +376,49 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		// the start of a drag.
 		if(moveDist < 4)
 		{
-			var chunkId = pickChunkAt(e.clientX, e.clientY);
+			var picked = pickChunkAt(e.clientX, e.clientY);
 
-			if(chunkId !== null && lastChunkPokeable[chunkId])
+			if(picked !== null && lastChunkPokeable[picked.chunkId])
 			{
-				console.log('Picked chunk ' + chunkId);
-				pokeChunk(chunkId);
+				console.log('Picked chunk ' + picked.chunkId);
+				pokeChunk(picked.chunkId);
 			}
 		}
 	});
 	window.addEventListener('mousemove', function(e)
 	{
+		if(panning)
+		{
+			var dx = e.clientX - panLastX;
+			var dy = e.clientY - panLastY;
+
+			panLastX = e.clientX;
+			panLastY = e.clientY;
+
+			// Past the same slop threshold used for the left-button click/drag split, this counts as a pan
+			// so the trailing contextmenu event won't also recentre.
+			if(Math.hypot(e.clientX - rightDownX, e.clientY - rightDownY) >= 4) rightDragMoved = true;
+
+			// Camera right/up in world space: the inverse of the view rotation applied to the camera-space
+			// axes, same construction as the light direction below.
+			var invViewRot = multiply(rotateY(-camera.yaw), rotateX(-camera.pitch));
+			var worldRight = transformNormal(invViewRot, 1, 0, 0);
+			var worldUp = transformNormal(invViewRot, 0, 1, 0);
+
+			// World units per screen pixel at the focus depth, so the grabbed point stays pinned under the
+			// cursor as it's dragged. At distance d the frustum half-height is d*tan(fovy/2), spanning
+			// canvas.height pixels. The centre moves opposite the cursor so the scene follows it.
+			var perPixel = (2 * camera.distance * Math.tan(CAMERA_FOVY / 2)) / canvas.height;
+
+			for(var i = 0; i < 3; i++)
+			{
+				camera.centre[i] -= worldRight[i] * dx * perPixel;
+				camera.centre[i] += worldUp[i] * dy * perPixel;
+			}
+
+			return;
+		}
+
 		if(!dragging) return;
 
 		camera.yaw += (e.clientX - lastX) * 0.01;
@@ -361,6 +438,28 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		e.preventDefault();
 	}, { passive: false });
 
+	// Right-clicking a pokeable chunk recentres the orbit on the picked point instead of opening the
+	// browser's context menu. Distance/yaw/pitch are left alone so this reads as a recentre, not a jump-cut.
+	canvas.addEventListener('contextmenu', function(e)
+	{
+		e.preventDefault();
+
+		// A right drag pans (handled in mousemove above); only a stationary right-click recentres, so a
+		// pan doesn't also snap the centre onto whatever chunk happened to be under the release point.
+		if(rightDragMoved) return;
+
+		var picked = pickChunkAt(e.clientX, e.clientY);
+
+		if(picked !== null && lastChunkPokeable[picked.chunkId])
+		{
+			// Start from wherever the centre currently is, which is the tween's midpoint if a previous
+			// recentre is still in flight, so a fast double pick doesn't stutter back to the old target.
+			centreAnimFrom = camera.centre.slice();
+			centreAnimTo = picked.point;
+			centreAnimStartTime = performance.now();
+		}
+	});
+
 	// -- Shaders --
 
 	var vertexShaderSrc =
@@ -368,9 +467,10 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		'attribute vec4 aColor;' +
 		'attribute vec3 aNormal;' +
 		'uniform mat4 uViewProj;' +
+		'uniform vec3 uLightDir;' +
 		'varying vec4 vColor;' +
 		'void main() {' +
-		'  vec3 lightDir = normalize(vec3(0.5, 0.7, 1.0));' +
+		'  vec3 lightDir = normalize(uLightDir);' +
 		'  float diffuse = max(dot(normalize(aNormal), lightDir), 0.0);' +
 		'  float lighting = 0.35 + 0.65 * diffuse;' +
 		'  vColor = vec4(aColor.rgb * lighting, aColor.a);' +
@@ -414,6 +514,11 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	var aColor = gl.getAttribLocation(program, 'aColor');
 	var aNormal = gl.getAttribLocation(program, 'aNormal');
 	var uViewProj = gl.getUniformLocation(program, 'uViewProj');
+	var uLightDir = gl.getUniformLocation(program, 'uLightDir');
+
+	// Direction of the headlamp-style light in camera space; rotated into world space each frame
+	// below so it stays fixed relative to the camera as the user orbits.
+	var cameraLightDir = [0.5, 0.7, 1.0];
 
 	var positionBuffer = gl.createBuffer();
 	var colorBuffer = gl.createBuffer();
@@ -441,12 +546,29 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		var minX = Infinity, minY = Infinity, minZ = Infinity;
 		var maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
 
+		// Bounding box built only from chunks that request the initial focus (the union, if several do), plus the
+		// smallest requested viewport fraction among them (smallest => most zoomed out, so all focus content fits).
+		var hasFocus = false;
+		var focusMinX = Infinity, focusMinY = Infinity, focusMinZ = Infinity;
+		var focusMaxX = -Infinity, focusMaxY = -Infinity, focusMaxZ = -Infinity;
+		var focusFraction = Infinity;
+
 		for(var c = 0; c < data.chunks.length; c++)
 		{
 			var chunk = data.chunks[c];
 			var modelTransform = data.modelTransforms[chunk.modelTransformIndex].transform;
 
 			chunkPokeable[chunk.id] = !!chunk.pokeable;
+
+			var chunkFocus = !!chunk.initialFocus;
+
+			if(chunkFocus)
+			{
+				var chunkFraction = (typeof chunk.focusViewportFraction === 'number' && chunk.focusViewportFraction > 0) ?
+					chunk.focusViewportFraction : 0.5;
+
+				focusFraction = Math.min(focusFraction, chunkFraction);
+			}
 
 			for(var v = 0; v < chunk.vertexes.length; v++)
 			{
@@ -466,6 +588,15 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 				minX = Math.min(minX, worldPos[0]); maxX = Math.max(maxX, worldPos[0]);
 				minY = Math.min(minY, worldPos[1]); maxY = Math.max(maxY, worldPos[1]);
 				minZ = Math.min(minZ, worldPos[2]); maxZ = Math.max(maxZ, worldPos[2]);
+
+				if(chunkFocus)
+				{
+					hasFocus = true;
+
+					focusMinX = Math.min(focusMinX, worldPos[0]); focusMaxX = Math.max(focusMaxX, worldPos[0]);
+					focusMinY = Math.min(focusMinY, worldPos[1]); focusMaxY = Math.max(focusMaxY, worldPos[1]);
+					focusMinZ = Math.min(focusMinZ, worldPos[2]); focusMaxZ = Math.max(focusMaxZ, worldPos[2]);
+				}
 			}
 		}
 
@@ -486,21 +617,54 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 		if(vertexCount > 0 && !cameraFitted)
 		{
-			camera.centre = [(minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2];
-
 			var radius = Math.max(0.001, Math.sqrt(
 				Math.pow(maxX - minX, 2) + Math.pow(maxY - minY, 2) + Math.pow(maxZ - minZ, 2)) / 2);
 
-			camera.distance = radius * 2.5;
+			if(hasFocus)
+			{
+				camera.centre = [(focusMinX + focusMaxX) / 2, (focusMinY + focusMaxY) / 2,
+					(focusMinZ + focusMaxZ) / 2];
+
+				var focusRadius = Math.max(0.001, Math.sqrt(
+					Math.pow(focusMaxX - focusMinX, 2) + Math.pow(focusMaxY - focusMinY, 2) +
+					Math.pow(focusMaxZ - focusMinZ, 2)) / 2);
+
+				// Choose the distance so the focus node's bounding-sphere diameter spans focusFraction of the
+				// viewport height. At distance d the frustum half-height is d*tan(fovy/2); the sphere's radius
+				// projects to that half-height when focusRadius = focusFraction * d*tan(fovy/2), so solve for d.
+				camera.distance = focusRadius / (focusFraction * Math.tan(CAMERA_FOVY / 2));
+			}
+			else
+			{
+				camera.centre = [(minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2];
+
+				camera.distance = radius * 2.5;
+			}
 
 			cameraFitted = true;
 		}
 
-		status.textContent = vertexCount + ' vertexes across ' + data.chunks.length + ' chunk(s). Drag to orbit, scroll to zoom.';
+		status.textContent = vertexCount + ' vertexes across ' + data.chunks.length + ' chunk(s). Drag to orbit, scroll to zoom, right-drag to pan, right-click a chunk to centre.';
 	}
 
 	function draw()
 	{
+		if(centreAnimTo !== null)
+		{
+			var animT = Math.min(1, (performance.now() - centreAnimStartTime) / CENTRE_ANIM_MS);
+
+			// Smoothstep: eases in and out instead of the tween starting/stopping abruptly.
+			var eased = animT * animT * (3 - 2 * animT);
+
+			camera.centre = [
+				centreAnimFrom[0] + (centreAnimTo[0] - centreAnimFrom[0]) * eased,
+				centreAnimFrom[1] + (centreAnimTo[1] - centreAnimFrom[1]) * eased,
+				centreAnimFrom[2] + (centreAnimTo[2] - centreAnimFrom[2]) * eased
+			];
+
+			if(animT >= 1) centreAnimTo = null;
+		}
+
 		gl.clearColor(0.125, 0.125, 0.125, 1);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		gl.enable(gl.DEPTH_TEST);
@@ -512,13 +676,20 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 				multiply(rotateY(camera.yaw),
 				translate(-camera.centre[0], -camera.centre[1], -camera.centre[2]))));
 
-			var proj = perspective(Math.PI / 4, canvas.width / canvas.height, 0.01, camera.distance * 100 + 100);
+			var proj = perspective(CAMERA_FOVY, canvas.width / canvas.height, 0.01, camera.distance * 100 + 100);
 
 			var viewProj = multiply(proj, view);
 
 			lastViewProj = viewProj;
 
 			gl.uniformMatrix4fv(uViewProj, false, new Float32Array(viewProj));
+
+			// Rotate the camera-space light direction by the inverse of the view rotation so it
+			// tracks the camera's orbit instead of staying fixed in world space.
+			var invViewRot = multiply(rotateY(-camera.yaw), rotateX(-camera.pitch));
+			var worldLightDir = transformNormal(invViewRot, cameraLightDir[0], cameraLightDir[1], cameraLightDir[2]);
+
+			gl.uniform3f(uLightDir, worldLightDir[0], worldLightDir[1], worldLightDir[2]);
 
 			gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 			gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 0, 0);

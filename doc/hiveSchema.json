@@ -294,6 +294,18 @@
 				{
 					"properties": {
 						"type": { "const": "SceneGeometryNode" },
+						"initialFocus": {
+							"type": "boolean",
+							"default": false,
+							"description": "Whether the scene viewer initially centres and zooms on this node. At most one node in a hive should set this; if several do, the viewer focuses on their combined bounds."
+						},
+						"focusViewportFraction": {
+							"type": "number",
+							"exclusiveMinimum": 0,
+							"maximum": 1,
+							"default": 0.5,
+							"description": "Fraction of the viewport height this node's bounding sphere should span on load when initialFocus is true. Larger values zoom in; smaller values zoom out to show more surrounding context. Ignored when initialFocus is false."
+						},
 						"vertexes": {
 							"type": "array",
 							"items": { "$ref": "#/$defs/vertex" },
@@ -312,6 +324,18 @@
 				{
 					"properties": {
 						"type": { "const": "SceneGeometryScriptNode" },
+						"initialFocus": {
+							"type": "boolean",
+							"default": false,
+							"description": "Whether the scene viewer initially centres and zooms on this node. At most one node in a hive should set this; if several do, the viewer focuses on their combined bounds."
+						},
+						"focusViewportFraction": {
+							"type": "number",
+							"exclusiveMinimum": 0,
+							"maximum": 1,
+							"default": 0.5,
+							"description": "Fraction of the viewport height this node's bounding sphere should span on load when initialFocus is true. Larger values zoom in; smaller values zoom out to show more surrounding context. Ignored when initialFocus is false."
+						},
 						"vertexes": {
 							"type": "array",
 							"items": { "$ref": "#/$defs/vertex" },
@@ -375,6 +399,11 @@
 				},
 				"name": {
 					"$ref": "#/$defs/surfaceName"
+				},
+				"default": {
+					"type": "boolean",
+					"default": false,
+					"description": "Whether this surface is the default surface of its kind within this hive, e.g. the default scene surface returned by GraphHive::getDefaultSceneSurface()."
 				}
 			}
 		},

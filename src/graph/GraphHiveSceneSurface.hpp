@@ -38,6 +38,12 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 			/// Whether this chunk can be poked.
 			bool pokeable = false;
 
+			/// Whether the scene view should initially centre and zoom on this chunk.
+			bool initialFocus = false;
+
+			/// Fraction of the viewport this chunk should span when it is the initial focus.
+			double focusViewportFraction = 0.5;
+
 			/// The vertexes of the chunk. These _must_ be in multiples of three, i.e. three vertexes per triangle.
 			std::vector<Vertex> vertexes;
 
@@ -73,8 +79,11 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		 * @param chunkId Id to assign the resultant chunk that is unique to this surface.
 		 * @param id Id of the node the resultant chunk is associated with.
 		 * @param pokeable Whether the resultant chunk can be poked.
+		 * @param initialFocus Whether the scene view should initially centre and zoom on the resultant chunk.
+		 * @param focusViewportFraction Fraction of the viewport the chunk should span when it is the initial focus.
 		 */
-		void addVertexes(const std::vector<Vertex>& vertexes, unsigned chunkId, unsigned nodeId, bool pokeable);
+		void addVertexes(const std::vector<Vertex>& vertexes, unsigned chunkId, unsigned nodeId, bool pokeable,
+			bool initialFocus, double focusViewportFraction);
 
 		/**
 		 * Add a local transform to the scene.

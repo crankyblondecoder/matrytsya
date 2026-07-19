@@ -732,6 +732,28 @@ GraphHandle<GraphHiveSceneSurface> GraphHive::getSceneSurface(std::string surfac
 	return GraphHandle<GraphHiveSceneSurface>(0);
 }
 
+GraphHandle<GraphHiveSceneSurface> GraphHive::getDefaultSceneSurface()
+{
+	GraphHiveSurface* foundSurface = 0;
+
+	{ SYNC(_lock)
+
+		if(_active)
+		{
+			for(GraphHiveSurface* surface : _surfaces)
+			{
+				if(surface && surface -> getType() == GraphHiveSurface::Type::SCENE_SURFACE && surface -> getDefault())
+				{
+					foundSurface = surface;
+					break;
+				}
+			}
+		}
+	}
+
+	return GraphHandle<GraphHiveSceneSurface>(static_cast<GraphHiveSceneSurface*>(foundSurface));
+}
+
 void GraphHive::enumerateThreadPool(unsigned numTabs)
 {
 	// Note: this function is assumed to be called as a diagnostic and so the SYNC rules can be relaxed.

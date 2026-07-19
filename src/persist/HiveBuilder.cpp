@@ -142,6 +142,7 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 			GraphHiveSurface* surface = __createSurface(descriptor, referencedNode);
 
 			surface -> setName(descriptor.name);
+			surface -> setDefault(descriptor.isDefault);
 
 			// Hive manages the surface's initial reference count from here.
 			hive -> addSurface(surface);
@@ -241,6 +242,9 @@ GraphNode* HiveBuilder::__createNode(const HiveNodeDescriptor& descriptor)
 
 			if(descriptor.hasVertexes) node -> addVertexes(descriptor.vertexes);
 
+			node -> setInitialFocus(descriptor.initialFocus);
+			node -> setFocusViewportFraction(descriptor.focusViewportFraction);
+
 			return node;
 		}
 
@@ -250,6 +254,9 @@ GraphNode* HiveBuilder::__createNode(const HiveNodeDescriptor& descriptor)
 				new SceneGeometryScriptNode(descriptor.coreScript, descriptor.pokeScript);
 
 			if(descriptor.hasVertexes) node -> addVertexes(descriptor.vertexes);
+
+			node -> setInitialFocus(descriptor.initialFocus);
+			node -> setFocusViewportFraction(descriptor.focusViewportFraction);
 
 			return node;
 		}

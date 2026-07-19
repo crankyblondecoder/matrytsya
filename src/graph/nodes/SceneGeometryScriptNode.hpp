@@ -6,12 +6,13 @@
 
 #include "../graphSceneElements.hpp"
 #include "../actionTargets/SceneActionTarget.hpp"
+#include "../GraphFocusable.hpp"
 #include "AnimateScriptNode.hpp"
 
 /**
  * Graph node that represents scene geometry.
  */
-class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarget
+class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarget, public GraphFocusable
 {
     public:
 

@@ -206,7 +206,9 @@ void GraphHiveSceneSurfaceWebglMap::_serveData(HttpRequest& request, HttpRespons
 
 		json += "{\"id\":" + std::to_string(chunk.id) +
 			",\"modelTransformIndex\":" + std::to_string(chunk.modelTransformIndex) +
-			",\"pokeable\":" + (chunk.pokeable ? "true" : "false") + ",\"vertexes\":[";
+			",\"pokeable\":" + (chunk.pokeable ? "true" : "false") +
+			",\"initialFocus\":" + (chunk.initialFocus ? "true" : "false") +
+			",\"focusViewportFraction\":" + jsonNumber(chunk.focusViewportFraction) + ",\"vertexes\":[";
 
 		for(std::size_t vertexIndex = 0; vertexIndex < chunk.vertexes.size(); vertexIndex++)
 		{

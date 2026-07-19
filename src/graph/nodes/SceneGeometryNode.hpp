@@ -6,6 +6,7 @@
 
 #include "../actionTargets/SceneActionTarget.hpp"
 #include "../actionTargets/StrobeActionTarget.hpp"
+#include "../GraphFocusable.hpp"
 #include "../GraphNode.hpp"
 #include "../graphSceneElements.hpp"
 
@@ -13,7 +14,8 @@
  * Graph node that represents scene geometry, with vertexes populated directly through its C++ API rather
  * than a Lua script.
  */
-class SceneGeometryNode : public GraphNode, public SceneActionTarget, public StrobeActionTarget
+class SceneGeometryNode : public GraphNode, public SceneActionTarget, public StrobeActionTarget,
+	public GraphFocusable
 {
     public:
 

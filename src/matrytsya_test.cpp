@@ -24,8 +24,8 @@ namespace
 	}
 
 	// Run from the build directory (see build/makefile's debug_test target), so this is relative to that.
-	//const char* const _HIVE_JSON_PATH = "../examples/flowerHive.json";
-	const char* const _HIVE_JSON_PATH = "../examples/roseHive.json";
+	const char* const _HIVE_JSON_PATH = "../examples/flowerHive.json";
+	//const char* const _HIVE_JSON_PATH = "../examples/roseHive.json";
 
 	const unsigned _WEBGL_POLL_INTERVAL_MS = 50;
 
@@ -52,7 +52,7 @@ int main(int argc, char const *argv[])
 	GraphHive* hive = HiveBuilder::build(loader, 2);
 	GraphHandle<GraphHive> hiveHandle(hive);
 
-	GraphHandle<GraphHiveSceneSurface> surfaceHandle = hive -> getSceneSurface("RoseView");
+	GraphHandle<GraphHiveSceneSurface> surfaceHandle = hive -> getDefaultSceneSurface();
 	GraphHiveSceneSurface* surface = surfaceHandle.getInstance();
 
 	if(!surface)

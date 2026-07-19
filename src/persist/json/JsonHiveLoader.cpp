@@ -235,6 +235,23 @@ namespace
 		{
 			descriptor.hasVertexes = nodeValue.HasMember("vertexes");
 			descriptor.vertexes = __parseVertexes(nodeValue);
+
+			if(nodeValue.HasMember("initialFocus"))
+			{
+				if(!nodeValue["initialFocus"].IsBool()) throw PersistException(PersistException::JSON_INVALID_INITIAL_FOCUS);
+
+				descriptor.initialFocus = nodeValue["initialFocus"].GetBool();
+			}
+
+			if(nodeValue.HasMember("focusViewportFraction"))
+			{
+				if(!nodeValue["focusViewportFraction"].IsNumber() || nodeValue["focusViewportFraction"].GetDouble() <= 0.0)
+				{
+					throw PersistException(PersistException::JSON_INVALID_FOCUS_VIEWPORT_FRACTION);
+				}
+
+				descriptor.focusViewportFraction = nodeValue["focusViewportFraction"].GetDouble();
+			}
 		}
 
 		if(descriptor.type == HiveNodeDescriptor::SCENE_TRANSFORM ||
@@ -283,6 +300,13 @@ namespace
 			}
 
 			descriptor.sceneRootNodeName = surfaceValue["sceneRootNodeName"].GetString();
+		}
+
+		if(surfaceValue.HasMember("default"))
+		{
+			if(!surfaceValue["default"].IsBool()) throw PersistException(PersistException::JSON_INVALID_SURFACE_DEFAULT);
+
+			descriptor.isDefault = surfaceValue["default"].GetBool();
 		}
 
 		return descriptor;
