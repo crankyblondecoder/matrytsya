@@ -41,20 +41,20 @@ void GraphHiveSceneSurface::strobe()
 	}
 }
 
-void GraphHiveSceneSurface::poke(unsigned chunkId, GraphPoke poke)
+void GraphHiveSceneSurface::poke(unsigned nodeId, GraphPoke poke)
 {
-	// Find the chunk and get the node id.
+	// A chunk is uniquely identified by its owning node id together with its chunk id, so both are needed
+	// to confirm the poked chunk exists in the current scene before the poke is forwarded to the node.
 	bool found = false;
-	unsigned nodeId = 0;
 
 	{ SYNC(_lock)
 
 		for(const Chunk& chunk : _currentScene.chunks)
 		{
-			if(chunk.id == chunkId)
+			if(chunk.nodeId == nodeId && chunk.id == poke.getChunkId())
 			{
 				found = true;
-				nodeId = chunk.nodeId;
+				break;
 			}
 		}
 	}
@@ -100,17 +100,16 @@ void GraphHiveSceneSurface::_populateEnd()
 	_emitSurfaceChanged();
 }
 
-void GraphHiveSceneSurface::addVertexes(const std::vector<Vertex>& vertexes, unsigned chunkId, unsigned nodeId, bool pokeable,
-	bool initialFocus, double focusViewportFraction)
+void GraphHiveSceneSurface::addVertexes(const std::vector<Vertex>& vertexes, unsigned chunkId, unsigned nodeId,
+	bool pokeable, SceneGeometry::VertexVisibility visibility)
 {
 	Chunk chunk;
 
 	chunk.id = chunkId;
 	chunk.nodeId = nodeId;
 	chunk.pokeable = pokeable;
-	chunk.initialFocus = initialFocus;
-	chunk.focusViewportFraction = focusViewportFraction;
 	chunk.vertexes = vertexes;
+	chunk.visibility = visibility;
 
 	{ SYNC(_lock)
 
@@ -151,6 +150,16 @@ void GraphHiveSceneSurface::addLocalTransform(const Transform& transform, unsign
 
 			_modelTransforms.push_back(modelTransform);
 		}
+	}
+}
+
+void GraphHiveSceneSurface::setInitialFocusNode(unsigned nodeId, double focusViewportFraction)
+{
+	{ SYNC(_lock)
+
+		_currentScene.hasInitialFocusNode = true;
+		_currentScene.initialFocusNodeId = nodeId;
+		_currentScene.focusViewportFraction = focusViewportFraction;
 	}
 }
 

@@ -9,6 +9,23 @@
 #include "GraphHive.hpp"
 #include "GraphNodeScheduledActionThreadPoolWorkUnit.hpp"
 
+namespace
+{
+	const char* pokeTypeName(GraphPoke::PokeType type)
+	{
+		switch(type)
+		{
+			case GraphPoke::PokeType::HIT:          return "HIT";
+			case GraphPoke::PokeType::GRAB:         return "GRAB";
+			case GraphPoke::PokeType::DRAG:         return "DRAG";
+			case GraphPoke::PokeType::HOVER_ENTER:  return "HOVER_ENTER";
+			case GraphPoke::PokeType::HOVER_LEAVE:  return "HOVER_LEAVE";
+		}
+
+		return "HIT";
+	}
+}
+
 std::atomic<unsigned> GraphNode::_nextId{0};
 
 GraphNode::~GraphNode()
@@ -304,7 +321,8 @@ void GraphNode::_emitAction(GraphAction* action)
 
 void GraphNode::poke(GraphPoke pokeToProcess)
 {
-	if(_pokeEnabled) std::cout << "Node with id:" << getId() << " was poked." << std::endl;
+	if(_pokeEnabled) std::cout << "Node with id:" << getId() << " was poked with a " <<
+		pokeTypeName(pokeToProcess.getType()) << " poke." << std::endl;
 
 	bool pokeEnabled;
 
@@ -313,8 +331,6 @@ void GraphNode::poke(GraphPoke pokeToProcess)
 		pokeEnabled = _pokeEnabled;
 	}
 
-	// _poked() runs a node's poke script, which must not happen while holding _lock (see the note above
-	// __executeScheduledActionWorkUnit() for the same kind of re-entrancy hazard).
 	// Silently discard the poke if poking isn't enabled.
 	if(pokeEnabled) _poked(pokeToProcess);
 }

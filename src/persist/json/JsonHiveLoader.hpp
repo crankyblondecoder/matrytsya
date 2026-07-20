@@ -33,9 +33,9 @@ class JsonHiveLoader : public HiveLoader
 		unsigned getSurfaceCount() override;
 		HiveSurfaceDescriptor getSurface(unsigned index) override;
 		unsigned getStrobeEmitterCount() override;
-		void getStrobeEmitter(unsigned index, std::string& nodeName, unsigned& frequencyHz) override;
+		void getStrobeEmitter(unsigned index, std::string& nodeName, unsigned& periodMs) override;
 		unsigned getStrobeSurfaceCount() override;
-		void getStrobeSurface(unsigned index, std::string& surfaceName, unsigned& frequencyHz) override;
+		void getStrobeSurface(unsigned index, std::string& surfaceName, unsigned& periodMs) override;
 
 	private:
 
@@ -52,10 +52,10 @@ class JsonHiveLoader : public HiveLoader
 		/// Descriptors of every surface, parsed from the top level "surfaces" array, in order.
 		std::vector<HiveSurfaceDescriptor> _surfaces;
 
-		/// Node name / frequencyHz pairs, parsed from the top level "strobeEmitters" array, in order.
+		/// Node name / periodMs pairs, parsed from the top level "strobeEmitters" array, in order.
 		std::vector<std::pair<std::string, unsigned>> _strobeEmitters;
 
-		/// Surface name / frequencyHz pairs, parsed from the top level "strobeSurfaces" array, in order.
+		/// Surface name / periodMs pairs, parsed from the top level "strobeSurfaces" array, in order.
 		std::vector<std::pair<std::string, unsigned>> _strobeSurfaces;
 };
 

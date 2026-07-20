@@ -94,14 +94,14 @@ void GraphHive::poke(unsigned nodeId, GraphPoke poke)
 	if(found.isValid()) found.getInstance() -> poke(poke);
 }
 
-void GraphHive::setStrobeEmitter(GraphHandle<StrobeEmitterNode> nodeHandle, unsigned frequencyHz)
+void GraphHive::setStrobeEmitter(GraphHandle<StrobeEmitterNode> nodeHandle, unsigned periodMs)
 {
 	{ SYNC(_lock)
 
 		if(!_active) return;
 	}
 
-	_strobeScheduler -> setEmitter(nodeHandle, frequencyHz);
+	_strobeScheduler -> setEmitter(nodeHandle, periodMs);
 }
 
 void GraphHive::clearStrobeEmitter(GraphHandle<StrobeEmitterNode> nodeHandle)
@@ -114,14 +114,14 @@ void GraphHive::clearStrobeEmitter(GraphHandle<StrobeEmitterNode> nodeHandle)
 	if(nodeHandle.isValid()) _strobeScheduler -> removeEmitter(nodeHandle);
 }
 
-void GraphHive::setStrobeSurface(GraphHandle<GraphHiveSurface> surfaceHandle, unsigned frequencyHz)
+void GraphHive::setStrobeSurface(GraphHandle<GraphHiveSurface> surfaceHandle, unsigned periodMs)
 {
 	{ SYNC(_lock)
 
 		if(!_active) return;
 	}
 
-	_strobeScheduler -> setSurface(surfaceHandle, frequencyHz);
+	_strobeScheduler -> setSurface(surfaceHandle, periodMs);
 }
 
 void GraphHive::clearStrobeSurface(GraphHandle<GraphHiveSurface> surfaceHandle)

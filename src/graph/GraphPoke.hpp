@@ -19,7 +19,13 @@ class GraphPoke
 			GRAB,
 
 			/// Something has been dragged. Like click and drag across a screen.
-			DRAG
+			DRAG,
+
+			/// Something entered into the hovered over state. Like a mouse pointer going over a piece of geometry.
+			HOVER_ENTER,
+
+			/// Something left being in the hovered over state. Like a mouse pointer leaving being over a piece of geometry.
+			HOVER_LEAVE
 		};
 
 		/// Type of data that is passed to poke.
@@ -42,9 +48,12 @@ class GraphPoke
 
 		/**
 		 * @param type Type of poke.
-		 * @param magnitudes The poke magnitudes. The meaning of which is type specific.
+		 * @param data The poke data. The meaning of which is type specific.
+		 * @param chunkId Id of the scene chunk this poke was aimed at, or 0 if the poke is not associated
+		 *        with a scene chunk. A chunk id is only unique within its owning node, so this does not
+		 *        identify a chunk on its own - it must be paired with the poked node's id.
 		 */
-		GraphPoke(PokeType type, PokeData data);
+		GraphPoke(PokeType type, PokeData data, unsigned chunkId = 0);
 
 		virtual ~GraphPoke();
 
@@ -64,6 +73,14 @@ class GraphPoke
 		 */
 		void getDragVector(float vectorToPopulate[3]);
 
+		/**
+		 * Get the id of the scene chunk this poke was aimed at.
+		 * @returns The chunk id, or 0 if this poke is not associated with a scene chunk.
+		 * @note A chunk id is only unique within its owning node, so it must be paired with the poked
+		 *       node's id to identify a specific chunk.
+		 */
+		unsigned getChunkId();
+
 	protected:
 
 	private:
@@ -73,6 +90,9 @@ class GraphPoke
 
 		/// Data related to the poke. How this is interpreted is specific to the poke type.
 		PokeData _data;
+
+		/// Id of the scene chunk this poke was aimed at, or 0 if not associated with a chunk. Only unique within the owning node.
+		unsigned _chunkId;
 };
 
 #endif

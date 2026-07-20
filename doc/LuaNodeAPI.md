@@ -45,7 +45,7 @@ They are only meaningful (and only set) in the poke state, not the core state:
 
 | Global | Type | Description |
 |---|---|---|
-| `POKE_TYPE` | string | One of `"HIT"`, `"GRAB"`, `"DRAG"`. |
+| `POKE_TYPE` | string | One of `"HIT"`, `"GRAB"`, `"DRAG"`, `"HOVER_ENTER"`, `"HOVER_LEAVE"`. A `pokeScript` runs for every poke type, so a script that should only react to a click (rather than the pointer hovering on/off it) must guard on `POKE_TYPE == "HIT"`. |
 | `HIT_DURATION` | integer | Hit duration in milliseconds. Only meaningful when `POKE_TYPE == "HIT"`. |
 | `DRAG_VECTOR` | array table of 3 numbers | Drag vector in world coordinates, `{x, y, z}`. Only meaningful when `POKE_TYPE == "DRAG"`. |
 
@@ -74,8 +74,9 @@ above:
 | Function | Description |
 |---|---|
 | `Vertex{posn = {...}, colour = {...}, texCoords = {...}, normal = {...}}` | Constructs a `Vertex` userdata. All fields are optional; any field left out is zeroed. `posn` and `normal` are 3-element arrays of numbers (X, Y, Z); `posn` is in scene geometry units, which by default map one unit to one millimeter. `colour` is a 4-element array of integers 0-255 (R, G, B, A). `texCoords` is a 2-element array of numbers (U, V). |
-| `addVertex(vertex)` | Appends a single `Vertex` (as built by the `Vertex` constructor) to this node's vertex list. |
-| `addVertexes(vertexes)` | Appends every `Vertex` in the given array-style table (indexes `1..#vertexes`) to this node's vertex list in one call. |
+| `VertexVisibility` | A global table of constants naming when a vertex is visible: `VertexVisibility.ALWAYS` (always visible), `VertexVisibility.GRABBED` (visible while grabbed, e.g. mouse button held down), `VertexVisibility.DRAGGING` (visible while being dragged, e.g. mouse down then move) and `VertexVisibility.HOVERED_OVER` (visible while hovered over, e.g. a non-button mouse over). Pass one of these as the optional `visibility` argument to `addVertex`/`addVertexes`. |
+| `addVertex(vertex, [visibility])` | Appends a single `Vertex` (as built by the `Vertex` constructor) to this node's vertex list. `visibility` is an optional `VertexVisibility.*` constant (default `VertexVisibility.ALWAYS`); an unrecognized value raises an error. |
+| `addVertexes(vertexes, [visibility])` | Appends every `Vertex` in the given array-style table (indexes `1..#vertexes`) to this node's vertex list in one call. `visibility` is an optional `VertexVisibility.*` constant (default `VertexVisibility.ALWAYS`); an unrecognized value raises an error. |
 | `vertexCount()` | Returns the number of vertexes currently held by this node. |
 
 Vertexes are appended in the order added; each consecutive triplet defines a triangle with

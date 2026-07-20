@@ -60,8 +60,10 @@ class GraphHiveSceneSurfaceWebglMap : public GraphHiveSurfaceHttpMap, private Ev
         void __serveRevision(HttpResponse& response);
 
         /**
-         * Serve a poke request made by the rendered page when a chunk of the scene is clicked on.
-         * @param request The incoming poke request. Must carry a "chunkId" query parameter.
+         * Serve a poke request made by the rendered page when a chunk of the scene is clicked on or hovered over.
+         * @param request The incoming poke request. Must carry both a "nodeId" and a "chunkId" query parameter,
+         *        which together identify the poked chunk. May carry a "type" query parameter of "hoverEnter" or
+         *        "hoverLeave" to raise a HOVER_ENTER or HOVER_LEAVE poke instead of the default HIT.
          * @param response Response to populate.
          */
         void __servePoke(HttpRequest& request, HttpResponse& response);

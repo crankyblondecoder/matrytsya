@@ -399,6 +399,88 @@ TEST(ScriptActionTest, SceneGeometryScriptNodeExposesAddVertexesToLua)
 	hive -> shutdown();
 }
 
+TEST(ScriptActionTest, SceneGeometryScriptNodeGroupsVertexesByVisibility)
+{
+	GraphHive* hive = new GraphHive(2);
+	GraphHandle<GraphHive> hiveHandle(hive);
+
+	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
+
+	// A default (ALWAYS) vertex followed by a GRABBED one; the differing visibility should split them
+	// into two separate chunks.
+	SceneGeometryScriptNode* geometryNode = new SceneGeometryScriptNode(
+		"addVertex(Vertex{posn = {1, 0, 0}})\n"
+		"addVertex(Vertex{posn = {0, 1, 0}}, VertexVisibility.GRABBED)\n", "");
+
+	hive -> addNode(sourceNode);
+	hive -> addNode(geometryNode);
+
+	GraphHandle<GraphNode> geometryHandle(geometryNode);
+
+	sourceNode -> createEdge(geometryHandle, {});
+
+	ScriptAction* action = sourceNode -> emitScript(true);
+
+	action -> decrRef();
+
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(0));
+
+	surface -> setHive(hiveHandle);
+	GraphHandle<GraphNode> sourceHandle(sourceNode);
+	SceneAction* sceneAction = new SceneAction(sourceHandle, GraphHandle<GraphHiveSceneSurface>(surface));
+
+	sceneAction -> incrRef();
+	sceneAction -> start();
+	sceneAction -> waitOnComplete(0);
+
+	GraphHiveSceneSurface::Scene scene = surface -> getScene();
+	std::vector<GraphHiveSceneSurface::Chunk> chunks = scene.chunks;
+
+	ASSERT_EQ(chunks.size(), 2u);
+	ASSERT_EQ(chunks[0].vertexes.size(), 1u);
+	ASSERT_EQ(chunks[1].vertexes.size(), 1u);
+
+	EXPECT_EQ(chunks[0].visibility, SceneGeometry::VertexVisibility::ALWAYS)
+		<< "A vertex added without a visibility argument should default to ALWAYS.";
+	EXPECT_EQ(chunks[1].visibility, SceneGeometry::VertexVisibility::GRABBED)
+		<< "A vertex added with VertexVisibility.GRABBED should land in a GRABBED chunk.";
+
+	sceneAction -> decrRef();
+
+	surface -> close();
+
+	hive -> shutdown();
+}
+
+TEST(ScriptActionTest, SceneGeometryScriptNodeRejectsUnknownVisibility)
+{
+	GraphHive* hive = new GraphHive(2);
+	GraphHandle<GraphHive> hiveHandle(hive);
+
+	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
+
+	// 999 is not a valid VertexVisibility value, so addVertex() should raise a Lua error and abort the
+	// script before the vertex is stored.
+	SceneGeometryScriptNode* geometryNode = new SceneGeometryScriptNode(
+		"addVertex(Vertex{posn = {1, 2, 3}}, 999)\n", "");
+
+	hive -> addNode(sourceNode);
+	hive -> addNode(geometryNode);
+
+	GraphHandle<GraphNode> geometryHandle(geometryNode);
+
+	sourceNode -> createEdge(geometryHandle, {});
+
+	ScriptAction* action = sourceNode -> emitScript(true);
+
+	action -> decrRef();
+
+	EXPECT_EQ(geometryNode -> getVertexCount(), 0u)
+		<< "An unrecognized VertexVisibility value should raise a Lua error and add no vertexes.";
+
+	hive -> shutdown();
+}
+
 TEST(ScriptActionTest, SceneGeometryScriptNodeExposesVertexCountToLua)
 {
 	GraphHive* hive = new GraphHive(2);

@@ -25,6 +25,14 @@ struct HiveSurfaceDescriptor
 	/// when type == SCENE_SURFACE.
 	std::string sceneRootNodeName;
 
+	/// Name of the node, within the same hive, the scene camera should initially focus on. Empty if
+	/// not set. Only meaningful when type == SCENE_SURFACE.
+	std::string initialFocusNodeName;
+
+	/// Fraction of the viewport the focused node's bounds should span when the camera is first set
+	/// up. Only meaningful when type == SCENE_SURFACE and initialFocusNodeName is set.
+	double focusViewportFraction = 0.5;
+
 	/// Whether this surface is the default surface of its kind within its hive.
 	bool isDefault = false;
 };

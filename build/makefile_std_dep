@@ -3,10 +3,13 @@ $(srcFiles) : ;
 
 %.dep : %.cpp
 	@ mkdir -p $$(dirname $@)
-	$(cname) -MM $< > $@
+    # -MT names the rule's target explicitly. Without it, -MM emits the object's basename (e.g.
+    # "ScriptNode.o"), which does not match a subdirectory object like "nodes/ScriptNode.o", so the
+    # header prerequisites silently never attach and such objects are never rebuilt when a header changes.
+	$(cname) -MM -MT $(@:.dep=.o) $< > $@
 	$(cname) -MM -MT $@ $< > $@Make
     # Build the depMake include file.
-	@ echo -e "\t\$$(cname) -MM $$< > \$$@" >> $@Make
+	@ echo -e "\t\$$(cname) -MM -MT \$$(@:.dep=.o) $$< > \$$@" >> $@Make
 	@ echo -e "\t\$$(cname) -MM -MT \$$@ $$< > \$$@Make" >> $@Make
 
 ifneq ($(MAKECMDGOALS),clean)

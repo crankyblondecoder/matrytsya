@@ -54,6 +54,21 @@ namespace
 
 		return result;
 	}
+
+	// Name that the viewer's JavaScript matches on to decide when a chunk is drawn; must stay in step with
+	// the VertexVisibility.* handling in webglPageTemplate.cpp.
+	const char* visibilityName(SceneGeometry::VertexVisibility visibility)
+	{
+		switch(visibility)
+		{
+			case SceneGeometry::VertexVisibility::ALWAYS:       return "ALWAYS";
+			case SceneGeometry::VertexVisibility::GRABBED:      return "GRABBED";
+			case SceneGeometry::VertexVisibility::DRAGGING:     return "DRAGGING";
+			case SceneGeometry::VertexVisibility::HOVERED_OVER: return "HOVERED_OVER";
+		}
+
+		return "ALWAYS";
+	}
 }
 
 GraphHiveSceneSurfaceWebglMap::GraphHiveSceneSurfaceWebglMap(HttpServerBase& httpServer, GraphHiveSceneSurface& surface,
@@ -127,23 +142,33 @@ void GraphHiveSceneSurfaceWebglMap::__serveRevision(HttpResponse& response)
 
 void GraphHiveSceneSurfaceWebglMap::__servePoke(HttpRequest& request, HttpResponse& response)
 {
+	std::string nodeIdParam = request.getQueryParam("nodeId");
 	std::string chunkIdParam = request.getQueryParam("chunkId");
 
-	if(chunkIdParam.empty())
+	// Both are required: the node id routes the poke to the owning node, the chunk id identifies which of
+	// that node's chunks was poked. Neither is unique enough to stand alone.
+	if(nodeIdParam.empty() || chunkIdParam.empty())
 	{
 		response.setStatus(400);
 		response.setContentType("application/json");
-		response.setBody("{\"error\":\"missing chunkId\"}");
+		response.setBody("{\"error\":\"missing nodeId or chunkId\"}");
 
 		return;
 	}
 
+	unsigned nodeId = (unsigned) strtoul(nodeIdParam.c_str(), 0, 10);
 	unsigned chunkId = (unsigned) strtoul(chunkIdParam.c_str(), 0, 10);
 
-	GraphPoke::PokeData data;
-	data.hitDuration = 0;
+	GraphPoke::PokeType type = GraphPoke::PokeType::HIT;
 
-	_sceneSurface.getInstance() -> poke(chunkId, GraphPoke(GraphPoke::PokeType::HIT, data));
+	std::string typeParam = request.getQueryParam("type");
+
+	if(typeParam == "hoverEnter") type = GraphPoke::PokeType::HOVER_ENTER;
+	else if(typeParam == "hoverLeave") type = GraphPoke::PokeType::HOVER_LEAVE;
+
+	GraphPoke::PokeData data{};
+
+	_sceneSurface.getInstance() -> poke(nodeId, GraphPoke(type, data, chunkId));
 
 	response.setContentType("application/json");
 	response.setBody("{\"ok\":true}");
@@ -186,7 +211,29 @@ void GraphHiveSceneSurfaceWebglMap::_serveData(HttpRequest& request, HttpRespons
 
 	GraphHiveSceneSurface::Scene scene = sceneSurface -> getScene();
 
-	std::string json = "{\"modelTransforms\":[";
+	std::string focusChunkIdsJson = "[";
+
+	if(scene.hasInitialFocusNode)
+	{
+		bool first = true;
+
+		for(const GraphHiveSceneSurface::Chunk& chunk : scene.chunks)
+		{
+			if(chunk.nodeId != scene.initialFocusNodeId) continue;
+
+			if(!first) focusChunkIdsJson += ",";
+
+			focusChunkIdsJson += std::to_string(chunk.id);
+
+			first = false;
+		}
+	}
+
+	focusChunkIdsJson += "]";
+
+	std::string json = "{\"focusChunkIds\":" + focusChunkIdsJson +
+		",\"focusViewportFraction\":" + jsonNumber(scene.focusViewportFraction) +
+		",\"modelTransforms\":[";
 
 	for(std::size_t index = 0; index < scene.modelTransforms.size(); index++)
 	{
@@ -205,10 +252,10 @@ void GraphHiveSceneSurfaceWebglMap::_serveData(HttpRequest& request, HttpRespons
 		const GraphHiveSceneSurface::Chunk& chunk = scene.chunks[chunkIndex];
 
 		json += "{\"id\":" + std::to_string(chunk.id) +
+			",\"nodeId\":" + std::to_string(chunk.nodeId) +
 			",\"modelTransformIndex\":" + std::to_string(chunk.modelTransformIndex) +
 			",\"pokeable\":" + (chunk.pokeable ? "true" : "false") +
-			",\"initialFocus\":" + (chunk.initialFocus ? "true" : "false") +
-			",\"focusViewportFraction\":" + jsonNumber(chunk.focusViewportFraction) + ",\"vertexes\":[";
+			",\"visibility\":\"" + visibilityName(chunk.visibility) + "\",\"vertexes\":[";
 
 		for(std::size_t vertexIndex = 0; vertexIndex < chunk.vertexes.size(); vertexIndex++)
 		{

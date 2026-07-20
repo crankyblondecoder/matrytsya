@@ -53,12 +53,16 @@ class HiveBuilder
 		 * @param descriptor Descriptor of the surface to create.
 		 * @param referencedNode Node this surface binds to, already resolved by name (invalid handle
 		 *        if the descriptor's type does not reference a node).
+		 * @param hasInitialFocusNode Whether descriptor.initialFocusNodeName was set and resolved.
+		 * @param initialFocusNodeId Id of the resolved initial-focus node. Only meaningful if
+		 *        hasInitialFocusNode is true.
 		 * @returns Newly allocated surface.
 		 * @throw PersistException(SURFACE_NODE_WRONG_TYPE) If referencedNode exists but is the wrong
 		 *        concrete type for this surface type.
 		 * @throw PersistException(UNKNOWN_SURFACE_TYPE) If the descriptor's type is not recognised.
 		 */
-		static GraphHiveSurface* __createSurface(const HiveSurfaceDescriptor& descriptor, GraphHandle<GraphNode> referencedNode);
+		static GraphHiveSurface* __createSurface(const HiveSurfaceDescriptor& descriptor, GraphHandle<GraphNode> referencedNode,
+			bool hasInitialFocusNode, unsigned initialFocusNodeId);
 
 		/**
 		 * Translate an action flag name into its bit value.

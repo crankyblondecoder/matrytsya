@@ -13,6 +13,8 @@
 
 #define NS_PER_SEC 1000000000L
 
+#define NS_PER_MS 1000000L
+
 // -- timespec helpers --
 
 /// True if time a is at or after time b.
@@ -55,11 +57,11 @@ GraphHiveStrobeScheduler::~GraphHiveStrobeScheduler()
 	// called already so the run loop is no longer touching either vector.
 }
 
-void GraphHiveStrobeScheduler::setEmitter(GraphHandle<StrobeEmitterNode> node, unsigned frequencyHz)
+void GraphHiveStrobeScheduler::setEmitter(GraphHandle<StrobeEmitterNode> node, unsigned periodMs)
 {
-	if(!node.isValid() || frequencyHz == 0) return;
+	if(!node.isValid() || periodMs == 0) return;
 
-	long periodNs = NS_PER_SEC / (long)frequencyHz;
+	long periodNs = (long)periodMs * NS_PER_MS;
 
 	_cond.lockMutex();
 
@@ -148,11 +150,11 @@ void GraphHiveStrobeScheduler::clearEmitters()
 	// 'removed' goes out of scope here, decrRef'ing each node outside the lock.
 }
 
-void GraphHiveStrobeScheduler::setSurface(GraphHandle<GraphHiveSurface> surface, unsigned frequencyHz)
+void GraphHiveStrobeScheduler::setSurface(GraphHandle<GraphHiveSurface> surface, unsigned periodMs)
 {
-	if(!surface.isValid() || frequencyHz == 0) return;
+	if(!surface.isValid() || periodMs == 0) return;
 
-	long periodNs = NS_PER_SEC / (long)frequencyHz;
+	long periodNs = (long)periodMs * NS_PER_MS;
 
 	_cond.lockMutex();
 

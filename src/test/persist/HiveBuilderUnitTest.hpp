@@ -42,18 +42,18 @@ namespace
 			HiveSurfaceDescriptor getSurface(unsigned index) override {return surfaces[index];}
 			unsigned getStrobeEmitterCount() override {return strobeEmitters.size();}
 
-			void getStrobeEmitter(unsigned index, std::string& nodeName, unsigned& frequencyHz) override
+			void getStrobeEmitter(unsigned index, std::string& nodeName, unsigned& periodMs) override
 			{
 				nodeName = strobeEmitters[index].first;
-				frequencyHz = strobeEmitters[index].second;
+				periodMs = strobeEmitters[index].second;
 			}
 
 			unsigned getStrobeSurfaceCount() override {return strobeSurfaces.size();}
 
-			void getStrobeSurface(unsigned index, std::string& surfaceName, unsigned& frequencyHz) override
+			void getStrobeSurface(unsigned index, std::string& surfaceName, unsigned& periodMs) override
 			{
 				surfaceName = strobeSurfaces[index].first;
-				frequencyHz = strobeSurfaces[index].second;
+				periodMs = strobeSurfaces[index].second;
 			}
 	};
 
@@ -210,9 +210,9 @@ TEST(HiveBuilderTest, UnknownActionFlagName_ThrowsUnknownActionFlag)
 }
 
 /**
- * A strobe emitter registration with a frequency of 0 is rejected rather than silently ignored.
+ * A strobe emitter registration with a period of 0 is rejected rather than silently ignored.
  */
-TEST(HiveBuilderTest, StrobeEmitterFrequencyZero_ThrowsInvalidStrobeFrequency)
+TEST(HiveBuilderTest, StrobeEmitterPeriodZero_ThrowsInvalidStrobePeriod)
 {
 	FakeHiveLoader loader;
 	loader.hiveName = "Hive";
@@ -323,9 +323,9 @@ TEST(HiveBuilderTest, SurfaceReferencesWrongTypeNode_ThrowsSurfaceNodeWrongType)
 }
 
 /**
- * A strobe surface registration with a frequency of 0 is rejected rather than silently ignored.
+ * A strobe surface registration with a period of 0 is rejected rather than silently ignored.
  */
-TEST(HiveBuilderTest, StrobeSurfaceFrequencyZero_ThrowsInvalidStrobeFrequency)
+TEST(HiveBuilderTest, StrobeSurfacePeriodZero_ThrowsInvalidStrobePeriod)
 {
 	FakeHiveLoader loader;
 	loader.hiveName = "Hive";

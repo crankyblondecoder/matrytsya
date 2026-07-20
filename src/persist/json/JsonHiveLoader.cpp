@@ -235,23 +235,6 @@ namespace
 		{
 			descriptor.hasVertexes = nodeValue.HasMember("vertexes");
 			descriptor.vertexes = __parseVertexes(nodeValue);
-
-			if(nodeValue.HasMember("initialFocus"))
-			{
-				if(!nodeValue["initialFocus"].IsBool()) throw PersistException(PersistException::JSON_INVALID_INITIAL_FOCUS);
-
-				descriptor.initialFocus = nodeValue["initialFocus"].GetBool();
-			}
-
-			if(nodeValue.HasMember("focusViewportFraction"))
-			{
-				if(!nodeValue["focusViewportFraction"].IsNumber() || nodeValue["focusViewportFraction"].GetDouble() <= 0.0)
-				{
-					throw PersistException(PersistException::JSON_INVALID_FOCUS_VIEWPORT_FRACTION);
-				}
-
-				descriptor.focusViewportFraction = nodeValue["focusViewportFraction"].GetDouble();
-			}
 		}
 
 		if(descriptor.type == HiveNodeDescriptor::SCENE_TRANSFORM ||
@@ -300,6 +283,26 @@ namespace
 			}
 
 			descriptor.sceneRootNodeName = surfaceValue["sceneRootNodeName"].GetString();
+
+			if(surfaceValue.HasMember("initialFocusNodeName"))
+			{
+				if(!surfaceValue["initialFocusNodeName"].IsString())
+				{
+					throw PersistException(PersistException::JSON_INVALID_SURFACE_INITIAL_FOCUS_NODE_NAME);
+				}
+
+				descriptor.initialFocusNodeName = surfaceValue["initialFocusNodeName"].GetString();
+			}
+
+			if(surfaceValue.HasMember("focusViewportFraction"))
+			{
+				if(!surfaceValue["focusViewportFraction"].IsNumber() || surfaceValue["focusViewportFraction"].GetDouble() <= 0.0)
+				{
+					throw PersistException(PersistException::JSON_INVALID_SURFACE_FOCUS_VIEWPORT_FRACTION);
+				}
+
+				descriptor.focusViewportFraction = surfaceValue["focusViewportFraction"].GetDouble();
+			}
 		}
 
 		if(surfaceValue.HasMember("default"))
@@ -368,15 +371,15 @@ JsonHiveLoader::JsonHiveLoader(const std::string& json)
 		{
 			if(!strobeEmitterValue.IsObject() ||
 				!strobeEmitterValue.HasMember("nodeName") || !strobeEmitterValue["nodeName"].IsString() ||
-				(strobeEmitterValue.HasMember("frequencyHz") && !strobeEmitterValue["frequencyHz"].IsUint()))
+				(strobeEmitterValue.HasMember("periodMs") && !strobeEmitterValue["periodMs"].IsUint()))
 			{
 				throw PersistException(PersistException::JSON_INVALID_STROBE_EMITTERS);
 			}
 
-			unsigned frequencyHz = strobeEmitterValue.HasMember("frequencyHz") ?
-				strobeEmitterValue["frequencyHz"].GetUint() : 30; // Schema default.
+			unsigned periodMs = strobeEmitterValue.HasMember("periodMs") ?
+				strobeEmitterValue["periodMs"].GetUint() : 33; // Schema default.
 
-			_strobeEmitters.emplace_back(strobeEmitterValue["nodeName"].GetString(), frequencyHz);
+			_strobeEmitters.emplace_back(strobeEmitterValue["nodeName"].GetString(), periodMs);
 		}
 	}
 
@@ -390,15 +393,15 @@ JsonHiveLoader::JsonHiveLoader(const std::string& json)
 		{
 			if(!strobeSurfaceValue.IsObject() ||
 				!strobeSurfaceValue.HasMember("surfaceName") || !strobeSurfaceValue["surfaceName"].IsString() ||
-				(strobeSurfaceValue.HasMember("frequencyHz") && !strobeSurfaceValue["frequencyHz"].IsUint()))
+				(strobeSurfaceValue.HasMember("periodMs") && !strobeSurfaceValue["periodMs"].IsUint()))
 			{
 				throw PersistException(PersistException::JSON_INVALID_STROBE_SURFACES);
 			}
 
-			unsigned frequencyHz = strobeSurfaceValue.HasMember("frequencyHz") ?
-				strobeSurfaceValue["frequencyHz"].GetUint() : 30; // Schema default.
+			unsigned periodMs = strobeSurfaceValue.HasMember("periodMs") ?
+				strobeSurfaceValue["periodMs"].GetUint() : 33; // Schema default.
 
-			_strobeSurfaces.emplace_back(strobeSurfaceValue["surfaceName"].GetString(), frequencyHz);
+			_strobeSurfaces.emplace_back(strobeSurfaceValue["surfaceName"].GetString(), periodMs);
 		}
 	}
 }
@@ -437,10 +440,10 @@ unsigned JsonHiveLoader::getStrobeEmitterCount()
 	return _strobeEmitters.size();
 }
 
-void JsonHiveLoader::getStrobeEmitter(unsigned index, std::string& nodeName, unsigned& frequencyHz)
+void JsonHiveLoader::getStrobeEmitter(unsigned index, std::string& nodeName, unsigned& periodMs)
 {
 	nodeName = _strobeEmitters[index].first;
-	frequencyHz = _strobeEmitters[index].second;
+	periodMs = _strobeEmitters[index].second;
 }
 
 unsigned JsonHiveLoader::getStrobeSurfaceCount()
@@ -448,8 +451,8 @@ unsigned JsonHiveLoader::getStrobeSurfaceCount()
 	return _strobeSurfaces.size();
 }
 
-void JsonHiveLoader::getStrobeSurface(unsigned index, std::string& surfaceName, unsigned& frequencyHz)
+void JsonHiveLoader::getStrobeSurface(unsigned index, std::string& surfaceName, unsigned& periodMs)
 {
 	surfaceName = _strobeSurfaces[index].first;
-	frequencyHz = _strobeSurfaces[index].second;
+	periodMs = _strobeSurfaces[index].second;
 }

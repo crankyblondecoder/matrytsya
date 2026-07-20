@@ -39,7 +39,7 @@ TEST(JsonHiveLoaderTest, FullValidHive_AllSevenNodeTypesParsed)
 				"transform": [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1] },
 			{ "type": "SceneTransformScriptNode", "name": "xformScript1", "coreScript": "", "pokeScript": "" }
 		],
-		"strobeEmitters": [ { "nodeName": "root1", "frequencyHz": 10 } ]
+		"strobeEmitters": [ { "nodeName": "root1", "periodMs": 100 } ]
 	})";
 
 	JsonHiveLoader loader(json);
@@ -91,11 +91,11 @@ TEST(JsonHiveLoaderTest, FullValidHive_AllSevenNodeTypesParsed)
 	ASSERT_EQ(loader.getStrobeEmitterCount(), 1u);
 
 	std::string strobeNodeName;
-	unsigned strobeFrequencyHz;
-	loader.getStrobeEmitter(0, strobeNodeName, strobeFrequencyHz);
+	unsigned strobePeriodMs;
+	loader.getStrobeEmitter(0, strobeNodeName, strobePeriodMs);
 
 	EXPECT_EQ(strobeNodeName, "root1");
-	EXPECT_EQ(strobeFrequencyHz, 10u);
+	EXPECT_EQ(strobePeriodMs, 100u);
 }
 
 /**
@@ -221,9 +221,9 @@ TEST(JsonHiveLoaderTest, ScriptNodeMissingCoreScript_ThrowsJsonInvalidScriptSour
 }
 
 /**
- * A strobeEmitters entry omitting "frequencyHz" defaults to 30 Hz.
+ * A strobeEmitters entry omitting "periodMs" defaults to 33 ms.
  */
-TEST(JsonHiveLoaderTest, StrobeEmitterMissingFrequencyHz_DefaultsTo30)
+TEST(JsonHiveLoaderTest, StrobeEmitterMissingPeriodMs_DefaultsTo33)
 {
 	std::string json = R"({
 		"name": "Hive",
@@ -236,11 +236,11 @@ TEST(JsonHiveLoaderTest, StrobeEmitterMissingFrequencyHz_DefaultsTo30)
 	ASSERT_EQ(loader.getStrobeEmitterCount(), 1u);
 
 	std::string strobeNodeName;
-	unsigned strobeFrequencyHz;
-	loader.getStrobeEmitter(0, strobeNodeName, strobeFrequencyHz);
+	unsigned strobePeriodMs;
+	loader.getStrobeEmitter(0, strobeNodeName, strobePeriodMs);
 
 	EXPECT_EQ(strobeNodeName, "root1");
-	EXPECT_EQ(strobeFrequencyHz, 30u);
+	EXPECT_EQ(strobePeriodMs, 33u);
 }
 
 /**
@@ -253,7 +253,7 @@ TEST(JsonHiveLoaderTest, SurfacesAndStrobeSurfacesParsed)
 		"name": "Hive",
 		"nodes": [ { "type": "SceneRootNode", "name": "root1" } ],
 		"surfaces": [ { "type": "GraphHiveSceneSurface", "name": "surface1", "sceneRootNodeName": "root1" } ],
-		"strobeSurfaces": [ { "surfaceName": "surface1", "frequencyHz": 10 } ]
+		"strobeSurfaces": [ { "surfaceName": "surface1", "periodMs": 100 } ]
 	})";
 
 	JsonHiveLoader loader(json);
@@ -268,11 +268,11 @@ TEST(JsonHiveLoaderTest, SurfacesAndStrobeSurfacesParsed)
 	ASSERT_EQ(loader.getStrobeSurfaceCount(), 1u);
 
 	std::string strobeSurfaceName;
-	unsigned strobeFrequencyHz;
-	loader.getStrobeSurface(0, strobeSurfaceName, strobeFrequencyHz);
+	unsigned strobePeriodMs;
+	loader.getStrobeSurface(0, strobeSurfaceName, strobePeriodMs);
 
 	EXPECT_EQ(strobeSurfaceName, "surface1");
-	EXPECT_EQ(strobeFrequencyHz, 10u);
+	EXPECT_EQ(strobePeriodMs, 100u);
 }
 
 /**
@@ -318,9 +318,9 @@ TEST(JsonHiveLoaderTest, SurfaceMissingSceneRootNode_ThrowsJsonInvalidSurfaces)
 }
 
 /**
- * A strobeSurfaces entry omitting "frequencyHz" defaults to 30 Hz.
+ * A strobeSurfaces entry omitting "periodMs" defaults to 33 ms.
  */
-TEST(JsonHiveLoaderTest, StrobeSurfaceMissingFrequencyHz_DefaultsTo30)
+TEST(JsonHiveLoaderTest, StrobeSurfaceMissingPeriodMs_DefaultsTo33)
 {
 	std::string json = R"({
 		"name": "Hive",
@@ -334,11 +334,11 @@ TEST(JsonHiveLoaderTest, StrobeSurfaceMissingFrequencyHz_DefaultsTo30)
 	ASSERT_EQ(loader.getStrobeSurfaceCount(), 1u);
 
 	std::string strobeSurfaceName;
-	unsigned strobeFrequencyHz;
-	loader.getStrobeSurface(0, strobeSurfaceName, strobeFrequencyHz);
+	unsigned strobePeriodMs;
+	loader.getStrobeSurface(0, strobeSurfaceName, strobePeriodMs);
 
 	EXPECT_EQ(strobeSurfaceName, "surface1");
-	EXPECT_EQ(strobeFrequencyHz, 30u);
+	EXPECT_EQ(strobePeriodMs, 33u);
 }
 
 /**
@@ -391,7 +391,7 @@ TEST(JsonHiveLoaderTest, EndToEnd_JsonBuildsWorkingHiveWithSurface)
 		"name": "TestHive",
 		"nodes": [ { "type": "SceneRootNode", "name": "root1" } ],
 		"surfaces": [ { "type": "GraphHiveSceneSurface", "name": "surface1", "sceneRootNodeName": "root1" } ],
-		"strobeSurfaces": [ { "surfaceName": "surface1", "frequencyHz": 10 } ]
+		"strobeSurfaces": [ { "surfaceName": "surface1", "periodMs": 100 } ]
 	})";
 
 	JsonHiveLoader loader(json);

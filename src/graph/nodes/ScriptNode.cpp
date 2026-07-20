@@ -340,6 +340,8 @@ void ScriptNode::__exposePokeContext(lua_State* luaState, GraphPoke poke)
 
 	if(poke.getType() == GraphPoke::PokeType::GRAB) typeName = "GRAB";
 	else if(poke.getType() == GraphPoke::PokeType::DRAG) typeName = "DRAG";
+	else if(poke.getType() == GraphPoke::PokeType::HOVER_ENTER) typeName = "HOVER_ENTER";
+	else if(poke.getType() == GraphPoke::PokeType::HOVER_LEAVE) typeName = "HOVER_LEAVE";
 
 	lua_pushstring(luaState, typeName);
 	lua_setglobal(luaState, "POKE_TYPE");

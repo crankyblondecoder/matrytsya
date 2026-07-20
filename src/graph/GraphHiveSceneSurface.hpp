@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "../thread/ThreadMutex.hpp"
+#include "./nodes/SceneGeometry.hpp"
 #include "GraphHandle.hpp"
 #include "GraphHive.hpp"
 #include "GraphHiveSurface.hpp"
@@ -38,17 +39,14 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 			/// Whether this chunk can be poked.
 			bool pokeable = false;
 
-			/// Whether the scene view should initially centre and zoom on this chunk.
-			bool initialFocus = false;
-
-			/// Fraction of the viewport this chunk should span when it is the initial focus.
-			double focusViewportFraction = 0.5;
-
 			/// The vertexes of the chunk. These _must_ be in multiples of three, i.e. three vertexes per triangle.
 			std::vector<Vertex> vertexes;
 
 			/// The index of the model transform to use for this chunk.
 			unsigned modelTransformIndex;
+
+			/// Determines under what circimustances the vertexes in this chunk should be visible.
+			SceneGeometry::VertexVisibility visibility;
 		};
 
 		struct ModelTransform
@@ -67,6 +65,15 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 
 			/// The model transforms that apply to scene chunks.
 			std::vector<ModelTransform> modelTransforms;
+
+			/// Whether an initial-focus node is set for this surface.
+			bool hasInitialFocusNode = false;
+
+			/// Id of the node the camera should initially centre and zoom on. Only meaningful if hasInitialFocusNode.
+			unsigned initialFocusNodeId = 0;
+
+			/// Fraction of the viewport the focus node's bounds should span. Only meaningful if hasInitialFocusNode.
+			double focusViewportFraction = 0.5;
 		};
 
 		virtual void activate() override;
@@ -76,14 +83,13 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		 * Think of this as adding vertexes to a stream.
 		 * @note The model transform that is ultimately applied to this chunk is the current model transform.
 		 * @param vertexes Vertexes to add or update (depending on the id).
-		 * @param chunkId Id to assign the resultant chunk that is unique to this surface.
-		 * @param id Id of the node the resultant chunk is associated with.
+		 * @param chunkId Id to assign to the resultant chunk.
+		 * @param nodeId Id of the node the resultant chunk is associated with.
 		 * @param pokeable Whether the resultant chunk can be poked.
-		 * @param initialFocus Whether the scene view should initially centre and zoom on the resultant chunk.
-		 * @param focusViewportFraction Fraction of the viewport the chunk should span when it is the initial focus.
+		 * @param visibility Determines under what circumstances the vertexes in the resultant chunk should be visible.
 		 */
 		void addVertexes(const std::vector<Vertex>& vertexes, unsigned chunkId, unsigned nodeId, bool pokeable,
-			bool initialFocus, double focusViewportFraction);
+			SceneGeometry::VertexVisibility visibility);
 
 		/**
 		 * Add a local transform to the scene.
@@ -98,11 +104,20 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		void addLocalTransform(const Transform& transform, unsigned id);
 
 		/**
+		 * Set the node the scene camera should initially centre and zoom on.
+		 * @note This is a single, surface-level setting, resolved once when the surface is built - it is
+		 *       not part of the chunk-building stream and is unaffected by _populateStart()/_populateEnd().
+		 * @param nodeId Id of the node to focus on.
+		 * @param focusViewportFraction Fraction of the viewport the node's bounds should span.
+		 */
+		void setInitialFocusNode(unsigned nodeId, double focusViewportFraction);
+
+		/**
 		 * Get a copy of the surfaces current scene.
 		 */
 		Scene getScene();
 
-		virtual void poke(unsigned chunkId, GraphPoke poke) override;
+		virtual void poke(unsigned nodeId, GraphPoke poke) override;
 
 		virtual void strobe() override;
 

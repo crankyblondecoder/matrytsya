@@ -14,7 +14,7 @@ class GraphHiveSurface;
 
 /**
  * Dedicated thread owned by a GraphHive that drives per-node strobe emission.
- * Nodes inheriting StrobeEmitterNode can be registered with a frequency; this scheduler invokes
+ * Nodes inheriting StrobeEmitterNode can be registered with a period; this scheduler invokes
  * emitStrobe() on each registered node at its own cadence. GraphHiveSurface instances can similarly
  * be registered to have strobe() invoked at their own cadence.
  * @note Registration is external: the hive exposes methods that delegate here so that an external
@@ -29,15 +29,15 @@ class GraphHiveStrobeScheduler : public Thread
         GraphHiveStrobeScheduler();
 
 		/**
-		 * Register a node as a strobe emitter, or update the frequency of an already registered node.
-		 * @note If the node is not a StrobeEmitterNode, the handle is invalid or frequencyHz is 0, the
+		 * Register a node as a strobe emitter, or update the period of an already registered node.
+		 * @note If the node is not a StrobeEmitterNode, the handle is invalid or periodMs is 0, the
 		 *       call is silently ignored.
 		 * @note Once stop() has been called, registrations are silently ignored: the run loop is no
 		 *       longer around to service (or release) them.
 		 * @param node Handle of the node to register.
-		 * @param frequencyHz Emission frequency in Hz (emissions per second).
+		 * @param periodMs Emission period in milliseconds (time between successive emissions).
 		 */
-		void setEmitter(GraphHandle<StrobeEmitterNode> node, unsigned frequencyHz);
+		void setEmitter(GraphHandle<StrobeEmitterNode> node, unsigned periodMs);
 
 		/**
 		 * Remove a node as a strobe emitter.
@@ -52,14 +52,14 @@ class GraphHiveStrobeScheduler : public Thread
 		void clearEmitters();
 
 		/**
-		 * Register a surface to be strobed, or update the frequency of an already registered surface.
-		 * @note If the handle is invalid or frequencyHz is 0, the call is silently ignored.
+		 * Register a surface to be strobed, or update the period of an already registered surface.
+		 * @note If the handle is invalid or periodMs is 0, the call is silently ignored.
 		 * @note Once stop() has been called, registrations are silently ignored: the run loop is no
 		 *       longer around to service (or release) them.
 		 * @param surface Handle of the surface to register.
-		 * @param frequencyHz Strobe frequency in Hz (strobes per second).
+		 * @param periodMs Strobe period in milliseconds (time between successive strobes).
 		 */
-		void setSurface(GraphHandle<GraphHiveSurface> surface, unsigned frequencyHz);
+		void setSurface(GraphHandle<GraphHiveSurface> surface, unsigned periodMs);
 
 		/**
 		 * Remove a surface from being strobed.
@@ -91,7 +91,7 @@ class GraphHiveStrobeScheduler : public Thread
 			/// Keeps the node alive and provides identity for lookup/removal.
 			GraphHandle<StrobeEmitterNode> handle;
 
-			/// Emission period in nanoseconds, derived from frequency.
+			/// Emission period in nanoseconds, derived from the registered millisecond period.
 			long periodNs;
 
 			/// Absolute CLOCK_MONOTONIC time of the next due emission.
@@ -104,7 +104,7 @@ class GraphHiveStrobeScheduler : public Thread
 			/// Keeps the surface alive and provides identity for lookup/removal.
 			GraphHandle<GraphHiveSurface> handle;
 
-			/// Strobe period in nanoseconds, derived from frequency.
+			/// Strobe period in nanoseconds, derived from the registered millisecond period.
 			long periodNs;
 
 			/// Absolute CLOCK_MONOTONIC time of the next due strobe.

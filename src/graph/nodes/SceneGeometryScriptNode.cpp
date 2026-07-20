@@ -16,44 +16,6 @@ SceneGeometryScriptNode::SceneGeometryScriptNode(const std::string& coreScript, 
 	_addActionFlag(SCENE_STROBE_GRAPH_ACTION);
 }
 
-void SceneGeometryScriptNode::addVertexes(std::vector<Vertex> vertexesToAdd)
-{
-	_vertexes.insert(_vertexes.end(), vertexesToAdd.begin(), vertexesToAdd.end());
-}
-
-void SceneGeometryScriptNode::addVertexes(double* rawData, unsigned length)
-{
-	for(unsigned index = 0; index + VERTEX_SERIAL_SIZE <= length;)
-	{
-		// Pack into a Vertex.
-		Vertex newVertex {
-
-			// Position: X, Y, Z
-			{rawData[index++], rawData[index++], rawData[index++]},
-
-			// Colour: R, G, B, A
-			//std::byte colour[4];
-			{
-
-				static_cast<std::byte>(rawData[index++]),
-				static_cast<std::byte>(rawData[index++]),
-				static_cast<std::byte>(rawData[index++]),
-				static_cast<std::byte>(rawData[index++])
-			},
-
-			// Texture coordinates: U, V
-			// double texCoords[2];
-			{rawData[index++], rawData[index++]},
-
-			// Normal (must be normalised): X, Y, Z
-			//double normal[3];
-			{rawData[index++], rawData[index++], rawData[index++]}
-		};
-
-		_vertexes.push_back(newVertex);
-	}
-}
-
 void SceneGeometryScriptNode::_registerCoreGlobals(lua_State* luaState)
 {
 	AnimateScriptNode::_registerCoreGlobals(luaState);
@@ -63,8 +25,7 @@ void SceneGeometryScriptNode::_registerCoreGlobals(lua_State* luaState)
 
 void SceneGeometryScriptNode::populateSurface(GraphHandle<GraphHiveSceneSurface> surface)
 {
-	if(surface.isValid()) surface.getInstance() -> addVertexes(_vertexes, getId(), getId(), getPokeEnabled(), getInitialFocus(),
-		getFocusViewportFraction());
+	SceneGeometry::populateSurface(surface, getId(), getPokeEnabled());
 }
 
 void SceneGeometryScriptNode::strobe()
@@ -98,12 +59,32 @@ Vertex SceneGeometryScriptNode::__checkVertex(lua_State* luaState, int index)
 	return *static_cast<Vertex*>(luaL_checkudata(luaState, index, VERTEX_METATABLE));
 }
 
+SceneGeometry::VertexVisibility SceneGeometryScriptNode::__checkVisibility(lua_State* luaState, int index)
+{
+	lua_Integer value = luaL_optinteger(luaState, index,
+		static_cast<lua_Integer>(SceneGeometry::VertexVisibility::ALWAYS));
+
+	switch(static_cast<SceneGeometry::VertexVisibility>(value))
+	{
+		case SceneGeometry::VertexVisibility::ALWAYS:
+		case SceneGeometry::VertexVisibility::GRABBED:
+		case SceneGeometry::VertexVisibility::DRAGGING:
+		case SceneGeometry::VertexVisibility::HOVERED_OVER:
+			return static_cast<SceneGeometry::VertexVisibility>(value);
+	}
+
+	// luaL_error does not return; the cast below is only present to satisfy the compiler.
+	luaL_error(luaState, "invalid VertexVisibility value: %d", static_cast<int>(value));
+	return SceneGeometry::VertexVisibility::ALWAYS;
+}
+
 int SceneGeometryScriptNode::__luaAddVertex(lua_State* luaState)
 {
 	Vertex vertex = __checkVertex(luaState, 1);
+	SceneGeometry::VertexVisibility visibility = __checkVisibility(luaState, 2);
 	SceneGeometryScriptNode* node = static_cast<SceneGeometryScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
 
-	node -> addVertexes({vertex});
+	node -> addVertexes({vertex}, visibility);
 
 	return 0;
 }
@@ -112,6 +93,7 @@ int SceneGeometryScriptNode::__luaAddVertexes(lua_State* luaState)
 {
 	luaL_checktype(luaState, 1, LUA_TTABLE);
 
+	SceneGeometry::VertexVisibility visibility = __checkVisibility(luaState, 2);
 	SceneGeometryScriptNode* node = static_cast<SceneGeometryScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
 
 	lua_Integer count = luaL_len(luaState, 1);
@@ -126,7 +108,7 @@ int SceneGeometryScriptNode::__luaAddVertexes(lua_State* luaState)
 		lua_pop(luaState, 1); // [..., vertexes]
 	}
 
-	node -> addVertexes(vertexesToAdd);
+	node -> addVertexes(vertexesToAdd, visibility);
 
 	return 0;
 }
@@ -135,7 +117,7 @@ int SceneGeometryScriptNode::__luaVertexCount(lua_State* luaState)
 {
 	SceneGeometryScriptNode* node = static_cast<SceneGeometryScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
 
-	lua_pushinteger(luaState, static_cast<lua_Integer>(node -> _vertexes.size()));
+	lua_pushinteger(luaState, static_cast<lua_Integer>(node -> getVertexCount()));
 
 	return 1;
 }
@@ -148,6 +130,24 @@ void SceneGeometryScriptNode::__registerVertexBindings(lua_State* luaState)
 
 	lua_pushcfunction(luaState, __luaVertexConstructor);
 	lua_setglobal(luaState, "Vertex");
+
+	// Expose the VertexVisibility enum as a global table of integer constants that round-trip through
+	// __checkVisibility(); the values must match static_cast<lua_Integer> of each enum member.
+	lua_createtable(luaState, 0, 4);
+
+	lua_pushinteger(luaState, static_cast<lua_Integer>(SceneGeometry::VertexVisibility::ALWAYS));
+	lua_setfield(luaState, -2, "ALWAYS");
+
+	lua_pushinteger(luaState, static_cast<lua_Integer>(SceneGeometry::VertexVisibility::GRABBED));
+	lua_setfield(luaState, -2, "GRABBED");
+
+	lua_pushinteger(luaState, static_cast<lua_Integer>(SceneGeometry::VertexVisibility::DRAGGING));
+	lua_setfield(luaState, -2, "DRAGGING");
+
+	lua_pushinteger(luaState, static_cast<lua_Integer>(SceneGeometry::VertexVisibility::HOVERED_OVER));
+	lua_setfield(luaState, -2, "HOVERED_OVER");
+
+	lua_setglobal(luaState, "VertexVisibility");
 
 	lua_pushlightuserdata(luaState, this);
 	lua_pushcclosure(luaState, __luaAddVertex, 1);

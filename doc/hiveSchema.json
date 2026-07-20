@@ -32,7 +32,7 @@
 		"strobeSurfaces": {
 			"type": "array",
 			"items": { "$ref": "#/$defs/strobeSurface" },
-			"description": "Registers a subset of this hive's surfaces to be strobed periodically, causing each to update/regenerate at a fixed frequency."
+			"description": "Registers a subset of this hive's surfaces to be strobed periodically, causing each to update/regenerate at a fixed rate."
 		}
 	},
 
@@ -56,6 +56,16 @@
 			"description": "Used to describe the type of a particular graph action. Some actions may support multiple types."
 		},
 
+		"vertexVisibility": {
+			"enum": [
+				"ALWAYS",
+				"GRABBED",
+				"DRAGGING",
+				"HOVERED_OVER"
+			],
+			"description": "Controls when a vertex is displayed. ALWAYS: always visible. GRABBED: visible when in a grabbed state (e.g. a mouse button held down). DRAGGING: visible when being dragged (e.g. a mouse down then move). HOVERED_OVER: visible when hovered over (e.g. a non-button-down mouse over movement). Consecutive vertexes sharing the same visibility are grouped together."
+		},
+
 		"edge": {
 			"description": "A directed link from a node to another node within the same hive.",
 			"type": "object",
@@ -75,7 +85,7 @@
 		},
 
 		"strobeEmitter": {
-			"description": "Registers a node as a periodic strobe emitter, causing it to emit a strobe action at a fixed frequency.",
+			"description": "Registers a node as a periodic strobe emitter, causing it to emit a strobe action at a fixed rate.",
 			"type": "object",
 			"required": ["nodeName"],
 			"additionalProperties": false,
@@ -84,11 +94,11 @@
 					"$ref": "#/$defs/nodeName",
 					"description": "Name of the node to register as a strobe emitter. It must be a subclass of StrobeEmitterNode."
 				},
-				"frequencyHz": {
+				"periodMs": {
 					"type": "integer",
 					"minimum": 1,
-					"default": 30,
-					"description": "Emission frequency in Hz (emissions per second)."
+					"default": 33,
+					"description": "Emission period in milliseconds (time between successive emissions)."
 				}
 			}
 		},
@@ -100,7 +110,7 @@
 		},
 
 		"strobeSurface": {
-			"description": "Registers a surface to be strobed periodically, causing it to update/regenerate at a fixed frequency.",
+			"description": "Registers a surface to be strobed periodically, causing it to update/regenerate at a fixed rate.",
 			"type": "object",
 			"required": ["surfaceName"],
 			"additionalProperties": false,
@@ -109,11 +119,11 @@
 					"$ref": "#/$defs/surfaceName",
 					"description": "Name of the surface to register as strobed."
 				},
-				"frequencyHz": {
+				"periodMs": {
 					"type": "integer",
 					"minimum": 1,
-					"default": 30,
-					"description": "Strobe frequency in Hz (strobes per second)."
+					"default": 33,
+					"description": "Strobe period in milliseconds (time between successive strobes)."
 				}
 			}
 		},
@@ -182,6 +192,11 @@
 					"minItems": 3,
 					"maxItems": 3,
 					"description": "Normal in right hand cartesian coordinates (must be normalised): In order X, Y, Z."
+				},
+				"visibility": {
+					"$ref": "#/$defs/vertexVisibility",
+					"default": "ALWAYS",
+					"description": "When this vertex is displayed. Runs of consecutive vertexes with the same visibility form a single vertex group. Omit for ALWAYS."
 				}
 			}
 		},
@@ -287,30 +302,25 @@
 			"unevaluatedProperties": false
 		},
 
+		"sceneGeometryFields": {
+			"description": "Scene-geometry payload shared by SceneGeometryNode and SceneGeometryScriptNode. Mixed into both via allOf; not a node type in its own right.",
+			"properties": {
+				"vertexes": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/vertex" },
+					"description": "Vertexes making up the scene object this node defines. Each triplet defines a triangle with counter-clockwise winding order for the front face."
+				}
+			}
+		},
+
 		"sceneGeometryNode": {
 			"description": "A node that represents scene geometry, with vertexes set directly rather than by a Lua script.",
 			"allOf": [
 				{ "$ref": "#/$defs/nodeBase" },
+				{ "$ref": "#/$defs/sceneGeometryFields" },
 				{
 					"properties": {
-						"type": { "const": "SceneGeometryNode" },
-						"initialFocus": {
-							"type": "boolean",
-							"default": false,
-							"description": "Whether the scene viewer initially centres and zooms on this node. At most one node in a hive should set this; if several do, the viewer focuses on their combined bounds."
-						},
-						"focusViewportFraction": {
-							"type": "number",
-							"exclusiveMinimum": 0,
-							"maximum": 1,
-							"default": 0.5,
-							"description": "Fraction of the viewport height this node's bounding sphere should span on load when initialFocus is true. Larger values zoom in; smaller values zoom out to show more surrounding context. Ignored when initialFocus is false."
-						},
-						"vertexes": {
-							"type": "array",
-							"items": { "$ref": "#/$defs/vertex" },
-							"description": "Vertexes making up the scene object this node defines. Each triplet defines a triangle with counter-clockwise winding order for the front face."
-						}
+						"type": { "const": "SceneGeometryNode" }
 					}
 				}
 			],
@@ -321,26 +331,10 @@
 			"description": "An AnimateScriptNode that represents scene geometry, with vertexes that can be populated by a Lua script.",
 			"allOf": [
 				{ "$ref": "#/$defs/scriptNodeBase" },
+				{ "$ref": "#/$defs/sceneGeometryFields" },
 				{
 					"properties": {
-						"type": { "const": "SceneGeometryScriptNode" },
-						"initialFocus": {
-							"type": "boolean",
-							"default": false,
-							"description": "Whether the scene viewer initially centres and zooms on this node. At most one node in a hive should set this; if several do, the viewer focuses on their combined bounds."
-						},
-						"focusViewportFraction": {
-							"type": "number",
-							"exclusiveMinimum": 0,
-							"maximum": 1,
-							"default": 0.5,
-							"description": "Fraction of the viewport height this node's bounding sphere should span on load when initialFocus is true. Larger values zoom in; smaller values zoom out to show more surrounding context. Ignored when initialFocus is false."
-						},
-						"vertexes": {
-							"type": "array",
-							"items": { "$ref": "#/$defs/vertex" },
-							"description": "Vertexes making up the scene object this node defines. Each triplet defines a triangle with counter-clockwise winding order for the front face."
-						}
+						"type": { "const": "SceneGeometryScriptNode" }
 					}
 				}
 			],
@@ -419,6 +413,17 @@
 						"sceneRootNodeName": {
 							"$ref": "#/$defs/nodeName",
 							"description": "Name of the SceneRootNode, within this hive, that this surface is bound to."
+						},
+						"initialFocusNodeName": {
+							"$ref": "#/$defs/nodeName",
+							"description": "Name of the node, within this hive, that the scene camera should initially centre and zoom on. Omit to have the camera fit the whole scene instead. Applied once, when the camera is first set up."
+						},
+						"focusViewportFraction": {
+							"type": "number",
+							"exclusiveMinimum": 0,
+							"maximum": 1,
+							"default": 0.5,
+							"description": "Fraction of the viewport height the focused node's bounds should span when the camera is first set up. Ignored if initialFocusNodeName is not set."
 						}
 					}
 				}

@@ -2,17 +2,17 @@
 #define SCENE_GEOMETRY_SCRIPT_NODE_H
 
 #include <string>
-#include <vector>
 
-#include "../graphSceneElements.hpp"
 #include "../actionTargets/SceneActionTarget.hpp"
 #include "../GraphFocusable.hpp"
 #include "AnimateScriptNode.hpp"
+#include "SceneGeometry.hpp"
 
 /**
  * Graph node that represents scene geometry.
  */
-class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarget, public GraphFocusable
+class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarget, public GraphFocusable,
+	public SceneGeometry
 {
     public:
 
@@ -21,19 +21,6 @@ class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarg
 		 * @param pokeScript Lua source code that this node runs when poked.
 		 */
         SceneGeometryScriptNode(const std::string& coreScript, const std::string& pokeScript);
-
-		/**
-		 * Add vertexes to the list of vertexes for this scene node.
-		 */
-		void addVertexes(std::vector<Vertex> vertexesToAdd);
-
-		/**
-		 * Add vertexes as an array of raw data.
-		 * @param rawData Array of raw data that matches the Vertex struct. Multiple vertexes can be defined.
-		 * @param length Length of raw data array. Must be in multiples of VERTEX_SERIAL_SIZE. An incomplete vertex
-		 *        at the end of the array will simply be discarded rather than throw an exception.
-		 */
-		void addVertexes(double* rawData, unsigned length);
 
 		void populateSurface(GraphHandle<GraphHiveSceneSurface> surface) override;
 
@@ -72,20 +59,32 @@ class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarg
 		static Vertex __checkVertex(lua_State* luaState, int index);
 
 		/**
-		 * Lua-facing `addVertex(vertex)`: appends a Vertex built by __luaVertexConstructor() to the node
-		 * bound as this closure's upvalue.
-		 * @param luaState Lua state the call is running against; argument 1 is the Vertex userdata and
-		 *        upvalue 1 is a light userdata pointing at the target SceneGeometryScriptNode.
+		 * Read an optional VertexVisibility argument, supplied from Lua as one of the VertexVisibility.*
+		 * global constants, defaulting to ALWAYS when the argument is absent.
+		 * @param luaState Lua state the call is running against.
+		 * @param index Stack index of the (optional) visibility argument.
+		 * @returns The VertexVisibility the argument names, or ALWAYS if it was omitted.
+		 * @throw Raises a Lua error (does not return) if the argument is present but not a known
+		 *        VertexVisibility value.
+		 */
+		static SceneGeometry::VertexVisibility __checkVisibility(lua_State* luaState, int index);
+
+		/**
+		 * Lua-facing `addVertex(vertex, [visibility])`: appends a Vertex built by __luaVertexConstructor()
+		 * to the node bound as this closure's upvalue.
+		 * @param luaState Lua state the call is running against; argument 1 is the Vertex userdata,
+		 *        argument 2 is an optional VertexVisibility.* constant (default ALWAYS) and upvalue 1 is a
+		 *        light userdata pointing at the target SceneGeometryScriptNode.
 		 * @returns Always 0.
 		 */
 		static int __luaAddVertex(lua_State* luaState);
 
 		/**
-		 * Lua-facing `addVertexes(vertexes)`: appends every Vertex in the given array-style table to the
-		 * node bound as this closure's upvalue, in a single call.
+		 * Lua-facing `addVertexes(vertexes, [visibility])`: appends every Vertex in the given array-style
+		 * table to the node bound as this closure's upvalue, in a single call.
 		 * @param luaState Lua state the call is running against; argument 1 is a table of Vertex userdata
-		 *        (indexes 1..#vertexes) and upvalue 1 is a light userdata pointing at the target
-		 *        SceneGeometryScriptNode.
+		 *        (indexes 1..#vertexes), argument 2 is an optional VertexVisibility.* constant (default
+		 *        ALWAYS) and upvalue 1 is a light userdata pointing at the target SceneGeometryScriptNode.
 		 * @returns Always 0.
 		 */
 		static int __luaAddVertexes(lua_State* luaState);
@@ -100,21 +99,15 @@ class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarg
 		static int __luaVertexCount(lua_State* luaState);
 
 		/**
-		 * Register the `Vertex` constructor and `addVertex()`/`addVertexes()`/`vertexCount()` global
-		 * functions against luaState, binding each to this node instance via upvalue.
+		 * Register the `Vertex` constructor, the `VertexVisibility` constants table and the
+		 * `addVertex()`/`addVertexes()`/`vertexCount()` global functions against luaState, binding each
+		 * function to this node instance via upvalue.
 		 * @param luaState Lua state to register the globals against.
 		 */
 		void __registerVertexBindings(lua_State* luaState);
 
 		/// Metatable name used to type-check Vertex userdata passed into addVertex().
 		static constexpr const char* VERTEX_METATABLE = "SceneGeometryScriptNode.Vertex";
-
-		/**
-		 * The vertexes that make up the scene object this node defines.
-		 * Each triplet defines a triangle with standard counter-clockwise winding order for the front face.
-		 * @note There is no indexing at this stage.
-		 */
-		std::vector<Vertex> _vertexes;
 };
 
 #endif

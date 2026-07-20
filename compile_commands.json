@@ -187,6 +187,23 @@
     "output": "GraphHiveStrobeScheduler.o"
   },
   {
+    "file": "../../src/graph/GraphFocusable.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphFocusable.o",
+      "../../src/graph/GraphFocusable.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphFocusable.o"
+  },
+  {
     "file": "../../src/graph/GraphNamed.cpp",
     "arguments": [
       "/usr/bin/g++",
@@ -440,6 +457,23 @@
     ],
     "directory": "/data/devel/matrytsya/build/debug",
     "output": "nodes/PingNode.o"
+  },
+  {
+    "file": "../../src/graph/nodes/SceneGeometryMixin.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "nodes/SceneGeometryMixin.o",
+      "../../src/graph/nodes/SceneGeometryMixin.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "nodes/SceneGeometryMixin.o"
   },
   {
     "file": "../../src/graph/nodes/SceneGeometryNode.cpp",

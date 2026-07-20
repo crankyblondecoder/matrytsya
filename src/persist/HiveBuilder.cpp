@@ -126,6 +126,8 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 			}
 
 			GraphHandle<GraphNode> referencedNode(0);
+			bool hasInitialFocusNode = false;
+			unsigned initialFocusNodeId = 0;
 
 			if(descriptor.type == HiveSurfaceDescriptor::SCENE_SURFACE)
 			{
@@ -137,9 +139,22 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 				}
 
 				referencedNode = nodeIt -> second;
+
+				if(!descriptor.initialFocusNodeName.empty())
+				{
+					auto focusNodeIt = nodesByName.find(descriptor.initialFocusNodeName);
+
+					if(focusNodeIt == nodesByName.end())
+					{
+						throw PersistException(PersistException::SURFACE_NODE_NOT_FOUND);
+					}
+
+					hasInitialFocusNode = true;
+					initialFocusNodeId = focusNodeIt -> second.getInstance() -> getId();
+				}
 			}
 
-			GraphHiveSurface* surface = __createSurface(descriptor, referencedNode);
+			GraphHiveSurface* surface = __createSurface(descriptor, referencedNode, hasInitialFocusNode, initialFocusNodeId);
 
 			surface -> setName(descriptor.name);
 			surface -> setDefault(descriptor.isDefault);
@@ -156,13 +171,13 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 		for(unsigned i = 0; i < strobeEmitterCount; i++)
 		{
 			std::string nodeName;
-			unsigned frequencyHz;
+			unsigned periodMs;
 
-			loader.getStrobeEmitter(i, nodeName, frequencyHz);
+			loader.getStrobeEmitter(i, nodeName, periodMs);
 
-			if(frequencyHz == 0)
+			if(periodMs == 0)
 			{
-				throw PersistException(PersistException::INVALID_STROBE_FREQUENCY);
+				throw PersistException(PersistException::INVALID_STROBE_PERIOD);
 			}
 
 			auto targetIt = nodesByName.find(nodeName);
@@ -179,7 +194,7 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 				throw PersistException(PersistException::STROBE_EMITTER_WRONG_TYPE);
 			}
 
-			hive -> setStrobeEmitter(GraphHandle<StrobeEmitterNode>(strobeNode), frequencyHz);
+			hive -> setStrobeEmitter(GraphHandle<StrobeEmitterNode>(strobeNode), periodMs);
 		}
 
 		// -- Pass 5: strobe surfaces (needs every surface to already exist by name) --
@@ -188,13 +203,13 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 		for(unsigned i = 0; i < strobeSurfaceCount; i++)
 		{
 			std::string surfaceName;
-			unsigned frequencyHz;
+			unsigned periodMs;
 
-			loader.getStrobeSurface(i, surfaceName, frequencyHz);
+			loader.getStrobeSurface(i, surfaceName, periodMs);
 
-			if(frequencyHz == 0)
+			if(periodMs == 0)
 			{
-				throw PersistException(PersistException::INVALID_STROBE_FREQUENCY);
+				throw PersistException(PersistException::INVALID_STROBE_PERIOD);
 			}
 
 			auto targetIt = surfacesByName.find(surfaceName);
@@ -204,7 +219,7 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 				throw PersistException(PersistException::STROBE_SURFACE_NOT_FOUND);
 			}
 
-			hive -> setStrobeSurface(targetIt -> second, frequencyHz);
+			hive -> setStrobeSurface(targetIt -> second, periodMs);
 		}
 	}
 	catch(...)
@@ -242,9 +257,6 @@ GraphNode* HiveBuilder::__createNode(const HiveNodeDescriptor& descriptor)
 
 			if(descriptor.hasVertexes) node -> addVertexes(descriptor.vertexes);
 
-			node -> setInitialFocus(descriptor.initialFocus);
-			node -> setFocusViewportFraction(descriptor.focusViewportFraction);
-
 			return node;
 		}
 
@@ -254,9 +266,6 @@ GraphNode* HiveBuilder::__createNode(const HiveNodeDescriptor& descriptor)
 				new SceneGeometryScriptNode(descriptor.coreScript, descriptor.pokeScript);
 
 			if(descriptor.hasVertexes) node -> addVertexes(descriptor.vertexes);
-
-			node -> setInitialFocus(descriptor.initialFocus);
-			node -> setFocusViewportFraction(descriptor.focusViewportFraction);
 
 			return node;
 		}
@@ -287,7 +296,8 @@ GraphNode* HiveBuilder::__createNode(const HiveNodeDescriptor& descriptor)
 	}
 }
 
-GraphHiveSurface* HiveBuilder::__createSurface(const HiveSurfaceDescriptor& descriptor, GraphHandle<GraphNode> referencedNode)
+GraphHiveSurface* HiveBuilder::__createSurface(const HiveSurfaceDescriptor& descriptor, GraphHandle<GraphNode> referencedNode,
+	bool hasInitialFocusNode, unsigned initialFocusNodeId)
 {
 	switch(descriptor.type)
 	{
@@ -300,7 +310,11 @@ GraphHiveSurface* HiveBuilder::__createSurface(const HiveSurfaceDescriptor& desc
 				throw PersistException(PersistException::SURFACE_NODE_WRONG_TYPE);
 			}
 
-			return new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(sceneRootNode));
+			GraphHiveSceneSurface* sceneSurface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(sceneRootNode));
+
+			if(hasInitialFocusNode) sceneSurface -> setInitialFocusNode(initialFocusNodeId, descriptor.focusViewportFraction);
+
+			return sceneSurface;
 		}
 
 		default:

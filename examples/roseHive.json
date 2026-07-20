@@ -53,7 +53,7 @@
   "strobeEmitters": [
     {
       "nodeName": "Root",
-      "frequencyHz": 1
+      "periodMs": 1000
     }
   ],
   "surfaces": [
@@ -67,7 +67,7 @@
   "strobeSurfaces": [
     {
       "surfaceName": "RoseView",
-      "frequencyHz": 30
+      "periodMs": 33
     }
   ]
 }

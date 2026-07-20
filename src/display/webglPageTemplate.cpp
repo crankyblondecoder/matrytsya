@@ -254,10 +254,32 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 	// Raw positions and their owning chunk ids from the most recently loaded scene, plus the view/projection
 	// matrix used to draw the most recent frame. Together these are enough to pick a chunk under a clicked pixel.
+	// Only ALWAYS-visible chunks go in here, so hover-revealed geometry never intercepts a pick.
 	var lastPositions = [];
 	var lastTriangleChunkIds = [];
 	var lastChunkPokeable = {};
 	var lastViewProj = null;
+
+	// The most recently loaded scene, split per chunk with world-space geometry precomputed, so that only the
+	// currently visible chunks need be concatenated and uploaded whenever the hover state changes. Each entry is
+	// { id, nodeId, opaque, positions, colors, normals }; opaque means VertexVisibility.ALWAYS.
+	var sceneChunks = [];
+
+	// Maps a chunk id to the id of the node that owns it, so hovering one of a node's chunks can reveal that
+	// same node's HOVERED_OVER chunks.
+	var chunkNodeId = {};
+
+	// Id of the node currently under the pointer (via one of its pokeable chunks), or null. Drives which
+	// HOVERED_OVER chunks are shown.
+	var hoveredNodeId = null;
+
+	// Number of vertices at the front of the uploaded buffers that make up the opaque pass; the remainder are
+	// the currently visible translucent (non-ALWAYS) chunks, drawn as a second blended pass.
+	var opaqueVertexCount = 0;
+
+	// Id of the pokeable chunk the pointer is currently over, or null. Used to edge-trigger a HOVER poke only
+	// when this changes, rather than flooding the server with one per mousemove.
+	var lastHoveredChunkId = null;
 
 	// Tracks whether a mousedown started on the canvas, and where, so mouseup can tell a click (poke) apart
 	// from the end of a camera drag.
@@ -324,15 +346,53 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		};
 	}
 
-	// Pokes the surface backing this map to say the chunk with the given id was clicked on.
-	function pokeChunk(chunkId)
+	// Pokes the surface backing this map to say the chunk with the given id was interacted with. A chunk id is
+	// only unique within its owning node, so the owning node id is sent alongside it to identify the chunk.
+	// type is omitted for a click (HIT, the server's default) or passed as 'hoverEnter'/'hoverLeave' when the
+	// pointer moves onto or off of a pokeable chunk.
+	function pokeChunk(chunkId, type)
 	{
 		var pokeUrl = window.location.pathname.replace(/\/+$/, '') + '/poke';
+		var url = pokeUrl + '?nodeId=' + chunkNodeId[chunkId] + '&chunkId=' + chunkId;
 
-		fetch(pokeUrl + '?chunkId=' + chunkId, { method: 'POST' }).catch(function(err)
+		if(type) url += '&type=' + type;
+
+		fetch(url, { method: 'POST' }).catch(function(err)
 		{
 			status.textContent = 'Failed to poke scene: ' + err;
 		});
+	}
+
+	// Picks the chunk under the given screen point and, if it's pokeable and different from the last hovered
+	// chunk, raises a HOVER_LEAVE poke for the chunk being left and a HOVER_ENTER poke for the chunk being
+	// entered. Also flips the cursor to a pointer while over a pokeable chunk, purely as client-side feedback.
+	// Edge-triggered on the hovered chunk changing, rather than firing per mousemove, since a naive per-move
+	// poke would flood the server with fetches while the pointer just sits still moving a pixel at a time.
+	function updateHover(clientX, clientY)
+	{
+		var picked = pickChunkAt(clientX, clientY);
+		var hoveredChunkId = (picked !== null && lastChunkPokeable[picked.chunkId]) ? picked.chunkId : null;
+
+		canvas.style.cursor = (hoveredChunkId !== null) ? 'pointer' : 'default';
+
+		// Reveal (or hide) the hovered node's HOVERED_OVER chunks by rebuilding the buffers when the node under
+		// the pointer changes. Keyed on the node rather than the chunk so a node made of several chunks doesn't
+		// flicker its halo as the pointer crosses between them.
+		var newHoveredNodeId = (hoveredChunkId !== null) ? chunkNodeId[hoveredChunkId] : null;
+
+		if(newHoveredNodeId !== hoveredNodeId)
+		{
+			hoveredNodeId = newHoveredNodeId;
+			rebuildGeometry();
+		}
+
+		if(hoveredChunkId === lastHoveredChunkId) return;
+
+		if(lastHoveredChunkId !== null) pokeChunk(lastHoveredChunkId, 'hoverLeave');
+
+		lastHoveredChunkId = hoveredChunkId;
+
+		if(hoveredChunkId !== null) pokeChunk(hoveredChunkId, 'hoverEnter');
 	}
 
 	canvas.addEventListener('mousedown', function(e)
@@ -419,7 +479,13 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 			return;
 		}
 
-		if(!dragging) return;
+		if(!dragging)
+		{
+			// Only track hover while the camera isn't being manipulated, so an orbit/pan drag doesn't also
+			// spam hover pokes for whatever chunk the pointer happens to cross.
+			updateHover(e.clientX, e.clientY);
+			return;
+		}
 
 		camera.yaw += (e.clientX - lastX) * 0.01;
 		camera.pitch += (e.clientY - lastY) * 0.01;
@@ -429,6 +495,24 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 		lastX = e.clientX;
 		lastY = e.clientY;
+	});
+
+	// Reset hover state when the pointer leaves the canvas entirely, since no further mousemove will arrive
+	// to naturally clear it. Raises the matching HOVER_LEAVE poke, since updateHover won't get a chance to.
+	canvas.addEventListener('mouseleave', function(e)
+	{
+		canvas.style.cursor = 'default';
+
+		if(lastHoveredChunkId !== null) pokeChunk(lastHoveredChunkId, 'hoverLeave');
+
+		lastHoveredChunkId = null;
+
+		// Drop any revealed hover geometry now the pointer has left the canvas entirely.
+		if(hoveredNodeId !== null)
+		{
+			hoveredNodeId = null;
+			rebuildGeometry();
+		}
 	});
 
 	canvas.addEventListener('wheel', function(e)
@@ -537,38 +621,45 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 	function loadScene(data)
 	{
-		var positions = [];
-		var colors = [];
-		var normals = [];
-		var triangleChunkIds = [];
+		sceneChunks = [];
+		chunkNodeId = {};
+
+		// Picking and camera framing only ever consider the ALWAYS-visible geometry, so build their arrays
+		// straight from the opaque chunks as the scene is parsed.
+		var pickPositions = [];
+		var pickTriangleChunkIds = [];
 		var chunkPokeable = {};
 
 		var minX = Infinity, minY = Infinity, minZ = Infinity;
 		var maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
 
-		// Bounding box built only from chunks that request the initial focus (the union, if several do), plus the
-		// smallest requested viewport fraction among them (smallest => most zoomed out, so all focus content fits).
+		// Bounding box built only from chunks belonging to the surface's initial-focus node, if any.
 		var hasFocus = false;
 		var focusMinX = Infinity, focusMinY = Infinity, focusMinZ = Infinity;
 		var focusMaxX = -Infinity, focusMaxY = -Infinity, focusMaxZ = -Infinity;
-		var focusFraction = Infinity;
+
+		var focusChunkIds = {};
+
+		for(var f = 0; f < data.focusChunkIds.length; f++) focusChunkIds[data.focusChunkIds[f]] = true;
 
 		for(var c = 0; c < data.chunks.length; c++)
 		{
 			var chunk = data.chunks[c];
 			var modelTransform = data.modelTransforms[chunk.modelTransformIndex].transform;
 
+			// A missing/unknown visibility is treated as ALWAYS, matching the server default.
+			var opaque = (chunk.visibility === undefined || chunk.visibility === 'ALWAYS');
+
 			chunkPokeable[chunk.id] = !!chunk.pokeable;
+			chunkNodeId[chunk.id] = chunk.nodeId;
 
-			var chunkFocus = !!chunk.initialFocus;
+			var chunkFocus = !!focusChunkIds[chunk.id];
 
-			if(chunkFocus)
-			{
-				var chunkFraction = (typeof chunk.focusViewportFraction === 'number' && chunk.focusViewportFraction > 0) ?
-					chunk.focusViewportFraction : 0.5;
-
-				focusFraction = Math.min(focusFraction, chunkFraction);
-			}
+			// Per-chunk world-space geometry, kept so rebuildGeometry() can re-concatenate the visible chunks
+			// on a hover change without re-running the model transforms.
+			var chunkPositions = [];
+			var chunkColors = [];
+			var chunkNormals = [];
 
 			for(var v = 0; v < chunk.vertexes.length; v++)
 			{
@@ -577,43 +668,46 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 				var worldPos = transformPoint(modelTransform, vertex.posn[0], vertex.posn[1], vertex.posn[2]);
 				var worldNormal = transformNormal(modelTransform, vertex.normal[0], vertex.normal[1], vertex.normal[2]);
 
-				positions.push(worldPos[0], worldPos[1], worldPos[2]);
-				colors.push(vertex.colour[0] / 255, vertex.colour[1] / 255, vertex.colour[2] / 255,
+				chunkPositions.push(worldPos[0], worldPos[1], worldPos[2]);
+				chunkColors.push(vertex.colour[0] / 255, vertex.colour[1] / 255, vertex.colour[2] / 255,
 					vertex.colour[3] / 255);
-				normals.push(worldNormal[0], worldNormal[1], worldNormal[2]);
+				chunkNormals.push(worldNormal[0], worldNormal[1], worldNormal[2]);
 
-				// Every third vertex completes another triangle belonging to this chunk.
-				if(v % 3 === 2) triangleChunkIds.push(chunk.id);
-
-				minX = Math.min(minX, worldPos[0]); maxX = Math.max(maxX, worldPos[0]);
-				minY = Math.min(minY, worldPos[1]); maxY = Math.max(maxY, worldPos[1]);
-				minZ = Math.min(minZ, worldPos[2]); maxZ = Math.max(maxZ, worldPos[2]);
-
-				if(chunkFocus)
+				// Only the always-on geometry contributes to picking and to the initial camera fit; hover-only
+				// chunks must not steal picks or enlarge the framing.
+				if(opaque)
 				{
-					hasFocus = true;
+					pickPositions.push(worldPos[0], worldPos[1], worldPos[2]);
 
-					focusMinX = Math.min(focusMinX, worldPos[0]); focusMaxX = Math.max(focusMaxX, worldPos[0]);
-					focusMinY = Math.min(focusMinY, worldPos[1]); focusMaxY = Math.max(focusMaxY, worldPos[1]);
-					focusMinZ = Math.min(focusMinZ, worldPos[2]); focusMaxZ = Math.max(focusMaxZ, worldPos[2]);
+					// Every third vertex completes another triangle belonging to this chunk.
+					if(v % 3 === 2) pickTriangleChunkIds.push(chunk.id);
+
+					minX = Math.min(minX, worldPos[0]); maxX = Math.max(maxX, worldPos[0]);
+					minY = Math.min(minY, worldPos[1]); maxY = Math.max(maxY, worldPos[1]);
+					minZ = Math.min(minZ, worldPos[2]); maxZ = Math.max(maxZ, worldPos[2]);
+
+					if(chunkFocus)
+					{
+						hasFocus = true;
+
+						focusMinX = Math.min(focusMinX, worldPos[0]); focusMaxX = Math.max(focusMaxX, worldPos[0]);
+						focusMinY = Math.min(focusMinY, worldPos[1]); focusMaxY = Math.max(focusMaxY, worldPos[1]);
+						focusMinZ = Math.min(focusMinZ, worldPos[2]); focusMaxZ = Math.max(focusMaxZ, worldPos[2]);
+					}
 				}
 			}
+
+			sceneChunks.push({ id: chunk.id, nodeId: chunk.nodeId, opaque: opaque,
+				positions: chunkPositions, colors: chunkColors, normals: chunkNormals });
 		}
 
-		vertexCount = positions.length / 3;
-
-		lastPositions = positions;
-		lastTriangleChunkIds = triangleChunkIds;
+		lastPositions = pickPositions;
+		lastTriangleChunkIds = pickTriangleChunkIds;
 		lastChunkPokeable = chunkPokeable;
 
-		gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+		rebuildGeometry();
 
-		gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-
-		gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
+		status.textContent = vertexCount + ' vertexes across ' + data.chunks.length + ' chunk(s). Drag to orbit, scroll to zoom, right-drag to pan, right-click a chunk to centre.';
 
 		if(vertexCount > 0 && !cameraFitted)
 		{
@@ -629,9 +723,12 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 					Math.pow(focusMaxX - focusMinX, 2) + Math.pow(focusMaxY - focusMinY, 2) +
 					Math.pow(focusMaxZ - focusMinZ, 2)) / 2);
 
-				// Choose the distance so the focus node's bounding-sphere diameter spans focusFraction of the
-				// viewport height. At distance d the frustum half-height is d*tan(fovy/2); the sphere's radius
-				// projects to that half-height when focusRadius = focusFraction * d*tan(fovy/2), so solve for d.
+				// Choose the distance so the focus node's bounding-sphere diameter spans focusViewportFraction of
+				// the viewport height. At distance d the frustum half-height is d*tan(fovy/2); the sphere's
+				// radius projects to that half-height when focusRadius = fraction * d*tan(fovy/2), so solve for d.
+				var focusFraction = (typeof data.focusViewportFraction === 'number' && data.focusViewportFraction > 0) ?
+					data.focusViewportFraction : 0.5;
+
 				camera.distance = focusRadius / (focusFraction * Math.tan(CAMERA_FOVY / 2));
 			}
 			else
@@ -643,8 +740,51 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 			cameraFitted = true;
 		}
+	}
 
-		status.textContent = vertexCount + ' vertexes across ' + data.chunks.length + ' chunk(s). Drag to orbit, scroll to zoom, right-drag to pan, right-click a chunk to centre.';
+	// Concatenates the currently visible chunks into the GPU buffers: every opaque (ALWAYS) chunk first, then
+	// any translucent chunk whose owning node is currently hovered. opaqueVertexCount records the boundary so
+	// draw() can render the two as separate passes. Called on load and whenever the hover state changes.
+	function rebuildGeometry()
+	{
+		var positions = [];
+		var colors = [];
+		var normals = [];
+
+		for(var c = 0; c < sceneChunks.length; c++)
+		{
+			var chunk = sceneChunks[c];
+
+			if(!chunk.opaque) continue;
+
+			positions.push.apply(positions, chunk.positions);
+			colors.push.apply(colors, chunk.colors);
+			normals.push.apply(normals, chunk.normals);
+		}
+
+		opaqueVertexCount = positions.length / 3;
+
+		for(var t = 0; t < sceneChunks.length; t++)
+		{
+			var transChunk = sceneChunks[t];
+
+			if(transChunk.opaque || transChunk.nodeId !== hoveredNodeId) continue;
+
+			positions.push.apply(positions, transChunk.positions);
+			colors.push.apply(colors, transChunk.colors);
+			normals.push.apply(normals, transChunk.normals);
+		}
+
+		vertexCount = positions.length / 3;
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
 	}
 
 	function draw()
@@ -703,7 +843,25 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 			gl.vertexAttribPointer(aNormal, 3, gl.FLOAT, false, 0, 0);
 			gl.enableVertexAttribArray(aNormal);
 
-			gl.drawArrays(gl.TRIANGLES, 0, vertexCount);
+			// Opaque pass: the ALWAYS-visible geometry, written to the depth buffer as usual.
+			gl.disable(gl.BLEND);
+			gl.depthMask(true);
+			gl.drawArrays(gl.TRIANGLES, 0, opaqueVertexCount);
+
+			// Translucent pass: any hover-revealed geometry (e.g. a halo), alpha-blended over the opaque scene.
+			// Depth writes are disabled so overlapping translucent triangles don't cull one another, while the
+			// depth test stays on so opaque geometry in front still occludes it.
+			if(vertexCount > opaqueVertexCount)
+			{
+				gl.enable(gl.BLEND);
+				gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+				gl.depthMask(false);
+
+				gl.drawArrays(gl.TRIANGLES, opaqueVertexCount, vertexCount - opaqueVertexCount);
+
+				gl.depthMask(true);
+				gl.disable(gl.BLEND);
+			}
 		}
 
 		requestAnimationFrame(draw);

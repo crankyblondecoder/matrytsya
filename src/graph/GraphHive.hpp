@@ -104,12 +104,12 @@ class GraphHive : public RefCounted, public GraphNamed
 		 * Register a node as a periodic strobe emitter within this hive, or update an existing
 		 * registration's frequency.
 		 * @note Silently ignored if the node is not a StrobeEmitterNode, the handle is invalid or
-		 *       frequencyHz is 0. The node stops being an emitter automatically when it is removed
+		 *       periodMs is 0. The node stops being an emitter automatically when it is removed
 		 *       or decoupled from the hive.
 		 * @param nodeHandle Handle of the node to register.
-		 * @param frequencyHz Emission frequency in Hz (emissions per second).
+		 * @param periodMs Emission period in milliseconds (time between successive emissions).
 		 */
-		void setStrobeEmitter(GraphHandle<StrobeEmitterNode> nodeHandle, unsigned frequencyHz);
+		void setStrobeEmitter(GraphHandle<StrobeEmitterNode> nodeHandle, unsigned periodMs);
 
 		/**
 		 * Remove a node as a periodic strobe emitter within this hive.
@@ -121,12 +121,12 @@ class GraphHive : public RefCounted, public GraphNamed
 		/**
 		 * Register a surface as being periodically strobed within this hive, or update an existing
 		 * registration's frequency.
-		 * @note Silently ignored if the handle is invalid or frequencyHz is 0. The surface stops being
+		 * @note Silently ignored if the handle is invalid or periodMs is 0. The surface stops being
 		 *       strobed automatically when it is removed from the hive.
 		 * @param surfaceHandle Handle of the surface to register.
-		 * @param frequencyHz Strobe frequency in Hz (strobes per second).
+		 * @param periodMs Strobe period in milliseconds (time between successive strobes).
 		 */
-		void setStrobeSurface(GraphHandle<GraphHiveSurface> surfaceHandle, unsigned frequencyHz);
+		void setStrobeSurface(GraphHandle<GraphHiveSurface> surfaceHandle, unsigned periodMs);
 
 		/**
 		 * Remove a surface from being periodically strobed within this hive.

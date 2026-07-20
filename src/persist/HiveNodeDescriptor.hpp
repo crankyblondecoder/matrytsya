@@ -60,12 +60,6 @@ struct HiveNodeDescriptor
 	/// Whether vertexes was supplied. Only meaningful when type == SCENE_GEOMETRY or SCENE_GEOMETRY_SCRIPT.
 	bool hasVertexes = false;
 
-	/// Whether this node is the scene view's initial focus. Only meaningful when type == SCENE_GEOMETRY or SCENE_GEOMETRY_SCRIPT.
-	bool initialFocus = false;
-
-	/// Fraction of the viewport the focused node should span. Only meaningful when initialFocus is true.
-	double focusViewportFraction = 0.5;
-
 	/// Transform of a SceneTransformNode/SceneTransformScriptNode. Only meaningful when hasTransform is true.
 	Transform transform;
 

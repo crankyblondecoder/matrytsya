@@ -1,3 +1,4 @@
+#include "display/DisplayException.hpp"
 #include "display/GraphHiveSceneSurfaceWebglMap.hpp"
 #include "display/http/HttpServer.hpp"
 #include "graph/GraphHandle.hpp"
@@ -67,7 +68,16 @@ int main(int argc, char const *argv[])
 
 	webglMap.setPollInterval(_WEBGL_POLL_INTERVAL_MS);
 
-	httpServer.start();
+	try
+	{
+		httpServer.start();
+	}
+	catch(DisplayException& exception)
+	{
+		std::cerr << "Could not start HTTP server on port " << httpServer.getPort() << " (error "
+			<< exception.getError() << ")" << std::endl;
+		exit(1);
+	}
 
 	std::cout << "Listening on http://localhost:" << httpServer.getPort() << "/scene/" << std::endl;
 
