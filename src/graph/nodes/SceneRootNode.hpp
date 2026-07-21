@@ -1,6 +1,8 @@
 #ifndef SCENE_ROOT_NODE_H
 #define SCENE_ROOT_NODE_H
 
+#include <atomic>
+
 #include "StrobeEmitterNode.hpp"
 
 class GraphHiveSceneSurface;
@@ -19,6 +21,15 @@ class SceneRootNode : public StrobeEmitterNode
 		 */
 		void populateSceneSurface(GraphHandle<GraphHiveSceneSurface> sceneSurface);
 
+		void notify(NotifyType type) override;
+
+		/**
+		 * Get the current scene version.
+		 * @note This is incremented each time a SCENE_DATA_CHANGED notification is received, so that surfaces bound
+		 *       to this root can tell whether the scene needs to be repopulated.
+		 */
+		unsigned getSceneVersion();
+
 	protected:
 
 		// Ref counted.
@@ -31,6 +42,9 @@ class SceneRootNode : public StrobeEmitterNode
         // Do not allow copying.
         SceneRootNode(const SceneRootNode& copyFrom);
         SceneRootNode& operator= (const SceneRootNode& copyFrom);
+
+		/// Counter of the scene's version, starting at 1 and incremented on every SCENE_DATA_CHANGED notification.
+		std::atomic<unsigned> _sceneVersion{1};
 };
 
 #endif

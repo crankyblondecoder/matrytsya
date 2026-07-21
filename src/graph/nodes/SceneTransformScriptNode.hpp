@@ -4,8 +4,8 @@
 #include <string>
 
 #include "../actionTargets/SceneActionTarget.hpp"
-#include "../graphSceneElements.hpp"
 #include "AnimateScriptNode.hpp"
+#include "SceneTransform.hpp"
 
 class GraphHiveSceneSurface;
 
@@ -15,7 +15,7 @@ struct lua_State;
  * Graph node that represents a transform applied to scene geometry.
  * Its script can read and modify the current transform via the getTransform()/setTransform() Lua globals.
  */
-class SceneTransformScriptNode : public AnimateScriptNode, public SceneActionTarget
+class SceneTransformScriptNode : public AnimateScriptNode, public SceneActionTarget, public SceneTransform
 {
     public:
 
@@ -24,12 +24,6 @@ class SceneTransformScriptNode : public AnimateScriptNode, public SceneActionTar
 		 * @param pokeScript Lua source code that this node runs when poked.
 		 */
         SceneTransformScriptNode(const std::string& script, const std::string& pokeScript);
-
-		/**
-		 * Set the transform applied to this
-		 * @param transform The transform to set.
-		 */
-		void setTransform(const Transform transform);
 
 		void populateSurface(GraphHandle<GraphHiveSceneSurface> surface) override;
 
@@ -43,6 +37,8 @@ class SceneTransformScriptNode : public AnimateScriptNode, public SceneActionTar
         virtual ~SceneTransformScriptNode();
 
 		void _registerCoreGlobals(lua_State* luaState) override;
+
+		void _transformChanged() override;
 
     private:
 
@@ -74,19 +70,6 @@ class SceneTransformScriptNode : public AnimateScriptNode, public SceneActionTar
 		 * @param luaState Lua state to register the globals against.
 		 */
 		void __registerTransformBindings(lua_State* luaState);
-
-		/**
-		 * The local transform applied to the geometry.
-		 * This is standard column-major order of matrix elements.
-		 * Default is the identity matrix.
-		 */
-		Transform _transform = {
-
-			1.0, 0.0, 0.0, 0.0,
-			0.0, 1.0, 0.0, 0.0,
-			0.0, 0.0, 1.0, 0.0,
-			0.0, 0.0, 0.0, 1.0
-		};
 };
 
 #endif

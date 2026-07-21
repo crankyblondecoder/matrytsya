@@ -56,6 +56,8 @@ class CapturingNode : public GraphNode, public PingActionTarget, public Serialis
 
         SerialisableActionPayload* getCapturedPayload() { return _capturedPayload; }
 
+        void notify(NotifyType type) override {}
+
     protected:
 
         void _poked(GraphPoke poke) override {}

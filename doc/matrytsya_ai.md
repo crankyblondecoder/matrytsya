@@ -4,7 +4,7 @@
 
 ## Related documents
 
-- [hiveSchema.json](hiveSchema.json) — JSON schema a hive definition must satisfy: nodes, edges, strobe emitters, surfaces, strobe surface registrations.
+- [hiveSchema.json](hiveSchema.json) — JSON schema a hive definition must satisfy: nodes, edges, node notification wiring, strobe emitters, surfaces, strobe surface registrations.
 - [LuaNodeAPI.md](LuaNodeAPI.md) — Lua bindings for a hive's `coreScript`/`pokeScript` sources, per concrete node type.
 
 ## Action

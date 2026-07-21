@@ -73,7 +73,7 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 			nodesByName.emplace(descriptor.name, GraphHandle<GraphNode>(node));
 		}
 
-		// -- Pass 2: wire edges (needs every node to already exist by name) --
+		// -- Pass 2: wire edges and notification sources (needs every node to already exist by name) --
 		for(unsigned i = 0; i < nodeCount; i++)
 		{
 			HiveNodeDescriptor descriptor = loader.getNode(i);
@@ -103,6 +103,19 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 				{
 					throw PersistException(PersistException::EDGE_CREATE_FAILED);
 				}
+			}
+
+			// This node receives notifications from each named source, so register it as a listener on them.
+			for(std::string& sourceName : descriptor.notifySourceNames)
+			{
+				auto sourceIt = nodesByName.find(sourceName);
+
+				if(sourceIt == nodesByName.end())
+				{
+					throw PersistException(PersistException::NOTIFY_SOURCE_NOT_FOUND);
+				}
+
+				sourceIt -> second.getInstance() -> addNotifyListener(fromHandle);
 			}
 		}
 

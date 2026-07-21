@@ -23,6 +23,10 @@ void SceneGeometry::addVertexes(std::vector<Vertex> vertexesToAdd, VertexVisibil
 	VertexGroup& group = __groupForVisibility(visibility);
 
 	group.vertexes.insert(group.vertexes.end(), vertexesToAdd.begin(), vertexesToAdd.end());
+
+	_bumpVersion();
+
+	_vertexesChanged();
 }
 
 void SceneGeometry::addVertexes(double* rawData, unsigned length, VertexVisibility visibility)
@@ -57,6 +61,10 @@ void SceneGeometry::addVertexes(double* rawData, unsigned length, VertexVisibili
 
 		group.vertexes.push_back(newVertex);
 	}
+
+	_bumpVersion();
+
+	_vertexesChanged();
 }
 
 std::size_t SceneGeometry::getVertexCount() const
@@ -79,7 +87,7 @@ void SceneGeometry::populateSurface(GraphHandle<GraphHiveSceneSurface> surface, 
 
 		for(VertexGroup vertGroup : _vertexGroups)
 		{
-			surfacePtr -> addVertexes(vertGroup.vertexes, vertGroup.id, nodeId, pokeable, vertGroup.visibility);
+			surfacePtr -> addVertexes(vertGroup.vertexes, vertGroup.id, nodeId, getVersion(), pokeable, vertGroup.visibility);
 		}
 	}
 }

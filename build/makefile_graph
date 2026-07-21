@@ -5,7 +5,7 @@ GraphNode.cpp GraphNodeLocation.cpp GraphNodeScheduledActionThreadPoolWorkUnit.c
 actions/ActionFactory.cpp actions/AnimateAction.cpp actions/PingAction.cpp actions/SceneAction.cpp actions/StrobeAction.cpp actions/ScriptAction.cpp actions/SerialisableAction.cpp \
 actions/SerialisableActionPayload.cpp \
 nodes/AnimateScriptNode.cpp nodes/PingNode.cpp nodes/SceneGeometry.cpp nodes/SceneGeometryNode.cpp nodes/SceneGeometryScriptNode.cpp nodes/SceneRootNode.cpp \
-nodes/SceneTransformNode.cpp nodes/SceneTransformScriptNode.cpp nodes/ScriptNode.cpp \
+nodes/SceneTransform.cpp nodes/SceneTransformNode.cpp nodes/SceneTransformScriptNode.cpp nodes/ScriptNode.cpp \
 nodes/StrobeEmitterNode.cpp nodes/StrobeScriptNode.cpp nodes/TeleportNode.cpp
 
 objFiles = $(srcFiles:.cpp=.o)

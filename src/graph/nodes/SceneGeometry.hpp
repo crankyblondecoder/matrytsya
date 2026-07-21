@@ -7,6 +7,7 @@
 
 #include "../graphSceneElements.hpp"
 #include "../GraphHandle.hpp"
+#include "../GraphVersioned.hpp"
 
 class GraphHiveSceneSurface;
 
@@ -15,7 +16,7 @@ class GraphHiveSceneSurface;
  * ways of appending to it (Vertex structs or raw serialised data), so that both the C++ and Lua-scripted
  * geometry nodes reuse a single implementation.
  */
-class SceneGeometry
+class SceneGeometry : public GraphVersioned
 {
 	public:
 
@@ -89,6 +90,12 @@ class SceneGeometry
 		void populateSurface(GraphHandle<GraphHiveSceneSurface> surface, unsigned nodeId, bool pokeable);
 
 	protected:
+
+		/**
+		 * Subclass hook called whenever vertexes are added.
+		 * @note Implementations must emit the CHANGED notification.
+		 */
+		virtual void _vertexesChanged() = 0;
 
 	private:
 

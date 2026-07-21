@@ -210,6 +210,46 @@ TEST(HiveBuilderTest, UnknownActionFlagName_ThrowsUnknownActionFlag)
 }
 
 /**
+ * A node whose notifySourceNames reference existing nodes builds without throwing; each named source
+ * is resolved and this node registered on it as a listener.
+ */
+TEST(HiveBuilderTest, NotifySources_BuildsAndWires)
+{
+	FakeHiveLoader loader;
+	loader.hiveName = "Hive";
+
+	HiveNodeDescriptor listener = _makePingDescriptor("listener");
+	listener.notifySourceNames.push_back("source");
+
+	loader.nodes.push_back(listener);
+	loader.nodes.push_back(_makePingDescriptor("source"));
+
+	GraphHive* hive = HiveBuilder::build(loader, 1);
+	GraphHandle<GraphHive> hiveHandle(hive);
+
+	EXPECT_TRUE(hive -> getNode("listener").isValid());
+	EXPECT_TRUE(hive -> getNode("source").isValid());
+
+	hive -> shutdown();
+}
+
+/**
+ * A notifySources entry naming a node that doesn't exist among this hive's nodes is rejected.
+ */
+TEST(HiveBuilderTest, NotifySourceNotFound_ThrowsNotifySourceNotFound)
+{
+	FakeHiveLoader loader;
+	loader.hiveName = "Hive";
+
+	HiveNodeDescriptor listener = _makePingDescriptor("listener");
+	listener.notifySourceNames.push_back("missing");
+
+	loader.nodes.push_back(listener);
+
+	EXPECT_THROW(HiveBuilder::build(loader, 1), PersistException);
+}
+
+/**
  * A strobe emitter registration with a period of 0 is rejected rather than silently ignored.
  */
 TEST(HiveBuilderTest, StrobeEmitterPeriodZero_ThrowsInvalidStrobePeriod)

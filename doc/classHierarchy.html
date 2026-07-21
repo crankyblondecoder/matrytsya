@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>matrytsya &mdash; C++ Class Hierarchy</title>
+<style>
+  :root {
+    --bg: #12161c;
+    --panel-bg: #1b212b;
+    --panel-border: #2c3542;
+    --text: #dbe2ea;
+    --text-dim: #8a97a8;
+    --accent: #5aa9e6;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    overflow: hidden;
+  }
+  #app { position: relative; width: 100vw; height: 100vh; }
+
+  svg { width: 100%; height: 100%; display: block; cursor: grab; }
+  svg.panning { cursor: grabbing; }
+
+  .node-box {
+    stroke-width: 1.5;
+    fill-opacity: 0.92;
+  }
+  .node-box.kind-struct { stroke-dasharray: 5,3; }
+  .node-label {
+    font-size: 11px;
+    font-weight: 600;
+    fill: #0b0e12;
+    pointer-events: none;
+    dominant-baseline: middle;
+    text-anchor: middle;
+  }
+  .node-alias {
+    font-size: 8.5px;
+    font-style: italic;
+    fill: #263042;
+    pointer-events: none;
+    dominant-baseline: middle;
+    text-anchor: middle;
+  }
+  .node.dimmed .node-box { fill-opacity: 0.12; stroke-opacity: 0.25; }
+  .node.dimmed .node-label,
+  .node.dimmed .node-alias { fill-opacity: 0.25; }
+
+  .node.selected .node-box { stroke: #ffffff; stroke-width: 3; }
+
+  .edge {
+    fill: none;
+    stroke: #6b7686;
+    stroke-width: 1.4;
+  }
+  .edge.virtual { stroke: #c07dea; }
+  .edge.private { stroke-dasharray: 6,4; }
+  .edge.dimmed { stroke-opacity: 0.08; }
+  .edge.lit { stroke-opacity: 1; stroke-width: 2.2; }
+
+  .edge-label {
+    font-size: 9px;
+    fill: var(--text-dim);
+    pointer-events: none;
+  }
+
+  /* -- UI chrome -- */
+  #topbar {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    pointer-events: none;
+    z-index: 10;
+  }
+  #topbar > * { pointer-events: auto; }
+  #title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  #title small {
+    display: block;
+    font-weight: 400;
+    font-size: 10.5px;
+    color: var(--text-dim);
+  }
+  #search {
+    flex: 0 0 220px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 13px;
+    outline: none;
+  }
+  #search:focus { border-color: var(--accent); }
+  .btn {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+  .btn:hover { border-color: var(--accent); }
+  #spacer { flex: 1; }
+
+  .panel {
+    position: absolute;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 12.5px;
+    max-width: 300px;
+    z-index: 10;
+  }
+  #legend { left: 12px; bottom: 12px; }
+  #legend h3, #info h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-dim); }
+  #legend .row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+  #legend .swatch { width: 14px; height: 14px; border-radius: 3px; flex: none; }
+  #legend .line { width: 26px; height: 0; border-top: 2px solid #6b7686; flex: none; }
+  #legend .line.dashed { border-top-style: dashed; }
+  #legend .line.virtual { border-color: #c07dea; }
+  #groupList { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 10px; margin-top: 6px; }
+  #groupList label { display: flex; align-items: center; gap: 6px; font-size: 11.5px; cursor: pointer; }
+  #groupList input { accent-color: var(--accent); }
+
+  #info { right: 12px; bottom: 12px; min-width: 220px; display: none; }
+  #info.visible { display: block; }
+  #info .field { margin: 4px 0; }
+  #info .field .k { color: var(--text-dim); font-size: 10.5px; text-transform: uppercase; }
+  #info .field .v { font-size: 13px; }
+  #info ul { margin: 4px 0 0; padding-left: 16px; }
+  #info li { cursor: pointer; color: var(--accent); }
+  #info li:hover { text-decoration: underline; }
+  #info-close { float: right; cursor: pointer; color: var(--text-dim); }
+
+  #stats {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    font-size: 11px;
+    color: var(--text-dim);
+    z-index: 10;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <div id="title">matrytsya class hierarchy<small>inheritance graph, generated from src/</small></div>
+    <input id="search" type="text" placeholder="Search class name&hellip;" autocomplete="off">
+    <button class="btn" id="resetViewBtn">Reset view</button>
+    <button class="btn" id="reheatBtn">Re-layout</button>
+    <div id="spacer"></div>
+  </div>
+
+  <div id="stats"></div>
+
+  <svg id="svg">
+    <defs>
+      <marker id="arrow" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+        <path d="M1,1 L11,6 L1,11 Z" fill="#12161c" stroke="#6b7686" stroke-width="1"></path>
+      </marker>
+      <marker id="arrowVirtual" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+        <path d="M1,1 L11,6 L1,11 Z" fill="#12161c" stroke="#c07dea" stroke-width="1"></path>
+      </marker>
+    </defs>
+    <g id="viewport">
+      <g id="edgeLayer"></g>
+      <g id="nodeLayer"></g>
+    </g>
+  </svg>
+
+  <div class="panel" id="legend">
+    <h3>Legend</h3>
+    <div class="row"><div class="line"></div><span>public inheritance</span></div>
+    <div class="row"><div class="line dashed"></div><span>private inheritance</span></div>
+    <div class="row"><div class="line virtual"></div><span>virtual inheritance</span></div>
+    <div class="row"><span style="width:14px;height:14px;border:1.5px solid #999;border-radius:3px;flex:none;"></span><span>class</span></div>
+    <div class="row"><span style="width:14px;height:14px;border:1.5px dashed #999;border-radius:3px;flex:none;"></span><span>struct (POD)</span></div>
+    <div class="row"><span style="width:14px;height:14px;border:3px double #999;border-radius:3px;flex:none;"></span><span>template</span></div>
+    <div id="groupList"></div>
+  </div>
+
+  <div class="panel" id="info">
+    <span id="info-close">&#10005;</span>
+    <h3 id="info-name"></h3>
+    <div class="field"><div class="k">Module</div><div class="v" id="info-group"></div></div>
+    <div class="field"><div class="k">File</div><div class="v" id="info-file"></div></div>
+    <div class="field" id="info-alias-field" style="display:none"><div class="k">Also known as</div><div class="v" id="info-alias"></div></div>
+    <div class="field"><div class="k">Base classes</div><div class="v"><ul id="info-parents"></ul></div></div>
+    <div class="field"><div class="k">Derived classes</div><div class="v"><ul id="info-children"></ul></div></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ---------------------------------------------------------------------
+// Data: parsed by hand from src/**/*.hpp (public, non-vendored headers).
+// Vendored third-party code (src/lua, src/mongoose, src/rapidjson) and
+// src/test/** helper/mock classes are excluded to keep this focused on
+// the project's own architecture.
+// ---------------------------------------------------------------------
+
+var groups = {
+  util:          { label: "util",                 color: "#8e44ad" },
+  graph:         { label: "graph",                 color: "#2980b9" },
+  actionTargets: { label: "graph/actionTargets",   color: "#16a085" },
+  actions:       { label: "graph/actions",         color: "#27ae60" },
+  nodes:         { label: "graph/nodes",           color: "#d35400" },
+  display:       { label: "display",               color: "#c0392b" },
+  http:          { label: "display/http",          color: "#e67e22" },
+  persist:       { label: "persist",               color: "#f39c12" },
+  persistJson:   { label: "persist/json",          color: "#f1c40f" },
+  log:           { label: "log",                   color: "#95a5a6" },
+  thread:        { label: "thread",                color: "#34495e" }
+};
+
+var nodes = [
+  // -- util --
+  { id: "RefCounted",       group: "util", kind: "class",    file: "util/RefCounted.hpp" },
+  { id: "Exception",        group: "util", kind: "class",    file: "util/Exception.hpp" },
+  { id: "EventEmitter",     group: "util", kind: "template", file: "util/EventEmitter.hpp", label: "EventEmitter<T>" },
+  { id: "EventListener",    group: "util", kind: "template", file: "util/EventListener.hpp", label: "EventListener<T>" },
+
+  // -- graph --
+  { id: "GraphActionTargetable", group: "graph", kind: "class", file: "graph/GraphActionTargetable.hpp" },
+  { id: "GraphNamed",            group: "graph", kind: "class", file: "graph/GraphNamed.hpp" },
+  { id: "GraphFocusable",        group: "graph", kind: "class", file: "graph/GraphFocusable.hpp" },
+  { id: "GraphNodeLocation",     group: "graph", kind: "class", file: "graph/GraphNodeLocation.hpp" },
+  { id: "GraphPoke",             group: "graph", kind: "class", file: "graph/GraphPoke.hpp" },
+  { id: "GraphHiveSurfaceListener", group: "graph", kind: "class", file: "graph/GraphHiveSurfaceListener.hpp" },
+  { id: "GraphHiveCollection",   group: "graph", kind: "class", file: "graph/GraphHiveCollection.hpp" },
+  { id: "GraphNode",             group: "graph", kind: "class", file: "graph/GraphNode.hpp" },
+  { id: "GraphEdge",             group: "graph", kind: "class", file: "graph/GraphEdge.hpp" },
+  { id: "GraphException",        group: "graph", kind: "class", file: "graph/GraphException.hpp" },
+  { id: "GraphAction",           group: "graph", kind: "class", file: "graph/GraphAction.hpp" },
+  { id: "GraphActionThreadPoolWorkUnit", group: "graph", kind: "class", file: "graph/GraphActionThreadPoolWorkUnit.hpp" },
+  { id: "GraphNodeScheduledActionThreadPoolWorkUnit", group: "graph", kind: "class", file: "graph/GraphNodeScheduledActionThreadPoolWorkUnit.hpp" },
+  { id: "GraphHiveStrobeScheduler", group: "graph", kind: "class", file: "graph/GraphHiveStrobeScheduler.hpp" },
+  { id: "GraphHiveSurface",      group: "graph", kind: "class", file: "graph/GraphHiveSurface.hpp" },
+  { id: "GraphHiveSceneSurface", group: "graph", kind: "class", file: "graph/GraphHiveSceneSurface.hpp" },
+  { id: "GraphHive",             group: "graph", kind: "class", file: "graph/GraphHive.hpp" },
+  { id: "GraphHandle",           group: "graph", kind: "template", file: "graph/GraphHandle.hpp", label: "GraphHandle<T>" },
+
+  // -- graph/actionTargets --
+  { id: "ActionTarget",           group: "actionTargets", kind: "class", file: "graph/actionTargets/ActionTarget.hpp" },
+  { id: "AnimateActionTarget",    group: "actionTargets", kind: "class", file: "graph/actionTargets/AnimateActionTarget.hpp" },
+  { id: "PingActionTarget",       group: "actionTargets", kind: "class", file: "graph/actionTargets/PingActionTarget.hpp" },
+  { id: "SceneActionTarget",      group: "actionTargets", kind: "class", file: "graph/actionTargets/SceneActionTarget.hpp" },
+  { id: "ScriptActionTarget",     group: "actionTargets", kind: "class", file: "graph/actionTargets/ScriptActionTarget.hpp" },
+  { id: "StrobeActionTarget",     group: "actionTargets", kind: "class", file: "graph/actionTargets/StrobeActionTarget.hpp" },
+  { id: "SerialisableActionTarget", group: "actionTargets", kind: "class", file: "graph/actionTargets/SerialisableActionTarget.hpp" },
+
+  // -- graph/actions --
+  { id: "ActionFactory",             group: "actions", kind: "class", file: "graph/actions/ActionFactory.hpp" },
+  { id: "SerialisableActionPayload", group: "actions", kind: "class", file: "graph/actions/SerialisableActionPayload.hpp" },
+  { id: "SerialisableAction",        group: "actions", kind: "class", file: "graph/actions/SerialisableAction.hpp" },
+  { id: "PingAction",                group: "actions", kind: "class", file: "graph/actions/PingAction.hpp" },
+  { id: "ScriptAction",              group: "actions", kind: "class", file: "graph/actions/ScriptAction.hpp" },
+  { id: "StrobeAction",              group: "actions", kind: "class", file: "graph/actions/StrobeAction.hpp" },
+  { id: "SceneAction",               group: "actions", kind: "class", file: "graph/actions/SceneAction.hpp" },
+  { id: "AnimateAction",             group: "actions", kind: "class", file: "graph/actions/AnimateAction.hpp" },
+
+  // -- graph/nodes --
+  { id: "SceneGeometry",           group: "nodes", kind: "class", file: "graph/nodes/SceneGeometry.hpp" },
+  { id: "SceneTransformNode",      group: "nodes", kind: "class", file: "graph/nodes/SceneTransformNode.hpp" },
+  { id: "ScriptNode",              group: "nodes", kind: "class", file: "graph/nodes/ScriptNode.hpp" },
+  { id: "StrobeScriptNode",        group: "nodes", kind: "class", file: "graph/nodes/StrobeScriptNode.hpp" },
+  { id: "AnimateScriptNode",       group: "nodes", kind: "class", file: "graph/nodes/AnimateScriptNode.hpp" },
+  { id: "SceneGeometryScriptNode", group: "nodes", kind: "class", file: "graph/nodes/SceneGeometryScriptNode.hpp" },
+  { id: "SceneTransformScriptNode", group: "nodes", kind: "class", file: "graph/nodes/SceneTransformScriptNode.hpp" },
+  { id: "PingNode",                group: "nodes", kind: "class", file: "graph/nodes/PingNode.hpp" },
+  { id: "StrobeEmitterNode",       group: "nodes", kind: "class", file: "graph/nodes/StrobeEmitterNode.hpp" },
+  { id: "SceneRootNode",           group: "nodes", kind: "class", file: "graph/nodes/SceneRootNode.hpp" },
+  { id: "SceneGeometryNode",       group: "nodes", kind: "class", file: "graph/nodes/SceneGeometryNode.hpp" },
+  { id: "TeleportNode",            group: "nodes", kind: "class", file: "graph/nodes/TeleportNode.hpp" },
+
+  // -- display --
+  { id: "DisplayException",           group: "display", kind: "class", file: "display/DisplayException.hpp" },
+  { id: "GraphHiveSurfaceMap",        group: "display", kind: "class", file: "display/GraphHiveSurfaceMap.hpp" },
+  { id: "GraphHiveSurfaceHttpMap",    group: "display", kind: "class", file: "display/GraphHiveSurfaceHttpMap.hpp" },
+  { id: "GraphHiveSceneSurfaceWebglMap", group: "display", kind: "class", file: "display/GraphHiveSceneSurfaceWebglMap.hpp" },
+
+  // -- display/http --
+  { id: "HttpRequest",        group: "http", kind: "class", file: "display/http/HttpRequest.hpp" },
+  { id: "HttpResponse",       group: "http", kind: "class", file: "display/http/HttpResponse.hpp" },
+  { id: "HttpRequestHandler", group: "http", kind: "class", file: "display/http/HttpRequestHandler.hpp" },
+  { id: "HttpServerBase",     group: "http", kind: "class", file: "display/http/HttpServerBase.hpp" },
+  { id: "HttpServerMongoose", group: "http", kind: "class", file: "display/http/HttpServerMongoose.hpp", alias: "HttpServer (via display/http/HttpServer.hpp typedef)" },
+  { id: "HttpServerMongoosePollThread", group: "http", kind: "class", file: "display/http/HttpServerMongoosePollThread.hpp" },
+
+  // -- persist --
+  { id: "HiveLoader",           group: "persist", kind: "class",  file: "persist/HiveLoader.hpp" },
+  { id: "HiveBuilder",          group: "persist", kind: "class",  file: "persist/HiveBuilder.hpp" },
+  { id: "PersistException",     group: "persist", kind: "class",  file: "persist/PersistException.hpp" },
+  { id: "HiveNodeDescriptor",   group: "persist", kind: "struct", file: "persist/HiveNodeDescriptor.hpp" },
+  { id: "HiveEdgeDescriptor",   group: "persist", kind: "struct", file: "persist/HiveNodeDescriptor.hpp" },
+  { id: "HiveSurfaceDescriptor", group: "persist", kind: "struct", file: "persist/HiveSurfaceDescriptor.hpp" },
+
+  // -- persist/json --
+  { id: "JsonHiveLoader", group: "persistJson", kind: "class", file: "persist/json/JsonHiveLoader.hpp" },
+
+  // -- log --
+  { id: "Logger", group: "log", kind: "class", file: "log/log.hpp" },
+
+  // -- thread --
+  { id: "ThreadBase",            group: "thread", kind: "class", file: "thread/ThreadBase.hpp" },
+  { id: "ThreadPthread",         group: "thread", kind: "class", file: "thread/ThreadPthread.hpp", alias: "Thread (via thread/Thread.hpp typedef)" },
+  { id: "ThreadMutexBase",       group: "thread", kind: "class", file: "thread/ThreadMutexBase.hpp" },
+  { id: "ThreadMutexPthread",    group: "thread", kind: "class", file: "thread/ThreadMutexPthread.hpp", alias: "ThreadMutex (via thread/ThreadMutex.hpp typedef)" },
+  { id: "ThreadConditionBase",   group: "thread", kind: "class", file: "thread/ThreadConditionBase.hpp" },
+  { id: "ThreadConditionPthread", group: "thread", kind: "class", file: "thread/ThreadConditionPthread.hpp", alias: "ThreadCondition (via thread/ThreadCondition.hpp typedef)" },
+  { id: "ThreadPoolWorkUnit",    group: "thread", kind: "class", file: "thread/ThreadPoolWorkUnit.hpp" },
+  { id: "ThreadLock",            group: "thread", kind: "class", file: "thread/ThreadLock.hpp" },
+  { id: "ThreadPool",            group: "thread", kind: "class", file: "thread/ThreadPool.hpp" },
+  { id: "ThreadPoolWorkThread",  group: "thread", kind: "class", file: "thread/ThreadPoolWorkThread.hpp" },
+  { id: "ThreadException",       group: "thread", kind: "class", file: "thread/ThreadException.hpp" }
+];
+
+// { from: <base class id>, to: <derived class id>, access: "public"|"private", virtual: bool, label: optional edge annotation }
+var edges = [
+  { from: "Exception", to: "GraphException", access: "public" },
+  { from: "Exception", to: "DisplayException", access: "public" },
+  { from: "Exception", to: "ThreadException", access: "public" },
+  { from: "Exception", to: "PersistException", access: "public" },
+
+  { from: "RefCounted", to: "GraphNode", access: "public" },
+  { from: "GraphActionTargetable", to: "GraphNode", access: "public" },
+  { from: "GraphNamed", to: "GraphNode", access: "public" },
+  { from: "RefCounted", to: "GraphEdge", access: "public" },
+  { from: "RefCounted", to: "SerialisableActionPayload", access: "public" },
+  { from: "RefCounted", to: "GraphAction", access: "public" },
+  { from: "RefCounted", to: "GraphHiveSurface", access: "public" },
+  { from: "GraphNamed", to: "GraphHiveSurface", access: "public" },
+  { from: "EventEmitter", to: "GraphHiveSurface", access: "public", label: "<GraphHiveSurfaceListener>" },
+  { from: "GraphHiveSurface", to: "GraphHiveSceneSurface", access: "public" },
+  { from: "RefCounted", to: "GraphHive", access: "public" },
+  { from: "GraphNamed", to: "GraphHive", access: "public" },
+
+  { from: "ActionTarget", to: "AnimateActionTarget", access: "public", virtual: true },
+  { from: "ActionTarget", to: "PingActionTarget", access: "public", virtual: true },
+  { from: "ActionTarget", to: "SceneActionTarget", access: "public", virtual: true },
+  { from: "ActionTarget", to: "ScriptActionTarget", access: "public", virtual: true },
+  { from: "ActionTarget", to: "StrobeActionTarget", access: "public", virtual: true },
+
+  { from: "GraphNode", to: "SceneTransformNode", access: "public" },
+  { from: "SceneActionTarget", to: "SceneTransformNode", access: "public" },
+  { from: "StrobeActionTarget", to: "SceneTransformNode", access: "public" },
+
+  { from: "GraphNode", to: "ScriptNode", access: "public" },
+  { from: "ScriptActionTarget", to: "ScriptNode", access: "public" },
+
+  { from: "ScriptNode", to: "StrobeScriptNode", access: "public" },
+  { from: "StrobeActionTarget", to: "StrobeScriptNode", access: "public" },
+
+  { from: "StrobeScriptNode", to: "AnimateScriptNode", access: "public" },
+  { from: "AnimateActionTarget", to: "AnimateScriptNode", access: "public" },
+
+  { from: "AnimateScriptNode", to: "SceneGeometryScriptNode", access: "public" },
+  { from: "SceneActionTarget", to: "SceneGeometryScriptNode", access: "public" },
+  { from: "GraphFocusable", to: "SceneGeometryScriptNode", access: "public" },
+  { from: "SceneGeometry", to: "SceneGeometryScriptNode", access: "public" },
+
+  { from: "AnimateScriptNode", to: "SceneTransformScriptNode", access: "public" },
+  { from: "SceneActionTarget", to: "SceneTransformScriptNode", access: "public" },
+
+  { from: "GraphNode", to: "PingNode", access: "public" },
+  { from: "PingActionTarget", to: "PingNode", access: "public" },
+
+  { from: "GraphNode", to: "StrobeEmitterNode", access: "public" },
+  { from: "StrobeEmitterNode", to: "SceneRootNode", access: "public" },
+
+  { from: "GraphNode", to: "SceneGeometryNode", access: "public" },
+  { from: "SceneActionTarget", to: "SceneGeometryNode", access: "public" },
+  { from: "StrobeActionTarget", to: "SceneGeometryNode", access: "public" },
+  { from: "GraphFocusable", to: "SceneGeometryNode", access: "public" },
+  { from: "SceneGeometry", to: "SceneGeometryNode", access: "public" },
+
+  { from: "GraphNode", to: "TeleportNode", access: "public" },
+  { from: "SerialisableActionTarget", to: "TeleportNode", access: "public" },
+
+  { from: "GraphAction", to: "SerialisableAction", access: "public" },
+  { from: "SerialisableAction", to: "PingAction", access: "public" },
+  { from: "GraphAction", to: "ScriptAction", access: "public" },
+  { from: "ScriptAction", to: "StrobeAction", access: "public" },
+  { from: "GraphAction", to: "SceneAction", access: "public" },
+  { from: "GraphAction", to: "AnimateAction", access: "public" },
+
+  { from: "GraphHiveSurfaceMap", to: "GraphHiveSurfaceHttpMap", access: "public" },
+  { from: "HttpRequestHandler", to: "GraphHiveSurfaceHttpMap", access: "public" },
+  { from: "GraphHiveSurfaceHttpMap", to: "GraphHiveSceneSurfaceWebglMap", access: "public" },
+  { from: "EventListener", to: "GraphHiveSceneSurfaceWebglMap", access: "private", label: "<GraphHiveSurfaceListener>" },
+  { from: "GraphHiveSurfaceListener", to: "GraphHiveSceneSurfaceWebglMap", access: "private" },
+
+  { from: "HttpServerBase", to: "HttpServerMongoose", access: "public" },
+  { from: "ThreadPthread", to: "HttpServerMongoosePollThread", access: "public" },
+  { from: "ThreadPthread", to: "GraphHiveStrobeScheduler", access: "public" },
+  { from: "ThreadPthread", to: "ThreadPool", access: "private" },
+  { from: "ThreadPthread", to: "ThreadPoolWorkThread", access: "public" },
+
+  { from: "ThreadBase", to: "ThreadPthread", access: "public" },
+  { from: "ThreadMutexBase", to: "ThreadMutexPthread", access: "public" },
+  { from: "ThreadConditionBase", to: "ThreadConditionPthread", access: "public" },
+
+  { from: "ThreadPoolWorkUnit", to: "GraphActionThreadPoolWorkUnit", access: "public" },
+  { from: "ThreadPoolWorkUnit", to: "GraphNodeScheduledActionThreadPoolWorkUnit", access: "public" },
+
+  { from: "HiveLoader", to: "JsonHiveLoader", access: "public" }
+];
+
+// ---------------------------------------------------------------------
+// Layout: minimal force-directed simulation (Fruchterman-Reingold-ish).
+// ---------------------------------------------------------------------
+
+var byId = {};
+nodes.forEach(function (n) {
+  n.w = Math.max(90, 14 + (n.label || n.id).length * 6.6);
+  n.h = 34;
+  byId[n.id] = n;
+});
+
+var neighbours = {};
+nodes.forEach(function (n) { neighbours[n.id] = { parents: [], children: [] }; });
+edges.forEach(function (e) {
+  neighbours[e.to].parents.push(e.from);
+  neighbours[e.from].children.push(e.to);
+});
+
+// Seed positions: cluster nodes of the same group around a per-group
+// anchor point arranged in a ring, so the simulation converges faster
+// and related classes start out near each other.
+var groupIds = Object.keys(groups);
+var worldR = 900;
+var groupAnchor = {};
+groupIds.forEach(function (g, i) {
+  var a = (i / groupIds.length) * Math.PI * 2;
+  groupAnchor[g] = { x: Math.cos(a) * worldR, y: Math.sin(a) * worldR };
+});
+
+nodes.forEach(function (n) {
+  var anchor = groupAnchor[n.group];
+  n.x = anchor.x + (Math.random() - 0.5) * 260;
+  n.y = anchor.y + (Math.random() - 0.5) * 260;
+  n.vx = 0;
+  n.vy = 0;
+  n.fx = null;
+  n.fy = null;
+});
+
+var REPULSE = 26000;
+var SPRING_LEN = 150;
+var SPRING_K = 0.02;
+var GROUP_K = 0.006;
+var CENTER_K = 0.0025;
+var DAMPING = 0.82;
+
+var alpha = 1;
+var ALPHA_DECAY = 0.985;
+var ALPHA_MIN = 0.001;
+var simRunning = true;
+
+function groupCentroid(g) {
+  var sx = 0, sy = 0, c = 0;
+  nodes.forEach(function (n) { if (n.group === g) { sx += n.x; sy += n.y; c++; } });
+  return c ? { x: sx / c, y: sy / c } : groupAnchor[g];
+}
+
+function tick() {
+  var centroids = {};
+  groupIds.forEach(function (g) { centroids[g] = groupCentroid(g); });
+
+  for (var i = 0; i < nodes.length; i++) {
+    var a = nodes[i];
+    for (var j = i + 1; j < nodes.length; j++) {
+      var b = nodes[j];
+      var dx = a.x - b.x, dy = a.y - b.y;
+      var distSq = dx * dx + dy * dy || 0.01;
+      var dist = Math.sqrt(distSq);
+      var force = (REPULSE / distSq) * alpha;
+      var fx = (dx / dist) * force, fy = (dy / dist) * force;
+      a.vx += fx; a.vy += fy;
+      b.vx -= fx; b.vy -= fy;
+    }
+  }
+
+  edges.forEach(function (e) {
+    var a = byId[e.from], b = byId[e.to];
+    var dx = b.x - a.x, dy = b.y - a.y;
+    var dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+    var diff = (dist - SPRING_LEN) * SPRING_K * alpha;
+    var fx = (dx / dist) * diff, fy = (dy / dist) * diff;
+    a.vx += fx; a.vy += fy;
+    b.vx -= fx; b.vy -= fy;
+  });
+
+  nodes.forEach(function (n) {
+    var c = centroids[n.group];
+    n.vx += (c.x - n.x) * GROUP_K * alpha;
+    n.vy += (c.y - n.y) * GROUP_K * alpha;
+    n.vx += (0 - n.x) * CENTER_K * alpha;
+    n.vy += (0 - n.y) * CENTER_K * alpha;
+  });
+
+  nodes.forEach(function (n) {
+    if (n.fx !== null) { n.x = n.fx; n.y = n.fy; n.vx = 0; n.vy = 0; return; }
+    n.vx *= DAMPING; n.vy *= DAMPING;
+    n.x += n.vx; n.y += n.vy;
+  });
+
+  alpha *= ALPHA_DECAY;
+}
+
+// ---------------------------------------------------------------------
+// Rendering.
+// ---------------------------------------------------------------------
+
+var svg = document.getElementById("svg");
+var viewport = document.getElementById("viewport");
+var edgeLayer = document.getElementById("edgeLayer");
+var nodeLayer = document.getElementById("nodeLayer");
+var NS = "http://www.w3.org/2000/svg";
+
+function el(tag, attrs) {
+  var e = document.createElementNS(NS, tag);
+  for (var k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+var edgeEls = edges.map(function (e) {
+  var line = el("line", { class: "edge" + (e.virtual ? " virtual" : "") + (e.access === "private" ? " private" : "") });
+  line.setAttribute("marker-end", e.virtual ? "url(#arrowVirtual)" : "url(#arrow)");
+  edgeLayer.appendChild(line);
+  var label = null;
+  if (e.label) {
+    label = el("text", { class: "edge-label" });
+    label.textContent = e.label;
+    edgeLayer.appendChild(label);
+  }
+  return { data: e, line: line, label: label };
+});
+
+var nodeEls = nodes.map(function (n) {
+  var g = el("g", { class: "node", "data-id": n.id });
+  var rx = n.kind === "struct" ? 4 : 8;
+  var box = el("rect", {
+    class: "node-box kind-" + n.kind,
+    x: -n.w / 2, y: -n.h / 2, width: n.w, height: n.h, rx: rx,
+    fill: groups[n.group].color,
+    stroke: groups[n.group].color
+  });
+  if (n.kind === "template") box.setAttribute("stroke-width", "4");
+  g.appendChild(box);
+
+  var label = el("text", { class: "node-label", y: n.alias ? -4 : 0 });
+  label.textContent = n.label || n.id;
+  g.appendChild(label);
+
+  if (n.alias) {
+    var aliasText = el("text", { class: "node-alias", y: 10 });
+    aliasText.textContent = "aka " + n.alias.split(" (")[0];
+    g.appendChild(aliasText);
+  }
+
+  nodeLayer.appendChild(g);
+  return { data: n, g: g };
+});
+
+function render() {
+  edgeEls.forEach(function (e) {
+    var a = byId[e.data.from], b = byId[e.data.to];
+    var pa = clipToRect(a, b.x, b.y);
+    var pb = clipToRect(b, a.x, a.y);
+    e.line.setAttribute("x1", pa.x); e.line.setAttribute("y1", pa.y);
+    e.line.setAttribute("x2", pb.x); e.line.setAttribute("y2", pb.y);
+    if (e.label) {
+      e.label.setAttribute("x", (pa.x + pb.x) / 2 + 4);
+      e.label.setAttribute("y", (pa.y + pb.y) / 2 - 4);
+    }
+  });
+  nodeEls.forEach(function (n) {
+    n.g.setAttribute("transform", "translate(" + n.data.x + "," + n.data.y + ")");
+  });
+}
+
+// Clip a line from rect center toward (tx,ty) to the rect's boundary.
+function clipToRect(n, tx, ty) {
+  var dx = tx - n.x, dy = ty - n.y;
+  if (dx === 0 && dy === 0) return { x: n.x, y: n.y };
+  var hw = n.w / 2, hh = n.h / 2;
+  var scale = Math.min(
+    dx !== 0 ? hw / Math.abs(dx) : Infinity,
+    dy !== 0 ? hh / Math.abs(dy) : Infinity
+  );
+  return { x: n.x + dx * scale, y: n.y + dy * scale };
+}
+
+// ---------------------------------------------------------------------
+// Simulation loop.
+// ---------------------------------------------------------------------
+
+function loop() {
+  if (simRunning) {
+    tick();
+    render();
+    if (alpha < ALPHA_MIN) simRunning = false;
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+function reheat(a) {
+  alpha = Math.max(alpha, a || 0.35);
+  simRunning = true;
+}
+
+// ---------------------------------------------------------------------
+// Pan / zoom.
+// ---------------------------------------------------------------------
+
+var view = { x: 0, y: 0, scale: 0.55 };
+function applyView() {
+  viewport.setAttribute("transform",
+    "translate(" + view.x + "," + view.y + ") scale(" + view.scale + ")");
+}
+
+function centerView() {
+  var rect = svg.getBoundingClientRect();
+  view.x = rect.width / 2;
+  view.y = rect.height / 2;
+  view.scale = 0.55;
+  applyView();
+}
+centerView();
+window.addEventListener("resize", function () {
+  var rect = svg.getBoundingClientRect();
+  view.x = rect.width / 2 + (view.x - lastCenterX);
+  view.y = rect.height / 2 + (view.y - lastCenterY);
+  lastCenterX = rect.width / 2;
+  lastCenterY = rect.height / 2;
+  applyView();
+});
+var lastCenterX = 0, lastCenterY = 0;
+(function () { var r = svg.getBoundingClientRect(); lastCenterX = r.width / 2; lastCenterY = r.height / 2; })();
+
+svg.addEventListener("wheel", function (ev) {
+  ev.preventDefault();
+  var rect = svg.getBoundingClientRect();
+  var mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
+  var worldX = (mx - view.x) / view.scale;
+  var worldY = (my - view.y) / view.scale;
+  var factor = ev.deltaY < 0 ? 1.12 : 1 / 1.12;
+  view.scale = Math.min(4, Math.max(0.08, view.scale * factor));
+  view.x = mx - worldX * view.scale;
+  view.y = my - worldY * view.scale;
+  applyView();
+}, { passive: false });
+
+var panning = false, panStart = null;
+svg.addEventListener("pointerdown", function (ev) {
+  if (ev.target.closest && ev.target.closest(".node")) return;
+  panning = true;
+  svg.classList.add("panning");
+  panStart = { x: ev.clientX - view.x, y: ev.clientY - view.y };
+  clearSelection();
+});
+window.addEventListener("pointermove", function (ev) {
+  if (!panning) return;
+  view.x = ev.clientX - panStart.x;
+  view.y = ev.clientY - panStart.y;
+  applyView();
+});
+window.addEventListener("pointerup", function () { panning = false; svg.classList.remove("panning"); });
+
+document.getElementById("resetViewBtn").addEventListener("click", centerView);
+document.getElementById("reheatBtn").addEventListener("click", function () { reheat(1); });
+
+// ---------------------------------------------------------------------
+// Node dragging.
+// ---------------------------------------------------------------------
+
+nodeEls.forEach(function (n) {
+  var dragging = false, downX = 0, downY = 0, moved = false;
+  n.g.addEventListener("pointerdown", function (ev) {
+    ev.stopPropagation();
+    dragging = true;
+    moved = false;
+    downX = ev.clientX; downY = ev.clientY;
+    reheat(0.25);
+    move(ev);
+  });
+  function move(ev) {
+    if (Math.abs(ev.clientX - downX) > 3 || Math.abs(ev.clientY - downY) > 3) moved = true;
+    var rect = svg.getBoundingClientRect();
+    var mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
+    n.data.fx = (mx - view.x) / view.scale;
+    n.data.fy = (my - view.y) / view.scale;
+  }
+  window.addEventListener("pointermove", function (ev) { if (dragging) move(ev); });
+  window.addEventListener("pointerup", function () {
+    if (!dragging) return;
+    dragging = false;
+    n.data.fx = null; n.data.fy = null;
+    if (!moved) selectNode(n.data.id);
+  });
+});
+
+// ---------------------------------------------------------------------
+// Selection / info panel / search.
+// ---------------------------------------------------------------------
+
+var selectedId = null;
+
+function relatedSet(id) {
+  var set = new Set([id]);
+  neighbours[id].parents.forEach(function (p) { set.add(p); });
+  neighbours[id].children.forEach(function (c) { set.add(c); });
+  return set;
+}
+
+function clearSelection() {
+  selectedId = null;
+  nodeEls.forEach(function (n) { n.g.classList.remove("dimmed", "selected"); });
+  edgeEls.forEach(function (e) { e.line.classList.remove("dimmed", "lit"); });
+  document.getElementById("info").classList.remove("visible");
+}
+
+function selectNode(id) {
+  selectedId = id;
+  var related = relatedSet(id);
+  nodeEls.forEach(function (n) {
+    n.g.classList.toggle("dimmed", !related.has(n.data.id));
+    n.g.classList.toggle("selected", n.data.id === id);
+  });
+  edgeEls.forEach(function (e) {
+    var touches = e.data.from === id || e.data.to === id;
+    e.line.classList.toggle("dimmed", !touches);
+    e.line.classList.toggle("lit", touches);
+  });
+  showInfo(id);
+}
+
+function showInfo(id) {
+  var n = byId[id];
+  var info = document.getElementById("info");
+  info.classList.add("visible");
+  document.getElementById("info-name").textContent = n.label || n.id;
+  document.getElementById("info-group").textContent = groups[n.group].label + "  ·  " + n.kind;
+  document.getElementById("info-file").textContent = "src/" + n.file;
+  var aliasField = document.getElementById("info-alias-field");
+  if (n.alias) { aliasField.style.display = ""; document.getElementById("info-alias").textContent = n.alias; }
+  else { aliasField.style.display = "none"; }
+
+  var parents = neighbours[id].parents, children = neighbours[id].children;
+  var pList = document.getElementById("info-parents");
+  var cList = document.getElementById("info-children");
+  pList.innerHTML = ""; cList.innerHTML = "";
+  if (!parents.length) pList.innerHTML = "<li style='color:#8a97a8;cursor:default'>(none)</li>";
+  parents.forEach(function (p) {
+    var li = document.createElement("li");
+    li.textContent = byId[p].label || p;
+    li.addEventListener("click", function () { selectNode(p); focusNode(p); });
+    pList.appendChild(li);
+  });
+  if (!children.length) cList.innerHTML = "<li style='color:#8a97a8;cursor:default'>(none)</li>";
+  children.forEach(function (c) {
+    var li = document.createElement("li");
+    li.textContent = byId[c].label || c;
+    li.addEventListener("click", function () { selectNode(c); focusNode(c); });
+    cList.appendChild(li);
+  });
+}
+
+function focusNode(id) {
+  var n = byId[id];
+  var rect = svg.getBoundingClientRect();
+  view.x = rect.width / 2 - n.x * view.scale;
+  view.y = rect.height / 2 - n.y * view.scale;
+  applyView();
+}
+
+document.getElementById("info-close").addEventListener("click", clearSelection);
+
+// Search
+var searchBox = document.getElementById("search");
+searchBox.addEventListener("input", function () {
+  var q = searchBox.value.trim().toLowerCase();
+  if (!q) { clearSelection(); return; }
+  var matches = new Set();
+  nodeEls.forEach(function (n) {
+    if ((n.data.label || n.data.id).toLowerCase().indexOf(q) !== -1) matches.add(n.data.id);
+  });
+  nodeEls.forEach(function (n) { n.g.classList.toggle("dimmed", !matches.has(n.data.id)); n.g.classList.remove("selected"); });
+  edgeEls.forEach(function (e) {
+    var touches = matches.has(e.data.from) && matches.has(e.data.to);
+    e.line.classList.toggle("dimmed", !touches);
+    e.line.classList.toggle("lit", touches);
+  });
+  document.getElementById("info").classList.remove("visible");
+});
+
+// ---------------------------------------------------------------------
+// Legend group toggles.
+// ---------------------------------------------------------------------
+
+var groupListEl = document.getElementById("groupList");
+groupIds.forEach(function (g) {
+  var label = document.createElement("label");
+  var cb = document.createElement("input");
+  cb.type = "checkbox"; cb.checked = true; cb.dataset.group = g;
+  var swatch = document.createElement("span");
+  swatch.style.width = "10px"; swatch.style.height = "10px"; swatch.style.borderRadius = "2px";
+  swatch.style.background = groups[g].color; swatch.style.display = "inline-block"; swatch.style.flex = "none";
+  var text = document.createElement("span");
+  text.textContent = groups[g].label;
+  label.appendChild(cb); label.appendChild(swatch); label.appendChild(text);
+  groupListEl.appendChild(label);
+
+  cb.addEventListener("change", function () {
+    var visible = cb.checked;
+    nodeEls.forEach(function (n) {
+      if (n.data.group === g) n.g.style.display = visible ? "" : "none";
+    });
+    edgeEls.forEach(function (e) {
+      var aVisible = nodeEls.find(function (x) { return x.data.id === e.data.from; }).g.style.display !== "none";
+      var bVisible = nodeEls.find(function (x) { return x.data.id === e.data.to; }).g.style.display !== "none";
+      e.line.style.display = (aVisible && bVisible) ? "" : "none";
+      if (e.label) e.label.style.display = e.line.style.display;
+    });
+  });
+});
+
+// ---------------------------------------------------------------------
+// Stats.
+// ---------------------------------------------------------------------
+
+document.getElementById("stats").textContent = nodes.length + " classes/structs · " + edges.length + " inheritance edges";
+</script>
+</body>
+</html>

@@ -3,7 +3,11 @@
 // The WebGL viewer page. It fetches this map's data endpoint and renders the returned chunks as triangles,
 // applying each chunk's model transform on the client before upload so that only a single camera uniform is
 // needed to draw the whole scene. It polls the map's revision endpoint to detect a changed or replaced surface,
-// only re-fetching and re-uploading scene data when the revision actually changes.
+// only re-fetching scene data when the revision actually changes. The data fetch itself is incremental: the
+// viewer tells the server which chunks it already holds vertex data for (by id and vertex version), the server
+// omits vertexes for any chunk that hasn't changed, and the viewer reuses its cached per-chunk geometry -
+// re-deriving world-space positions/normals only for chunks whose model transform actually changed - instead of
+// reprocessing the whole scene on every poll.
 const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 <html>
 <head>
@@ -269,6 +273,19 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	// same node's HOVERED_OVER chunks.
 	var chunkNodeId = {};
 
+	// Per-chunk cache, keyed by nodeId + ':' + chunkId, surviving across loadScene() calls. Holds each chunk's
+	// last known vertexVersion plus its local (untransformed) positions/colors/normals and the world-space
+	// positions/normals last derived from them, so a load where the server omits a chunk's vertexes (because
+	// this cache already reported holding that version) can reuse the local data instead of asking again, and a
+	// load where only the chunk's model transform changed can re-derive world-space geometry from the cached
+	// local data without needing fresh vertexes at all. Rebuilt (not mutated) on every load so chunks no longer
+	// present in the scene are naturally dropped.
+	var chunkCache = {};
+
+	// The model transforms from the previous loadScene() call, so each load only needs to redo the per-vertex
+	// world-space transform for chunks whose model transform actually changed, rather than for the whole scene.
+	var lastModelTransforms = [];
+
 	// Id of the node currently under the pointer (via one of its pokeable chunks), or null. Drives which
 	// HOVERED_OVER chunks are shown.
 	var hoveredNodeId = null;
@@ -476,6 +493,7 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 				camera.centre[i] += worldUp[i] * dy * perPixel;
 			}
 
+			scheduleDraw();
 			return;
 		}
 
@@ -495,6 +513,8 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 		lastX = e.clientX;
 		lastY = e.clientY;
+
+		scheduleDraw();
 	});
 
 	// Reset hover state when the pointer leaves the canvas entirely, since no further mousemove will arrive
@@ -520,6 +540,7 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		camera.distance *= (1 + (e.deltaY > 0 ? 0.1 : -0.1));
 		camera.distance = Math.max(0.01, camera.distance);
 		e.preventDefault();
+		scheduleDraw();
 	}, { passive: false });
 
 	// Right-clicking a pokeable chunk recentres the orbit on the picked point instead of opening the
@@ -541,6 +562,8 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 			centreAnimFrom = camera.centre.slice();
 			centreAnimTo = picked.point;
 			centreAnimStartTime = performance.now();
+
+			scheduleDraw();
 		}
 	});
 
@@ -616,8 +639,45 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		gl.viewport(0, 0, canvas.width, canvas.height);
 	}
 
-	window.addEventListener('resize', resize);
+	window.addEventListener('resize', function() { resize(); scheduleDraw(); });
 	resize();
+
+	// Applies a model transform to every (x, y, z) position triple in a flat local-space array, returning a new
+	// flat world-space array. Kept separate from vertex parsing so a chunk's cached local data can be
+	// re-transformed (e.g. because only its model transform changed) without needing fresh vertexes from the
+	// server.
+	function deriveWorldPositions(localPositions, modelTransform)
+	{
+		var out = new Array(localPositions.length);
+
+		for(var i = 0; i < localPositions.length; i += 3)
+		{
+			var worldPos = transformPoint(modelTransform, localPositions[i], localPositions[i + 1], localPositions[i + 2]);
+
+			out[i] = worldPos[0];
+			out[i + 1] = worldPos[1];
+			out[i + 2] = worldPos[2];
+		}
+
+		return out;
+	}
+
+	// As deriveWorldPositions(), but for normals (direction vectors, re-normalised after transforming).
+	function deriveWorldNormals(localNormals, modelTransform)
+	{
+		var out = new Array(localNormals.length);
+
+		for(var i = 0; i < localNormals.length; i += 3)
+		{
+			var worldNormal = transformNormal(modelTransform, localNormals[i], localNormals[i + 1], localNormals[i + 2]);
+
+			out[i] = worldNormal[0];
+			out[i + 1] = worldNormal[1];
+			out[i + 2] = worldNormal[2];
+		}
+
+		return out;
+	}
 
 	function loadScene(data)
 	{
@@ -642,10 +702,35 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 		for(var f = 0; f < data.focusChunkIds.length; f++) focusChunkIds[data.focusChunkIds[f]] = true;
 
+		// A model transform is unchanged from the previous load only if the same index held the same 16
+		// values. Comparing per-transform here is cheap (there are usually far fewer transforms than vertices)
+		// and lets each chunk below skip re-deriving world-space geometry unless its own transform moved.
+		var transformChanged = [];
+
+		for(var t = 0; t < data.modelTransforms.length; t++)
+		{
+			var prevTransform = lastModelTransforms[t];
+			var transform = data.modelTransforms[t].transform;
+			var changed = !prevTransform;
+
+			for(var i = 0; !changed && i < 16; i++)
+			{
+				if(transform[i] !== prevTransform[i]) changed = true;
+			}
+
+			transformChanged.push(changed);
+		}
+
+		// Rebuilt fresh each load (rather than mutating chunkCache in place) so that a chunk no longer present
+		// in data.chunks is naturally dropped instead of lingering forever.
+		var newChunkCache = {};
+
 		for(var c = 0; c < data.chunks.length; c++)
 		{
 			var chunk = data.chunks[c];
 			var modelTransform = data.modelTransforms[chunk.modelTransformIndex].transform;
+			var cacheKey = chunk.nodeId + ':' + chunk.id;
+			var cached = chunkCache[cacheKey];
 
 			// A missing/unknown visibility is treated as ALWAYS, matching the server default.
 			var opaque = (chunk.visibility === undefined || chunk.visibility === 'ALWAYS');
@@ -655,51 +740,95 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 			var chunkFocus = !!focusChunkIds[chunk.id];
 
-			// Per-chunk world-space geometry, kept so rebuildGeometry() can re-concatenate the visible chunks
-			// on a hover change without re-running the model transforms.
-			var chunkPositions = [];
-			var chunkColors = [];
-			var chunkNormals = [];
+			// Local (untransformed) vertex data plus this load's world-space positions/normals derived from it.
+			// Colors never need transforming, so they're identical whichever branch below fills them in.
+			var localPositions, colors, localNormals, worldPositions, worldNormals;
 
-			for(var v = 0; v < chunk.vertexes.length; v++)
+			if(chunk.vertexes !== null)
 			{
-				var vertex = chunk.vertexes[v];
+				// Fresh vertex data from the server: parse into local arrays, then derive world-space geometry.
+				localPositions = [];
+				colors = [];
+				localNormals = [];
 
-				var worldPos = transformPoint(modelTransform, vertex.posn[0], vertex.posn[1], vertex.posn[2]);
-				var worldNormal = transformNormal(modelTransform, vertex.normal[0], vertex.normal[1], vertex.normal[2]);
-
-				chunkPositions.push(worldPos[0], worldPos[1], worldPos[2]);
-				chunkColors.push(vertex.colour[0] / 255, vertex.colour[1] / 255, vertex.colour[2] / 255,
-					vertex.colour[3] / 255);
-				chunkNormals.push(worldNormal[0], worldNormal[1], worldNormal[2]);
-
-				// Only the always-on geometry contributes to picking and to the initial camera fit; hover-only
-				// chunks must not steal picks or enlarge the framing.
-				if(opaque)
+				for(var v = 0; v < chunk.vertexes.length; v++)
 				{
-					pickPositions.push(worldPos[0], worldPos[1], worldPos[2]);
+					var vertex = chunk.vertexes[v];
+
+					localPositions.push(vertex.posn[0], vertex.posn[1], vertex.posn[2]);
+					colors.push(vertex.colour[0] / 255, vertex.colour[1] / 255, vertex.colour[2] / 255,
+						vertex.colour[3] / 255);
+					localNormals.push(vertex.normal[0], vertex.normal[1], vertex.normal[2]);
+				}
+
+				worldPositions = deriveWorldPositions(localPositions, modelTransform);
+				worldNormals = deriveWorldNormals(localNormals, modelTransform);
+			}
+			else
+			{
+				// The server omitted the vertexes because it was told this chunk's current vertex version is
+				// already cached here, so reuse the cached local data. World-space geometry only needs
+				// re-deriving if this chunk's model transform actually changed or it moved to a different
+				// transform slot; otherwise the previous load's world-space arrays are still correct.
+				localPositions = cached.localPositions;
+				colors = cached.colors;
+				localNormals = cached.localNormals;
+
+				if(transformChanged[chunk.modelTransformIndex] || cached.modelTransformIndex !== chunk.modelTransformIndex)
+				{
+					worldPositions = deriveWorldPositions(localPositions, modelTransform);
+					worldNormals = deriveWorldNormals(localNormals, modelTransform);
+				}
+				else
+				{
+					worldPositions = cached.worldPositions;
+					worldNormals = cached.worldNormals;
+				}
+			}
+
+			newChunkCache[cacheKey] = {
+
+				vertexVersion: chunk.vertexVersion,
+				modelTransformIndex: chunk.modelTransformIndex,
+				localPositions: localPositions,
+				colors: colors,
+				localNormals: localNormals,
+				worldPositions: worldPositions,
+				worldNormals: worldNormals
+			};
+
+			// Only the always-on geometry contributes to picking and to the initial camera fit; hover-only
+			// chunks must not steal picks or enlarge the framing.
+			if(opaque)
+			{
+				for(var p = 0; p < worldPositions.length; p += 3)
+				{
+					pickPositions.push(worldPositions[p], worldPositions[p + 1], worldPositions[p + 2]);
 
 					// Every third vertex completes another triangle belonging to this chunk.
-					if(v % 3 === 2) pickTriangleChunkIds.push(chunk.id);
+					if((p / 3) % 3 === 2) pickTriangleChunkIds.push(chunk.id);
 
-					minX = Math.min(minX, worldPos[0]); maxX = Math.max(maxX, worldPos[0]);
-					minY = Math.min(minY, worldPos[1]); maxY = Math.max(maxY, worldPos[1]);
-					minZ = Math.min(minZ, worldPos[2]); maxZ = Math.max(maxZ, worldPos[2]);
+					minX = Math.min(minX, worldPositions[p]); maxX = Math.max(maxX, worldPositions[p]);
+					minY = Math.min(minY, worldPositions[p + 1]); maxY = Math.max(maxY, worldPositions[p + 1]);
+					minZ = Math.min(minZ, worldPositions[p + 2]); maxZ = Math.max(maxZ, worldPositions[p + 2]);
 
 					if(chunkFocus)
 					{
 						hasFocus = true;
 
-						focusMinX = Math.min(focusMinX, worldPos[0]); focusMaxX = Math.max(focusMaxX, worldPos[0]);
-						focusMinY = Math.min(focusMinY, worldPos[1]); focusMaxY = Math.max(focusMaxY, worldPos[1]);
-						focusMinZ = Math.min(focusMinZ, worldPos[2]); focusMaxZ = Math.max(focusMaxZ, worldPos[2]);
+						focusMinX = Math.min(focusMinX, worldPositions[p]); focusMaxX = Math.max(focusMaxX, worldPositions[p]);
+						focusMinY = Math.min(focusMinY, worldPositions[p + 1]); focusMaxY = Math.max(focusMaxY, worldPositions[p + 1]);
+						focusMinZ = Math.min(focusMinZ, worldPositions[p + 2]); focusMaxZ = Math.max(focusMaxZ, worldPositions[p + 2]);
 					}
 				}
 			}
 
 			sceneChunks.push({ id: chunk.id, nodeId: chunk.nodeId, opaque: opaque,
-				positions: chunkPositions, colors: chunkColors, normals: chunkNormals });
+				positions: worldPositions, colors: colors, normals: worldNormals });
 		}
+
+		chunkCache = newChunkCache;
+		lastModelTransforms = data.modelTransforms.map(function(t) { return t.transform.slice(); });
 
 		lastPositions = pickPositions;
 		lastTriangleChunkIds = pickTriangleChunkIds;
@@ -785,10 +914,29 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 		gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
+
+		scheduleDraw();
+	}
+
+	// True while a requestAnimationFrame(draw) call is outstanding, so scheduleDraw() can be called freely
+	// from every input handler and state change without ever stacking up more than one pending frame.
+	var rafPending = false;
+
+	// Requests a single redraw. draw() only reschedules itself while an animation (the recentre tween) is
+	// still in flight, so the render loop otherwise goes idle between input events instead of spinning at
+	// the display refresh rate while the scene is unchanged.
+	function scheduleDraw()
+	{
+		if(rafPending) return;
+
+		rafPending = true;
+		requestAnimationFrame(draw);
 	}
 
 	function draw()
 	{
+		rafPending = false;
+
 		if(centreAnimTo !== null)
 		{
 			var animT = Math.min(1, (performance.now() - centreAnimStartTime) / CENTRE_ANIM_MS);
@@ -864,13 +1012,14 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 			}
 		}
 
-		requestAnimationFrame(draw);
+		// Keep rendering every frame while the recentre tween is in flight; otherwise leave the loop idle
+		// until the next scheduleDraw() call from an input handler or state change.
+		if(centreAnimTo !== null) scheduleDraw();
 	}
 
 	var dataUrl = window.location.pathname.replace(/\/+$/, '') + '/data';
 	var revisionUrl = window.location.pathname.replace(/\/+$/, '') + '/revision';
 	var lastRevision = null;
-	var drawing = false;
 	var pollTimer = null;
 
 	// A refused connection means the server has gone away; retrying on the usual interval would
@@ -892,17 +1041,34 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		{
 			if(revisionData.revision === lastRevision) return null;
 
+			console.log('Scene revision changed: ' + lastRevision + ' -> ' + revisionData.revision);
+
 			lastRevision = revisionData.revision;
 
-			return fetch(dataUrl).then(function(res) { return res.json(); }).then(function(data)
+			// Tells the server which chunks are already cached here, and at which vertex version, so it can
+			// omit vertexes for any chunk that hasn't changed instead of resending the whole scene.
+			var knownChunks = Object.keys(chunkCache).map(function(key)
+			{
+				var entry = chunkCache[key];
+				var separatorIndex = key.indexOf(':');
+
+				return {
+
+					nodeId: parseInt(key.slice(0, separatorIndex), 10),
+					chunkId: parseInt(key.slice(separatorIndex + 1), 10),
+					vertexVersion: entry.vertexVersion
+				};
+			});
+
+			return fetch(dataUrl, {
+
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ chunks: knownChunks })
+
+			}).then(function(res) { return res.json(); }).then(function(data)
 			{
 				loadScene(data);
-
-				if(!drawing)
-				{
-					drawing = true;
-					draw();
-				}
 			});
 		}).catch(function(err)
 		{

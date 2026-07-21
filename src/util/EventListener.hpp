@@ -3,8 +3,6 @@
 
 #include <list>
 
-#include "EventEmitter.hpp"
-
 template<typename T> class EventEmitter;
 
 /**

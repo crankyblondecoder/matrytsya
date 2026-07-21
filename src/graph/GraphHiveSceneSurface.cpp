@@ -22,6 +22,16 @@ namespace
 			}
 		}
 	}
+
+	// Determine if two transforms are equal.
+	bool transformsEqual(Transform& a, Transform& b)
+	{
+		return
+			a[0] == b[0] && a[4] == b[4] && a[8] == b[8] && a[12] == b[12] &&
+			a[1] == b[1] && a[5] == b[5] && a[9] == b[9] && a[13] == b[13] &&
+			a[2] == b[2] && a[6] == b[6] && a[10] == b[10] && a[14] == b[14] &&
+			a[3] == b[3] && a[7] == b[7] && a[11] == b[11] && a[15] == b[15];
+	}
 }
 
 GraphHiveSceneSurface::GraphHiveSceneSurface(GraphHandle<SceneRootNode> sceneRootNode)
@@ -35,10 +45,7 @@ GraphHiveSceneSurface::~GraphHiveSceneSurface()
 
 void GraphHiveSceneSurface::strobe()
 {
-	if(_boundRootNode.isValid())
-	{
-		_boundRootNode.getInstance() -> populateSceneSurface(GraphHandle<GraphHiveSceneSurface>(this));
-	}
+	__populateIfSceneVersionChanged();
 }
 
 void GraphHiveSceneSurface::poke(unsigned nodeId, GraphPoke poke)
@@ -64,15 +71,32 @@ void GraphHiveSceneSurface::poke(unsigned nodeId, GraphPoke poke)
 
 void GraphHiveSceneSurface::activate()
 {
-	if(_boundRootNode.isValid())
-	{
-		_boundRootNode.getInstance() -> populateSceneSurface(GraphHandle<GraphHiveSceneSurface>(this));
+	__populateIfSceneVersionChanged();
+}
+
+void GraphHiveSceneSurface::__populateIfSceneVersionChanged()
+{
+	if(!_boundRootNode.isValid()) return;
+
+	SceneRootNode* rootNode = _boundRootNode.getInstance();
+
+	unsigned sceneVersion = rootNode -> getSceneVersion();
+
+	{ SYNC(_lock)
+
+		if(sceneVersion == _lastPopulatedSceneVersion) return;
+
+		_lastPopulatedSceneVersion = sceneVersion;
 	}
+
+	rootNode -> populateSceneSurface(GraphHandle<GraphHiveSceneSurface>(this));
 }
 
 void GraphHiveSceneSurface::_populateStart()
 {
 	_chunks.clear();
+	_chunkUpdates.clear();
+	_unchangedChunkIndexes.clear();
 	_modelTransforms.clear();
 
 	ModelTransform identity;
@@ -88,34 +112,129 @@ void GraphHiveSceneSurface::_populateStart()
 
 void GraphHiveSceneSurface::_populateEnd()
 {
+	// Determine if the scene has changed.
+	bool sceneChanged = false;
+
 	{ SYNC(_lock)
 
-		// Move the built chunks and transforms into the scene to make the new scene.
-		// Assume this clears the build vectors.
-		_currentScene.chunks = std::move(_chunks);
-		_currentScene.modelTransforms = std::move(_modelTransforms);
+		unsigned numTransf = _modelTransforms.size();
+
+		// Note: It is assumed that _unchangedChunkIndexes would never contain a duplicate and if the sizes of this
+		//       vector and the current scenes chunk vector are the same then they match exactly.
+
+		sceneChanged = numTransf != _currentScene.modelTransforms.size() || _chunkUpdates.size() > 0 ||
+			_chunks.size() > 0 || _unchangedChunkIndexes.size() != _currentScene.chunks.size();
+
+		if(!sceneChanged && numTransf)
+		{
+			// Do exact check on transforms.
+			for(unsigned index = 0; index < numTransf; index++)
+			{
+				if(!transformsEqual(_modelTransforms[index].transform, _currentScene.modelTransforms[index].transform))
+				{
+					sceneChanged = true;
+					break;
+				}
+			}
+		}
 	}
 
-	// Notify that the surface has changed.
-	_emitSurfaceChanged();
+	if(sceneChanged)
+	{
+		{ SYNC(_lock)
+
+			// Add updated and unchanged chunks into the current chunks array.
+
+			for(unsigned unchangedIndex : _unchangedChunkIndexes)
+			{
+				_chunks.push_back(std::move(_currentScene.chunks[unchangedIndex]));
+			}
+
+			for(ChunkUpdate update : _chunkUpdates)
+			{
+				Chunk& chunk = _currentScene.chunks[update.sceneChunkIndex];
+
+				chunk.version = update.version;
+				chunk.modelTransformIndex = update.modelTransformIndex;
+				chunk.pokeable = update.pokeable;
+				chunk.visibility = update.visibility;
+
+				_chunks.push_back(std::move(chunk));
+			}
+
+			// Move the built chunks and transforms into the scene to make the new scene.
+			// Assume this clears the build vectors.
+			_currentScene.chunks = std::move(_chunks);
+			_currentScene.modelTransforms = std::move(_modelTransforms);
+		}
+
+		// Notify that the surface has changed.
+		_emitSurfaceChanged();
+	}
 }
 
 void GraphHiveSceneSurface::addVertexes(const std::vector<Vertex>& vertexes, unsigned chunkId, unsigned nodeId,
-	bool pokeable, SceneGeometry::VertexVisibility visibility)
+	unsigned version, bool pokeable, SceneGeometry::VertexVisibility visibility)
 {
-	Chunk chunk;
-
-	chunk.id = chunkId;
-	chunk.nodeId = nodeId;
-	chunk.pokeable = pokeable;
-	chunk.vertexes = vertexes;
-	chunk.visibility = visibility;
+	bool found = false;
+	unsigned foundIndex = 0;
+	unsigned modelTransformIndex = 0;
 
 	{ SYNC(_lock)
 
-		chunk.modelTransformIndex = _modelTransforms.size() - 1;
+		modelTransformIndex = _modelTransforms.size() - 1;
 
-		_chunks.push_back(std::move(chunk));
+		unsigned numChunks = _currentScene.chunks.size();
+
+		// Look for the chunk in the current scene that still has the same vertexes version.
+		for(;foundIndex < numChunks; foundIndex++)
+		{
+			Chunk& chunk = _currentScene.chunks[foundIndex];
+
+			if(chunk.id == chunkId && chunk.nodeId == nodeId && chunk.vertexVersion == version)
+			{
+				// Look for whether it is an update or unchanged.
+				if(chunk.pokeable == pokeable && chunk.modelTransformIndex == modelTransformIndex &&
+					chunk.visibility == visibility)
+				{
+					// Unchanged.
+					_unchangedChunkIndexes.push_back(foundIndex);
+				}
+				else
+				{
+					// Requires update and version bump.
+					_chunkUpdates.push_back({
+
+						.sceneChunkIndex = foundIndex,
+						.version = chunk.version + 1,
+						.modelTransformIndex = modelTransformIndex,
+						.pokeable = pokeable,
+						.visibility = visibility
+					});
+				}
+
+				found = true;
+				break;
+			}
+		}
+	}
+
+	if(!found)
+	{
+		Chunk chunk;
+
+		chunk.id = chunkId;
+		chunk.nodeId = nodeId;
+		chunk.vertexVersion = version;
+		chunk.pokeable = pokeable;
+		chunk.vertexes = vertexes;
+		chunk.visibility = visibility;
+		chunk.modelTransformIndex = modelTransformIndex;
+
+		{ SYNC(_lock)
+
+			_chunks.push_back(std::move(chunk));
+		}
 	}
 }
 

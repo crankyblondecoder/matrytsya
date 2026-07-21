@@ -15,14 +15,9 @@ SceneTransformNode::SceneTransformNode()
 	_addActionFlag(SCENE_STROBE_GRAPH_ACTION);
 }
 
-void SceneTransformNode::setTransform(const Transform transform)
-{
-	for(int i = 0; i < 16; i++) _transform[i] = transform[i];
-}
-
 void SceneTransformNode::populateSurface(GraphHandle<GraphHiveSceneSurface> surface)
 {
-	if(surface.isValid()) surface.getInstance() -> addLocalTransform(_transform, getId());
+	SceneTransform::populateSurface(surface, getId());
 }
 
 void SceneTransformNode::strobe()
@@ -45,5 +40,14 @@ StrobeActionTarget* SceneTransformNode::getStrobeActionTarget()
 }
 
 void SceneTransformNode::_poked(GraphPoke poke)
+{
+}
+
+void SceneTransformNode::_transformChanged()
+{
+	_notifyListeners(NotifyType::SCENE_DATA_CHANGED);
+}
+
+void SceneTransformNode::notify(NotifyType type)
 {
 }

@@ -82,6 +82,22 @@ namespace
 		}
 	}
 
+	void __parseNotifySources(const rapidjson::Value& nodeValue, HiveNodeDescriptor& descriptor)
+	{
+		if(!nodeValue.HasMember("notifySources")) return;
+
+		const rapidjson::Value& sourcesValue = nodeValue["notifySources"];
+
+		if(!sourcesValue.IsArray()) throw PersistException(PersistException::JSON_INVALID_NOTIFY_SOURCES);
+
+		for(auto& sourceValue : sourcesValue.GetArray())
+		{
+			if(!sourceValue.IsString()) throw PersistException(PersistException::JSON_INVALID_NOTIFY_SOURCES);
+
+			descriptor.notifySourceNames.push_back(sourceValue.GetString());
+		}
+	}
+
 	GraphNodeLocation __parseNodeLocation(const rapidjson::Value& locationValue)
 	{
 		if(!locationValue.IsObject()) throw PersistException(PersistException::JSON_INVALID_DESTINATION);
@@ -222,6 +238,7 @@ namespace
 		}
 
 		__parseEdges(nodeValue, descriptor);
+		__parseNotifySources(nodeValue, descriptor);
 
 		if(descriptor.type == HiveNodeDescriptor::TELEPORT)
 		{

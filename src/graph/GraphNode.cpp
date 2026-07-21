@@ -348,6 +348,54 @@ void GraphNode::setPokeEnabled(bool enable)
 	}
 }
 
+void GraphNode::addNotifyListener(GraphHandle<GraphNode> listener)
+{
+	if(!listener.isValid()) return;
+
+	{ SYNC(_lock)
+
+		if(_decoupled) return;
+
+		for(GraphHandle<GraphNode>& existing : _notifyListenerHandles)
+		{
+			if(existing == listener) return;
+		}
+
+		_notifyListenerHandles.push_back(listener);
+	}
+}
+
+void GraphNode::removeNotifyListener(GraphHandle<GraphNode> listener)
+{
+	{ SYNC(_lock)
+
+		for(unsigned index = 0; index < _notifyListenerHandles.size(); index++)
+		{
+			if(_notifyListenerHandles[index] == listener)
+			{
+				_notifyListenerHandles.erase(_notifyListenerHandles.begin() + index);
+				break;
+			}
+		}
+	}
+}
+
+void GraphNode::_notifyListeners(NotifyType type)
+{
+	std::vector<GraphHandle<GraphNode>> listenersToNotify;
+
+	{ SYNC(_lock)
+
+		listenersToNotify = _notifyListenerHandles;
+	}
+
+	// Called outside of the lock as notify() may re-enter this node, eg to add/remove a listener.
+	for(GraphHandle<GraphNode>& listener : listenersToNotify)
+	{
+		listener.getInstance() -> notify(type);
+	}
+}
+
 bool GraphNode::scheduleAction(GraphHandle<GraphAction> action)
 {
 	if(!action.isValid()) return false;

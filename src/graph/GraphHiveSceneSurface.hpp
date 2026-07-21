@@ -30,20 +30,47 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		 */
 		struct Chunk
 		{
-			/// Unique chunk id.
+			/// Unique chunk id. Supplied by the vertex source.
 			unsigned id;
 
 			/// Id of the node that this chunk is associated with.
 			unsigned nodeId;
 
-			/// Whether this chunk can be poked.
-			bool pokeable = false;
+			/// Version of this chunk.
+			unsigned version = 1;
+
+			/// Version of the vertexes in this chunk. Supplied by the vertex source.
+			unsigned vertexVersion;
 
 			/// The vertexes of the chunk. These _must_ be in multiples of three, i.e. three vertexes per triangle.
 			std::vector<Vertex> vertexes;
 
 			/// The index of the model transform to use for this chunk.
 			unsigned modelTransformIndex;
+
+			/// Whether this chunk can be poked.
+			bool pokeable = false;
+
+			/// Determines under what circimustances the vertexes in this chunk should be visible.
+			SceneGeometry::VertexVisibility visibility;
+		};
+
+		/**
+		 * Defines an update to a geometry chunk where the vertexes remain the same.
+		 */
+		struct ChunkUpdate
+		{
+			/// Index into a scenes chunks of the chunk to update.
+			unsigned sceneChunkIndex;
+
+			/// New version of the chunk.
+			unsigned version;
+
+			/// The index of the model transform to use for this chunk.
+			unsigned modelTransformIndex;
+
+			/// Whether this chunk can be poked.
+			bool pokeable = false;
 
 			/// Determines under what circimustances the vertexes in this chunk should be visible.
 			SceneGeometry::VertexVisibility visibility;
@@ -85,11 +112,12 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		 * @param vertexes Vertexes to add or update (depending on the id).
 		 * @param chunkId Id to assign to the resultant chunk.
 		 * @param nodeId Id of the node the resultant chunk is associated with.
+		 * @param version Version of the vertexes being added.
 		 * @param pokeable Whether the resultant chunk can be poked.
 		 * @param visibility Determines under what circumstances the vertexes in the resultant chunk should be visible.
 		 */
-		void addVertexes(const std::vector<Vertex>& vertexes, unsigned chunkId, unsigned nodeId, bool pokeable,
-			SceneGeometry::VertexVisibility visibility);
+		void addVertexes(const std::vector<Vertex>& vertexes, unsigned chunkId, unsigned nodeId, unsigned version,
+			bool pokeable, SceneGeometry::VertexVisibility visibility);
 
 		/**
 		 * Add a local transform to the scene.
@@ -138,13 +166,26 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		GraphHiveSceneSurface(const GraphHiveSceneSurface& copyFrom);
 		GraphHiveSceneSurface& operator= (const GraphHiveSceneSurface& copyFrom);
 
+		/**
+		 * Populate this surface from its bound root node, but only if the root node's scene version has changed
+		 * since this surface was last populated.
+		 */
+		void __populateIfSceneVersionChanged();
+
 		/// Chunks that describe the surface currently being built.
 		std::vector<Chunk> _chunks;
+
+		/// List of updates to chunks in the current scene.
+		std::vector<ChunkUpdate> _chunkUpdates;
+
+		/// List of indexes into the current scene's chunks of the chunks that haven't changed and should be applied
+		/// to the next scene as is.
+		std::vector<unsigned> _unchangedChunkIndexes;
 
 		/// The model transforms that apply to the surface chunks currently being built. The last transform in this list is the "current" one.
 		std::vector<ModelTransform> _modelTransforms;
 
-		/// The currently scene that the surface can display.
+		/// The current scene that the surface can display. This is a kind of double buffering.
 		Scene _currentScene;
 
 		/// Generic lock.
@@ -152,6 +193,9 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 
 		/// The scene root node this scene surface is bound to.
 		GraphHandle<SceneRootNode> _boundRootNode;
+
+		/// Scene version of _boundRootNode as at the last time this surface was populated.
+		unsigned _lastPopulatedSceneVersion = 0;
 };
 
 #endif

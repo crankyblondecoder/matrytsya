@@ -42,3 +42,12 @@ StrobeActionTarget* SceneGeometryNode::getStrobeActionTarget()
 void SceneGeometryNode::_poked(GraphPoke poke)
 {
 }
+
+void SceneGeometryNode::_vertexesChanged()
+{
+	_notifyListeners(NotifyType::SCENE_DATA_CHANGED);
+}
+
+void SceneGeometryNode::notify(NotifyType type)
+{
+}

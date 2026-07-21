@@ -459,7 +459,7 @@
     "output": "nodes/PingNode.o"
   },
   {
-    "file": "../../src/graph/nodes/SceneGeometryMixin.cpp",
+    "file": "../../src/graph/nodes/SceneGeometry.cpp",
     "arguments": [
       "/usr/bin/g++",
       "-Wall",
@@ -469,11 +469,11 @@
       "-pthread",
       "-c",
       "-o",
-      "nodes/SceneGeometryMixin.o",
-      "../../src/graph/nodes/SceneGeometryMixin.cpp"
+      "nodes/SceneGeometry.o",
+      "../../src/graph/nodes/SceneGeometry.cpp"
     ],
     "directory": "/data/devel/matrytsya/build/debug",
-    "output": "nodes/SceneGeometryMixin.o"
+    "output": "nodes/SceneGeometry.o"
   },
   {
     "file": "../../src/graph/nodes/SceneGeometryNode.cpp",

@@ -58,6 +58,8 @@ class ScriptEmitterNode : public GraphNode
 			return action;
 		}
 
+		void notify(NotifyType type) override {}
+
 	protected:
 
 		void _poked(GraphPoke poke) override {}

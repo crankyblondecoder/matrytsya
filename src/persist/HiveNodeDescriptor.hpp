@@ -51,6 +51,9 @@ struct HiveNodeDescriptor
 	/// Edges directed from this node to other nodes in the same hive.
 	std::vector<HiveEdgeDescriptor> edges;
 
+	/// Names of other nodes in the same hive that this node receives notifications from.
+	std::vector<std::string> notifySourceNames;
+
 	/// Destination of a TeleportNode. Only meaningful when type == TELEPORT.
 	GraphNodeLocation destination;
 

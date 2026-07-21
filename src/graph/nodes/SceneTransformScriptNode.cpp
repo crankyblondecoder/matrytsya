@@ -17,11 +17,6 @@ SceneTransformScriptNode::SceneTransformScriptNode(const std::string& script, co
 	_addActionFlag(SCENE_STROBE_GRAPH_ACTION);
 }
 
-void SceneTransformScriptNode::setTransform(const Transform transform)
-{
-	for(int i = 0; i < 16; i++) _transform[i] = transform[i];
-}
-
 void SceneTransformScriptNode::_registerCoreGlobals(lua_State* luaState)
 {
 	AnimateScriptNode::_registerCoreGlobals(luaState);
@@ -31,7 +26,7 @@ void SceneTransformScriptNode::_registerCoreGlobals(lua_State* luaState)
 
 void SceneTransformScriptNode::populateSurface(GraphHandle<GraphHiveSceneSurface> surface)
 {
-	if(surface.isValid()) surface.getInstance() -> addLocalTransform(_transform, getId());
+	SceneTransform::populateSurface(surface, getId());
 }
 
 void SceneTransformScriptNode::strobe()
@@ -43,15 +38,22 @@ SceneActionTarget* SceneTransformScriptNode::getSceneActionTarget()
 	return this;
 }
 
+void SceneTransformScriptNode::_transformChanged()
+{
+	_notifyListeners(NotifyType::SCENE_DATA_CHANGED);
+}
+
 int SceneTransformScriptNode::__luaGetTransform(lua_State* luaState)
 {
 	SceneTransformScriptNode* node = static_cast<SceneTransformScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
+
+	const Transform& transform = node -> getTransform();
 
 	lua_createtable(luaState, 16, 0); // [transform]
 
 	for(int i = 0; i < 16; i++)
 	{
-		lua_pushnumber(luaState, node -> _transform[i]);
+		lua_pushnumber(luaState, transform[i]);
 		lua_seti(luaState, -2, i + 1); // [transform]
 	}
 
@@ -64,12 +66,16 @@ int SceneTransformScriptNode::__luaSetTransform(lua_State* luaState)
 
 	SceneTransformScriptNode* node = static_cast<SceneTransformScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
 
+	Transform transform;
+
 	for(int i = 0; i < 16; i++)
 	{
 		lua_geti(luaState, 1, i + 1); // [transform, element]
-		node -> _transform[i] = lua_tonumber(luaState, -1);
+		transform[i] = lua_tonumber(luaState, -1);
 		lua_pop(luaState, 1); // [transform]
 	}
+
+	node -> setTransform(transform);
 
 	return 0;
 }

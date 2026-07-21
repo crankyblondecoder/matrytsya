@@ -51,3 +51,7 @@ void PingNode::_poked(GraphPoke poke)
 {
 }
 
+void PingNode::notify(NotifyType type)
+{
+}
+
