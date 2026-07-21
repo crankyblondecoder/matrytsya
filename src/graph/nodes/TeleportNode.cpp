@@ -49,7 +49,3 @@ SerialisableActionTarget* TeleportNode::getSerialisableActionTarget()
 void TeleportNode::_poked(GraphPoke poke)
 {
 }
-
-void TeleportNode::notify(NotifyType type)
-{
-}

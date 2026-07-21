@@ -38,11 +38,6 @@ SceneActionTarget* SceneTransformScriptNode::getSceneActionTarget()
 	return this;
 }
 
-void SceneTransformScriptNode::_transformChanged()
-{
-	_notifyListeners(NotifyType::SCENE_DATA_CHANGED);
-}
-
 int SceneTransformScriptNode::__luaGetTransform(lua_State* luaState)
 {
 	SceneTransformScriptNode* node = static_cast<SceneTransformScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));

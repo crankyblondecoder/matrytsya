@@ -15,8 +15,9 @@
 #define SCENE_STROBE_GRAPH_ACTION 0x00000010
 /// Supports triggering and controlling animation.
 #define ANIMATE_GRAPH_ACTION 0x00000020
+/// Supports versioning a sub-graph.
+#define VERSION_GRAPH_ACTION 0x00000040
 
-//#define _GRAPH_ACTION 0x00000040
 //#define _GRAPH_ACTION 0x00000080
 
 //#define _GRAPH_ACTION 0x00000100

@@ -37,11 +37,6 @@ SceneActionTarget* SceneGeometryScriptNode::getSceneActionTarget()
 	return this;
 }
 
-void SceneGeometryScriptNode::_vertexesChanged()
-{
-	_notifyListeners(NotifyType::SCENE_DATA_CHANGED);
-}
-
 int SceneGeometryScriptNode::__luaVertexConstructor(lua_State* luaState)
 {
 	luaL_checktype(luaState, 1, LUA_TTABLE);

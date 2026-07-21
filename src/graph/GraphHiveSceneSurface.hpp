@@ -166,12 +166,6 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		GraphHiveSceneSurface(const GraphHiveSceneSurface& copyFrom);
 		GraphHiveSceneSurface& operator= (const GraphHiveSceneSurface& copyFrom);
 
-		/**
-		 * Populate this surface from its bound root node, but only if the root node's scene version has changed
-		 * since this surface was last populated.
-		 */
-		void __populateIfSceneVersionChanged();
-
 		/// Chunks that describe the surface currently being built.
 		std::vector<Chunk> _chunks;
 
@@ -193,9 +187,6 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 
 		/// The scene root node this scene surface is bound to.
 		GraphHandle<SceneRootNode> _boundRootNode;
-
-		/// Scene version of _boundRootNode as at the last time this surface was populated.
-		unsigned _lastPopulatedSceneVersion = 0;
 };
 
 #endif

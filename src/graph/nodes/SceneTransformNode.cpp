@@ -42,12 +42,3 @@ StrobeActionTarget* SceneTransformNode::getStrobeActionTarget()
 void SceneTransformNode::_poked(GraphPoke poke)
 {
 }
-
-void SceneTransformNode::_transformChanged()
-{
-	_notifyListeners(NotifyType::SCENE_DATA_CHANGED);
-}
-
-void SceneTransformNode::notify(NotifyType type)
-{
-}

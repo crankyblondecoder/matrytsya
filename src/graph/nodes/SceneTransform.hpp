@@ -35,14 +35,6 @@ class SceneTransform : public GraphVersioned
 		 */
 		void populateSurface(GraphHandle<GraphHiveSceneSurface> surface, unsigned nodeId);
 
-	protected:
-
-		/**
-		 * Subclass hook called whenever the transform changes.
-		 * @note Implementations must emit the CHANGED notification.
-		 */
-		virtual void _transformChanged() = 0;
-
 	private:
 
 		/**

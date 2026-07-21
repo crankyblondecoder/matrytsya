@@ -30,13 +30,3 @@ void SceneRootNode::populateSceneSurface(GraphHandle<GraphHiveSceneSurface> scen
 void SceneRootNode::_poked(GraphPoke poke)
 {
 }
-
-void SceneRootNode::notify(NotifyType type)
-{
-	if(type == NotifyType::SCENE_DATA_CHANGED) _sceneVersion++;
-}
-
-unsigned SceneRootNode::getSceneVersion()
-{
-	return _sceneVersion;
-}

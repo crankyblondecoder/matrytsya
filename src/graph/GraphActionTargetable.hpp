@@ -7,6 +7,7 @@
 #include "actionTargets/StrobeActionTarget.hpp"
 #include "actionTargets/ScriptActionTarget.hpp"
 #include "actionTargets/SerialisableActionTarget.hpp"
+#include "actionTargets/VersionActionTarget.hpp"
 
 #include <atomic>
 
@@ -54,6 +55,9 @@ class GraphActionTargetable
 
 		/// Get the target for the animate action.
 		virtual AnimateActionTarget* getAnimateActionTarget();
+
+		/// Get the target for the version action.
+		virtual VersionActionTarget* getVersionActionTarget();
 
 	protected:
 

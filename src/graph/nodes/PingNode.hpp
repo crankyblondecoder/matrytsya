@@ -31,8 +31,6 @@ class PingNode : public GraphNode, public PingActionTarget
 
 		PingActionTarget* getPingActionTarget() override;
 
-		void notify(NotifyType type) override;
-
 	protected:
 
 		// Ref counted.

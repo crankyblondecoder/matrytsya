@@ -30,16 +30,12 @@ class SceneGeometryNode : public GraphNode, public SceneActionTarget, public Str
 
 		StrobeActionTarget* getStrobeActionTarget() override;
 
-		void notify(NotifyType type) override;
-
 	protected:
 
 		// Ref counted.
         virtual ~SceneGeometryNode();
 
 		void _poked(GraphPoke poke) override;
-
-		void _vertexesChanged() override;
 
     private:
 

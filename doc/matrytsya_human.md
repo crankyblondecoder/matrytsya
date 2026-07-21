@@ -38,14 +38,6 @@ Some things in a hive are meant to happen repeatedly rather than just once. A no
 
 This is what allows a scene to appear to move or evolve over time: a strobing node repeatedly sends fresh actions through the graph, a strobing surface repeatedly gathers what those actions produce, and a map keeps delivering the latest version out to whoever is watching.
 
-## Notifications: nodes keeping each other informed
-
-Alongside actions travelling through the graph, a node can quietly keep another node informed about itself. A node can be set up to **listen** to one or more other nodes, so that whenever one of those nodes has something to announce, each of its listeners is told directly.
-
-This is deliberately separate from actions and edges. A notification doesn't travel along edges, doesn't follow a route through the graph, and doesn't carry any of the work an action does — it's simply one node signalling straight to the nodes that have registered an interest in it. The wiring is described from the listener's side: a node names the other nodes it wants to hear from.
-
-Each announcement carries a type describing what kind of thing is being reported, and the mechanism is general — a range of announcement types is expected, with more added over time. It gives nodes a lightweight way to stay coordinated: one node can react to something happening at another without an action needing to visit it.
-
 ## Poking: interacting back
 
 Not everything flows outward from the hive to the viewer — a **poke** is how a viewer reaches back in and nudges one specific piece of it. When a surface shows something interactive and a viewer clicks it, presses and holds it, or drags it, that interaction is captured as a poke and delivered through the surface to the exact node responsible for the part that was touched, regardless of which map the viewer was actually using.

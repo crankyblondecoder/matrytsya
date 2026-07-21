@@ -99,41 +99,6 @@ TEST(JsonHiveLoaderTest, FullValidHive_AllSevenNodeTypesParsed)
 }
 
 /**
- * A node's "notifySources" list parses into the descriptor's notifySourceNames, preserving order.
- */
-TEST(JsonHiveLoaderTest, NotifySourcesParsed)
-{
-	std::string json = R"({
-		"name": "Hive",
-		"nodes": [
-			{ "type": "PingNode", "name": "listener", "notifySources": ["a", "b"] },
-			{ "type": "PingNode", "name": "a" },
-			{ "type": "PingNode", "name": "b" }
-		]
-	})";
-
-	JsonHiveLoader loader(json);
-
-	HiveNodeDescriptor listener = loader.getNode(0);
-	ASSERT_EQ(listener.notifySourceNames.size(), 2u);
-	EXPECT_EQ(listener.notifySourceNames[0], "a");
-	EXPECT_EQ(listener.notifySourceNames[1], "b");
-}
-
-/**
- * A "notifySources" entry that isn't a string is rejected.
- */
-TEST(JsonHiveLoaderTest, NotifySourcesNonStringEntry_ThrowsJsonInvalidNotifySources)
-{
-	std::string json = R"({
-		"name": "Hive",
-		"nodes": [ { "type": "PingNode", "name": "listener", "notifySources": [123] } ]
-	})";
-
-	EXPECT_THROW(JsonHiveLoader loader(json), PersistException);
-}
-
-/**
  * A destination object that omits "hostname" defaults it to "localhost", per the schema.
  */
 TEST(JsonHiveLoaderTest, TeleportNodeDestinationDefaultsHostnameToLocalhost)

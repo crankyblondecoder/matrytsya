@@ -45,7 +45,7 @@ GraphHiveSceneSurface::~GraphHiveSceneSurface()
 
 void GraphHiveSceneSurface::strobe()
 {
-	__populateIfSceneVersionChanged();
+	if(_boundRootNode.isValid()) _boundRootNode.getInstance() -> populateSceneSurface(GraphHandle<GraphHiveSceneSurface>(this));
 }
 
 void GraphHiveSceneSurface::poke(unsigned nodeId, GraphPoke poke)
@@ -71,25 +71,7 @@ void GraphHiveSceneSurface::poke(unsigned nodeId, GraphPoke poke)
 
 void GraphHiveSceneSurface::activate()
 {
-	__populateIfSceneVersionChanged();
-}
-
-void GraphHiveSceneSurface::__populateIfSceneVersionChanged()
-{
-	if(!_boundRootNode.isValid()) return;
-
-	SceneRootNode* rootNode = _boundRootNode.getInstance();
-
-	unsigned sceneVersion = rootNode -> getSceneVersion();
-
-	{ SYNC(_lock)
-
-		if(sceneVersion == _lastPopulatedSceneVersion) return;
-
-		_lastPopulatedSceneVersion = sceneVersion;
-	}
-
-	rootNode -> populateSceneSurface(GraphHandle<GraphHiveSceneSurface>(this));
+	if(_boundRootNode.isValid()) _boundRootNode.getInstance() -> populateSceneSurface(GraphHandle<GraphHiveSceneSurface>(this));
 }
 
 void GraphHiveSceneSurface::_populateStart()

@@ -66,3 +66,8 @@ AnimateActionTarget* GraphActionTargetable::getAnimateActionTarget()
 	return 0;
 }
 
+VersionActionTarget* GraphActionTargetable::getVersionActionTarget()
+{
+	return 0;
+}
+

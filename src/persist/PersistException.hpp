@@ -31,8 +31,6 @@ class PersistException : public Exception
 			EDGE_TARGET_NOT_FOUND,
 			/// GraphNode::createEdge returned an invalid handle.
 			EDGE_CREATE_FAILED,
-			/// A node's "notifySources" referenced a node name that does not exist among this hive's nodes.
-			NOTIFY_SOURCE_NOT_FOUND,
 			/// An edge's action flags contained a name not present in the action flag register.
 			UNKNOWN_ACTION_FLAG,
 			/// A strobe emitter or strobe surface registration's periodMs was 0.
@@ -70,8 +68,6 @@ class PersistException : public Exception
 			JSON_INVALID_POKE_ENABLED,
 			/// A node's "edges" member was present but not an array, or an edge object was malformed.
 			JSON_INVALID_EDGES,
-			/// A node's "notifySources" member was present but not an array, or an entry was not a string.
-			JSON_INVALID_NOTIFY_SOURCES,
 			/// A TeleportNode's "destination" member was missing, not an object, or missing required fields.
 			JSON_INVALID_DESTINATION,
 			/// A node's "vertexes" member was present but not an array, or a vertex object was malformed.

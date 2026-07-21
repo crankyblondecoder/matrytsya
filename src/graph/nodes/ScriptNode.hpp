@@ -90,8 +90,6 @@ class ScriptNode : public GraphNode, public ScriptActionTarget
 
 		ScriptActionTarget* getScriptActionTarget() override;
 
-		void notify(NotifyType type) override;
-
 	protected:
 
 		// Ref counted.

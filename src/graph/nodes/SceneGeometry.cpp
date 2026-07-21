@@ -25,8 +25,6 @@ void SceneGeometry::addVertexes(std::vector<Vertex> vertexesToAdd, VertexVisibil
 	group.vertexes.insert(group.vertexes.end(), vertexesToAdd.begin(), vertexesToAdd.end());
 
 	_bumpVersion();
-
-	_vertexesChanged();
 }
 
 void SceneGeometry::addVertexes(double* rawData, unsigned length, VertexVisibility visibility)
@@ -63,8 +61,6 @@ void SceneGeometry::addVertexes(double* rawData, unsigned length, VertexVisibili
 	}
 
 	_bumpVersion();
-
-	_vertexesChanged();
 }
 
 std::size_t SceneGeometry::getVertexCount() const

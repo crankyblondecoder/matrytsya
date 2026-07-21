@@ -103,32 +103,6 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 */
 		void setPokeEnabled(bool enable);
 
-		/// Type of notification sent between nodes via the notify system.
-		enum class NotifyType
-		{
-			/// Node data that affects a scene has changed.
-			SCENE_DATA_CHANGED
-		};
-
-		/**
-		 * Add a node as a listener for notifications emitted by this node.
-		 * @note Adding a listener that is already registered has no additional effect.
-		 * @param listener Handle of node to add as a listener.
-		 */
-		void addNotifyListener(GraphHandle<GraphNode> listener);
-
-		/**
-		 * Remove a node as a listener for notifications emitted by this node.
-		 * @param listener Handle of node to remove as a listener.
-		 */
-		void removeNotifyListener(GraphHandle<GraphNode> listener);
-
-		/**
-		 * Receive a notification from a node this node is listening to.
-		 * @param type Type of notification received.
-		 */
-		virtual void notify(NotifyType type) = 0;
-
 		/**
 		 * Schedule a graph action to be applied on this node.
 		 * If the action can't be processed immediately, it is placed on a queue for later execution.
@@ -167,12 +141,6 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 */
 		virtual void _poked(GraphPoke poke) = 0;
 
-		/**
-		 * Notify all registered listeners.
-		 * @param type Type of notification to send to listeners.
-		 */
-		void _notifyListeners(NotifyType type);
-
 	private:
 
         /// Generic lock.
@@ -210,9 +178,6 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 
 		/// Whether a work unit is currently active, or about to become active, for draining _scheduledActions.
 		bool _scheduledActionProcessing = false;
-
-		/// Nodes registered to receive notifications emitted by this node.
-		std::vector<GraphHandle<GraphNode>> _notifyListenerHandles;
 
         // Do not allow copying.
         GraphNode(const GraphNode& copyFrom);

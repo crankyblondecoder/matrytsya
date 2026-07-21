@@ -199,10 +199,6 @@ ScriptActionTarget* ScriptNode::getScriptActionTarget()
 	return this;
 }
 
-void ScriptNode::notify(NotifyType type)
-{
-}
-
 void ScriptNode::_poked(GraphPoke poke)
 {
 	if(_pokeBytecode.empty()) return;

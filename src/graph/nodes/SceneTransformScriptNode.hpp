@@ -38,8 +38,6 @@ class SceneTransformScriptNode : public AnimateScriptNode, public SceneActionTar
 
 		void _registerCoreGlobals(lua_State* luaState) override;
 
-		void _transformChanged() override;
-
     private:
 
         // Do not allow copying.

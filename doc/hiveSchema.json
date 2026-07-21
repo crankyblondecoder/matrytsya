@@ -230,12 +230,6 @@
 					"type": "array",
 					"items": { "$ref": "#/$defs/edge" },
 					"description": "Edges directed from this node to other nodes in this hive."
-				},
-				"notifySources": {
-					"type": "array",
-					"items": { "$ref": "#/$defs/nodeName" },
-					"uniqueItems": true,
-					"description": "Names of other nodes in this hive that this node receives notifications from. Whenever one of the listed nodes emits a notification, this node is notified of it. This is independent of edges and action traversal; it carries no actions and follows no path."
 				}
 			}
 		},

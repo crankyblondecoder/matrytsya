@@ -89,14 +89,6 @@ class SceneGeometry : public GraphVersioned
 		 */
 		void populateSurface(GraphHandle<GraphHiveSceneSurface> surface, unsigned nodeId, bool pokeable);
 
-	protected:
-
-		/**
-		 * Subclass hook called whenever vertexes are added.
-		 * @note Implementations must emit the CHANGED notification.
-		 */
-		virtual void _vertexesChanged() = 0;
-
 	private:
 
 		/**

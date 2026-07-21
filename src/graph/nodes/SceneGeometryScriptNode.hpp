@@ -35,8 +35,6 @@ class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarg
 
 		void _registerCoreGlobals(lua_State* luaState) override;
 
-		void _vertexesChanged() override;
-
     private:
 
         // Do not allow copying.

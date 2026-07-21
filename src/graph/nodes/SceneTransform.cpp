@@ -11,8 +11,6 @@ void SceneTransform::setTransform(const Transform transform)
 	for(int i = 0; i < 16; i++) _transform[i] = transform[i];
 
 	_bumpVersion();
-
-	_transformChanged();
 }
 
 void SceneTransform::populateSurface(GraphHandle<GraphHiveSceneSurface> surface, unsigned nodeId)

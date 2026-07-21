@@ -30,16 +30,12 @@ class SceneTransformNode : public GraphNode, public SceneActionTarget, public St
 
 		StrobeActionTarget* getStrobeActionTarget() override;
 
-		void notify(NotifyType type) override;
-
 	protected:
 
 		// Ref counted.
         virtual ~SceneTransformNode();
 
 		void _poked(GraphPoke poke) override;
-
-		void _transformChanged() override;
 
     private:
 

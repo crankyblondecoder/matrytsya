@@ -25,8 +25,6 @@ class TeleportNode : public GraphNode, public SerialisableActionTarget
 
 		SerialisableActionTarget* getSerialisableActionTarget() override;
 
-		void notify(NotifyType type) override;
-
 	protected:
 
 		// Ref counted.
