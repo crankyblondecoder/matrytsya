@@ -70,7 +70,7 @@ void GraphHiveSurface::close()
 	decrRef();
 }
 
-bool GraphHiveSurface::populateStart()
+bool GraphHiveSurface::populateStart(unsigned populateVersion)
 {
 	{ SYNC(_lock)
 
@@ -78,6 +78,8 @@ bool GraphHiveSurface::populateStart()
 
 		_populating = true;
 	}
+
+	_populateVersion = populateVersion;
 
 	_populateStart();
 
@@ -109,6 +111,14 @@ bool GraphHiveSurface::isPopulating()
 	{ SYNC(_lock)
 
 		return _populating;
+	}
+}
+
+unsigned GraphHiveSurface::getPopulateVersion()
+{
+	{ SYNC(_lock)
+
+		return _populateVersion;
 	}
 }
 

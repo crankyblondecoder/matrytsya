@@ -31,6 +31,8 @@ class SceneTransformScriptNode : public AnimateScriptNode, public SceneActionTar
 
 		SceneActionTarget* getSceneActionTarget() override;
 
+		unsigned getVersion() override;
+
 	protected:
 
 		// Ref counted.

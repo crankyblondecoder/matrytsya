@@ -18,9 +18,15 @@ class SceneAction : public GraphAction
 
 		/**
 		 * @param initNode Initial node the new action is bound to.
-		 * @param surface Surface this action populates as it visits nodes.
+		 * @param surface Surface this action populates as it visits nodes. It is permissable for this handle to be
+		 *        invalid, in which case, only the scene version is calculated.
 		 */
 		SceneAction(GraphHandle<GraphNode> initNode, GraphHandle<GraphHiveSceneSurface> surface);
+
+		/**
+		 * Get the unique version of the scene formed by the nodes visited by this action.
+		 */
+		unsigned getSceneVersion();
 
 	protected:
 
@@ -28,6 +34,8 @@ class SceneAction : public GraphAction
 
 		bool _starting() override;
 		void _complete() override;
+
+		bool _processNextPass(unsigned currentPassNum) override;
 
     private:
 
@@ -37,6 +45,12 @@ class SceneAction : public GraphAction
 
 		/// Surface this action populates as it traverses the graph. Not owned by this.
 		GraphHandle<GraphHiveSceneSurface> _surface;
+
+		/// When in scene version mode, running sum of the versions of all nodes visited by this action.
+		std::atomic<unsigned> _version{0};
+
+		/// Whether surface population was started.
+		bool _populatingSurface = false;
 };
 
 #endif

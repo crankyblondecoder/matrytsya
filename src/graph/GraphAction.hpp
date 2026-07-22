@@ -25,8 +25,9 @@ class GraphAction : public RefCounted
 		/**
 		 * @param initNode Initial node the new action is bound to. This action will not be applied to this node.
 		 * @param energy The energy that is assigned to the action.
+		 * @param numPasses How many complete traversal passes this action should take.
 		 */
-		GraphAction(GraphHandle<GraphNode> initNode, unsigned energy);
+		GraphAction(GraphHandle<GraphNode> initNode, unsigned energy, unsigned numPasses = 1);
 
 		/**
 		 * Get the required flags that determine if this action is invoked on a node.
@@ -129,7 +130,7 @@ class GraphAction : public RefCounted
 
 		/**
 		 * Action is starting.
- 		 * @note If this is called, it will always invoke _complete.
+ 		 * @note If this is called, this action will always invoke _complete once the action is complete.
 		 * @returns True if should continue action application. If false, immediately complete without apply.
 		 */
 		virtual bool _starting() = 0;
@@ -143,6 +144,17 @@ class GraphAction : public RefCounted
 		 * Apply this action to a node.
 		 */
 		virtual void _apply(GraphNode* node) = 0;
+
+		/**
+		 * Subclass hook to determine if the next pass should be processed.
+		 */
+		virtual bool _processNextPass(unsigned currentPassNum);
+
+		/**
+		 * Get the pass number currently being processed.
+		 * @returns The current pass number, starting at 1.
+		 */
+		unsigned _getCurrentPassNum();
 
 		/// Starting energy assigned to newly constructed actions that use it as their default. Overridable via
 		/// setStartingEnergy().
@@ -180,11 +192,20 @@ class GraphAction : public RefCounted
 		 */
 		bool _stopped = false;
 
+		/// Handle to the initial node this action was created for.
+		GraphHandle<GraphNode> _initNode;
+
 		/// Handle to the curent node this action is associated with.
 		GraphHandle<GraphNode> _boundNode;
 
 		/// Hive this action is traversing. Should always be set to the hive of the initial node.
 		GraphHandle<GraphHive> _boundHive;
+
+		/// The number of passes this action should take. Each pass is a complete traversal starting at the initial node.
+		unsigned _numPasses;
+
+		/// The current pass number being processed.
+		unsigned _currentPassNum = 1;
 
 		/**
 		 * The number of energy units this action currently contains.
@@ -219,6 +240,15 @@ class GraphAction : public RefCounted
 		 * @returns True if could traverse, false otherwise.
 		 */
 		bool __traverse();
+
+		/**
+		 * Attempt to begin the next traversal pass.
+		 * A pass has just ended (no edge could be traversed). If passes remain and the subclass
+		 * approves via _processNextPass(), traversal state is reset to begin a fresh pass from the
+		 * initial node. Energy is intentionally not reset.
+		 * @returns True if a new pass was started, false if the action should now complete.
+		 */
+		bool __nextPass();
 
 		/**
 		 * Execute a work unit for this action.

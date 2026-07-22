@@ -10,7 +10,7 @@ SceneAction::~SceneAction()
 }
 
 SceneAction::SceneAction(GraphHandle<GraphNode> initNode,GraphHandle<GraphHiveSceneSurface> surface)
-	: GraphAction(initNode, _startingEnergy), _surface(surface)
+	: GraphAction(initNode, _startingEnergy, 2), _surface(surface)
 {
 	_addFlag(SCENE_GRAPH_ACTION, true);
 }
@@ -21,24 +21,46 @@ void SceneAction::_apply(GraphNode* target)
 
 	if(sceneTarget)
 	{
-		sceneTarget -> populateSurface(_surface);
+		// First pass always calculates the scenes version, which is used to determine if the surface should be
+		// populated.
+
+		if(_getCurrentPassNum() == 1)
+		{
+			_version += sceneTarget -> getVersion();
+		}
+		else
+		{
+			if(_surface.isValid()) sceneTarget -> populateSurface(_surface);
+		}
 	}
 }
 
 bool SceneAction::_starting()
 {
-	if(_surface.isValid())
+	return true;
+}
+
+bool SceneAction::_processNextPass(unsigned currentPassNum)
+{
+	_populatingSurface = false;
+
+	if(_surface.isValid() && _surface.getInstance() -> getPopulateVersion() != _version)
 	{
-		return _surface.getInstance() -> populateStart();
+		_populatingSurface = _surface.getInstance() -> populateStart(_version);
 	}
 
-	return false;
+	return _populatingSurface;
 }
 
 void SceneAction::_complete()
 {
-	if(_surface.isValid())
+	if(_populatingSurface && _surface.isValid())
 	{
 		_surface.getInstance() -> populateEnd();
 	}
+}
+
+unsigned SceneAction::getSceneVersion()
+{
+	return _version;
 }

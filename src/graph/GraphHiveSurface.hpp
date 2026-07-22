@@ -59,11 +59,12 @@ class GraphHiveSurface : public RefCounted, public GraphNamed, public EventEmitt
 		virtual void activate() = 0;
 
 		/**
-		 * Request this surface to go into population mode.
+		 * Request this surface to go into population mode (start populate pass).
+		 * @param populateVersion The version to assign to this populate pass.
 		 * @returns True if could go into population mode, false otherwise. It will return false if already in
 		 *          population mode.
 		 */
-		bool populateStart();
+		bool populateStart(unsigned populateVersion);
 
 		/**
 		 * Request this surface to go out of population mode.
@@ -74,6 +75,11 @@ class GraphHiveSurface : public RefCounted, public GraphNamed, public EventEmitt
 		 * Get whether this surface is in population mode.
 		 */
 		bool isPopulating();
+
+		/**
+		 * Get the version assigned to the last populate pass.
+		 */
+		unsigned getPopulateVersion();
 
 		/**
 		 * Clean up and dereference this surface.
@@ -138,6 +144,9 @@ class GraphHiveSurface : public RefCounted, public GraphNamed, public EventEmitt
 
 		/// Hive this surface is bound to.
 		GraphHandle<GraphHive> _hive;
+
+		/// The version assigned to that last populate pass.
+		unsigned _populateVersion = 0;
 };
 
 #endif

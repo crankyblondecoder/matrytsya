@@ -30,6 +30,8 @@ class SceneTransformNode : public GraphNode, public SceneActionTarget, public St
 
 		StrobeActionTarget* getStrobeActionTarget() override;
 
+		unsigned getVersion() override;
+
 	protected:
 
 		// Ref counted.

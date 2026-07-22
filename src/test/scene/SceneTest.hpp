@@ -12,6 +12,46 @@
 #include "../../graph/nodes/SceneRootNode.hpp"
 #include "../../graph/nodes/SceneTransformScriptNode.hpp"
 
+namespace
+{
+	/**
+	 * Scene surface that records how many populate passes were actually started against it, so a test can
+	 * distinguish a SceneAction that (re)populated the surface from one that skipped population because the
+	 * scene version was unchanged.
+	 */
+	class CountingSceneSurface : public GraphHiveSceneSurface
+	{
+		public:
+
+			CountingSceneSurface(GraphHandle<SceneRootNode> sceneRootNode) : GraphHiveSceneSurface(sceneRootNode) {}
+
+			unsigned getPopulateStartCount()
+			{
+				return _populateStartCount;
+			}
+
+		protected:
+
+			virtual ~CountingSceneSurface(){}
+
+			virtual void _populateStart() override
+			{
+				_populateStartCount++;
+
+				GraphHiveSceneSurface::_populateStart();
+			}
+
+		private:
+
+			// Disable copying.
+			CountingSceneSurface(const CountingSceneSurface& copyFrom);
+			CountingSceneSurface& operator= (const CountingSceneSurface& copyFrom);
+
+			/// Number of populate passes that have been started on this surface.
+			unsigned _populateStartCount = 0;
+	};
+}
+
 TEST(SceneTest, GeneratedSceneContainsScriptVertexes)
 {
 	GraphHive* hive = new GraphHive(2);
@@ -344,6 +384,67 @@ TEST(SceneTest, TransformNodeScriptCanReadAndModifyTransform)
 	const Transform& transform = modelTransforms[chunks[0].modelTransformIndex].transform;
 
 	EXPECT_DOUBLE_EQ(transform[12], 5.0) << "Script should have read the identity transform and added 5 to element 13.";
+
+	surface -> close();
+
+	hive -> shutdown();
+}
+
+TEST(SceneTest, SurfaceNotRepopulatedWhenSceneUnchanged)
+{
+	GraphHive* hive = new GraphHive(2);
+	GraphHandle<GraphHive> hiveHandle(hive);
+
+	SceneRootNode* root = new SceneRootNode();
+	SceneGeometryScriptNode* geometryNode = new SceneGeometryScriptNode("addVertex(Vertex{posn = {1, 2, 3}})", "");
+
+	hive -> addNode(root);
+	hive -> addNode(geometryNode);
+
+	GraphHandle<GraphNode> geometryHandle(geometryNode);
+	root -> createEdge(geometryHandle, {});
+
+	GraphHandle<GraphNode> rootHandle(root);
+	StrobeAction* strobeAction = new StrobeAction(rootHandle);
+
+	strobeAction -> incrRef();
+	strobeAction -> start();
+	strobeAction -> waitOnComplete(0);
+	strobeAction -> decrRef();
+
+	CountingSceneSurface* surface = new CountingSceneSurface(GraphHandle<SceneRootNode>(root));
+
+	surface -> setHive(hiveHandle);
+
+	// First action: the surface has never been populated, so its populate version differs from the scene
+	// version and the surface must be populated.
+	SceneAction* firstAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
+
+	firstAction -> incrRef();
+	firstAction -> start();
+	firstAction -> waitOnComplete(0);
+
+	unsigned sceneVersion = firstAction -> getSceneVersion();
+
+	firstAction -> decrRef();
+
+	ASSERT_EQ(surface -> getPopulateStartCount(), 1u) << "The first action must populate the never-before-populated surface.";
+	ASSERT_EQ(surface -> getScene().chunks.size(), 1u);
+	ASSERT_EQ(surface -> getPopulateVersion(), sceneVersion) << "The populate version should track the scene version just populated.";
+
+	// Second action against the unchanged graph: the computed scene version matches the surface's populate
+	// version, so _processNextPass must not start another populate pass.
+	SceneAction* secondAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
+
+	secondAction -> incrRef();
+	secondAction -> start();
+	secondAction -> waitOnComplete(0);
+
+	EXPECT_EQ(secondAction -> getSceneVersion(), sceneVersion) << "An unchanged scene must produce the same version.";
+
+	secondAction -> decrRef();
+
+	EXPECT_EQ(surface -> getPopulateStartCount(), 1u) << "An unchanged scene must not trigger a second populate pass.";
 
 	surface -> close();
 

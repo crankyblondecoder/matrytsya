@@ -16,7 +16,8 @@ GraphAction::~GraphAction()
 	_boundNode.clear();
 }
 
-GraphAction::GraphAction(GraphHandle<GraphNode> initNode, unsigned energy) : _id { _nextId++ }, _boundNode(initNode), _boundHive(0)
+GraphAction::GraphAction(GraphHandle<GraphNode> initNode, unsigned energy, unsigned numPasses) : _id { _nextId++ },
+	_initNode(initNode), _boundNode(initNode), _boundHive(0), _numPasses(numPasses < 1 ? 1 : numPasses)
 {
 	_energy = energy;
 
@@ -44,7 +45,12 @@ void GraphAction::applyScheduled(GraphHandle<GraphNode> nodeHandle)
 
 	if(nodeHandle.isValid()) _apply(nodeHandle.getInstance());
 
-	if(!(__traverse() && __executeWorkUnit())) __complete();
+	bool keepGoing = __traverse();
+
+	// End of a pass on the scheduled-apply path: try to begin the next approved pass.
+	if(!keepGoing) keepGoing = __nextPass();
+
+	if(!(keepGoing && __executeWorkUnit())) __complete();
 }
 
 void GraphAction::setApplyToInitialNode()
@@ -328,9 +334,14 @@ void GraphAction::work()
 		{
 			execWorkUnit = true;
 		}
+		else if(__nextPass())
+		{
+			// Pass exhausted, but an approved new pass begins from the initial node.
+			execWorkUnit = true;
+		}
 		else
 		{
-			// Can't traverse, which means action is complete.
+			// Can't traverse and no further passes, which means action is complete.
 			execWorkUnit = false;
 			complete = true;
 		}
@@ -375,6 +386,50 @@ bool GraphAction::__traverse()
 	}
 
 	return traversed;
+}
+
+bool GraphAction::_processNextPass(unsigned currentPassNum)
+{
+	// By default approve continuation; the configured numPasses is the only limit.
+	return true;
+}
+
+unsigned GraphAction::_getCurrentPassNum()
+{
+	{ SYNC(_lock)
+
+		return _currentPassNum;
+	}
+}
+
+bool GraphAction::__nextPass()
+{
+	unsigned passNum;
+
+	{ SYNC(_lock)
+
+		// A pass has just ended. Do not continue if energy is exhausted or no passes remain.
+		// The energy gate also guarantees _boundNode is already empty here, so the reset below
+		// does not delete a ref-counted node inside the SYNC block.
+		if(_energy == 0 || _currentPassNum >= _numPasses) return false;
+
+		passNum = _currentPassNum;
+	}
+
+	// Consult the subclass approval hook outside the lock (external call).
+	if(!_processNextPass(passNum)) return false;
+
+	{ SYNC(_lock)
+
+		// Reset traversal state for a fresh complete pass from the initial node.
+		// Energy deliberately carries over.
+		_currentPassNum++;
+		_boundNode = _initNode;
+		_initTraverse = true;
+		_traversedEdges.clear();
+	}
+
+	return true;
 }
 
 bool GraphAction::__executeWorkUnit()

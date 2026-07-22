@@ -85,3 +85,8 @@ void SceneTransformScriptNode::__registerTransformBindings(lua_State* luaState)
 	lua_pushcclosure(luaState, __luaSetTransform, 1);
 	lua_setglobal(luaState, "setTransform");
 }
+
+unsigned SceneTransformScriptNode::getVersion()
+{
+	return GraphVersioned::getVersion();
+}

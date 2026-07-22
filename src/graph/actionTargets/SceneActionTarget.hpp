@@ -23,6 +23,11 @@ class SceneActionTarget : virtual public ActionTarget
 		 */
 		virtual void populateSurface(GraphHandle<GraphHiveSceneSurface> surface) = 0;
 
+		/**
+		 * Get the version of this target.
+		 */
+		virtual unsigned getVersion() = 0;
+
 	protected:
 
     private:

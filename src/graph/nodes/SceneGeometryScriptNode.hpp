@@ -28,6 +28,8 @@ class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarg
 
 		SceneActionTarget* getSceneActionTarget() override;
 
+		unsigned getVersion() override;
+
 	protected:
 
 		// Ref counted.

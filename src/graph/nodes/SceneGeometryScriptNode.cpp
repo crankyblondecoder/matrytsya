@@ -162,3 +162,7 @@ void SceneGeometryScriptNode::__registerVertexBindings(lua_State* luaState)
 	lua_setglobal(luaState, "vertexCount");
 }
 
+unsigned SceneGeometryScriptNode::getVersion()
+{
+	return GraphVersioned::getVersion();
+}

@@ -42,3 +42,8 @@ StrobeActionTarget* SceneTransformNode::getStrobeActionTarget()
 void SceneTransformNode::_poked(GraphPoke poke)
 {
 }
+
+unsigned SceneTransformNode::getVersion()
+{
+	return GraphVersioned::getVersion();
+}
