@@ -5,7 +5,7 @@
 
 #include "../../graph/actions/SceneAction.hpp"
 #include "../../graph/actions/StrobeAction.hpp"
-#include "../../graph/GraphHandle.hpp"
+#include "../../util/Handle.hpp"
 #include "../../graph/GraphHive.hpp"
 #include "../../graph/GraphHiveSceneSurface.hpp"
 #include "../../graph/nodes/SceneGeometryScriptNode.hpp"
@@ -23,7 +23,7 @@ namespace
 	{
 		public:
 
-			CountingSceneSurface(GraphHandle<SceneRootNode> sceneRootNode) : GraphHiveSceneSurface(sceneRootNode) {}
+			CountingSceneSurface(Handle<SceneRootNode> sceneRootNode) : GraphHiveSceneSurface(sceneRootNode) {}
 
 			unsigned getPopulateStartCount()
 			{
@@ -55,7 +55,7 @@ namespace
 TEST(SceneTest, GeneratedSceneContainsScriptVertexes)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
 	// The nodes must _not_ be allocated on the stack because of auto-delete once de-referenced.
 	SceneRootNode* root = new SceneRootNode();
@@ -71,10 +71,10 @@ TEST(SceneTest, GeneratedSceneContainsScriptVertexes)
 	hive -> addNode(root);
 	hive -> addNode(geometryNode);
 
-	GraphHandle<GraphNode> geometryHandle(geometryNode);
+	Handle<GraphNode> geometryHandle(geometryNode);
 	root -> createEdge(geometryHandle, {});
 
-	GraphHandle<GraphNode> rootHandle(root);
+	Handle<GraphNode> rootHandle(root);
 	StrobeAction* strobeAction = new StrobeAction(rootHandle);
 
 	strobeAction -> incrRef();
@@ -82,11 +82,11 @@ TEST(SceneTest, GeneratedSceneContainsScriptVertexes)
 	strobeAction -> waitOnComplete(0);
 	strobeAction -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(Handle<SceneRootNode>(root));
 
 	surface -> setHive(hiveHandle);
 
-	SceneAction* sceneAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
+	SceneAction* sceneAction = new SceneAction(rootHandle, Handle<GraphHiveSceneSurface>(surface));
 
 	sceneAction -> incrRef();
 	sceneAction -> start();
@@ -125,7 +125,7 @@ TEST(SceneTest, GeneratedSceneContainsScriptVertexes)
 TEST(SceneTest, GeneratedSceneKeepsVertexesInScriptOrder)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
 	SceneRootNode* root = new SceneRootNode();
 
@@ -139,10 +139,10 @@ TEST(SceneTest, GeneratedSceneKeepsVertexesInScriptOrder)
 	hive -> addNode(root);
 	hive -> addNode(geometryNode);
 
-	GraphHandle<GraphNode> geometryHandle(geometryNode);
+	Handle<GraphNode> geometryHandle(geometryNode);
 	root -> createEdge(geometryHandle, {});
 
-	GraphHandle<GraphNode> rootHandle(root);
+	Handle<GraphNode> rootHandle(root);
 	StrobeAction* strobeAction = new StrobeAction(rootHandle);
 
 	strobeAction -> incrRef();
@@ -150,11 +150,11 @@ TEST(SceneTest, GeneratedSceneKeepsVertexesInScriptOrder)
 	strobeAction -> waitOnComplete(0);
 	strobeAction -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(Handle<SceneRootNode>(root));
 
 	surface -> setHive(hiveHandle);
 
-	SceneAction* sceneAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
+	SceneAction* sceneAction = new SceneAction(rootHandle, Handle<GraphHiveSceneSurface>(surface));
 
 	sceneAction -> incrRef();
 	sceneAction -> start();
@@ -187,7 +187,7 @@ TEST(SceneTest, GeneratedSceneKeepsVertexesInScriptOrder)
 TEST(SceneTest, GeneratedSceneUsesIdentityTransformWhenNoneApplied)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
 	SceneRootNode* root = new SceneRootNode();
 	SceneGeometryScriptNode* geometryNode = new SceneGeometryScriptNode("addVertex(Vertex{posn = {1, 2, 3}})", "");
@@ -195,10 +195,10 @@ TEST(SceneTest, GeneratedSceneUsesIdentityTransformWhenNoneApplied)
 	hive -> addNode(root);
 	hive -> addNode(geometryNode);
 
-	GraphHandle<GraphNode> geometryHandle(geometryNode);
+	Handle<GraphNode> geometryHandle(geometryNode);
 	root -> createEdge(geometryHandle, {});
 
-	GraphHandle<GraphNode> rootHandle(root);
+	Handle<GraphNode> rootHandle(root);
 	StrobeAction* strobeAction = new StrobeAction(rootHandle);
 
 	strobeAction -> incrRef();
@@ -206,11 +206,11 @@ TEST(SceneTest, GeneratedSceneUsesIdentityTransformWhenNoneApplied)
 	strobeAction -> waitOnComplete(0);
 	strobeAction -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(Handle<SceneRootNode>(root));
 
 	surface -> setHive(hiveHandle);
 
-	SceneAction* sceneAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
+	SceneAction* sceneAction = new SceneAction(rootHandle, Handle<GraphHiveSceneSurface>(surface));
 
 	sceneAction -> incrRef();
 	sceneAction -> start();
@@ -246,7 +246,7 @@ TEST(SceneTest, GeneratedSceneCombinesNestedTransformsInTraversalOrder)
 	// scale factor stays on the diagonal, and the translation column carries the translate node's own offset.
 
 	GraphHive* hive = new GraphHive(2);
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
 	SceneRootNode* root = new SceneRootNode();
 	SceneTransformScriptNode* scaleNode = new SceneTransformScriptNode("", "");
@@ -275,15 +275,15 @@ TEST(SceneTest, GeneratedSceneCombinesNestedTransformsInTraversalOrder)
 	hive -> addNode(translateNode);
 	hive -> addNode(geometryNode);
 
-	GraphHandle<GraphNode> scaleHandle(scaleNode);
-	GraphHandle<GraphNode> translateHandle(translateNode);
-	GraphHandle<GraphNode> geometryHandle(geometryNode);
+	Handle<GraphNode> scaleHandle(scaleNode);
+	Handle<GraphNode> translateHandle(translateNode);
+	Handle<GraphNode> geometryHandle(geometryNode);
 
 	root -> createEdge(scaleHandle, {});
 	scaleNode -> createEdge(translateHandle, {});
 	translateNode -> createEdge(geometryHandle, {});
 
-	GraphHandle<GraphNode> rootHandle(root);
+	Handle<GraphNode> rootHandle(root);
 	StrobeAction* strobeAction = new StrobeAction(rootHandle);
 
 	strobeAction -> incrRef();
@@ -291,11 +291,11 @@ TEST(SceneTest, GeneratedSceneCombinesNestedTransformsInTraversalOrder)
 	strobeAction -> waitOnComplete(0);
 	strobeAction -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(Handle<SceneRootNode>(root));
 
 	surface -> setHive(hiveHandle);
 
-	SceneAction* sceneAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
+	SceneAction* sceneAction = new SceneAction(rootHandle, Handle<GraphHiveSceneSurface>(surface));
 
 	sceneAction -> incrRef();
 	sceneAction -> start();
@@ -339,7 +339,7 @@ TEST(SceneTest, GeneratedSceneCombinesNestedTransformsInTraversalOrder)
 TEST(SceneTest, TransformNodeScriptCanReadAndModifyTransform)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
 	SceneRootNode* root = new SceneRootNode();
 	SceneTransformScriptNode* transformNode = new SceneTransformScriptNode(
@@ -352,13 +352,13 @@ TEST(SceneTest, TransformNodeScriptCanReadAndModifyTransform)
 	hive -> addNode(transformNode);
 	hive -> addNode(geometryNode);
 
-	GraphHandle<GraphNode> transformHandle(transformNode);
-	GraphHandle<GraphNode> geometryHandle(geometryNode);
+	Handle<GraphNode> transformHandle(transformNode);
+	Handle<GraphNode> geometryHandle(geometryNode);
 
 	root -> createEdge(transformHandle, {});
 	transformNode -> createEdge(geometryHandle, {});
 
-	GraphHandle<GraphNode> rootHandle(root);
+	Handle<GraphNode> rootHandle(root);
 	StrobeAction* strobeAction = new StrobeAction(rootHandle);
 
 	strobeAction -> incrRef();
@@ -366,11 +366,11 @@ TEST(SceneTest, TransformNodeScriptCanReadAndModifyTransform)
 	strobeAction -> waitOnComplete(0);
 	strobeAction -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(root));
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(Handle<SceneRootNode>(root));
 
 	surface -> setHive(hiveHandle);
 
-	SceneAction* sceneAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
+	SceneAction* sceneAction = new SceneAction(rootHandle, Handle<GraphHiveSceneSurface>(surface));
 
 	sceneAction -> incrRef();
 	sceneAction -> start();
@@ -393,7 +393,7 @@ TEST(SceneTest, TransformNodeScriptCanReadAndModifyTransform)
 TEST(SceneTest, SurfaceNotRepopulatedWhenSceneUnchanged)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
 	SceneRootNode* root = new SceneRootNode();
 	SceneGeometryScriptNode* geometryNode = new SceneGeometryScriptNode("addVertex(Vertex{posn = {1, 2, 3}})", "");
@@ -401,10 +401,10 @@ TEST(SceneTest, SurfaceNotRepopulatedWhenSceneUnchanged)
 	hive -> addNode(root);
 	hive -> addNode(geometryNode);
 
-	GraphHandle<GraphNode> geometryHandle(geometryNode);
+	Handle<GraphNode> geometryHandle(geometryNode);
 	root -> createEdge(geometryHandle, {});
 
-	GraphHandle<GraphNode> rootHandle(root);
+	Handle<GraphNode> rootHandle(root);
 	StrobeAction* strobeAction = new StrobeAction(rootHandle);
 
 	strobeAction -> incrRef();
@@ -412,13 +412,13 @@ TEST(SceneTest, SurfaceNotRepopulatedWhenSceneUnchanged)
 	strobeAction -> waitOnComplete(0);
 	strobeAction -> decrRef();
 
-	CountingSceneSurface* surface = new CountingSceneSurface(GraphHandle<SceneRootNode>(root));
+	CountingSceneSurface* surface = new CountingSceneSurface(Handle<SceneRootNode>(root));
 
 	surface -> setHive(hiveHandle);
 
 	// First action: the surface has never been populated, so its populate version differs from the scene
 	// version and the surface must be populated.
-	SceneAction* firstAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
+	SceneAction* firstAction = new SceneAction(rootHandle, Handle<GraphHiveSceneSurface>(surface));
 
 	firstAction -> incrRef();
 	firstAction -> start();
@@ -434,7 +434,7 @@ TEST(SceneTest, SurfaceNotRepopulatedWhenSceneUnchanged)
 
 	// Second action against the unchanged graph: the computed scene version matches the surface's populate
 	// version, so _processNextPass must not start another populate pass.
-	SceneAction* secondAction = new SceneAction(rootHandle, GraphHandle<GraphHiveSceneSurface>(surface));
+	SceneAction* secondAction = new SceneAction(rootHandle, Handle<GraphHiveSceneSurface>(surface));
 
 	secondAction -> incrRef();
 	secondAction -> start();

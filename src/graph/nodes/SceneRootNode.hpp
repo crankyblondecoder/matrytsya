@@ -17,7 +17,7 @@ class SceneRootNode : public StrobeEmitterNode
 		/**
 		 * Populate the given scene surface.
 		 */
-		void populateSceneSurface(GraphHandle<GraphHiveSceneSurface> sceneSurface);
+		void populateSceneSurface(Handle<GraphHiveSceneSurface> sceneSurface);
 
 	protected:
 

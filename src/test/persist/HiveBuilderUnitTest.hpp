@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 
-#include "../../graph/GraphHandle.hpp"
+#include "../../util/Handle.hpp"
 #include "../../graph/GraphHive.hpp"
 #include "../../graph/GraphNode.hpp"
 #include "../../graph/actions/PingAction.hpp"
@@ -110,10 +110,10 @@ TEST(HiveBuilderTest, FullValidHive_BuildsAndWiresCorrectly)
 	loader.strobeEmitters.emplace_back("root", 5u);
 
 	GraphHive* hive = HiveBuilder::build(loader, 2);
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
-	GraphHandle<GraphNode> sourceHandle = hive -> getNode("source");
-	GraphHandle<GraphNode> targetHandle = hive -> getNode("target");
+	Handle<GraphNode> sourceHandle = hive -> getNode("source");
+	Handle<GraphNode> targetHandle = hive -> getNode("target");
 
 	ASSERT_TRUE(sourceHandle.isValid());
 	ASSERT_TRUE(targetHandle.isValid());
@@ -262,7 +262,7 @@ TEST(HiveBuilderTest, FullValidHiveWithSurface_BuildsAndRegistersStrobeSurface)
 	loader.strobeSurfaces.emplace_back("surface1", 5u);
 
 	GraphHive* hive = HiveBuilder::build(loader, 2);
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
 	EXPECT_TRUE(hive -> getSurface("surface1").isValid());
 

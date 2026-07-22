@@ -3,7 +3,7 @@ srcFiles = mongoose.c
 objFiles = $(srcFiles:.c=.o)
 
 CC = gcc
-CFLAGS = -Wall -O3 -pthread -DMG_ARCH=MG_ARCH_UNIX
+CFLAGS = -Wall -O3 -pthread -DMG_ARCH=MG_ARCH_UNIX -DMG_TLS=MG_TLS_BUILTIN
 
 # Tell make to search other paths. Separate multiple with ":"
 VPATH = ../../src/mongoose

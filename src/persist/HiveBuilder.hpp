@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "../graph/GraphHandle.hpp"
+#include "../util/Handle.hpp"
 
 class GraphHive;
 class GraphHiveSurface;
@@ -61,7 +61,7 @@ class HiveBuilder
 		 *        concrete type for this surface type.
 		 * @throw PersistException(UNKNOWN_SURFACE_TYPE) If the descriptor's type is not recognised.
 		 */
-		static GraphHiveSurface* __createSurface(const HiveSurfaceDescriptor& descriptor, GraphHandle<GraphNode> referencedNode,
+		static GraphHiveSurface* __createSurface(const HiveSurfaceDescriptor& descriptor, Handle<GraphNode> referencedNode,
 			bool hasInitialFocusNode, unsigned initialFocusNodeId);
 
 		/**

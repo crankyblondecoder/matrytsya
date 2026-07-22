@@ -12,7 +12,8 @@ class Exception
 			THREAD,
 			GRAPH,
 			DISPLAY,
-			PERSIST
+			PERSIST,
+			AGENT
 		};
 
 		Exception(Module module) : _module{module} {}

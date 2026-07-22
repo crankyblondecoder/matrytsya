@@ -2,7 +2,7 @@
 #define SCENE_TRANSFORM_H
 
 #include "../graphSceneElements.hpp"
-#include "../GraphHandle.hpp"
+#include "../../util/Handle.hpp"
 #include "../GraphVersioned.hpp"
 
 class GraphHiveSceneSurface;
@@ -33,7 +33,7 @@ class SceneTransform : public GraphVersioned
 		 * @param surface Surface to populate.
 		 * @param nodeId Node ID to use when populating surface.
 		 */
-		void populateSurface(GraphHandle<GraphHiveSceneSurface> surface, unsigned nodeId);
+		void populateSurface(Handle<GraphHiveSceneSurface> surface, unsigned nodeId);
 
 	private:
 

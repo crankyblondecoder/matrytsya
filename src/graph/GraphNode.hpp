@@ -11,7 +11,7 @@ class GraphHive;
 
 #include "../util/RefCounted.hpp"
 #include "GraphActionTargetable.hpp"
-#include "GraphHandle.hpp"
+#include "../util/Handle.hpp"
 #include "GraphNamed.hpp"
 #include "GraphPoke.hpp"
 
@@ -42,13 +42,13 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 *        Leave blank for no restriction.
          * @returns Handle of created edge. Will be invalid if edge could not be created.
 		 */
-		GraphHandle<GraphEdge> createEdge(GraphHandle<GraphNode>& connectTo, std::vector<unsigned long> actionFlags);
+		Handle<GraphEdge> createEdge(Handle<GraphNode>& connectTo, std::vector<unsigned long> actionFlags);
 
 		/**
 		 * Remove edge from this node.
 		 * @param handle Handle of edge to remove.
 		 */
-        void removeEdge(GraphHandle<GraphEdge> handle);
+        void removeEdge(Handle<GraphEdge> handle);
 
 		/**
 		 * Find the next node to traverse to.
@@ -57,7 +57,7 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 * @param action Action that is requesting to traverse.
 		 * @returns Handle to next edge to traverse.
 		 */
-		virtual GraphHandle<GraphEdge> traverse(GraphAction& action);
+		virtual Handle<GraphEdge> traverse(GraphAction& action);
 
 		/**
 		 * Get the energy cost of an action being applied to this node.
@@ -74,7 +74,7 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		/**
 		 * Get a handle to the hive this node is part of.
 		 */
-		GraphHandle<GraphHive> getHive();
+		Handle<GraphHive> getHive();
 
 		/**
 		 * Get the unique id of this node.
@@ -86,7 +86,7 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 * @param hive Hive that this node is part of.
 		 * @returns True if this node accepts being part of the hive. False otherwise.
 		 */
-		bool setHive(GraphHandle<GraphHive> hive);
+		bool setHive(Handle<GraphHive> hive);
 
 		/**
 		 * Poke this node.
@@ -110,7 +110,7 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 * @param action Action to schedule to apply to this node.
 		 * @returns True if could be scheduled. False otherwise.
 		 */
-		bool scheduleAction(GraphHandle<GraphAction> action);
+		bool scheduleAction(Handle<GraphAction> action);
 
 		/**
 		 * Call in point for a thread work unit to process a scheduled action and potentially create a new
@@ -153,7 +153,7 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		unsigned _id;
 
 		/// The hive this node belongs to.
-		GraphHandle<GraphHive> _hive;
+		Handle<GraphHive> _hive;
 
 		/// All edges directed from this node.
         GraphEdge* _edges[EDGE_ARRAY_SIZE]{};
@@ -174,7 +174,7 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		bool _pokeEnabled = false;
 
 		/// Queue of actions waiting to be applied to this node.
-		std::queue<GraphHandle<GraphAction>> _scheduledActions;
+		std::queue<Handle<GraphAction>> _scheduledActions;
 
 		/// Whether a work unit is currently active, or about to become active, for draining _scheduledActions.
 		bool _scheduledActionProcessing = false;

@@ -7,7 +7,7 @@
 
 #include "../thread/Thread.hpp"
 #include "../thread/ThreadCondition.hpp"
-#include "GraphHandle.hpp"
+#include "../util/Handle.hpp"
 
 class StrobeEmitterNode;
 class GraphHiveSurface;
@@ -37,14 +37,14 @@ class GraphHiveStrobeScheduler : public Thread
 		 * @param node Handle of the node to register.
 		 * @param periodMs Emission period in milliseconds (time between successive emissions).
 		 */
-		void setEmitter(GraphHandle<StrobeEmitterNode> node, unsigned periodMs);
+		void setEmitter(Handle<StrobeEmitterNode> node, unsigned periodMs);
 
 		/**
 		 * Remove a node as a strobe emitter.
 		 * @note Safe to call for a node that is not currently registered (no-op).
 		 * @param node Handle of the node to remove.
 		 */
-		void removeEmitter(GraphHandle<StrobeEmitterNode> node);
+		void removeEmitter(Handle<StrobeEmitterNode> node);
 
 		/**
 		 * Clear all emitters.
@@ -59,14 +59,14 @@ class GraphHiveStrobeScheduler : public Thread
 		 * @param surface Handle of the surface to register.
 		 * @param periodMs Strobe period in milliseconds (time between successive strobes).
 		 */
-		void setSurface(GraphHandle<GraphHiveSurface> surface, unsigned periodMs);
+		void setSurface(Handle<GraphHiveSurface> surface, unsigned periodMs);
 
 		/**
 		 * Remove a surface from being strobed.
 		 * @note Safe to call for a surface that is not currently registered (no-op).
 		 * @param surface Handle of the surface to remove.
 		 */
-		void removeSurface(GraphHandle<GraphHiveSurface> surface);
+		void removeSurface(Handle<GraphHiveSurface> surface);
 
 		/**
 		 * Clear all registered surfaces.
@@ -89,7 +89,7 @@ class GraphHiveStrobeScheduler : public Thread
 		struct StrobeEntry
 		{
 			/// Keeps the node alive and provides identity for lookup/removal.
-			GraphHandle<StrobeEmitterNode> handle;
+			Handle<StrobeEmitterNode> handle;
 
 			/// Emission period in nanoseconds, derived from the registered millisecond period.
 			long periodNs;
@@ -102,7 +102,7 @@ class GraphHiveStrobeScheduler : public Thread
 		struct SurfaceEntry
 		{
 			/// Keeps the surface alive and provides identity for lookup/removal.
-			GraphHandle<GraphHiveSurface> handle;
+			Handle<GraphHiveSurface> handle;
 
 			/// Strobe period in nanoseconds, derived from the registered millisecond period.
 			long periodNs;

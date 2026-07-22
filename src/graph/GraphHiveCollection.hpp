@@ -7,7 +7,7 @@
 #include "./actions/SerialisableActionPayload.hpp"
 #include "GraphNodeLocation.hpp"
 
-template <typename T> class GraphHandle;
+template <typename T> class Handle;
 class GraphHive;
 
 /**
@@ -22,13 +22,13 @@ class GraphHiveCollection
 		 * Add a hive to this collection.
 		 * @note Hives names must be unique within a collection.
 		 */
-		void addHive(GraphHandle<GraphHive> hiveHandle);
+		void addHive(Handle<GraphHive> hiveHandle);
 
 		/**
 		 * Get the hive with the given name.
 		 * @returns A graph handle of the hive if found. Invalid handle otherwise.
 		 */
-		GraphHandle<GraphHive> getHive(std::string hiveName);
+		Handle<GraphHive> getHive(std::string hiveName);
 
 		/**
 		 * Teleport a graph action.
@@ -48,7 +48,7 @@ class GraphHiveCollection
 	private:
 
 		/// Map of graph hive name to the hives handle.
-		std::vector<GraphHandle<GraphHive>*> _hives;
+		std::vector<Handle<GraphHive>*> _hives;
 
         /// Generic lock.
         ThreadMutex _lock;

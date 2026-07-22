@@ -21,7 +21,7 @@ class SceneAction : public GraphAction
 		 * @param surface Surface this action populates as it visits nodes. It is permissable for this handle to be
 		 *        invalid, in which case, only the scene version is calculated.
 		 */
-		SceneAction(GraphHandle<GraphNode> initNode, GraphHandle<GraphHiveSceneSurface> surface);
+		SceneAction(Handle<GraphNode> initNode, Handle<GraphHiveSceneSurface> surface);
 
 		/**
 		 * Get the unique version of the scene formed by the nodes visited by this action.
@@ -44,7 +44,7 @@ class SceneAction : public GraphAction
         SceneAction& operator= (const SceneAction& copyFrom);
 
 		/// Surface this action populates as it traverses the graph. Not owned by this.
-		GraphHandle<GraphHiveSceneSurface> _surface;
+		Handle<GraphHiveSceneSurface> _surface;
 
 		/// When in scene version mode, running sum of the versions of all nodes visited by this action.
 		std::atomic<unsigned> _version{0};

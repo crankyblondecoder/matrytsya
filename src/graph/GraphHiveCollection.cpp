@@ -1,12 +1,12 @@
 #include "./actions/ActionFactory.hpp"
 #include "./actions/SerialisableAction.hpp"
 #include "GraphException.hpp"
-#include "GraphHandle.hpp"
+#include "../util/Handle.hpp"
 #include "GraphHive.hpp"
 #include "GraphHiveCollection.hpp"
 #include "GraphNode.hpp"
 
-void GraphHiveCollection::addHive(GraphHandle<GraphHive> hiveHandle)
+void GraphHiveCollection::addHive(Handle<GraphHive> hiveHandle)
 {
 	if(hiveHandle.isValid())
 	{
@@ -14,7 +14,7 @@ void GraphHiveCollection::addHive(GraphHandle<GraphHive> hiveHandle)
 
 		{ SYNC(_lock)
 
-			for(GraphHandle<GraphHive>* handle : _hives)
+			for(Handle<GraphHive>* handle : _hives)
 			{
 				if(handle && handle -> isValid() && handle -> getInstance() -> getName() == hiveName)
 				{
@@ -22,7 +22,7 @@ void GraphHiveCollection::addHive(GraphHandle<GraphHive> hiveHandle)
 				}
 			}
 
-			GraphHandle<GraphHive>* newHandle = new GraphHandle<GraphHive>(hiveHandle);
+			Handle<GraphHive>* newHandle = new Handle<GraphHive>(hiveHandle);
 
 			_hives.push_back(newHandle);
 		}
@@ -33,13 +33,13 @@ void GraphHiveCollection::addHive(GraphHandle<GraphHive> hiveHandle)
 	}
 }
 
-GraphHandle<GraphHive> GraphHiveCollection::getHive(std::string hiveName)
+Handle<GraphHive> GraphHiveCollection::getHive(std::string hiveName)
 {
-	GraphHandle<GraphHive>* foundHandle = 0;
+	Handle<GraphHive>* foundHandle = 0;
 
 	{ SYNC(_lock)
 
-		for(GraphHandle<GraphHive>* handle : _hives)
+		for(Handle<GraphHive>* handle : _hives)
 		{
 			if(handle && handle -> isValid() && handle -> getInstance() -> getName() == hiveName)
 			{
@@ -48,10 +48,10 @@ GraphHandle<GraphHive> GraphHiveCollection::getHive(std::string hiveName)
 			}
 		}
 
-		if(foundHandle) return GraphHandle<GraphHive>(*foundHandle);
+		if(foundHandle) return Handle<GraphHive>(*foundHandle);
 	}
 
-	return GraphHandle<GraphHive>(0);
+	return Handle<GraphHive>(0);
 }
 
 void GraphHiveCollection::teleportAction(SerialisableActionPayload& actionPayload, GraphNodeLocation& nodeLocation)
@@ -59,14 +59,14 @@ void GraphHiveCollection::teleportAction(SerialisableActionPayload& actionPayloa
 	// TODO Teleport to other hosts, i.e. Use the host/port.
 	// NOTE: Failure to find a node is _not_ an exception because it is not expected behaviour.
 
-	GraphHandle<GraphHive> hiveHandle = getHive(nodeLocation.getHiveName());
+	Handle<GraphHive> hiveHandle = getHive(nodeLocation.getHiveName());
 
 	if(!hiveHandle.isValid())
 	{
 		throw GraphException(GraphException::ACTION_TELEPORT_FAILED);
 	}
 
-	GraphHandle<GraphNode> nodeHandle = hiveHandle.getInstance() -> getNode(nodeLocation.getNodeName());
+	Handle<GraphNode> nodeHandle = hiveHandle.getInstance() -> getNode(nodeLocation.getNodeName());
 
 	if(!nodeHandle.isValid())
 	{
@@ -80,7 +80,7 @@ void GraphHiveCollection::teleportAction(SerialisableActionPayload& actionPayloa
 
 void GraphHiveCollection::shutdown()
 {
-	std::vector<GraphHandle<GraphHive>*> hivesToShutdown;
+	std::vector<Handle<GraphHive>*> hivesToShutdown;
 
 	{ SYNC(_lock)
 
@@ -89,7 +89,7 @@ void GraphHiveCollection::shutdown()
 		_hives.clear();
 	}
 
-	for(GraphHandle<GraphHive>* handle : hivesToShutdown)
+	for(Handle<GraphHive>* handle : hivesToShutdown)
 	{
 		if(handle)
 		{

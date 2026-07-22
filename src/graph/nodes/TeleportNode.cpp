@@ -1,7 +1,7 @@
 #include "TeleportNode.hpp"
 
 #include "../GraphException.hpp"
-#include "../GraphHandle.hpp"
+#include "../../util/Handle.hpp"
 #include "../GraphHive.hpp"
 #include "../graphActionFlagRegister.hpp"
 
@@ -21,7 +21,7 @@ bool TeleportNode::send(SerialisableActionPayload& payload)
 {
 	bool okay = false;
 
-	GraphHandle<GraphHive> hiveHandle = getHive();
+	Handle<GraphHive> hiveHandle = getHive();
 
 	if(hiveHandle.isValid())
 	{

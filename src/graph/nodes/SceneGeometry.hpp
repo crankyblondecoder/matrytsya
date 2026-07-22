@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "../graphSceneElements.hpp"
-#include "../GraphHandle.hpp"
+#include "../../util/Handle.hpp"
 #include "../GraphVersioned.hpp"
 
 class GraphHiveSceneSurface;
@@ -87,7 +87,7 @@ class SceneGeometry : public GraphVersioned
 		 * @param nodeId Node ID to use when populating surface.
 		 * @param pokeable Pokeable flag to set when populating surface.
 		 */
-		void populateSurface(GraphHandle<GraphHiveSceneSurface> surface, unsigned nodeId, bool pokeable);
+		void populateSurface(Handle<GraphHiveSceneSurface> surface, unsigned nodeId, bool pokeable);
 
 	private:
 

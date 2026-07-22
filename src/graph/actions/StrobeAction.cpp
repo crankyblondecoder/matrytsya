@@ -8,7 +8,7 @@ StrobeAction::~StrobeAction()
 {
 }
 
-StrobeAction::StrobeAction(GraphHandle<GraphNode>& initNode)
+StrobeAction::StrobeAction(Handle<GraphNode>& initNode)
 	: ScriptAction(initNode)
 {
 	_addFlag(SCENE_STROBE_GRAPH_ACTION, true);

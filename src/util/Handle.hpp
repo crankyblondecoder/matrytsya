@@ -1,14 +1,14 @@
-#ifndef GRAPH_HANDLE_H
-#define GRAPH_HANDLE_H
+#ifndef HANDLE_H
+#define HANDLE_H
 
 /**
- * Handle to a reference counted graph object.
+ * Handle to a reference counted object.
  * Guarantees that the object this references will be available while an instance of this class exists.
  * Objects will be automatically ref'd/de-ref'd.
  * @note This is not re-entrant.
  * @note T must be a reference counted class, i.e. it must inherit from RefCounted and provide incrRef()/decrRef().
  */
-template <typename T> class GraphHandle
+template <typename T> class Handle
 {
     public:
 
@@ -16,7 +16,7 @@ template <typename T> class GraphHandle
 		 * Construct a handle from the given instance.
 		 * @param instance Instance that handle refers to. May be null.
 		 */
-		GraphHandle(T* instance)
+		Handle(T* instance)
 		{
 			if(instance && instance -> incrRef())
 			{
@@ -31,7 +31,7 @@ template <typename T> class GraphHandle
 		/**
 		 * Create a new handle from another handle.
 		 */
-        GraphHandle(const GraphHandle<T>& copyFrom)
+        Handle(const Handle<T>& copyFrom)
 		{
 			if(copyFrom._referencedInstance && copyFrom._referencedInstance -> incrRef())
 			{
@@ -46,7 +46,7 @@ template <typename T> class GraphHandle
 		/**
 		 * Handles can be re-assigned.
 		 */
-        GraphHandle<T>& operator= (const GraphHandle<T>& copyFrom)
+        Handle<T>& operator= (const Handle<T>& copyFrom)
 		{
 			if(this == &copyFrom) return *this;
 
@@ -64,7 +64,7 @@ template <typename T> class GraphHandle
 			return *this;
 		}
 
-		~GraphHandle()
+		~Handle()
 		{
 			clear();
 		}
@@ -89,7 +89,7 @@ template <typename T> class GraphHandle
 		 * @param compareTo Handle to compare against.
 		 * @returns True if both handles reference the same instance pointer.
 		 */
-		bool operator== (const GraphHandle<T>& compareTo) const
+		bool operator== (const Handle<T>& compareTo) const
 		{
 			return _referencedInstance == compareTo._referencedInstance;
 		}
@@ -99,7 +99,7 @@ template <typename T> class GraphHandle
 		 * @param compareTo Handle to compare against.
 		 * @returns True if the handles reference different instance pointers.
 		 */
-		bool operator!= (const GraphHandle<T>& compareTo) const
+		bool operator!= (const Handle<T>& compareTo) const
 		{
 			return _referencedInstance != compareTo._referencedInstance;
 		}

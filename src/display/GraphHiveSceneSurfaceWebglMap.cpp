@@ -224,7 +224,7 @@ void GraphHiveSceneSurfaceWebglMap::__servePoke(HttpRequest& request, HttpRespon
 	response.setBody("{\"ok\":true}");
 }
 
-void GraphHiveSceneSurfaceWebglMap::hiveSurfaceChanged(GraphHandle<GraphHiveSurface> hiveSurface)
+void GraphHiveSceneSurfaceWebglMap::hiveSurfaceChanged(Handle<GraphHiveSurface> hiveSurface)
 {
 	{ SYNC(_lock)
 

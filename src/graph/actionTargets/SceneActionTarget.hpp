@@ -1,7 +1,7 @@
 #ifndef SCENE_ACTION_TARGET_H
 #define SCENE_ACTION_TARGET_H
 
-#include "../GraphHandle.hpp"
+#include "../../util/Handle.hpp"
 #include "ActionTarget.hpp"
 
 class GraphHiveSceneSurface;
@@ -21,7 +21,7 @@ class SceneActionTarget : virtual public ActionTarget
 		 * Populate the given surface with this node's scene contents.
 		 * @param surface Surface to populate.
 		 */
-		virtual void populateSurface(GraphHandle<GraphHiveSceneSurface> surface) = 0;
+		virtual void populateSurface(Handle<GraphHiveSceneSurface> surface) = 0;
 
 		/**
 		 * Get the version of this target.

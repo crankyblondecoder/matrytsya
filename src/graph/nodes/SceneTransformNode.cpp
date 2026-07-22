@@ -15,7 +15,7 @@ SceneTransformNode::SceneTransformNode()
 	_addActionFlag(SCENE_STROBE_GRAPH_ACTION);
 }
 
-void SceneTransformNode::populateSurface(GraphHandle<GraphHiveSceneSurface> surface)
+void SceneTransformNode::populateSurface(Handle<GraphHiveSceneSurface> surface)
 {
 	SceneTransform::populateSurface(surface, getId());
 }

@@ -75,7 +75,7 @@ std::size_t SceneGeometry::getVertexCount() const
 	return count;
 }
 
-void SceneGeometry::populateSurface(GraphHandle<GraphHiveSceneSurface> surface, unsigned nodeId, bool pokeable)
+void SceneGeometry::populateSurface(Handle<GraphHiveSceneSurface> surface, unsigned nodeId, bool pokeable)
 {
 	if(surface.isValid())
 	{

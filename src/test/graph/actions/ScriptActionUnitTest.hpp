@@ -5,7 +5,7 @@
 
 #include "../../../graph/actions/SceneAction.hpp"
 #include "../../../graph/actions/ScriptAction.hpp"
-#include "../../../graph/GraphHandle.hpp"
+#include "../../../util/Handle.hpp"
 #include "../../../graph/GraphHive.hpp"
 #include "../../../graph/GraphHiveSceneSurface.hpp"
 #include "../../../graph/GraphNode.hpp"
@@ -36,7 +36,7 @@ class ScriptEmitterNode : public GraphNode
 		 */
 		ScriptAction* emitScript(bool wait)
 		{
-			GraphHandle<GraphNode> handle(this);
+			Handle<GraphNode> handle(this);
 
 			return emit(new ScriptAction(handle), wait);
 		}
@@ -71,7 +71,7 @@ class SharingScriptAction : public ScriptAction
 {
 	public:
 
-		SharingScriptAction(GraphHandle<GraphNode>& initNode) : ScriptAction(initNode)
+		SharingScriptAction(Handle<GraphNode>& initNode) : ScriptAction(initNode)
 		{
 			_shareGlobal("shared", 99);
 		}
@@ -91,7 +91,7 @@ class AccumulatingScriptAction : public ScriptAction
 		 * @param initNode Initial node this action is bound to.
 		 * @param startValue Value "counter" is seeded with before the first node in the chain is invoked.
 		 */
-		AccumulatingScriptAction(GraphHandle<GraphNode>& initNode, int startValue) : ScriptAction(initNode)
+		AccumulatingScriptAction(Handle<GraphNode>& initNode, int startValue) : ScriptAction(initNode)
 		{
 			_shareGlobal("counter", startValue);
 		}
@@ -127,7 +127,7 @@ class VertexCountCapturingScriptAction : public ScriptAction
 {
 	public:
 
-		VertexCountCapturingScriptAction(GraphHandle<GraphNode>& initNode) : ScriptAction(initNode) {}
+		VertexCountCapturingScriptAction(Handle<GraphNode>& initNode) : ScriptAction(initNode) {}
 
 		int getCountBefore()
 		{
@@ -154,7 +154,7 @@ class VertexCountCapturingScriptAction : public ScriptAction
 TEST(ScriptActionTest, GlobalsAreIsolatedPerNode)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
 	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
 	ScriptNode* writerNode = new ScriptNode("leaked = 123", "");
@@ -164,8 +164,8 @@ TEST(ScriptActionTest, GlobalsAreIsolatedPerNode)
 	hive -> addNode(writerNode);
 	hive -> addNode(readerNode);
 
-	GraphHandle<GraphNode> writerHandle(writerNode);
-	GraphHandle<GraphNode> readerHandle(readerNode);
+	Handle<GraphNode> writerHandle(writerNode);
+	Handle<GraphNode> readerHandle(readerNode);
 
 	sourceNode -> createEdge(writerHandle, {});
 	writerNode -> createEdge(readerHandle, {});
@@ -187,7 +187,7 @@ TEST(ScriptActionTest, GlobalsAreIsolatedPerNode)
 TEST(ScriptActionTest, ExplicitlySharedGlobalsAreVisibleToEveryNode)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
 	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
 	ScriptNode* readerNode1 = new ScriptNode("observedShared = shared", "");
@@ -197,13 +197,13 @@ TEST(ScriptActionTest, ExplicitlySharedGlobalsAreVisibleToEveryNode)
 	hive -> addNode(readerNode1);
 	hive -> addNode(readerNode2);
 
-	GraphHandle<GraphNode> reader1Handle(readerNode1);
-	GraphHandle<GraphNode> reader2Handle(readerNode2);
+	Handle<GraphNode> reader1Handle(readerNode1);
+	Handle<GraphNode> reader2Handle(readerNode2);
 
 	sourceNode -> createEdge(reader1Handle, {});
 	readerNode1 -> createEdge(reader2Handle, {});
 
-	GraphHandle<GraphNode> sourceHandle(sourceNode);
+	Handle<GraphNode> sourceHandle(sourceNode);
 	SharingScriptAction* action = new SharingScriptAction(sourceHandle);
 
 	sourceNode -> emit(action, true);
@@ -231,7 +231,7 @@ TEST(ScriptActionTest, ScriptNodesAccumulateCounter)
 
 	GraphHive* hive = new GraphHive(2);
 
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
 	// The nodes must _not_ be allocated on the stack because of auto-delete once de-referenced.
 	PingNode* rootNode = new PingNode();
@@ -246,17 +246,17 @@ TEST(ScriptActionTest, ScriptNodesAccumulateCounter)
 	hive -> addNode(node3);
 	hive -> addNode(node4);
 
-	GraphHandle<GraphNode> node1Handle(node1);
-	GraphHandle<GraphNode> node2Handle(node2);
-	GraphHandle<GraphNode> node3Handle(node3);
-	GraphHandle<GraphNode> node4Handle(node4);
+	Handle<GraphNode> node1Handle(node1);
+	Handle<GraphNode> node2Handle(node2);
+	Handle<GraphNode> node3Handle(node3);
+	Handle<GraphNode> node4Handle(node4);
 
 	rootNode -> createEdge(node1Handle, {});
 	node1 -> createEdge(node2Handle, {});
 	node2 -> createEdge(node3Handle, {});
 	node3 -> createEdge(node4Handle, {});
 
-	GraphHandle<GraphNode> rootHandle(rootNode);
+	Handle<GraphNode> rootHandle(rootNode);
 
 	AccumulatingScriptAction* action = new AccumulatingScriptAction(rootHandle, 1);
 
@@ -275,7 +275,7 @@ TEST(ScriptActionTest, ScriptNodesAccumulateCounter)
 TEST(ScriptActionTest, SceneGeometryScriptNodeExposesVertexToLua)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
 	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
 
@@ -290,7 +290,7 @@ TEST(ScriptActionTest, SceneGeometryScriptNodeExposesVertexToLua)
 	hive -> addNode(sourceNode);
 	hive -> addNode(geometryNode);
 
-	GraphHandle<GraphNode> geometryHandle(geometryNode);
+	Handle<GraphNode> geometryHandle(geometryNode);
 
 	sourceNode -> createEdge(geometryHandle, {});
 
@@ -298,11 +298,11 @@ TEST(ScriptActionTest, SceneGeometryScriptNodeExposesVertexToLua)
 
 	action -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(0));
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(Handle<SceneRootNode>(0));
 
 	surface -> setHive(hiveHandle);
-	GraphHandle<GraphNode> sourceHandle(sourceNode);
-	SceneAction* sceneAction = new SceneAction(sourceHandle, GraphHandle<GraphHiveSceneSurface>(surface));
+	Handle<GraphNode> sourceHandle(sourceNode);
+	SceneAction* sceneAction = new SceneAction(sourceHandle, Handle<GraphHiveSceneSurface>(surface));
 
 	sceneAction -> incrRef();
 	sceneAction -> start();
@@ -342,7 +342,7 @@ TEST(ScriptActionTest, SceneGeometryScriptNodeExposesVertexToLua)
 TEST(ScriptActionTest, SceneGeometryScriptNodeExposesAddVertexesToLua)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
 	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
 
@@ -356,7 +356,7 @@ TEST(ScriptActionTest, SceneGeometryScriptNodeExposesAddVertexesToLua)
 	hive -> addNode(sourceNode);
 	hive -> addNode(geometryNode);
 
-	GraphHandle<GraphNode> geometryHandle(geometryNode);
+	Handle<GraphNode> geometryHandle(geometryNode);
 
 	sourceNode -> createEdge(geometryHandle, {});
 
@@ -364,11 +364,11 @@ TEST(ScriptActionTest, SceneGeometryScriptNodeExposesAddVertexesToLua)
 
 	action -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(0));
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(Handle<SceneRootNode>(0));
 
 	surface -> setHive(hiveHandle);
-	GraphHandle<GraphNode> sourceHandle(sourceNode);
-	SceneAction* sceneAction = new SceneAction(sourceHandle, GraphHandle<GraphHiveSceneSurface>(surface));
+	Handle<GraphNode> sourceHandle(sourceNode);
+	SceneAction* sceneAction = new SceneAction(sourceHandle, Handle<GraphHiveSceneSurface>(surface));
 
 	sceneAction -> incrRef();
 	sceneAction -> start();
@@ -402,7 +402,7 @@ TEST(ScriptActionTest, SceneGeometryScriptNodeExposesAddVertexesToLua)
 TEST(ScriptActionTest, SceneGeometryScriptNodeGroupsVertexesByVisibility)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
 	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
 
@@ -415,7 +415,7 @@ TEST(ScriptActionTest, SceneGeometryScriptNodeGroupsVertexesByVisibility)
 	hive -> addNode(sourceNode);
 	hive -> addNode(geometryNode);
 
-	GraphHandle<GraphNode> geometryHandle(geometryNode);
+	Handle<GraphNode> geometryHandle(geometryNode);
 
 	sourceNode -> createEdge(geometryHandle, {});
 
@@ -423,11 +423,11 @@ TEST(ScriptActionTest, SceneGeometryScriptNodeGroupsVertexesByVisibility)
 
 	action -> decrRef();
 
-	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(0));
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(Handle<SceneRootNode>(0));
 
 	surface -> setHive(hiveHandle);
-	GraphHandle<GraphNode> sourceHandle(sourceNode);
-	SceneAction* sceneAction = new SceneAction(sourceHandle, GraphHandle<GraphHiveSceneSurface>(surface));
+	Handle<GraphNode> sourceHandle(sourceNode);
+	SceneAction* sceneAction = new SceneAction(sourceHandle, Handle<GraphHiveSceneSurface>(surface));
 
 	sceneAction -> incrRef();
 	sceneAction -> start();
@@ -455,7 +455,7 @@ TEST(ScriptActionTest, SceneGeometryScriptNodeGroupsVertexesByVisibility)
 TEST(ScriptActionTest, SceneGeometryScriptNodeRejectsUnknownVisibility)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
 	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
 
@@ -467,7 +467,7 @@ TEST(ScriptActionTest, SceneGeometryScriptNodeRejectsUnknownVisibility)
 	hive -> addNode(sourceNode);
 	hive -> addNode(geometryNode);
 
-	GraphHandle<GraphNode> geometryHandle(geometryNode);
+	Handle<GraphNode> geometryHandle(geometryNode);
 
 	sourceNode -> createEdge(geometryHandle, {});
 
@@ -484,7 +484,7 @@ TEST(ScriptActionTest, SceneGeometryScriptNodeRejectsUnknownVisibility)
 TEST(ScriptActionTest, SceneGeometryScriptNodeExposesVertexCountToLua)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
 	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
 
@@ -498,11 +498,11 @@ TEST(ScriptActionTest, SceneGeometryScriptNodeExposesVertexCountToLua)
 	hive -> addNode(sourceNode);
 	hive -> addNode(geometryNode);
 
-	GraphHandle<GraphNode> geometryHandle(geometryNode);
+	Handle<GraphNode> geometryHandle(geometryNode);
 
 	sourceNode -> createEdge(geometryHandle, {});
 
-	GraphHandle<GraphNode> sourceHandle(sourceNode);
+	Handle<GraphNode> sourceHandle(sourceNode);
 	VertexCountCapturingScriptAction* action = new VertexCountCapturingScriptAction(sourceHandle);
 
 	sourceNode -> emit(action, true);

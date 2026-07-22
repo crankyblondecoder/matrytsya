@@ -71,7 +71,7 @@ GraphHive::GraphHive(unsigned numThreads)
 	_active = true;
 }
 
-GraphHandle<GraphNode> GraphHive::__findNode(unsigned nodeId)
+Handle<GraphNode> GraphHive::__findNode(unsigned nodeId)
 {
 	{ SYNC(_lock)
 
@@ -79,22 +79,22 @@ GraphHandle<GraphNode> GraphHive::__findNode(unsigned nodeId)
 		{
 			if(nodePtr && nodePtr -> getId() == nodeId)
 			{
-				return GraphHandle<GraphNode>(nodePtr);
+				return Handle<GraphNode>(nodePtr);
 			}
 		}
 	}
 
-	return GraphHandle<GraphNode>(0);
+	return Handle<GraphNode>(0);
 }
 
 void GraphHive::poke(unsigned nodeId, GraphPoke poke)
 {
-	GraphHandle<GraphNode> found = __findNode(nodeId);
+	Handle<GraphNode> found = __findNode(nodeId);
 
 	if(found.isValid()) found.getInstance() -> poke(poke);
 }
 
-void GraphHive::setStrobeEmitter(GraphHandle<StrobeEmitterNode> nodeHandle, unsigned periodMs)
+void GraphHive::setStrobeEmitter(Handle<StrobeEmitterNode> nodeHandle, unsigned periodMs)
 {
 	{ SYNC(_lock)
 
@@ -104,7 +104,7 @@ void GraphHive::setStrobeEmitter(GraphHandle<StrobeEmitterNode> nodeHandle, unsi
 	_strobeScheduler -> setEmitter(nodeHandle, periodMs);
 }
 
-void GraphHive::clearStrobeEmitter(GraphHandle<StrobeEmitterNode> nodeHandle)
+void GraphHive::clearStrobeEmitter(Handle<StrobeEmitterNode> nodeHandle)
 {
 	{ SYNC(_lock)
 
@@ -114,7 +114,7 @@ void GraphHive::clearStrobeEmitter(GraphHandle<StrobeEmitterNode> nodeHandle)
 	if(nodeHandle.isValid()) _strobeScheduler -> removeEmitter(nodeHandle);
 }
 
-void GraphHive::setStrobeSurface(GraphHandle<GraphHiveSurface> surfaceHandle, unsigned periodMs)
+void GraphHive::setStrobeSurface(Handle<GraphHiveSurface> surfaceHandle, unsigned periodMs)
 {
 	{ SYNC(_lock)
 
@@ -124,7 +124,7 @@ void GraphHive::setStrobeSurface(GraphHandle<GraphHiveSurface> surfaceHandle, un
 	_strobeScheduler -> setSurface(surfaceHandle, periodMs);
 }
 
-void GraphHive::clearStrobeSurface(GraphHandle<GraphHiveSurface> surfaceHandle)
+void GraphHive::clearStrobeSurface(Handle<GraphHiveSurface> surfaceHandle)
 {
 	{ SYNC(_lock)
 
@@ -540,7 +540,7 @@ void GraphHive::addNode(GraphNode* node)
 	if(addedIndex != -1)
 	{
 		// Rely on the node rejecting being added to the hive if it has been decoupled. This is possibly a bit brittle.
-		bool accepted = node -> setHive(GraphHandle<GraphHive>(this));
+		bool accepted = node -> setHive(Handle<GraphHive>(this));
 
 		if(!accepted)
 		{
@@ -565,7 +565,7 @@ void GraphHive::addNode(GraphNode* node)
 	node -> decrRef();
 }
 
-void GraphHive::removeNode(GraphHandle<GraphNode> nodeHandle)
+void GraphHive::removeNode(Handle<GraphNode> nodeHandle)
 {
 	if(!nodeHandle.isValid()) return;
 
@@ -592,14 +592,14 @@ void GraphHive::removeNode(GraphHandle<GraphNode> nodeHandle)
 		// A node that is removed from the hive must also stop being a strobe emitter. Only nodes that
 		// are actually StrobeEmitterNodes can ever be registered, so a failed cast here just means
 		// the node was never an emitter.
-		if(_strobeScheduler) _strobeScheduler -> removeEmitter(GraphHandle<StrobeEmitterNode>(dynamic_cast<StrobeEmitterNode*>(nodeToFind)));
+		if(_strobeScheduler) _strobeScheduler -> removeEmitter(Handle<StrobeEmitterNode>(dynamic_cast<StrobeEmitterNode*>(nodeToFind)));
 
 		nodeToFind -> decouple();
 		nodeToFind -> decrRef();
 	}
 }
 
-GraphHandle<GraphNode> GraphHive::getNode(std::string nodeName)
+Handle<GraphNode> GraphHive::getNode(std::string nodeName)
 {
 	GraphNode* foundNode = 0;
 
@@ -618,7 +618,7 @@ GraphHandle<GraphNode> GraphHive::getNode(std::string nodeName)
 		}
 	}
 
-	return GraphHandle<GraphNode>(foundNode);
+	return Handle<GraphNode>(foundNode);
 }
 
 void GraphHive::addSurface(GraphHiveSurface* surface)
@@ -654,7 +654,7 @@ void GraphHive::addSurface(GraphHiveSurface* surface)
 
 	if(added)
 	{
-		surface -> setHive(GraphHandle<GraphHive>(this));
+		surface -> setHive(Handle<GraphHive>(this));
 	}
 	else
 	{
@@ -666,7 +666,7 @@ void GraphHive::addSurface(GraphHiveSurface* surface)
 	surface -> decrRef();
 }
 
-void GraphHive::removeSurface(GraphHandle<GraphHiveSurface> surfaceHandle)
+void GraphHive::removeSurface(Handle<GraphHiveSurface> surfaceHandle)
 {
 	if(!surfaceHandle.isValid()) return;
 
@@ -698,7 +698,7 @@ void GraphHive::removeSurface(GraphHandle<GraphHiveSurface> surfaceHandle)
 	}
 }
 
-GraphHandle<GraphHiveSurface> GraphHive::getSurface(std::string surfaceName)
+Handle<GraphHiveSurface> GraphHive::getSurface(std::string surfaceName)
 {
 	GraphHiveSurface* foundSurface = 0;
 
@@ -717,22 +717,22 @@ GraphHandle<GraphHiveSurface> GraphHive::getSurface(std::string surfaceName)
 		}
 	}
 
-	return GraphHandle<GraphHiveSurface>(foundSurface);
+	return Handle<GraphHiveSurface>(foundSurface);
 }
 
-GraphHandle<GraphHiveSceneSurface> GraphHive::getSceneSurface(std::string surfaceName)
+Handle<GraphHiveSceneSurface> GraphHive::getSceneSurface(std::string surfaceName)
 {
-	GraphHandle<GraphHiveSurface> surface = getSurface(surfaceName);
+	Handle<GraphHiveSurface> surface = getSurface(surfaceName);
 
 	if(surface.isValid() && surface.getInstance() -> getType() == GraphHiveSurface::Type::SCENE_SURFACE)
 	{
-		return GraphHandle<GraphHiveSceneSurface>(static_cast<GraphHiveSceneSurface*>(surface.getInstance()));
+		return Handle<GraphHiveSceneSurface>(static_cast<GraphHiveSceneSurface*>(surface.getInstance()));
 	}
 
-	return GraphHandle<GraphHiveSceneSurface>(0);
+	return Handle<GraphHiveSceneSurface>(0);
 }
 
-GraphHandle<GraphHiveSceneSurface> GraphHive::getDefaultSceneSurface()
+Handle<GraphHiveSceneSurface> GraphHive::getDefaultSceneSurface()
 {
 	GraphHiveSurface* foundSurface = 0;
 
@@ -751,7 +751,7 @@ GraphHandle<GraphHiveSceneSurface> GraphHive::getDefaultSceneSurface()
 		}
 	}
 
-	return GraphHandle<GraphHiveSceneSurface>(static_cast<GraphHiveSceneSurface*>(foundSurface));
+	return Handle<GraphHiveSceneSurface>(static_cast<GraphHiveSceneSurface*>(foundSurface));
 }
 
 void GraphHive::enumerateThreadPool(unsigned numTabs)

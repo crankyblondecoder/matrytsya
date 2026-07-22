@@ -8,7 +8,7 @@
 #include "../thread/ThreadPool.hpp"
 #include "../util/RefCounted.hpp"
 #include "./actions/SerialisableActionPayload.hpp"
-#include "GraphHandle.hpp"
+#include "../util/Handle.hpp"
 #include "GraphHiveCollection.hpp"
 #include "GraphNamed.hpp"
 #include "GraphNodeLocation.hpp"
@@ -50,14 +50,14 @@ class GraphHive : public RefCounted, public GraphNamed
 		/**
 		 * Remove node from hive.
 		 */
-		void removeNode(GraphHandle<GraphNode> nodeHandle);
+		void removeNode(Handle<GraphNode> nodeHandle);
 
 		/**
 		 * Find a node in this hive by name.
 		 * @param nodeName Name of node to find.
 		 * @returns Handle to the node. Invalid handle if no node with that name exists in this hive.
 		 */
-		GraphHandle<GraphNode> getNode(std::string nodeName);
+		Handle<GraphNode> getNode(std::string nodeName);
 
 		/**
 		 * Poke this hive.
@@ -76,14 +76,14 @@ class GraphHive : public RefCounted, public GraphNamed
 		/**
 		 * Remove surface from hive.
 		 */
-		void removeSurface(GraphHandle<GraphHiveSurface> surfaceHandle);
+		void removeSurface(Handle<GraphHiveSurface> surfaceHandle);
 
 		/**
 		 * Find a surface in this hive by name.
 		 * @param surfaceName Name of surface to find.
 		 * @returns Handle to the surface. Invalid handle if no surface with that name exists in this hive.
 		 */
-		GraphHandle<GraphHiveSurface> getSurface(std::string surfaceName);
+		Handle<GraphHiveSurface> getSurface(std::string surfaceName);
 
 		/**
 		 * Find a scene surface in this hive by name.
@@ -91,14 +91,14 @@ class GraphHive : public RefCounted, public GraphNamed
 		 * @returns Handle to the surface. Invalid handle if no surface with that name exists in this
 		 *          hive, or it exists but is not a GraphHiveSceneSurface.
 		 */
-		GraphHandle<GraphHiveSceneSurface> getSceneSurface(std::string surfaceName);
+		Handle<GraphHiveSceneSurface> getSceneSurface(std::string surfaceName);
 
 		/**
 		 * Get the default scene surface in this hive.
 		 * @returns Handle to the first surface, in this hive's surfaces, that is both a
 		 *          GraphHiveSceneSurface and marked as default. Invalid handle if no such surface exists.
 		 */
-		GraphHandle<GraphHiveSceneSurface> getDefaultSceneSurface();
+		Handle<GraphHiveSceneSurface> getDefaultSceneSurface();
 
 		/**
 		 * Register a node as a periodic strobe emitter within this hive, or update an existing
@@ -109,14 +109,14 @@ class GraphHive : public RefCounted, public GraphNamed
 		 * @param nodeHandle Handle of the node to register.
 		 * @param periodMs Emission period in milliseconds (time between successive emissions).
 		 */
-		void setStrobeEmitter(GraphHandle<StrobeEmitterNode> nodeHandle, unsigned periodMs);
+		void setStrobeEmitter(Handle<StrobeEmitterNode> nodeHandle, unsigned periodMs);
 
 		/**
 		 * Remove a node as a periodic strobe emitter within this hive.
 		 * @note Safe to call for a node that is not currently a strobe emitter (no-op).
 		 * @param nodeHandle Handle of the node to remove.
 		 */
-		void clearStrobeEmitter(GraphHandle<StrobeEmitterNode> nodeHandle);
+		void clearStrobeEmitter(Handle<StrobeEmitterNode> nodeHandle);
 
 		/**
 		 * Register a surface as being periodically strobed within this hive, or update an existing
@@ -126,14 +126,14 @@ class GraphHive : public RefCounted, public GraphNamed
 		 * @param surfaceHandle Handle of the surface to register.
 		 * @param periodMs Strobe period in milliseconds (time between successive strobes).
 		 */
-		void setStrobeSurface(GraphHandle<GraphHiveSurface> surfaceHandle, unsigned periodMs);
+		void setStrobeSurface(Handle<GraphHiveSurface> surfaceHandle, unsigned periodMs);
 
 		/**
 		 * Remove a surface from being periodically strobed within this hive.
 		 * @note Safe to call for a surface that is not currently being strobed (no-op).
 		 * @param surfaceHandle Handle of the surface to remove.
 		 */
-		void clearStrobeSurface(GraphHandle<GraphHiveSurface> surfaceHandle);
+		void clearStrobeSurface(Handle<GraphHiveSurface> surfaceHandle);
 
 		/**
 		 * Get the thread pool used by this hive to enumerate itself.
@@ -208,7 +208,7 @@ class GraphHive : public RefCounted, public GraphNamed
 		 * @param nodeId Id of node to find.
 		 * @returns Node handle. If no node was found this will be invalid.
 		 */
-		GraphHandle<GraphNode> __findNode(unsigned nodeId);
+		Handle<GraphNode> __findNode(unsigned nodeId);
 
 		/// Thread pool that hive runs actions on.
 		ThreadPool* _threadPool = 0;

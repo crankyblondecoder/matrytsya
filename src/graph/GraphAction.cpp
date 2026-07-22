@@ -3,7 +3,7 @@
 #include "GraphActionThreadPoolWorkUnit.hpp"
 #include "GraphEdge.hpp"
 #include "GraphException.hpp"
-#include "GraphHandle.hpp"
+#include "../util/Handle.hpp"
 #include "GraphHive.hpp"
 #include "GraphNode.hpp"
 
@@ -16,7 +16,7 @@ GraphAction::~GraphAction()
 	_boundNode.clear();
 }
 
-GraphAction::GraphAction(GraphHandle<GraphNode> initNode, unsigned energy, unsigned numPasses) : _id { _nextId++ },
+GraphAction::GraphAction(Handle<GraphNode> initNode, unsigned energy, unsigned numPasses) : _id { _nextId++ },
 	_initNode(initNode), _boundNode(initNode), _boundHive(0), _numPasses(numPasses < 1 ? 1 : numPasses)
 {
 	_energy = energy;
@@ -32,7 +32,7 @@ unsigned GraphAction::getId()
 	return _id;
 }
 
-void GraphAction::applyScheduled(GraphHandle<GraphNode> nodeHandle)
+void GraphAction::applyScheduled(Handle<GraphNode> nodeHandle)
 {
 	{ SYNC(_lock)
 
@@ -287,7 +287,7 @@ void GraphAction::work()
 	bool complete = false;
 
 	GraphNode* curBoundNode = 0;
-	GraphHandle<GraphNode> prevBoundNodeHandle(0);
+	Handle<GraphNode> prevBoundNodeHandle(0);
 
 	{ SYNC(_lock)
 
@@ -316,7 +316,7 @@ void GraphAction::work()
 		// Note: Successfully scheduling an action means traversal, work unit execution and action completion
 		// are processed later on.
 
-		if(!_boundNode.getInstance() -> scheduleAction(GraphHandle<GraphAction>(this)))
+		if(!_boundNode.getInstance() -> scheduleAction(Handle<GraphAction>(this)))
 		{
 			// Couldn't schedule this action with the node so just try and keep action traversal going.
 			traverse = true;
@@ -368,7 +368,7 @@ bool GraphAction::__traverse()
 
 		if(_energy > 0 && _boundNode.isValid())
 		{
-			GraphHandle<GraphEdge> edgeToTraverse = _boundNode.getInstance() -> traverse(*this);
+			Handle<GraphEdge> edgeToTraverse = _boundNode.getInstance() -> traverse(*this);
 
 			if(edgeToTraverse.isValid())
 			{
@@ -436,7 +436,7 @@ bool GraphAction::__executeWorkUnit()
 {
 	bool executed = false;
 
-	GraphHandle<GraphHive> hiveHandle(0);
+	Handle<GraphHive> hiveHandle(0);
 
 	{ SYNC(_lock)
 
@@ -472,7 +472,7 @@ void GraphAction::abortWork()
 	__complete();
 }
 
-bool GraphAction::canTraverseEdge(GraphHandle<GraphEdge> handle)
+bool GraphAction::canTraverseEdge(Handle<GraphEdge> handle)
 {
 	bool canTraverse = true;
 

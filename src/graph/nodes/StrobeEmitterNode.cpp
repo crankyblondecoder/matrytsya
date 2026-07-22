@@ -1,7 +1,7 @@
 #include "StrobeEmitterNode.hpp"
 
 #include "../actions/StrobeAction.hpp"
-#include "../GraphHandle.hpp"
+#include "../../util/Handle.hpp"
 
 StrobeEmitterNode::~StrobeEmitterNode()
 {
@@ -13,7 +13,7 @@ StrobeEmitterNode::StrobeEmitterNode() : GraphNode()
 
 void StrobeEmitterNode::emitStrobe()
 {
-	GraphHandle<GraphNode> handle(this);
+	Handle<GraphNode> handle(this);
 
 	// Action will self delete once complete.
 	StrobeAction* action = new StrobeAction(handle);

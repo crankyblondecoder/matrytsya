@@ -8,7 +8,7 @@ VersionAction::~VersionAction()
 {
 }
 
-VersionAction::VersionAction(GraphHandle<GraphNode> initNode)
+VersionAction::VersionAction(Handle<GraphNode> initNode)
 	: GraphAction(initNode, _startingEnergy)
 {
 	_addFlag(VERSION_GRAPH_ACTION, true);

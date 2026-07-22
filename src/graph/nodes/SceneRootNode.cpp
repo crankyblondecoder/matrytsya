@@ -1,7 +1,7 @@
 #include "SceneRootNode.hpp"
 
 #include "../actions/SceneAction.hpp"
-#include "../GraphHandle.hpp"
+#include "../../util/Handle.hpp"
 #include "../GraphHiveSceneSurface.hpp"
 
 SceneRootNode::~SceneRootNode()
@@ -13,9 +13,9 @@ SceneRootNode::SceneRootNode() : StrobeEmitterNode()
 	_setEnergyCost(1);
 }
 
-void SceneRootNode::populateSceneSurface(GraphHandle<GraphHiveSceneSurface> sceneSurface)
+void SceneRootNode::populateSceneSurface(Handle<GraphHiveSceneSurface> sceneSurface)
 {
-	GraphHandle<GraphNode> handle(this);
+	Handle<GraphNode> handle(this);
 
 	// Action will self delete once complete.
 	SceneAction* action = new SceneAction(handle, sceneSurface);

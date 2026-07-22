@@ -15,7 +15,7 @@ class PingAction : public SerialisableAction
 
         virtual ~PingAction();
 
-		PingAction(GraphHandle<GraphNode>& initNode);
+		PingAction(Handle<GraphNode>& initNode);
 
 		/**
 		 * Get the current ping count from the action.

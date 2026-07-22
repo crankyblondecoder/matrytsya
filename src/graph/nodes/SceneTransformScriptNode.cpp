@@ -24,7 +24,7 @@ void SceneTransformScriptNode::_registerCoreGlobals(lua_State* luaState)
 	__registerTransformBindings(luaState);
 }
 
-void SceneTransformScriptNode::populateSurface(GraphHandle<GraphHiveSceneSurface> surface)
+void SceneTransformScriptNode::populateSurface(Handle<GraphHiveSceneSurface> surface)
 {
 	SceneTransform::populateSurface(surface, getId());
 }

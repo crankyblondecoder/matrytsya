@@ -10,7 +10,7 @@
 #include "../../../graph/actionTargets/PingActionTarget.hpp"
 #include "../../../graph/actionTargets/SerialisableActionTarget.hpp"
 #include "../../../graph/GraphException.hpp"
-#include "../../../graph/GraphHandle.hpp"
+#include "../../../util/Handle.hpp"
 #include "../../../graph/GraphHive.hpp"
 #include "../../../graph/GraphNode.hpp"
 #include "../../../graph/graphActionFlagRegister.hpp"
@@ -74,7 +74,7 @@ class CapturingNode : public GraphNode, public PingActionTarget, public Serialis
 TEST(ActionFactoryTest, PingRoundTrip)
 {
     GraphHive* hive = new GraphHive(2);
-    GraphHandle<GraphHive> hiveHandle(hive);
+    Handle<GraphHive> hiveHandle(hive);
 
     // Nodes must not be stack-allocated; the hive takes ownership of the initial ref.
     PingNode* sourceNode = new PingNode();
@@ -83,7 +83,7 @@ TEST(ActionFactoryTest, PingRoundTrip)
     hive -> addNode(sourceNode);
     hive -> addNode(targetNode);
 
-    GraphHandle<GraphNode> targetHandle(targetNode);
+    Handle<GraphNode> targetHandle(targetNode);
 
     // Connect source → target so the action is applied (and serialised) at the target.
     sourceNode -> createEdge(targetHandle, {});
@@ -119,7 +119,7 @@ TEST(ActionFactoryTest, PingRoundTrip)
 TEST(ActionFactoryTest, ThrowsOnUnknownType)
 {
     PingNode* node = new PingNode();
-    GraphHandle<GraphNode> handle(node);
+    Handle<GraphNode> handle(node);
 
     // Payload with UNKNOWN type; size zero is sufficient to trigger the throw before any data is read.
     SerialisableActionPayload* payload = new SerialisableActionPayload(

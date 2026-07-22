@@ -92,6 +92,14 @@ clean : subDirs
 	@ -rm -f $(execName_test)
 	@ -find ./debug ./release ./test -mindepth 1 $(foreach f, $(luaArtifacts), -not -name $(f)) -delete
 
+.PHONY : doc
+doc :
+	@ echo
+	@ echo "*** Building - Documentation ***"
+	@ echo
+	cd ../doc; doxygen Doxyfile
+	ln -sf html/index.html ../doc/generated/index.html
+
 .PHONY : lua_clean
 lua_clean :
 	@ echo

@@ -22,7 +22,7 @@ class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarg
 		 */
         SceneGeometryScriptNode(const std::string& coreScript, const std::string& pokeScript);
 
-		void populateSurface(GraphHandle<GraphHiveSceneSurface> surface) override;
+		void populateSurface(Handle<GraphHiveSceneSurface> surface) override;
 
 		void strobe() override;
 

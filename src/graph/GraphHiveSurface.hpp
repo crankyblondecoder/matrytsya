@@ -3,7 +3,7 @@
 
 #include "../util/EventEmitter.hpp"
 #include "../util/RefCounted.hpp"
-#include "GraphHandle.hpp"
+#include "../util/Handle.hpp"
 #include "GraphHive.hpp"
 #include "GraphHiveSurfaceListener.hpp"
 #include "GraphNamed.hpp"
@@ -50,7 +50,7 @@ class GraphHiveSurface : public RefCounted, public GraphNamed, public EventEmitt
 		 * Set the hive this surface is bound to.
 		 * @param hive Hive this surface is to be bound to. Must be a valid handle.
 		 */
-		void setHive(GraphHandle<GraphHive> hive);
+		void setHive(Handle<GraphHive> hive);
 
 		/**
 		 * Activate this surface.
@@ -143,7 +143,7 @@ class GraphHiveSurface : public RefCounted, public GraphNamed, public EventEmitt
 		ThreadMutex _lock;
 
 		/// Hive this surface is bound to.
-		GraphHandle<GraphHive> _hive;
+		Handle<GraphHive> _hive;
 
 		/// The version assigned to that last populate pass.
 		unsigned _populateVersion = 0;

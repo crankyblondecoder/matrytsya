@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "../graph/GraphHandle.hpp"
+#include "../util/Handle.hpp"
 #include "../graph/GraphHiveSurfaceListener.hpp"
 #include "../thread/ThreadMutex.hpp"
 #include "../util/EventListener.hpp"
@@ -30,7 +30,7 @@ class GraphHiveSceneSurfaceWebglMap : public GraphHiveSurfaceHttpMap, private Ev
         /**
          * @param httpServer Server to register this map with. Not owned by this.
          * @param surface Scene surface this map binds to for its whole lifetime. This map keeps its own
-         *        reference to it (see GraphHandle), released once this map is destroyed.
+         *        reference to it (see Handle), released once this map is destroyed.
          * @param path Path to mount this map's interface at on httpServer, e.g. "/scene".
          */
         GraphHiveSceneSurfaceWebglMap(HttpServerBase& httpServer, GraphHiveSceneSurface& surface, std::string path);
@@ -68,12 +68,12 @@ class GraphHiveSceneSurfaceWebglMap : public GraphHiveSurfaceHttpMap, private Ev
          */
         void __servePoke(HttpRequest& request, HttpResponse& response);
 
-        virtual void hiveSurfaceChanged(GraphHandle<GraphHiveSurface> hiveSurface) override;
+        virtual void hiveSurfaceChanged(Handle<GraphHiveSurface> hiveSurface) override;
 
         virtual GraphHiveSurfaceListener* getListener() override;
 
         /// Scene surface this map is bound to for its whole lifetime.
-        GraphHandle<GraphHiveSceneSurface> _sceneSurface;
+        Handle<GraphHiveSceneSurface> _sceneSurface;
 
         /// Bumped every time the bound surface reports a change, so polling browsers can detect it.
         unsigned _revision = 0;

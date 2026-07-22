@@ -13,7 +13,7 @@ class StrobeAction : public ScriptAction
 
         virtual ~StrobeAction();
 
-		StrobeAction(GraphHandle<GraphNode>& initNode);
+		StrobeAction(Handle<GraphNode>& initNode);
 
 	protected:
 

@@ -7,7 +7,7 @@
 #include "../../graph/GraphAction.hpp"
 #include "../../graph/GraphHive.hpp"
 #include "../../graph/GraphHiveCollection.hpp"
-#include "../../graph/GraphHandle.hpp"
+#include "../../util/Handle.hpp"
 #include "../../graph/graphEdgeFlagRegister.hpp"
 #include "../../graph/GraphNodeLocation.hpp"
 #include "../../graph/nodes/PingNode.hpp"
@@ -23,7 +23,7 @@ TEST(PingTest, ActionEnergyRundown)
 
 	GraphHive* hive = new GraphHive(2);
 
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
 	// The nodes must _not_ be allocated on the stack because of auto-delete once de-referenced.
 	PingNode* testNode1 = new PingNode();
@@ -34,9 +34,9 @@ TEST(PingTest, ActionEnergyRundown)
 	hive -> addNode(testNode2);
 	hive -> addNode(testNode3);
 
-	GraphHandle<GraphNode> nodeHandle1(testNode1);
-	GraphHandle<GraphNode> nodeHandle2(testNode2);
-	GraphHandle<GraphNode> nodeHandle3(testNode3);
+	Handle<GraphNode> nodeHandle1(testNode1);
+	Handle<GraphNode> nodeHandle2(testNode2);
+	Handle<GraphNode> nodeHandle3(testNode3);
 
 	// Deliberately create a cycle. An action can never re-traverse the same edge, so a single
 	// edge per hop would only let it complete one lap; add enough parallel edges per hop to
@@ -78,7 +78,7 @@ TEST(PingTest, ActionEnergyRundownWaitOnHive)
 
 	GraphHive* hive = new GraphHive(2);
 
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
 	// The nodes must _not_ be allocated on the stack because of auto-delete once de-referenced.
 	PingNode* testNode1 = new PingNode();
@@ -89,9 +89,9 @@ TEST(PingTest, ActionEnergyRundownWaitOnHive)
 	hive -> addNode(testNode2);
 	hive -> addNode(testNode3);
 
-	GraphHandle<GraphNode> nodeHandle1(testNode1);
-	GraphHandle<GraphNode> nodeHandle2(testNode2);
-	GraphHandle<GraphNode> nodeHandle3(testNode3);
+	Handle<GraphNode> nodeHandle1(testNode1);
+	Handle<GraphNode> nodeHandle2(testNode2);
+	Handle<GraphNode> nodeHandle3(testNode3);
 
 	// Deliberately create a cycle. An action can never re-traverse the same edge, so a single
 	// edge per hop would only let it complete one lap; add enough parallel edges per hop to
@@ -144,8 +144,8 @@ TEST(PingTest, ActionTeleportBetweenHives)
 	hive1 -> setName("hive1");
 	hive2 -> setName("hive2");
 
-	GraphHandle<GraphHive> hiveHandle1(hive1);
-	GraphHandle<GraphHive> hiveHandle2(hive2);
+	Handle<GraphHive> hiveHandle1(hive1);
+	Handle<GraphHive> hiveHandle2(hive2);
 
 	GraphHiveCollection collection;
 
@@ -171,11 +171,11 @@ TEST(PingTest, ActionTeleportBetweenHives)
 	hive2 -> addNode(h2Node4);
 	hive2 -> addNode(h2Node5);
 
-	GraphHandle<GraphNode> h2Handle1(h2Node1);
-	GraphHandle<GraphNode> h2Handle2(h2Node2);
-	GraphHandle<GraphNode> h2Handle3(h2Node3);
-	GraphHandle<GraphNode> h2Handle4(h2Node4);
-	GraphHandle<GraphNode> h2Handle5(h2Node5);
+	Handle<GraphNode> h2Handle1(h2Node1);
+	Handle<GraphNode> h2Handle2(h2Node2);
+	Handle<GraphNode> h2Handle3(h2Node3);
+	Handle<GraphNode> h2Handle4(h2Node4);
+	Handle<GraphNode> h2Handle5(h2Node5);
 
 	// An action can never re-traverse the same edge, so a single edge per hop would only let it
 	// complete one lap; add enough parallel edges per hop to cover every traversal across the
@@ -207,11 +207,11 @@ TEST(PingTest, ActionTeleportBetweenHives)
 	hive1 -> addNode(h1Node4);
 	hive1 -> addNode(h1Node5);
 
-	GraphHandle<GraphNode> h1Handle1(h1Node1);
-	GraphHandle<GraphNode> h1Handle2(h1Node2);
-	GraphHandle<GraphNode> h1Handle3(h1Node3);
-	GraphHandle<GraphNode> h1Handle4(h1Node4);
-	GraphHandle<GraphNode> h1Handle5(h1Node5);
+	Handle<GraphNode> h1Handle1(h1Node1);
+	Handle<GraphNode> h1Handle2(h1Node2);
+	Handle<GraphNode> h1Handle3(h1Node3);
+	Handle<GraphNode> h1Handle4(h1Node4);
+	Handle<GraphNode> h1Handle5(h1Node5);
 
 	// An action can never re-traverse the same edge, so a single edge per hop would only let it
 	// complete one lap; add enough parallel edges per hop to cover every traversal across the

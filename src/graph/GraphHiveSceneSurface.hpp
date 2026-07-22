@@ -5,7 +5,7 @@
 
 #include "../thread/ThreadMutex.hpp"
 #include "./nodes/SceneGeometry.hpp"
-#include "GraphHandle.hpp"
+#include "../util/Handle.hpp"
 #include "GraphHive.hpp"
 #include "GraphHiveSurface.hpp"
 #include "GraphPoke.hpp"
@@ -23,7 +23,7 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		 * Create a new scene surface.
 		 * @param sceneRootNode The scenes root node.
 		 */
-		GraphHiveSceneSurface(GraphHandle<SceneRootNode> sceneRootNode);
+		GraphHiveSceneSurface(Handle<SceneRootNode> sceneRootNode);
 
 		/**
 		 * Defines a chunk of geometry.
@@ -186,7 +186,7 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		ThreadMutex _lock;
 
 		/// The scene root node this scene surface is bound to.
-		GraphHandle<SceneRootNode> _boundRootNode;
+		Handle<SceneRootNode> _boundRootNode;
 };
 
 #endif

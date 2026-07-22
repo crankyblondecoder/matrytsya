@@ -13,7 +13,7 @@ void SceneTransform::setTransform(const Transform transform)
 	_bumpVersion();
 }
 
-void SceneTransform::populateSurface(GraphHandle<GraphHiveSceneSurface> surface, unsigned nodeId)
+void SceneTransform::populateSurface(Handle<GraphHiveSceneSurface> surface, unsigned nodeId)
 {
 	if(surface.isValid()) surface.getInstance() -> addLocalTransform(_transform, nodeId);
 }

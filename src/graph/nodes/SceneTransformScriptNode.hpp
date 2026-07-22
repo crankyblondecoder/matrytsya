@@ -25,7 +25,7 @@ class SceneTransformScriptNode : public AnimateScriptNode, public SceneActionTar
 		 */
         SceneTransformScriptNode(const std::string& script, const std::string& pokeScript);
 
-		void populateSurface(GraphHandle<GraphHiveSceneSurface> surface) override;
+		void populateSurface(Handle<GraphHiveSceneSurface> surface) override;
 
 		void strobe() override;
 

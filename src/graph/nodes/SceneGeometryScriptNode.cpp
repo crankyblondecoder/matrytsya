@@ -23,7 +23,7 @@ void SceneGeometryScriptNode::_registerCoreGlobals(lua_State* luaState)
 	__registerVertexBindings(luaState);
 }
 
-void SceneGeometryScriptNode::populateSurface(GraphHandle<GraphHiveSceneSurface> surface)
+void SceneGeometryScriptNode::populateSurface(Handle<GraphHiveSceneSurface> surface)
 {
 	SceneGeometry::populateSurface(surface, getId(), getPokeEnabled());
 }

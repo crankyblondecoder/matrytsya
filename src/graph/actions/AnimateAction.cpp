@@ -8,7 +8,7 @@ AnimateAction::~AnimateAction()
 {
 }
 
-AnimateAction::AnimateAction(GraphHandle<GraphNode> initNode, bool animating)
+AnimateAction::AnimateAction(Handle<GraphNode> initNode, bool animating)
 	: GraphAction(initNode, _startingEnergy), _animating(animating)
 {
 	_addFlag(ANIMATE_GRAPH_ACTION, true);

@@ -57,7 +57,7 @@ GraphHiveStrobeScheduler::~GraphHiveStrobeScheduler()
 	// called already so the run loop is no longer touching either vector.
 }
 
-void GraphHiveStrobeScheduler::setEmitter(GraphHandle<StrobeEmitterNode> node, unsigned periodMs)
+void GraphHiveStrobeScheduler::setEmitter(Handle<StrobeEmitterNode> node, unsigned periodMs)
 {
 	if(!node.isValid() || periodMs == 0) return;
 
@@ -103,12 +103,12 @@ void GraphHiveStrobeScheduler::setEmitter(GraphHandle<StrobeEmitterNode> node, u
 	_cond.unlockMutex();
 }
 
-void GraphHiveStrobeScheduler::removeEmitter(GraphHandle<StrobeEmitterNode> node)
+void GraphHiveStrobeScheduler::removeEmitter(Handle<StrobeEmitterNode> node)
 {
 	if(!node.isValid()) return;
 
 	// Hold the removed entry's handle so its final decrRef happens outside the lock.
-	GraphHandle<StrobeEmitterNode> removed(0);
+	Handle<StrobeEmitterNode> removed(0);
 
 	_cond.lockMutex();
 
@@ -150,7 +150,7 @@ void GraphHiveStrobeScheduler::clearEmitters()
 	// 'removed' goes out of scope here, decrRef'ing each node outside the lock.
 }
 
-void GraphHiveStrobeScheduler::setSurface(GraphHandle<GraphHiveSurface> surface, unsigned periodMs)
+void GraphHiveStrobeScheduler::setSurface(Handle<GraphHiveSurface> surface, unsigned periodMs)
 {
 	if(!surface.isValid() || periodMs == 0) return;
 
@@ -196,12 +196,12 @@ void GraphHiveStrobeScheduler::setSurface(GraphHandle<GraphHiveSurface> surface,
 	_cond.unlockMutex();
 }
 
-void GraphHiveStrobeScheduler::removeSurface(GraphHandle<GraphHiveSurface> surface)
+void GraphHiveStrobeScheduler::removeSurface(Handle<GraphHiveSurface> surface)
 {
 	if(!surface.isValid()) return;
 
 	// Hold the removed entry's handle so its final decrRef happens outside the lock.
-	GraphHandle<GraphHiveSurface> removed(0);
+	Handle<GraphHiveSurface> removed(0);
 
 	_cond.lockMutex();
 
@@ -249,8 +249,8 @@ void GraphHiveStrobeScheduler::threadEntry()
 	{
 		// Handles keep the due nodes/surfaces alive for the duration of emission; the raw pointers
 		// are valid while their handles are held.
-		std::vector<GraphHandle<StrobeEmitterNode>> dueEmitters;
-		std::vector<GraphHandle<GraphHiveSurface>> dueSurfaces;
+		std::vector<Handle<StrobeEmitterNode>> dueEmitters;
+		std::vector<Handle<GraphHiveSurface>> dueSurfaces;
 
 		unsigned waitMs = MAX_STROBE_WAIT_MS;
 
@@ -308,7 +308,7 @@ void GraphHiveStrobeScheduler::threadEntry()
 		_cond.unlockMutex();
 
 		// Emit outside the lock, per the "no external calls inside a sync block" rule.
-		for(GraphHandle<StrobeEmitterNode> emitter : dueEmitters)
+		for(Handle<StrobeEmitterNode> emitter : dueEmitters)
 		{
 			try
 			{
@@ -321,7 +321,7 @@ void GraphHiveStrobeScheduler::threadEntry()
 		}
 
 		// Strobe outside the lock, per the "no external calls inside a sync block" rule.
-		for(GraphHandle<GraphHiveSurface> surface : dueSurfaces)
+		for(Handle<GraphHiveSurface> surface : dueSurfaces)
 		{
 			try
 			{

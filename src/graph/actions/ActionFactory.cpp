@@ -5,7 +5,7 @@
 #include "SerialisableActionPayload.hpp"
 #include "../GraphException.hpp"
 
-SerialisableAction* ActionFactory::create(GraphHandle<GraphNode>& initNode, SerialisableActionPayload& payload)
+SerialisableAction* ActionFactory::create(Handle<GraphNode>& initNode, SerialisableActionPayload& payload)
 {
 	SerialisableAction* action = 0;
 

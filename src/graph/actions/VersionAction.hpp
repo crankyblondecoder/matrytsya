@@ -14,7 +14,7 @@ class VersionAction : public GraphAction
 
         virtual ~VersionAction();
 
-		VersionAction(GraphHandle<GraphNode> initNode);
+		VersionAction(Handle<GraphNode> initNode);
 
 		/**
 		 * Get the unique version of the sub-graph formed by the nodes visited by this action.

@@ -5,7 +5,7 @@
 #include "GraphAction.hpp"
 #include "GraphEdge.hpp"
 #include "GraphException.hpp"
-#include "GraphHandle.hpp"
+#include "../util/Handle.hpp"
 #include "GraphHive.hpp"
 #include "GraphNodeScheduledActionThreadPoolWorkUnit.hpp"
 
@@ -50,15 +50,15 @@ unsigned GraphNode::getId()
 	return _id;
 }
 
-GraphHandle<GraphHive> GraphNode::getHive()
+Handle<GraphHive> GraphNode::getHive()
 {
 	{ SYNC(_lock)
 
-		return GraphHandle<GraphHive>(_hive);
+		return Handle<GraphHive>(_hive);
 	}
 }
 
-bool GraphNode::setHive(GraphHandle<GraphHive> hive)
+bool GraphNode::setHive(Handle<GraphHive> hive)
 {
 	if(!hive.isValid()) return false;
 
@@ -119,10 +119,10 @@ void GraphNode::_setEnergyCost(unsigned cost)
 	}
 }
 
-GraphHandle<GraphEdge> GraphNode::createEdge(GraphHandle<GraphNode>& connectTo, std::vector<unsigned long> actionFlags)
+Handle<GraphEdge> GraphNode::createEdge(Handle<GraphNode>& connectTo, std::vector<unsigned long> actionFlags)
 {
 	int retIndex = -1;
-	GraphHandle<GraphEdge> retHandle(0);
+	Handle<GraphEdge> retHandle(0);
 
 	if(connectTo.isValid())
 	{
@@ -226,7 +226,7 @@ GraphHandle<GraphEdge> GraphNode::createEdge(GraphHandle<GraphNode>& connectTo, 
 	return retHandle;
 }
 
-void GraphNode::removeEdge(GraphHandle<GraphEdge> edgeHandle)
+void GraphNode::removeEdge(Handle<GraphEdge> edgeHandle)
 {
 	GraphEdge* edgeToDelete = 0;
 
@@ -273,12 +273,12 @@ GraphEdge* GraphNode::__removeEdge(int edgeHandle)
 	return edge;
 }
 
-GraphHandle<GraphEdge> GraphNode::traverse(GraphAction& action)
+Handle<GraphEdge> GraphNode::traverse(GraphAction& action)
 {
 	// Using a handle guarantees that the edge will be availble.
-	GraphHandle<GraphEdge> edgeToTraverse(0);
+	Handle<GraphEdge> edgeToTraverse(0);
 
-	std::vector<GraphHandle<GraphEdge>> edgesToCheck;
+	std::vector<Handle<GraphEdge>> edgesToCheck;
 	unsigned numEdgesToCheck = 0;
 
 	{ SYNC(_lock)
@@ -289,7 +289,7 @@ GraphHandle<GraphEdge> GraphNode::traverse(GraphAction& action)
 			{
 				if(_edges[index] != 0)
 				{
-					GraphHandle<GraphEdge> edgeHandle(_edges[index]);
+					Handle<GraphEdge> edgeHandle(_edges[index]);
 
 					edgesToCheck.push_back(edgeHandle);
 					numEdgesToCheck++;
@@ -300,7 +300,7 @@ GraphHandle<GraphEdge> GraphNode::traverse(GraphAction& action)
 
 	for(unsigned index = 0; index < numEdgesToCheck; index++)
 	{
-		GraphHandle<GraphEdge> edgeHandleToCheck = edgesToCheck[index];
+		Handle<GraphEdge> edgeHandleToCheck = edgesToCheck[index];
 
 		// Both the edge and the action must allow traversal.
 		if(edgeHandleToCheck.getInstance() -> canTraverse(action.getEdgeTraversalFlags()) &&
@@ -348,7 +348,7 @@ void GraphNode::setPokeEnabled(bool enable)
 	}
 }
 
-bool GraphNode::scheduleAction(GraphHandle<GraphAction> action)
+bool GraphNode::scheduleAction(Handle<GraphAction> action)
 {
 	if(!action.isValid()) return false;
 
@@ -383,7 +383,7 @@ bool GraphNode::scheduleAction(GraphHandle<GraphAction> action)
 
 void GraphNode::processScheduledAction(bool abort)
 {
-	GraphHandle<GraphAction> action(0);
+	Handle<GraphAction> action(0);
 	bool moreWork = false;
 
 	if(!abort)
@@ -400,7 +400,7 @@ void GraphNode::processScheduledAction(bool abort)
 		// Applied outside of the lock as this could re-enter this node, eg via _emitAction. _scheduledActionProcessing
 		// is deliberately left true across this call so that any action concurrently pushed by scheduleAction is left
 		// queued rather than being dispatched to a new work unit, which would let it jump ahead of this one.
-		if(action.isValid()) action.getInstance() -> applyScheduled(GraphHandle<GraphNode>(this));
+		if(action.isValid()) action.getInstance() -> applyScheduled(Handle<GraphNode>(this));
 
 		{ SYNC(_lock)
 
@@ -435,7 +435,7 @@ bool GraphNode::__executeScheduledActionWorkUnit()
 
 	bool submitted = false;
 
-	GraphHandle<GraphHive> hive = getHive();
+	Handle<GraphHive> hive = getHive();
 
 	if(hive.isValid())
 	{

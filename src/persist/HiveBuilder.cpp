@@ -5,7 +5,7 @@
 #include "HiveSurfaceDescriptor.hpp"
 #include "PersistException.hpp"
 #include "../graph/GraphEdge.hpp"
-#include "../graph/GraphHandle.hpp"
+#include "../util/Handle.hpp"
 #include "../graph/GraphHive.hpp"
 #include "../graph/GraphHiveSceneSurface.hpp"
 #include "../graph/GraphHiveSurface.hpp"
@@ -45,7 +45,7 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 	{
 		hive -> setName(hiveName);
 
-		std::map<std::string, GraphHandle<GraphNode>> nodesByName;
+		std::map<std::string, Handle<GraphNode>> nodesByName;
 
 		// -- Pass 1: create every node, indexed by name --
 		for(unsigned i = 0; i < nodeCount; i++)
@@ -70,7 +70,7 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 			// Hive manages the node's initial reference count from here.
 			hive -> addNode(node);
 
-			nodesByName.emplace(descriptor.name, GraphHandle<GraphNode>(node));
+			nodesByName.emplace(descriptor.name, Handle<GraphNode>(node));
 		}
 
 		// -- Pass 2: wire edges (needs every node to already exist by name) --
@@ -78,7 +78,7 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 		{
 			HiveNodeDescriptor descriptor = loader.getNode(i);
 
-			GraphHandle<GraphNode>& fromHandle = nodesByName.at(descriptor.name);
+			Handle<GraphNode>& fromHandle = nodesByName.at(descriptor.name);
 
 			for(HiveEdgeDescriptor& edgeDescriptor : descriptor.edges)
 			{
@@ -96,7 +96,7 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 					actionFlags.push_back(__actionFlagFromName(flagName));
 				}
 
-				GraphHandle<GraphEdge> edgeHandle =
+				Handle<GraphEdge> edgeHandle =
 					fromHandle.getInstance() -> createEdge(targetIt -> second, actionFlags);
 
 				if(!edgeHandle.isValid())
@@ -106,7 +106,7 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 			}
 		}
 
-		std::map<std::string, GraphHandle<GraphHiveSurface>> surfacesByName;
+		std::map<std::string, Handle<GraphHiveSurface>> surfacesByName;
 
 		// -- Pass 3: create every surface, indexed by name (needs every node to already exist by name) --
 		unsigned surfaceCount = loader.getSurfaceCount();
@@ -125,7 +125,7 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 				throw PersistException(PersistException::DUPLICATE_SURFACE_NAME);
 			}
 
-			GraphHandle<GraphNode> referencedNode(0);
+			Handle<GraphNode> referencedNode(0);
 			bool hasInitialFocusNode = false;
 			unsigned initialFocusNodeId = 0;
 
@@ -162,7 +162,7 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 			// Hive manages the surface's initial reference count from here.
 			hive -> addSurface(surface);
 
-			surfacesByName.emplace(descriptor.name, GraphHandle<GraphHiveSurface>(surface));
+			surfacesByName.emplace(descriptor.name, Handle<GraphHiveSurface>(surface));
 		}
 
 		// -- Pass 4: strobe emitters (needs every node to already exist by name) --
@@ -194,7 +194,7 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 				throw PersistException(PersistException::STROBE_EMITTER_WRONG_TYPE);
 			}
 
-			hive -> setStrobeEmitter(GraphHandle<StrobeEmitterNode>(strobeNode), periodMs);
+			hive -> setStrobeEmitter(Handle<StrobeEmitterNode>(strobeNode), periodMs);
 		}
 
 		// -- Pass 5: strobe surfaces (needs every surface to already exist by name) --
@@ -296,7 +296,7 @@ GraphNode* HiveBuilder::__createNode(const HiveNodeDescriptor& descriptor)
 	}
 }
 
-GraphHiveSurface* HiveBuilder::__createSurface(const HiveSurfaceDescriptor& descriptor, GraphHandle<GraphNode> referencedNode,
+GraphHiveSurface* HiveBuilder::__createSurface(const HiveSurfaceDescriptor& descriptor, Handle<GraphNode> referencedNode,
 	bool hasInitialFocusNode, unsigned initialFocusNodeId)
 {
 	switch(descriptor.type)
@@ -310,7 +310,7 @@ GraphHiveSurface* HiveBuilder::__createSurface(const HiveSurfaceDescriptor& desc
 				throw PersistException(PersistException::SURFACE_NODE_WRONG_TYPE);
 			}
 
-			GraphHiveSceneSurface* sceneSurface = new GraphHiveSceneSurface(GraphHandle<SceneRootNode>(sceneRootNode));
+			GraphHiveSceneSurface* sceneSurface = new GraphHiveSceneSurface(Handle<SceneRootNode>(sceneRootNode));
 
 			if(hasInitialFocusNode) sceneSurface -> setInitialFocusNode(initialFocusNodeId, descriptor.focusViewportFraction);
 

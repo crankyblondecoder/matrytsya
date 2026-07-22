@@ -8,7 +8,7 @@ ScriptAction::~ScriptAction()
 {
 }
 
-ScriptAction::ScriptAction(GraphHandle<GraphNode>& initNode, unsigned energy)
+ScriptAction::ScriptAction(Handle<GraphNode>& initNode, unsigned energy)
 	: GraphAction(initNode, energy), _lastVisitedNode(0)
 {
 	// The script action is likely inherited, so leave the action flag as optional.
@@ -38,7 +38,7 @@ void ScriptAction::_apply(GraphNode* target)
 
 		scriptTarget -> invoke();
 
-		_lastVisitedNode = GraphHandle<GraphNode>(target);
+		_lastVisitedNode = Handle<GraphNode>(target);
 	}
 }
 

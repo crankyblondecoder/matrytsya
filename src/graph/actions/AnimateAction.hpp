@@ -16,7 +16,7 @@ class AnimateAction : public GraphAction
 		 * @param initNode Initial node the new action is bound to.
 		 * @param animating Animating state this action applies to each visited node.
 		 */
-		AnimateAction(GraphHandle<GraphNode> initNode, bool animating);
+		AnimateAction(Handle<GraphNode> initNode, bool animating);
 
 	protected:
 

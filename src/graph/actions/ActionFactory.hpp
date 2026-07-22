@@ -1,7 +1,7 @@
 #ifndef ACTION_FACTORY_H
 #define ACTION_FACTORY_H
 
-#include "../GraphHandle.hpp"
+#include "../../util/Handle.hpp"
 
 class GraphNode;
 class SerialisableAction;
@@ -23,7 +23,7 @@ class ActionFactory
 		 *          the action.
          * @throws GraphException(UNKNOWN_ACTION_TYPE) if the payload carries an unrecognised action type.
          */
-        static SerialisableAction* create(GraphHandle<GraphNode>& initNode, SerialisableActionPayload& payload);
+        static SerialisableAction* create(Handle<GraphNode>& initNode, SerialisableActionPayload& payload);
 
     private:
 

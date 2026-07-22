@@ -15,7 +15,7 @@ SceneGeometryNode::SceneGeometryNode()
 	_addActionFlag(SCENE_STROBE_GRAPH_ACTION);
 }
 
-void SceneGeometryNode::populateSurface(GraphHandle<GraphHiveSceneSurface> surface)
+void SceneGeometryNode::populateSurface(Handle<GraphHiveSceneSurface> surface)
 {
 	SceneGeometry::populateSurface(surface, getId(), getPokeEnabled());
 }

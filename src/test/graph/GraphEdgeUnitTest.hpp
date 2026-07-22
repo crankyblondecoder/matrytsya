@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 
 #include "../../graph/GraphEdge.hpp"
-#include "../../graph/GraphHandle.hpp"
+#include "../../util/Handle.hpp"
 #include "../../graph/GraphNode.hpp"
 #include "../../graph/graphActionFlagRegister.hpp"
 #include "../../graph/nodes/PingNode.hpp"
@@ -18,7 +18,7 @@ namespace
 	GraphEdge* _makeEdge()
 	{
 		PingNode* targetNode = new PingNode();
-		GraphHandle<GraphNode> targetHandle(targetNode);
+		Handle<GraphNode> targetHandle(targetNode);
 		targetNode -> decrRef();
 
 		return new GraphEdge(targetHandle, {});

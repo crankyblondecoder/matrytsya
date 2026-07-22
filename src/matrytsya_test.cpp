@@ -1,7 +1,7 @@
 #include "display/DisplayException.hpp"
 #include "display/GraphHiveSceneSurfaceWebglMap.hpp"
 #include "display/http/HttpServer.hpp"
-#include "graph/GraphHandle.hpp"
+#include "util/Handle.hpp"
 #include "graph/GraphHive.hpp"
 #include "graph/GraphHiveSceneSurface.hpp"
 #include "persist/HiveBuilder.hpp"
@@ -51,9 +51,9 @@ int main(int argc, char const *argv[])
 	JsonHiveLoader loader(_readFile(_HIVE_JSON_PATH));
 
 	GraphHive* hive = HiveBuilder::build(loader, 2);
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
-	GraphHandle<GraphHiveSceneSurface> surfaceHandle = hive -> getDefaultSceneSurface();
+	Handle<GraphHiveSceneSurface> surfaceHandle = hive -> getDefaultSceneSurface();
 	GraphHiveSceneSurface* surface = surfaceHandle.getInstance();
 
 	if(!surface)

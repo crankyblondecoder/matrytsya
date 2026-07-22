@@ -19,7 +19,7 @@ class ScriptAction : public GraphAction
 
         virtual ~ScriptAction();
 
-		ScriptAction(GraphHandle<GraphNode>& initNode, unsigned energy = _startingEnergy);
+		ScriptAction(Handle<GraphNode>& initNode, unsigned energy = _startingEnergy);
 
 	protected:
 
@@ -125,10 +125,10 @@ class ScriptAction : public GraphAction
 		/**
 		 * Handle to the node most recently applied by _apply(), so _getGlobal() can read back whatever that
 		 * node's own script set. Invalid if no node has been visited yet.
-		 * @note A GraphHandle is used rather than a raw ScriptActionTarget* so this cannot dangle if the
+		 * @note A Handle is used rather than a raw ScriptActionTarget* so this cannot dangle if the
 		 *       node is destroyed between being visited and a later _getGlobal() call.
 		 */
-		GraphHandle<GraphNode> _lastVisitedNode;
+		Handle<GraphNode> _lastVisitedNode;
 };
 
 #endif

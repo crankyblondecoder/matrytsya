@@ -11,7 +11,7 @@ PingAction::~PingAction()
 {
 }
 
-PingAction::PingAction(GraphHandle<GraphNode>& initNode)
+PingAction::PingAction(Handle<GraphNode>& initNode)
 	: SerialisableAction(initNode, _startingEnergy)
 {
 	_addFlag(PING_GRAPH_ACTION, false);

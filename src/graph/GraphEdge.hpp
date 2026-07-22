@@ -6,7 +6,7 @@
 
 #include "../util/RefCounted.hpp"
 
-template <typename T> class GraphHandle;
+template <typename T> class Handle;
 class GraphNode;
 
 /**
@@ -23,7 +23,7 @@ class GraphEdge : public RefCounted
 		 * @param actionFlags List of action flags to add to edge. These determine if action is allowed to traverse
 		 *        this edge. Leave list empty for no traversal restriction.
 		 */
-		GraphEdge(GraphHandle<GraphNode>& toNode, std::vector<unsigned long> actionFlags);
+		GraphEdge(Handle<GraphNode>& toNode, std::vector<unsigned long> actionFlags);
 
 		/**
 		 * Whether this edge points to a node.
@@ -35,7 +35,7 @@ class GraphEdge : public RefCounted
 		 * Traverse this edge.
 		 * @returns A graph node handle or null if traversal is not possible.
 		 */
-		GraphHandle<GraphNode> traverse();
+		Handle<GraphNode> traverse();
 
 		/**
 		 * Get the unique id of this edge.
@@ -70,7 +70,7 @@ class GraphEdge : public RefCounted
 		unsigned _id;
 
 		/** Node this edge points to. */
-        GraphHandle<GraphNode>* _toNode;
+        Handle<GraphNode>* _toNode;
 
 		/// Flags that determine whether an action can traverse this edge.
 		std::atomic<unsigned long> _actionFlags{0};

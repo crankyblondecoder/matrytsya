@@ -6,7 +6,7 @@
 
 #include "../util/RefCounted.hpp"
 #include "../thread/ThreadCondition.hpp"
-#include "GraphHandle.hpp"
+#include "../util/Handle.hpp"
 
 class GraphEdge;
 class GraphHive;
@@ -27,7 +27,7 @@ class GraphAction : public RefCounted
 		 * @param energy The energy that is assigned to the action.
 		 * @param numPasses How many complete traversal passes this action should take.
 		 */
-		GraphAction(GraphHandle<GraphNode> initNode, unsigned energy, unsigned numPasses = 1);
+		GraphAction(Handle<GraphNode> initNode, unsigned energy, unsigned numPasses = 1);
 
 		/**
 		 * Get the required flags that determine if this action is invoked on a node.
@@ -93,7 +93,7 @@ class GraphAction : public RefCounted
 		 * An action ultimately determines which pathway it takes through the graph.
 		 * @note Standard behaviour is to not traverse an edge that has already been traversed.
 		 */
-		virtual bool canTraverseEdge(GraphHandle<GraphEdge> handle);
+		virtual bool canTraverseEdge(Handle<GraphEdge> handle);
 
 		/**
 		 * If called, this action will be applied to the initial node.
@@ -106,7 +106,7 @@ class GraphAction : public RefCounted
 		 * @note This should _only_ be used by a graph nodes action scheduling mechanism.
 		 * @param nodeHandle Node to apply this action to.
 		 */
-		void applyScheduled(GraphHandle<GraphNode> nodeHandle);
+		void applyScheduled(Handle<GraphNode> nodeHandle);
 
 		/**
 		 * Set the starting energy assigned to subsequently constructed actions that use it as their default,
@@ -193,13 +193,13 @@ class GraphAction : public RefCounted
 		bool _stopped = false;
 
 		/// Handle to the initial node this action was created for.
-		GraphHandle<GraphNode> _initNode;
+		Handle<GraphNode> _initNode;
 
 		/// Handle to the curent node this action is associated with.
-		GraphHandle<GraphNode> _boundNode;
+		Handle<GraphNode> _boundNode;
 
 		/// Hive this action is traversing. Should always be set to the hive of the initial node.
-		GraphHandle<GraphHive> _boundHive;
+		Handle<GraphHive> _boundHive;
 
 		/// The number of passes this action should take. Each pass is a complete traversal starting at the initial node.
 		unsigned _numPasses;

@@ -6,7 +6,7 @@
 #include "../../../graph/actionTargets/AnimateActionTarget.hpp"
 #include "../../../graph/actionTargets/ScriptActionTarget.hpp"
 #include "../../../graph/actions/ScriptAction.hpp"
-#include "../../../graph/GraphHandle.hpp"
+#include "../../../util/Handle.hpp"
 #include "../../../graph/GraphHive.hpp"
 #include "../../../graph/GraphNode.hpp"
 #include "../../../graph/nodes/AnimateScriptNode.hpp"
@@ -99,7 +99,7 @@ TEST(AnimateScriptNodeTest, GetAnimateActionTargetReturnsSelf)
 TEST(AnimateScriptNodeTest, AnimateActionTriggeredFromLuaScriptPropagatesToConnectedNode)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
 	TestAnimateScriptNode* triggerNode = new TestAnimateScriptNode(
 		"priorAnimating = getAnimating()\n"
@@ -114,10 +114,10 @@ TEST(AnimateScriptNodeTest, AnimateActionTriggeredFromLuaScriptPropagatesToConne
 	hive -> addNode(triggerNode);
 	hive -> addNode(downstreamNode);
 
-	GraphHandle<GraphNode> downstreamHandle(downstreamNode);
+	Handle<GraphNode> downstreamHandle(downstreamNode);
 	triggerNode -> createEdge(downstreamHandle, {});
 
-	GraphHandle<GraphNode> triggerHandle(triggerNode);
+	Handle<GraphNode> triggerHandle(triggerNode);
 	ScriptAction* action = new ScriptAction(triggerHandle);
 	action -> setApplyToInitialNode();
 
@@ -156,7 +156,7 @@ TEST(AnimateScriptNodeTest, AnimateActionTriggeredFromLuaScriptPropagatesToConne
 TEST(AnimateScriptNodeTest, SetAnimatingWithoutEmitArgumentDoesNotPropagate)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
 	TestAnimateScriptNode* triggerNode = new TestAnimateScriptNode("setAnimating(true)", "");
 	TestAnimateScriptNode* downstreamNode = new TestAnimateScriptNode("seenAnimating = getAnimating()", "");
@@ -164,10 +164,10 @@ TEST(AnimateScriptNodeTest, SetAnimatingWithoutEmitArgumentDoesNotPropagate)
 	hive -> addNode(triggerNode);
 	hive -> addNode(downstreamNode);
 
-	GraphHandle<GraphNode> downstreamHandle(downstreamNode);
+	Handle<GraphNode> downstreamHandle(downstreamNode);
 	triggerNode -> createEdge(downstreamHandle, {});
 
-	GraphHandle<GraphNode> triggerHandle(triggerNode);
+	Handle<GraphNode> triggerHandle(triggerNode);
 	ScriptAction* action = new ScriptAction(triggerHandle);
 	action -> setApplyToInitialNode();
 
@@ -196,7 +196,7 @@ TEST(AnimateScriptNodeTest, SetAnimatingWithoutEmitArgumentDoesNotPropagate)
 TEST(AnimateScriptNodeTest, SequentialAnimateActionsResolveToFinalState)
 {
 	GraphHive* hive = new GraphHive(2);
-	GraphHandle<GraphHive> hiveHandle(hive);
+	Handle<GraphHive> hiveHandle(hive);
 
 	TestAnimateScriptNode* triggerNode = new TestAnimateScriptNode(
 		"setAnimating(true, true)\n"
@@ -207,10 +207,10 @@ TEST(AnimateScriptNodeTest, SequentialAnimateActionsResolveToFinalState)
 	hive -> addNode(triggerNode);
 	hive -> addNode(downstreamNode);
 
-	GraphHandle<GraphNode> downstreamHandle(downstreamNode);
+	Handle<GraphNode> downstreamHandle(downstreamNode);
 	triggerNode -> createEdge(downstreamHandle, {});
 
-	GraphHandle<GraphNode> triggerHandle(triggerNode);
+	Handle<GraphNode> triggerHandle(triggerNode);
 	ScriptAction* action = new ScriptAction(triggerHandle);
 	action -> setApplyToInitialNode();
 

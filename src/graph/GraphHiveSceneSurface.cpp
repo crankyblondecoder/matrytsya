@@ -34,7 +34,7 @@ namespace
 	}
 }
 
-GraphHiveSceneSurface::GraphHiveSceneSurface(GraphHandle<SceneRootNode> sceneRootNode)
+GraphHiveSceneSurface::GraphHiveSceneSurface(Handle<SceneRootNode> sceneRootNode)
 	: GraphHiveSurface(Type::SCENE_SURFACE), _boundRootNode(sceneRootNode)
 {
 }
@@ -45,7 +45,7 @@ GraphHiveSceneSurface::~GraphHiveSceneSurface()
 
 void GraphHiveSceneSurface::strobe()
 {
-	if(_boundRootNode.isValid()) _boundRootNode.getInstance() -> populateSceneSurface(GraphHandle<GraphHiveSceneSurface>(this));
+	if(_boundRootNode.isValid()) _boundRootNode.getInstance() -> populateSceneSurface(Handle<GraphHiveSceneSurface>(this));
 }
 
 void GraphHiveSceneSurface::poke(unsigned nodeId, GraphPoke poke)
@@ -71,7 +71,7 @@ void GraphHiveSceneSurface::poke(unsigned nodeId, GraphPoke poke)
 
 void GraphHiveSceneSurface::activate()
 {
-	if(_boundRootNode.isValid()) _boundRootNode.getInstance() -> populateSceneSurface(GraphHandle<GraphHiveSceneSurface>(this));
+	if(_boundRootNode.isValid()) _boundRootNode.getInstance() -> populateSceneSurface(Handle<GraphHiveSceneSurface>(this));
 }
 
 void GraphHiveSceneSurface::_populateStart()

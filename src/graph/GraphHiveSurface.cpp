@@ -28,7 +28,7 @@ void GraphHiveSurface::setDefault(bool isDefault)
 	}
 }
 
-void GraphHiveSurface::setHive(GraphHandle<GraphHive> hive)
+void GraphHiveSurface::setHive(Handle<GraphHive> hive)
 {
 	if(!hive.isValid())
 	{
@@ -59,7 +59,7 @@ void GraphHiveSurface::_emitSurfaceChanged()
 		// The listener knows how to get the concrete listener interface.
 		GraphHiveSurfaceListener* surfListener = listener -> getListener();
 
-		if(surfListener) surfListener -> hiveSurfaceChanged(GraphHandle<GraphHiveSurface>(this));
+		if(surfListener) surfListener -> hiveSurfaceChanged(Handle<GraphHiveSurface>(this));
 	}
 }
 

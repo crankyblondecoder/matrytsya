@@ -39,7 +39,7 @@ void AnimateScriptNode::__setAnimating(bool animating, unsigned serial, bool emi
 		}
 	}
 
-	if(emitAction) _emitAction(new AnimateAction(GraphHandle<GraphNode>(this), _animating));
+	if(emitAction) _emitAction(new AnimateAction(Handle<GraphNode>(this), _animating));
 }
 
 bool AnimateScriptNode::__getAnimating()
