@@ -1,7 +1,6 @@
 srcFiles =  AgenticHarness.cpp Model.cpp ModelContext.cpp ModelPrompt.cpp ModelProvider.cpp ModelRequest.cpp \
 ModelSystemPrompt.cpp ModelToolBindings.cpp ModelToolCallParameterValue.cpp ModelToolDefinition.cpp \
-ModelToolDefinitionParameter.cpp OllamaModel.cpp OllamaModelProvider.cpp modelToolJson.cpp \
-bindings/BasicHiveToolBindings.cpp
+ModelToolDefinitionParameter.cpp OllamaModel.cpp OllamaModelProvider.cpp modelToolJson.cpp
 
 objFiles = $(srcFiles:.cpp=.o)
 

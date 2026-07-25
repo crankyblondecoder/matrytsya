@@ -9,7 +9,7 @@
 
 std::atomic<unsigned> GraphAction::_nextId{1};
 
-unsigned GraphAction::_startingEnergy = 65535;
+unsigned GraphAction::_startingEnergy = 512;
 
 GraphAction::~GraphAction()
 {

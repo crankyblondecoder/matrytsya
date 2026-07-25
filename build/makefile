@@ -2,7 +2,9 @@
 
 # Each module has a subdirectory where the module name and the directory name are the same.
 # The order is important because it sets the final linking order and if that is incorrect it causes undefined reference errors.
-modules = agent persist graph util thread log lua display mongoose
+# agent_bindings depends on both agent and graph; graph depends on agent; persist depends on graph.
+# Static archives resolve left-to-right, so each module must precede everything it depends on.
+modules = agent_bindings persist graph agent util thread log lua display mongoose
 
 # The name of the static library (.a file) should be modulename.a
 export module_libs = $(foreach module, $(modules), $(module).a)

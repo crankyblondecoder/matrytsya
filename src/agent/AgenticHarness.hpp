@@ -29,7 +29,8 @@ class AgenticHarness : public RefCounted
 			CHAT,
 			/// Drives hive level decisions, i.e. The overall structure of the hive.
 			HIVE,
-			/// Drives node level decisions, i.e. Node state to drive a particular behaviour.
+			/// Drives node level decisions, i.e. Node state to drive a particular behaviour, including
+			/// agentic requests inside scripts.
 			NODE,
 			/// Drives script level decisions, i.e. building a script for a particular purpose.
 			SCRIPT

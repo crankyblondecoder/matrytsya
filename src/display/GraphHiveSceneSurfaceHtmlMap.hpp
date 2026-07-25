@@ -76,8 +76,12 @@ class GraphHiveSceneSurfaceHtmlMap : public GraphHiveSurfaceHttpMap, private Eve
 
         /**
          * Render a page from a template, filling in the placeholders every page served by this map carries.
-         * Those are %TITLE%, which becomes the bound surface's name, and %POLL_INTERVAL_MS%, which becomes the
-         * interval the page is to poll this map's revision endpoint at. Each may appear any number of times.
+         * Those are %TITLE%, which becomes the bound surface's name, %POLL_INTERVAL_MS%, which becomes the
+         * interval the page is to poll this map's revision endpoint at, and %CHAT_STYLE%, %CHAT_MARKUP% and
+         * %CHAT_SCRIPT%, which become the chat window's style rules, markup and script (see chatWindowTemplate.hpp
+         * for where in a page each of the three belongs). Each may appear any number of times.
+         * @note A template is free to leave the chat placeholders out, which is all it takes to serve a page
+         *       without a chat window on it; the endpoints behind one are answered either way.
          * @param pageTemplate Template to render.
          * @param response Response to populate with the rendered page.
          */

@@ -20,8 +20,9 @@ class SceneAction : public GraphAction
 		 * @param initNode Initial node the new action is bound to.
 		 * @param surface Surface this action populates as it visits nodes. It is permissable for this handle to be
 		 *        invalid, in which case, only the scene version is calculated.
+		 * @param energy The energy that is assigned to the action.
 		 */
-		SceneAction(Handle<GraphNode> initNode, Handle<GraphHiveSceneSurface> surface);
+		SceneAction(Handle<GraphNode> initNode, Handle<GraphHiveSceneSurface> surface, unsigned energy = _startingEnergy);
 
 		/**
 		 * Get the unique version of the scene formed by the nodes visited by this action.

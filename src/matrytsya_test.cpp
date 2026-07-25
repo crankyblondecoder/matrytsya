@@ -1,3 +1,11 @@
+#include "agent/AgentException.hpp"
+#include "agent/AgenticHarness.hpp"
+#include "agent/Model.hpp"
+#include "agent/ModelProvider.hpp"
+#include "agent/ModelSystemPrompt.hpp"
+#include "agent/ModelToolBindings.hpp"
+#include "agent/OllamaModelProvider.hpp"
+#include "agent_bindings/BasicHiveToolBindings.hpp"
 #include "display/DisplayException.hpp"
 #include "display/GraphHiveSceneSurfaceWebglMap.hpp"
 #include "display/http/HttpServer.hpp"
@@ -30,6 +38,35 @@ namespace
 
 	const unsigned _WEBGL_POLL_INTERVAL_MS = 50;
 
+	// Test Ollama server, on its default port.
+	const char* const _OLLAMA_URL = "http://192.168.10.10:11434";
+
+	const char* const _OLLAMA_MODEL_NAME = "qwen3-coder:30b";
+
+	const char* const _CHAT_SYSTEM_PROMPT =
+		"You are the chat assistant of a Matrytsya hive: a live graph of named nodes that the user is "
+		"watching in a browser.\n"
+		"\n"
+		"Before you do anything else, decide whether the message in front of you is asking about this "
+		"hive. If it is not, answer it as it stands and call no tool. \"hello\", \"thanks\" and \"what can "
+		"you do?\" are answered in one short line, because reciting nodes at someone who only said hello is "
+		"noise. Small talk stays small talk even when it runs to a sentence or two. Nothing the hive holds "
+		"may appear in a reply to a message that did not ask about it: no node names, no ids, no counts, "
+		"no remarks on what the hive appears to be made of. Only a message that turns on the hive's "
+		"contents earns a tool call, whether it asks outright or needs the hive to reach what it does ask "
+		"for.\n"
+		"\n"
+		"Two tools read the hive when you do need it: getNodeNames lists the nodes that exist, and "
+		"getNodeId turns a node name into its id. Use them rather than answering from what a hive might "
+		"contain. Node names are matched exactly, so look a name up before asking for its id rather than "
+		"guessing at its spelling.\n"
+		"\n"
+		"When a tool reports that something could not be found, say so plainly rather than inventing a "
+		"node, an id or a structure the hive does not have. Say when you do not know.\n"
+		"\n"
+		"Keep answers short and in plain prose. They are shown in a small chat panel beside the scene, so "
+		"use no markdown, no code blocks and no tables.";
+
 	std::string _readFile(const std::string& path)
 	{
 		std::ifstream file(path);
@@ -43,6 +80,78 @@ namespace
 		std::stringstream buffer;
 		buffer << file.rdbuf();
 		return buffer.str();
+	}
+
+	/**
+	 * Build an agentic harness backed by the test Ollama server, with its model, a system prompt and basic
+	 * hive tool bindings all assigned to the chat role at low capability.
+	 * @param hive Hive the tool bindings are to report on.
+	 * @returns Handle to the harness.
+	 * @note Exits the process when the server cannot be reached or does not serve the model, since a chat
+	 *       surface with nothing behind it is of no use to this test.
+	 */
+	Handle<AgenticHarness> _buildAgenticHarness(Handle<GraphHive> hive)
+	{
+		Handle<ModelProvider> providerHandle(0);
+
+		try
+		{
+			OllamaModelProvider* provider = new OllamaModelProvider(_OLLAMA_URL);
+
+			providerHandle = Handle<ModelProvider>(provider);
+
+			// The handle holds the reference now; release the implicit construction ref.
+			provider -> decrRef();
+		}
+		catch(AgentException& exception)
+		{
+			std::cerr << "Could not use the Ollama server at " << _OLLAMA_URL << ": "
+				<< exception.getDescription() << std::endl;
+			exit(1);
+		}
+
+		Handle<Model> modelHandle(0);
+
+		for(Handle<Model>& candidate : providerHandle.getInstance() -> getModels())
+		{
+			if(candidate.getInstance() -> getName() != _OLLAMA_MODEL_NAME) continue;
+
+			modelHandle = candidate;
+
+			break;
+		}
+
+		if(!modelHandle.isValid())
+		{
+			std::cerr << "The Ollama server at " << _OLLAMA_URL << " does not serve the model "
+				<< _OLLAMA_MODEL_NAME << std::endl;
+			exit(1);
+		}
+
+		AgenticHarness* harness = new AgenticHarness();
+
+		// The system prompt and the tool bindings are matched on the exact role and capability, not on a
+		// capability at least as high, so all three assignments have to name the same pair.
+		AgenticHarness::RoleCapability chatRoleCapability{AgenticHarness::Role::CHAT,
+			AgenticHarness::Capability::LOW};
+
+		harness -> addModelAssignment(chatRoleCapability, modelHandle);
+
+		harness -> addSystemPrompt(chatRoleCapability, ModelSystemPrompt(_CHAT_SYSTEM_PROMPT));
+
+		BasicHiveToolBindings* toolBindings = new BasicHiveToolBindings(hive);
+
+		harness -> addToolBinding({chatRoleCapability}, Handle<ModelToolBindings>(toolBindings));
+
+		// The harness holds the reference through its assignment; release the implicit construction ref.
+		toolBindings -> decrRef();
+
+		Handle<AgenticHarness> harnessHandle(harness);
+
+		// The handle carries the reference out to the caller; release the implicit construction ref.
+		harness -> decrRef();
+
+		return harnessHandle;
 	}
 }
 
@@ -62,11 +171,18 @@ int main(int argc, char const *argv[])
 		exit(1);
 	}
 
+	// Set before the surface is served, so that the first chat request cannot arrive without a model behind
+	// it.
+	hive -> setAgenticHarness(_buildAgenticHarness(hiveHandle));
+
 	HttpServer httpServer(8080);
 
 	GraphHiveSceneSurfaceWebglMap webglMap(httpServer, *surface, "/scene/");
 
 	webglMap.setPollInterval(_WEBGL_POLL_INTERVAL_MS);
+
+	// The map asks for MEDIUM by default, which no assignment above can satisfy.
+	webglMap.setChatCapability(AgenticHarness::Capability::LOW);
 
 	try
 	{

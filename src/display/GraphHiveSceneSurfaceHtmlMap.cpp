@@ -11,6 +11,7 @@
 #include "../rapidjson/document.h"
 #include "../thread/thread.hpp"
 #include "../thread/ThreadException.hpp"
+#include "chatWindowTemplate.hpp"
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
 
@@ -175,6 +176,12 @@ void GraphHiveSceneSurfaceHtmlMap::_renderPageTemplate(const std::string& pageTe
 	}
 
 	if(title.empty()) title = "Graph Hive Scene Surface";
+
+	// Put the chat window in before anything else, so that a placeholder appearing within it is filled in too
+	// rather than being left in the page as it stands.
+	replacePlaceholder(page, "%CHAT_STYLE%", chatWindowStyle);
+	replacePlaceholder(page, "%CHAT_MARKUP%", chatWindowMarkup);
+	replacePlaceholder(page, "%CHAT_SCRIPT%", chatWindowScript);
 
 	replacePlaceholder(page, "%TITLE%", title);
 	replacePlaceholder(page, "%POLL_INTERVAL_MS%", std::to_string(pollIntervalMs));

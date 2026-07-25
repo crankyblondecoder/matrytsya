@@ -18,7 +18,7 @@ void SceneRootNode::populateSceneSurface(Handle<GraphHiveSceneSurface> sceneSurf
 	Handle<GraphNode> handle(this);
 
 	// Action will self delete once complete.
-	SceneAction* action = new SceneAction(handle, sceneSurface);
+	SceneAction* action = new SceneAction(handle, sceneSurface, 16535);
 
 	action -> incrRef();
 

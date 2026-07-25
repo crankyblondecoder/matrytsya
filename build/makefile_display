@@ -1,5 +1,5 @@
 srcFiles = GraphHiveSceneSurfaceHtmlMap.cpp GraphHiveSceneSurfaceWebglMap.cpp GraphHiveSurfaceMap.cpp \
-GraphHiveSurfaceHttpMap.cpp webglPageTemplate.cpp \
+GraphHiveSurfaceHttpMap.cpp chatWindowTemplate.cpp webglPageTemplate.cpp \
 http/HttpRequest.cpp http/HttpResponse.cpp http/HttpServerBase.cpp http/HttpServerMongoose.cpp \
 http/HttpServerMongoosePollThread.cpp
 

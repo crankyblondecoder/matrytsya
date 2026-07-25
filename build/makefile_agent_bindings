@@ -1,0 +1,17 @@
+srcFiles = BasicHiveToolBindings.cpp
+
+objFiles = $(srcFiles:.cpp=.o)
+
+CXX = $(cname)
+CXXFLAGS = $(cflags)
+
+# Tell make to search other paths. Separate multiple with ":"
+VPATH = ../../src/agent_bindings
+
+agent_bindings.a : $(objFiles)
+	@ echo
+	@ echo "*** Building - Agent Bindings Module ***"
+	@ echo
+	ar rcs agent_bindings.a $(objFiles)
+
+-include ../makefile_std_dep

@@ -13,27 +13,10 @@
 		{
 			"type": "SceneTransformNode",
 			"name": "rootTransform",
-			"transform": [
-				1.0,
-				0.0,
-				0.0,
-				0.0,
-				0.0,
-				1.0,
-				0.0,
-				0.0,
-				0.0,
-				0.0,
-				1.0,
-				0.0,
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
+			"transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
 			"edges": [
 				{
-					"toNodeName": "body"
+					"toNodeName": "body1"
 				},
 				{
 					"toNodeName": "flower2Offset"
@@ -42,7 +25,7 @@
 		},
 		{
 			"type": "SceneGeometryScriptNode",
-			"name": "body",
+			"name": "body1",
 			"pokeEnabled": true,
 			"initialFocus": true,
 			"focusViewportFraction": 0.2,
@@ -57,26 +40,9 @@
 		{
 			"type": "SceneTransformScriptNode",
 			"name": "petalTransform0",
-			"coreScript": "if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); local step = 0.0028; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end",
+			"coreScript": "if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); local step = 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end",
 			"pokeScript": "",
-			"transform": [
-				0.900447,
-				0.434966,
-				0.0,
-				0.0,
-				-0.434966,
-				0.900447,
-				0.0,
-				0.0,
-				0.0,
-				0.0,
-				1.0,
-				0.0,
-				0.9,
-				0.0,
-				0.0,
-				1.0
-			],
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal0"
@@ -100,24 +66,7 @@
 			"name": "petalTransform1",
 			"coreScript": "",
 			"pokeScript": "",
-			"transform": [
-				0.62349,
-				0.0,
-				-0.781831,
-				0.0,
-				0.0,
-				1.0,
-				0.0,
-				0.0,
-				0.781831,
-				0.0,
-				0.62349,
-				0.0,
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
+			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 0.0, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal1"
@@ -141,24 +90,7 @@
 			"name": "petalTransform2",
 			"coreScript": "",
 			"pokeScript": "",
-			"transform": [
-				0.62349,
-				0.0,
-				-0.781831,
-				0.0,
-				0.0,
-				1.0,
-				0.0,
-				0.0,
-				0.781831,
-				0.0,
-				0.62349,
-				0.0,
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
+			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 0.0, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal2"
@@ -182,24 +114,7 @@
 			"name": "petalTransform3",
 			"coreScript": "",
 			"pokeScript": "",
-			"transform": [
-				0.62349,
-				0.0,
-				-0.781831,
-				0.0,
-				0.0,
-				1.0,
-				0.0,
-				0.0,
-				0.781831,
-				0.0,
-				0.62349,
-				0.0,
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
+			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 0.0, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal3"
@@ -223,24 +138,7 @@
 			"name": "petalTransform4",
 			"coreScript": "",
 			"pokeScript": "",
-			"transform": [
-				0.62349,
-				0.0,
-				-0.781831,
-				0.0,
-				0.0,
-				1.0,
-				0.0,
-				0.0,
-				0.781831,
-				0.0,
-				0.62349,
-				0.0,
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
+			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 0.0, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal4"
@@ -264,24 +162,7 @@
 			"name": "petalTransform5",
 			"coreScript": "",
 			"pokeScript": "",
-			"transform": [
-				0.62349,
-				0.0,
-				-0.781831,
-				0.0,
-				0.0,
-				1.0,
-				0.0,
-				0.0,
-				0.781831,
-				0.0,
-				0.62349,
-				0.0,
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
+			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 0.0, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal5"
@@ -305,24 +186,7 @@
 			"name": "petalTransform6",
 			"coreScript": "",
 			"pokeScript": "",
-			"transform": [
-				0.62349,
-				0.0,
-				-0.781831,
-				0.0,
-				0.0,
-				1.0,
-				0.0,
-				0.0,
-				0.781831,
-				0.0,
-				0.62349,
-				0.0,
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
+			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 0.0, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal6"
@@ -351,24 +215,7 @@
 		{
 			"type": "SceneTransformNode",
 			"name": "flower2Offset",
-			"transform": [
-				1.0,
-				0.0,
-				0.0,
-				0.0,
-				0.0,
-				1.0,
-				0.0,
-				0.0,
-				0.0,
-				0.0,
-				1.0,
-				0.0,
-				7.0,
-				0.0,
-				0.0,
-				1.0
-			],
+			"transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 7.0, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "body2"
@@ -392,24 +239,7 @@
 			"name": "spinTransform2",
 			"coreScript": "if getStrobe() and getAnimating() then local justStarted = not wasAnimating; wasAnimating = true; if justStarted then speed = 0.5; tick = 0; end; tick = tick + 1; local t = getTransform(); local angle = math.atan(t[3], t[1]); angle = angle + speed; local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[3] = s; t[9] = -s; t[11] = c; t[13] = 7.0 * (1 - c); t[14] = 0; t[15] = -7.0 * s; setTransform(t); speed = speed * 0.955; if speed < 0.01 or tick >= 100 then setAnimating(false); end else wasAnimating = false; end",
 			"pokeScript": "",
-			"transform": [
-				1.0,
-				0.0,
-				0.0,
-				0.0,
-				0.0,
-				1.0,
-				0.0,
-				0.0,
-				0.0,
-				0.0,
-				1.0,
-				0.0,
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
+			"transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal0_2"
@@ -421,24 +251,7 @@
 			"name": "petalTransform0_2",
 			"coreScript": "",
 			"pokeScript": "",
-			"transform": [
-				0.900447,
-				0.434966,
-				0.0,
-				0.0,
-				-0.434966,
-				0.900447,
-				0.0,
-				0.0,
-				0.0,
-				0.0,
-				1.0,
-				0.0,
-				1.5968709999999997,
-				-3.044762,
-				0.0,
-				1.0
-			],
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.5968709999999997, -3.044762, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "spinTransform2"
@@ -462,24 +275,7 @@
 			"name": "petalTransform1_2",
 			"coreScript": "",
 			"pokeScript": "",
-			"transform": [
-				0.62349,
-				0.0,
-				-0.781831,
-				0.0,
-				0.0,
-				1.0,
-				0.0,
-				0.0,
-				0.781831,
-				0.0,
-				0.62349,
-				0.0,
-				2.6355700000000004,
-				0.0,
-				5.472817,
-				1.0
-			],
+			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 2.6355700000000004, 0.0, 5.472817, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal1_2"
@@ -503,24 +299,7 @@
 			"name": "petalTransform2_2",
 			"coreScript": "",
 			"pokeScript": "",
-			"transform": [
-				0.62349,
-				0.0,
-				-0.781831,
-				0.0,
-				0.0,
-				1.0,
-				0.0,
-				0.0,
-				0.781831,
-				0.0,
-				0.62349,
-				0.0,
-				2.6355700000000004,
-				0.0,
-				5.472817,
-				1.0
-			],
+			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 2.6355700000000004, 0.0, 5.472817, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal2_2"
@@ -544,24 +323,7 @@
 			"name": "petalTransform3_2",
 			"coreScript": "",
 			"pokeScript": "",
-			"transform": [
-				0.62349,
-				0.0,
-				-0.781831,
-				0.0,
-				0.0,
-				1.0,
-				0.0,
-				0.0,
-				0.781831,
-				0.0,
-				0.62349,
-				0.0,
-				2.6355700000000004,
-				0.0,
-				5.472817,
-				1.0
-			],
+			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 2.6355700000000004, 0.0, 5.472817, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal3_2"
@@ -585,24 +347,7 @@
 			"name": "petalTransform4_2",
 			"coreScript": "",
 			"pokeScript": "",
-			"transform": [
-				0.62349,
-				0.0,
-				-0.781831,
-				0.0,
-				0.0,
-				1.0,
-				0.0,
-				0.0,
-				0.781831,
-				0.0,
-				0.62349,
-				0.0,
-				2.6355700000000004,
-				0.0,
-				5.472817,
-				1.0
-			],
+			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 2.6355700000000004, 0.0, 5.472817, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal4_2"
@@ -626,24 +371,7 @@
 			"name": "petalTransform5_2",
 			"coreScript": "",
 			"pokeScript": "",
-			"transform": [
-				0.62349,
-				0.0,
-				-0.781831,
-				0.0,
-				0.0,
-				1.0,
-				0.0,
-				0.0,
-				0.781831,
-				0.0,
-				0.62349,
-				0.0,
-				2.6355700000000004,
-				0.0,
-				5.472817,
-				1.0
-			],
+			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 2.6355700000000004, 0.0, 5.472817, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal5_2"
@@ -667,24 +395,7 @@
 			"name": "petalTransform6_2",
 			"coreScript": "",
 			"pokeScript": "",
-			"transform": [
-				0.62349,
-				0.0,
-				-0.781831,
-				0.0,
-				0.0,
-				1.0,
-				0.0,
-				0.0,
-				0.781831,
-				0.0,
-				0.62349,
-				0.0,
-				2.6355700000000004,
-				0.0,
-				5.472817,
-				1.0
-			],
+			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 2.6355700000000004, 0.0, 5.472817, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal6_2"
