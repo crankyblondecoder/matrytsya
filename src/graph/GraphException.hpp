@@ -52,7 +52,11 @@ class GraphException : public Exception
 			/// Whether the request of a hive surface should not have happened.
 			HIVE_SURFACE_BAD_REQUEST,
 			/// Timed out waiting for a scene surface to be generated.
-			SCENE_SURFACE_GENERATION_TIMED_OUT
+			SCENE_SURFACE_GENERATION_TIMED_OUT,
+			/// An agentic request was made against a hive with no agentic harness set.
+			AGENTIC_HARNESS_NOT_SET,
+			/// The supplied id does not name a chat context of the hive surface it was given to.
+			INVALID_CHAT_CONTEXT_ID
         };
 
         virtual ~GraphException(){}

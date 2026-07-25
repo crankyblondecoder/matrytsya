@@ -1,5 +1,7 @@
 #include <stdexcept>
 
+#include "../agent/AgenticHarness.hpp"
+#include "../agent/ModelContext.hpp"
 #include "../thread/ThreadException.hpp"
 #include "../thread/ThreadPool.hpp"
 #include "GraphException.hpp"
@@ -24,7 +26,7 @@ GraphHive::~GraphHive()
 	}
 }
 
-GraphHive::GraphHive(unsigned numThreads)
+GraphHive::GraphHive(unsigned numThreads) : _agenticHarness(0)
 {
 	try
 	{
@@ -396,6 +398,37 @@ void GraphHive::setHiveCollection(GraphHiveCollection* collection)
 	}
 }
 
+void GraphHive::setAgenticHarness(Handle<AgenticHarness> agenticHarness)
+{
+	{ SYNC(_lock)
+
+		if(_active) _agenticHarness = agenticHarness;
+	}
+}
+
+Handle<AgenticHarness> GraphHive::getAgenticHarness()
+{
+	{ SYNC(_lock)
+
+		return _agenticHarness;
+	}
+}
+
+Handle<ModelContext> GraphHive::processAgenticRequest(AgenticHarness::Capability capability, std::string prompt,
+	Handle<ModelContext> context)
+{
+	Handle<AgenticHarness> harness(0);
+
+	{ SYNC(_lock)
+
+		harness = _agenticHarness;
+	}
+
+	if(!harness.isValid()) throw GraphException(GraphException::AGENTIC_HARNESS_NOT_SET);
+
+	return harness.getInstance() -> processRequest(prompt, AgenticHarness::Role::CHAT, capability, context);
+}
+
 bool GraphHive::executeWorkUnit(ThreadPoolWorkUnit* workUnit)
 {
 	{ SYNC(_lock)
@@ -619,6 +652,24 @@ Handle<GraphNode> GraphHive::getNode(std::string nodeName)
 	}
 
 	return Handle<GraphNode>(foundNode);
+}
+
+std::vector<std::string> GraphHive::getNodeNames()
+{
+	std::vector<std::string> names;
+
+	{ SYNC(_lock)
+
+		if(_active)
+		{
+			for(GraphNode* node : _nodes)
+			{
+				if(node) names.push_back(node -> getName());
+			}
+		}
+	}
+
+	return names;
 }
 
 void GraphHive::addSurface(GraphHiveSurface* surface)

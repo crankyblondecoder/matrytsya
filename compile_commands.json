@@ -799,6 +799,23 @@
     "output": "log.o"
   },
   {
+    "file": "../../src/display/GraphHiveSceneSurfaceHtmlMap.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphHiveSceneSurfaceHtmlMap.o",
+      "../../src/display/GraphHiveSceneSurfaceHtmlMap.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphHiveSceneSurfaceHtmlMap.o"
+  },
+  {
     "file": "../../src/display/GraphHiveSceneSurfaceWebglMap.cpp",
     "arguments": [
       "/usr/bin/g++",

@@ -1,8 +1,10 @@
 #ifndef GRAPH_HIVE_H
 #define GRAPH_HIVE_H
 
+#include <string>
 #include <vector>
 
+#include "../agent/AgenticHarness.hpp"
 #include "../thread/ThreadCondition.hpp"
 #include "../thread/ThreadMutex.hpp"
 #include "../thread/ThreadPool.hpp"
@@ -19,6 +21,7 @@ class GraphNode;
 class GraphHiveStrobeScheduler;
 class GraphHiveSceneSurface;
 class GraphHiveSurface;
+class ModelContext;
 
 /**
  * A "Hive" is a container for nodes.
@@ -58,6 +61,11 @@ class GraphHive : public RefCounted, public GraphNamed
 		 * @returns Handle to the node. Invalid handle if no node with that name exists in this hive.
 		 */
 		Handle<GraphNode> getNode(std::string nodeName);
+
+		/**
+		 * Get the names of all the nodes in this hive.
+		 */
+		std::vector<std::string> getNodeNames();
 
 		/**
 		 * Poke this hive.
@@ -155,6 +163,34 @@ class GraphHive : public RefCounted, public GraphNamed
 		void setHiveCollection(GraphHiveCollection* collection);
 
 		/**
+		 * Set the agentic harness this hive can use to drive agentic decisions.
+		 * @param agenticHarness Handle of the harness to set. May be an invalid handle to clear.
+		 */
+		void setAgenticHarness(Handle<AgenticHarness> agenticHarness);
+
+		/**
+		 * Get the agentic harness set on this hive.
+		 * @returns Handle to the agentic harness. Invalid handle if none has been set.
+		 */
+		Handle<AgenticHarness> getAgenticHarness();
+
+		/**
+		 * Process an agentic request against this hive's agentic harness.
+		 * @note Delegates to the agentic harness with the role fixed to AgenticHarness::Role::CHAT.
+		 * @param capability Capability required of the model.
+		 * @param prompt Text of the prompt to send to the model.
+		 * @param context Context of a previous interaction to continue. When not supplied, a new
+		 *        context is built from the system prompts and tools assigned to the role and
+		 *        capability.
+		 * @returns The context the request was serviced within.
+		 * @throw GraphException When this hive has no agentic harness set.
+		 * @throw AgentException When no prompt text was supplied, or when no candidate model is
+		 *        assigned to the role with sufficient capability.
+		 */
+		Handle<ModelContext> processAgenticRequest(AgenticHarness::Capability capability, std::string prompt,
+			Handle<ModelContext> context = Handle<ModelContext>(0));
+
+		/**
 		 * Teleport a graph action.
 		 * @param actionPayload Payload of action to teleport.
 		 * @param nodeLocation Location of node to teleport action to.
@@ -218,6 +254,9 @@ class GraphHive : public RefCounted, public GraphNamed
 
 		/// Hive collection this hive is part of.
 		GraphHiveCollection* _collection = 0;
+
+		/// Agentic harness this hive can use to drive agentic decisions.
+		Handle<AgenticHarness> _agenticHarness;
 
 		/// Nodes contained in this hive.
 		std::vector<GraphNode*>	_nodes;

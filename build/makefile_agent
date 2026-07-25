@@ -1,0 +1,20 @@
+srcFiles =  AgenticHarness.cpp Model.cpp ModelContext.cpp ModelPrompt.cpp ModelProvider.cpp ModelRequest.cpp \
+ModelSystemPrompt.cpp ModelToolBindings.cpp ModelToolCallParameterValue.cpp ModelToolDefinition.cpp \
+ModelToolDefinitionParameter.cpp OllamaModel.cpp OllamaModelProvider.cpp modelToolJson.cpp \
+bindings/BasicHiveToolBindings.cpp
+
+objFiles = $(srcFiles:.cpp=.o)
+
+CXX = $(cname)
+CXXFLAGS = $(cflags)
+
+# Tell make to search other paths. Separate multiple with ":"
+VPATH = ../../src/agent
+
+agent.a : $(objFiles)
+	@ echo
+	@ echo "*** Building - Agent Module ***"
+	@ echo
+	ar rcs agent.a $(objFiles)
+
+-include ../makefile_std_dep

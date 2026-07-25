@@ -3,25 +3,20 @@
 
 #include <string>
 
-#include "../util/Handle.hpp"
-#include "../graph/GraphHiveSurfaceListener.hpp"
-#include "../thread/ThreadMutex.hpp"
-#include "../util/EventListener.hpp"
-#include "GraphHiveSurfaceHttpMap.hpp"
+#include "GraphHiveSceneSurfaceHtmlMap.hpp"
 
 class GraphHiveSceneSurface;
-class GraphHiveSurface;
 class HttpServerBase;
 class HttpRequest;
 class HttpResponse;
 
 /**
  * Maps a GraphHiveSceneSurface onto a WebGL based HTML interface so that its geometry can be viewed in a browser.
- * This map binds to a single scene surface for its whole lifetime and listens for that surface's changed event
- * to know when browsers viewing its page should pick up new data, without needing to be reloaded.
+ * Everything the page needs of the bound surface that is not its geometry - the revision it polls, the pokes it
+ * makes and the chat window it carries - comes from GraphHiveSceneSurfaceHtmlMap. What is added here is the WebGL
+ * page itself and the scene data it draws from.
  */
-class GraphHiveSceneSurfaceWebglMap : public GraphHiveSurfaceHttpMap, private EventListener<GraphHiveSurfaceListener>,
-	private GraphHiveSurfaceListener
+class GraphHiveSceneSurfaceWebglMap : public GraphHiveSceneSurfaceHtmlMap
 {
     public:
 
@@ -35,54 +30,25 @@ class GraphHiveSceneSurfaceWebglMap : public GraphHiveSurfaceHttpMap, private Ev
          */
         GraphHiveSceneSurfaceWebglMap(HttpServerBase& httpServer, GraphHiveSceneSurface& surface, std::string path);
 
-        /**
-         * Set how often browsers viewing this map's page poll to check for changes.
-         * @param pollIntervalMs Poll interval in milliseconds. Defaults to 1000.
-         */
-        void setPollInterval(unsigned pollIntervalMs);
-
     protected:
 
         void _renderPage(HttpResponse& response) override;
 
-        void _serveData(HttpRequest& request, HttpResponse& response) override;
+        /**
+         * Serve the bound surface's scene as the JSON the WebGL page draws it from.
+         * @param request The incoming data request. Its body may carry the viewer's list of the chunks it
+         *        already holds vertex data for, as {"chunks":[{"nodeId":N,"chunkId":N,"vertexVersion":N}, ...]},
+         *        so that only the vertexes it does not already have at the current version are sent. An empty or
+         *        malformed body is treated as the viewer knowing nothing yet.
+         * @param response Response to populate.
+         */
+        void _serveMapData(HttpRequest& request, HttpResponse& response) override;
 
     private:
 
         // Disable copying.
         GraphHiveSceneSurfaceWebglMap(const GraphHiveSceneSurfaceWebglMap& copyFrom);
         GraphHiveSceneSurfaceWebglMap& operator= (const GraphHiveSceneSurfaceWebglMap& copyFrom);
-
-        /**
-         * Serve the lightweight revision check browsers poll to detect a change to the bound surface.
-         * @param response Response to populate.
-         */
-        void __serveRevision(HttpResponse& response);
-
-        /**
-         * Serve a poke request made by the rendered page when a chunk of the scene is clicked on or hovered over.
-         * @param request The incoming poke request. Must carry both a "nodeId" and a "chunkId" query parameter,
-         *        which together identify the poked chunk. May carry a "type" query parameter of "hoverEnter" or
-         *        "hoverLeave" to raise a HOVER_ENTER or HOVER_LEAVE poke instead of the default HIT.
-         * @param response Response to populate.
-         */
-        void __servePoke(HttpRequest& request, HttpResponse& response);
-
-        virtual void hiveSurfaceChanged(Handle<GraphHiveSurface> hiveSurface) override;
-
-        virtual GraphHiveSurfaceListener* getListener() override;
-
-        /// Scene surface this map is bound to for its whole lifetime.
-        Handle<GraphHiveSceneSurface> _sceneSurface;
-
-        /// Bumped every time the bound surface reports a change, so polling browsers can detect it.
-        unsigned _revision = 0;
-
-        /// How often browsers viewing this map's page poll to check for changes, in milliseconds.
-        unsigned _pollIntervalMs = 1000;
-
-        /// Guards _revision, written from hiveSurfaceChanged() and read while rendering the page/serving requests.
-        ThreadMutex _lock;
 };
 
 #endif
