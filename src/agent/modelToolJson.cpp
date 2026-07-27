@@ -7,6 +7,8 @@
 #include "ModelToolDefinitionParameter.hpp"
 #include "../rapidjson/document.h"
 
+#include <math.h>
+
 namespace
 {
 	// -- Translation between the tool types and JSON, used only by the functions below --
@@ -305,6 +307,15 @@ void writeJsonString(ModelJsonWriter& writer, const std::string& value)
 void writeJsonKey(ModelJsonWriter& writer, const std::string& key)
 {
 	writer.Key(key.c_str(), (rapidjson::SizeType) key.size());
+}
+
+void writeJsonTemperature(ModelJsonWriter& writer, double temperature)
+{
+	double scale = pow(10.0, MODEL_TEMPERATURE_DECIMAL_PLACES);
+
+	// Rounded rather than truncated, so that a value sitting just under a place, as a double often does,
+	// is sent as the place the caller wrote rather than as the one below it.
+	writer.Double(round(temperature * scale) / scale);
 }
 
 std::string serialiseJsonValue(const rapidjson::Value& value)

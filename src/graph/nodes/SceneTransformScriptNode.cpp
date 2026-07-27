@@ -17,6 +17,11 @@ SceneTransformScriptNode::SceneTransformScriptNode(const std::string& script, co
 	_addActionFlag(SCENE_STROBE_GRAPH_ACTION);
 }
 
+GraphNode::Type SceneTransformScriptNode::getType()
+{
+	return Type::SCENE_TRANSFORM_SCRIPT_NODE;
+}
+
 void SceneTransformScriptNode::_registerCoreGlobals(lua_State* luaState)
 {
 	AnimateScriptNode::_registerCoreGlobals(luaState);
@@ -42,7 +47,9 @@ int SceneTransformScriptNode::__luaGetTransform(lua_State* luaState)
 {
 	SceneTransformScriptNode* node = static_cast<SceneTransformScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
 
-	const Transform& transform = node -> getTransform();
+	Transform transform;
+
+	node -> getTransform(transform);
 
 	lua_createtable(luaState, 16, 0); // [transform]
 

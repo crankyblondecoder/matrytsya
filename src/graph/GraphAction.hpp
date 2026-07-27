@@ -102,13 +102,6 @@ class GraphAction : public RefCounted
 		void setApplyToInitialNode();
 
 		/**
-		 * Apply this action to the given node as a result of the node scheduling it.
-		 * @note This should _only_ be used by a graph nodes action scheduling mechanism.
-		 * @param nodeHandle Node to apply this action to.
-		 */
-		void applyScheduled(Handle<GraphNode> nodeHandle);
-
-		/**
 		 * Set the starting energy assigned to subsequently constructed actions that use it as their default,
 		 * including ones created internally by ActionFactory as a result of teleportation.
 		 * @note Intended for unit tests that exercise energy rundown; production code should rely on the
@@ -142,6 +135,8 @@ class GraphAction : public RefCounted
 
 		/**
 		 * Apply this action to a node.
+		 * @note Actions are applied to a node as soon as they reach it, so a node can be the target of several
+		 *       actions simultaneously. Nodes are responsible for synchronising their own state.
 		 */
 		virtual void _apply(GraphNode* node) = 0;
 

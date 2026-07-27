@@ -6,11 +6,19 @@ $(srcFiles) : ;
     # -MT names the rule's target explicitly. Without it, -MM emits the object's basename (e.g.
     # "ScriptNode.o"), which does not match a subdirectory object like "nodes/ScriptNode.o", so the
     # header prerequisites silently never attach and such objects are never rebuilt when a header changes.
-	$(cname) -MM -MT $(@:.dep=.o) $< > $@
-	$(cname) -MM -MT $@ $< > $@Make
-    # Build the depMake include file.
-	@ echo -e "\t\$$(cname) -MM -MT \$$(@:.dep=.o) $$< > \$$@" >> $@Make
-	@ echo -e "\t\$$(cname) -MM -MT \$$@ $$< > \$$@Make" >> $@Make
+    # -MP additionally emits an empty phony target for every header listed. Without it, deleting a header
+    # leaves the already generated dep files naming a file that no longer exists and has no rule, so make
+    # refuses to build that module at all ("No rule to make target ... needed by ...") rather than simply
+    # regenerating the dependencies. Both dep files need it, because both list the headers as prerequisites.
+	$(cname) -MM -MP -MT $(@:.dep=.o) $< > $@
+	$(cname) -MM -MP -MT $@ $< > $@Make
+    # Build the depMake include file. The target is named again ahead of the recipe rather than letting the
+    # recipe trail the generated text: -MP leaves the phony header targets last, so bare recipe lines would
+    # attach to whichever header happened to be emitted last instead of to the dep rule. Make merges the
+    # prerequisites from the rule above with this recipe, so $< is still the source file.
+	@ echo -e "\n$@ :" >> $@Make
+	@ echo -e "\t\$$(cname) -MM -MP -MT \$$(@:.dep=.o) $$< > \$$@" >> $@Make
+	@ echo -e "\t\$$(cname) -MM -MP -MT \$$@ $$< > \$$@Make" >> $@Make
 
 ifneq ($(MAKECMDGOALS),clean)
     include $(objFiles:.o=.dep)

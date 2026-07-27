@@ -23,6 +23,9 @@ class ModelToolDefinitionParameter;
 /// Writer used to build the JSON of a request to a model.
 typedef rapidjson::Writer<rapidjson::StringBuffer> ModelJsonWriter;
 
+// Decimal places a sampling temperature is cut to before it is sent to a provider.
+#define MODEL_TEMPERATURE_DECIMAL_PLACES 3
+
 /**
  * Write a string, which need not be null terminated.
  * @param writer Writer to write to.
@@ -36,6 +39,17 @@ void writeJsonString(ModelJsonWriter& writer, const std::string& value);
  * @param key Key to write.
  */
 void writeJsonKey(ModelJsonWriter& writer, const std::string& key);
+
+/**
+ * Write a sampling temperature, cut to MODEL_TEMPERATURE_DECIMAL_PLACES decimal places.
+ * @param writer Writer to write to.
+ * @param temperature Temperature to write.
+ * @note Only the value is written, since where it sits in a request and what it is called there differ
+ *       between providers. What is common to all of them is the cut: the binary fraction a double holds
+ *       for a value like 0.2 renders as a long run of digits that claims a precision the caller never
+ *       asked for, and no provider has a use for it.
+ */
+void writeJsonTemperature(ModelJsonWriter& writer, double temperature);
 
 /**
  * Render a parsed JSON value back to its text form.

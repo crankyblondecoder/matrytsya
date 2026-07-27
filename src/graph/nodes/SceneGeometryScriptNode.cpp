@@ -16,6 +16,11 @@ SceneGeometryScriptNode::SceneGeometryScriptNode(const std::string& coreScript, 
 	_addActionFlag(SCENE_STROBE_GRAPH_ACTION);
 }
 
+GraphNode::Type SceneGeometryScriptNode::getType()
+{
+	return Type::SCENE_GEOMETRY_SCRIPT_NODE;
+}
+
 void SceneGeometryScriptNode::_registerCoreGlobals(lua_State* luaState)
 {
 	AnimateScriptNode::_registerCoreGlobals(luaState);

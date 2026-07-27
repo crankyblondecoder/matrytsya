@@ -4,12 +4,16 @@
 #include "../graphSceneElements.hpp"
 #include "../../util/Handle.hpp"
 #include "../GraphVersioned.hpp"
+#include "../../thread/thread.hpp"
 
 class GraphHiveSceneSurface;
 
 /**
  * Shared transform store and population API for scene transform nodes. Owns the local transform, so that
  * both the C++ and Lua-scripted transform nodes reuse a single implementation.
+ * @note Actions are applied to a node simultaneously, so a script setting the transform can run at the same
+ *       time as a scene action reading it. Every access to the transform is therefore synchronised, and the
+ *       transform is only ever handed out as a copy.
  */
 class SceneTransform : public GraphVersioned
 {
@@ -24,9 +28,12 @@ class SceneTransform : public GraphVersioned
 		void setTransform(const Transform transform);
 
 		/**
-		 * @returns The transform currently applied to this.
+		 * Get the transform currently applied to this.
+		 * @note This copies rather than returning a reference, because the stored transform can be
+		 *       overwritten by another action at any time.
+		 * @param transform Set to the transform currently applied to this.
 		 */
-		const Transform& getTransform() const;
+		void getTransform(Transform transform) const;
 
 		/**
 		 * Populate the given scene surface with the transform from this.
@@ -36,6 +43,9 @@ class SceneTransform : public GraphVersioned
 		void populateSurface(Handle<GraphHiveSceneSurface> surface, unsigned nodeId);
 
 	private:
+
+		/// Guards _transform. Mutable so that the const read-only accessor can still take it.
+		mutable ThreadMutex _lock;
 
 		/**
 		 * The local transform applied to the geometry.

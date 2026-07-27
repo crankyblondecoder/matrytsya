@@ -38,7 +38,13 @@ class ThreadException : public Exception
 			/// Could not allocate thread pool worker.
 			THREAD_POOL_CANT_ALLOC_WORKER,
 			/// Could not start any thread pool workers.
-			THREAD_POOL_COULD_NOT_START_ANY_WORKERS
+			THREAD_POOL_COULD_NOT_START_ANY_WORKERS,
+			/// Attempted resource re-lock from thread that already requested or has lock.
+			RESOURCE_LOCK_RE_ENTRY,
+			/// Thread does not have the resource lock it expected.
+			RESOURCE_LOCK_NO_LOCK,
+			/// General resource lock error.
+			RESOURCE_LOCK_ERROR
         };
 
         virtual ~ThreadException(){}

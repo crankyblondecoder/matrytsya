@@ -17,8 +17,8 @@
 #define ANIMATE_GRAPH_ACTION 0x00000020
 /// Supports versioning a sub-graph.
 #define VERSION_GRAPH_ACTION 0x00000040
-
-//#define _GRAPH_ACTION 0x00000080
+/// Supports being driven by per-node agentic prompts.
+#define AGENT_GRAPH_ACTION 0x00000080
 
 //#define _GRAPH_ACTION 0x00000100
 //#define _GRAPH_ACTION 0x00000200

@@ -14,9 +14,13 @@ AgenticHarness::~AgenticHarness()
 {
 }
 
-void AgenticHarness::addModelAssignment(RoleCapability roleCapability, Handle<Model> model)
+void AgenticHarness::addModelAssignment(RoleCapability roleCapability, Handle<Model> model, double temperature)
 {
-	_assignments.push_back(ModelAssignment{roleCapability, model});
+	// Refused here rather than at the first request made against the assignment, so that a temperature
+	// that cannot be honoured is reported while the caller setting it up is still in a position to fix it.
+	ModelRequest::checkTemperature(temperature);
+
+	_assignments.push_back(ModelAssignment{roleCapability, model, temperature});
 }
 
 std::vector<AgenticHarness::ModelAssignment> AgenticHarness::getModelAssignments()
@@ -44,6 +48,43 @@ std::vector<AgenticHarness::ToolBindingAssignment> AgenticHarness::getToolBindin
 	return _toolBindings;
 }
 
+Handle<ModelContext> AgenticHarness::createContext(Role role, Capability capability)
+{
+	std::vector<ModelSystemPrompt> systemPrompts;
+
+	for(SystemPromptAssignment& systemPromptAssignment : _systemPrompts)
+	{
+		if(systemPromptAssignment.roleCapability.role != role) continue;
+		if(systemPromptAssignment.roleCapability.capability != capability) continue;
+
+		systemPrompts.push_back(systemPromptAssignment.systemPrompt);
+	}
+
+	std::vector<Handle<ModelToolBindings>> tools;
+
+	for(ToolBindingAssignment& toolBindingAssignment : _toolBindings)
+	{
+		for(RoleCapability& toolRoleCapability : toolBindingAssignment.roleCapabilities)
+		{
+			if(toolRoleCapability.role != role) continue;
+			if(toolRoleCapability.capability != capability) continue;
+
+			tools.push_back(toolBindingAssignment.tool);
+
+			break;
+		}
+	}
+
+	ModelContext* newContext = new ModelContext(systemPrompts, tools);
+
+	Handle<ModelContext> context(newContext);
+
+	// The handle holds the reference the request needs; release the implicit construction ref.
+	newContext -> decrRef();
+
+	return context;
+}
+
 Handle<ModelContext> AgenticHarness::processRequest(std::string prompt, Role role, Capability capability,
 	Handle<ModelContext> context)
 {
@@ -56,6 +97,8 @@ Handle<ModelContext> AgenticHarness::processRequest(std::string prompt, Role rol
 
 	Handle<Model> candidateModel(0);
 
+	double temperature = ModelRequest::PROVIDER_DEFAULT_TEMPERATURE;
+
 	for(ModelAssignment& assignment : _assignments)
 	{
 		if(assignment.roleCapability.role != role) continue;
@@ -64,6 +107,10 @@ Handle<ModelContext> AgenticHarness::processRequest(std::string prompt, Role rol
 		if(assignment.roleCapability.capability < capability) continue;
 
 		candidateModel = assignment.model;
+
+		// The temperature belongs to the assignment rather than to the model, so it is taken from
+		// whichever assignment ends up servicing the request.
+		temperature = assignment.temperature;
 
 		break;
 	}
@@ -77,40 +124,10 @@ Handle<ModelContext> AgenticHarness::processRequest(std::string prompt, Role rol
 	// fixed; only build a new one when the caller is starting a fresh conversation.
 	if(!context.isValid())
 	{
-		std::vector<ModelSystemPrompt> systemPrompts;
-
-		for(SystemPromptAssignment& systemPromptAssignment : _systemPrompts)
-		{
-			if(systemPromptAssignment.roleCapability.role != role) continue;
-			if(systemPromptAssignment.roleCapability.capability != capability) continue;
-
-			systemPrompts.push_back(systemPromptAssignment.systemPrompt);
-		}
-
-		std::vector<Handle<ModelToolBindings>> tools;
-
-		for(ToolBindingAssignment& toolBindingAssignment : _toolBindings)
-		{
-			for(RoleCapability& toolRoleCapability : toolBindingAssignment.roleCapabilities)
-			{
-				if(toolRoleCapability.role != role) continue;
-				if(toolRoleCapability.capability != capability) continue;
-
-				tools.push_back(toolBindingAssignment.tool);
-
-				break;
-			}
-		}
-
-		ModelContext* newContext = new ModelContext(systemPrompts, tools);
-
-		context = Handle<ModelContext>(newContext);
-
-		// The handle holds the reference the request needs; release the implicit construction ref.
-		newContext -> decrRef();
+		context = createContext(role, capability);
 	}
 
-	ModelRequest request(context, ModelPrompt(prompt));
+	ModelRequest request(context, ModelPrompt(prompt), temperature);
 
 	candidateModel.getInstance() -> processRequest(request);
 

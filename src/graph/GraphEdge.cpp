@@ -66,3 +66,13 @@ bool GraphEdge::canTraverse(unsigned long actionFlags)
 	return actionFlags & _actionFlags;
 }
 
+std::string GraphEdge::getDescription()
+{
+	return _description;
+}
+
+void GraphEdge::setDescription(std::string description)
+{
+	_description = description;
+}
+

@@ -36,12 +36,18 @@ CXXFLAGS = $(cflags)
 # Tell make to search other paths. Separate multiple with ":"
 VPATH = ../src
 
+# Each module loop below enters its build directory once and aborts on the first module that fails.
+# Without the "|| exit 1" the loop swallows a failed module, and the link that follows silently produces
+# an executable built from that module's stale object files. That is far worse than a build failure: a
+# header change that only some translation units picked up gives every symptom of a bug in the code
+# (heap corruption from mismatched class layouts) rather than a broken build.
+
 .PHONY : debug
 debug : subDirs
 	@ echo
 	@ echo "*** Building - Debug ***"
 	@ echo
-	for makeFile in $(module_makefiles); do cd debug;$(MAKE) --makefile=../$$makeFile cflags="$(cflags_debug)"; done
+	cd debug && for makeFile in $(module_makefiles); do $(MAKE) --makefile=../$$makeFile cflags="$(cflags_debug)" || exit 1; done
 	@ echo
 	@ echo "*** Building - Debug Executable ***"
 	@ echo
@@ -52,7 +58,7 @@ release : subDirs
 	@ echo
 	@ echo "*** Building - Release ***"
 	@ echo
-	for makeFile in $(module_makefiles); do cd release;$(MAKE) --makefile=../$$makeFile cflags="$(cflags_release)"; done
+	cd release && for makeFile in $(module_makefiles); do $(MAKE) --makefile=../$$makeFile cflags="$(cflags_release)" || exit 1; done
 	@ echo
 	@ echo "*** Building - Release Executable ***"
 	@ echo
@@ -63,7 +69,7 @@ debug_test : subDirs
 	@ echo
 	@ echo "*** Building - Debug ***"
 	@ echo
-	for makeFile in $(module_makefiles); do cd debug;$(MAKE) --makefile=../$$makeFile cflags="$(cflags_debug)"; done
+	cd debug && for makeFile in $(module_makefiles); do $(MAKE) --makefile=../$$makeFile cflags="$(cflags_debug)" || exit 1; done
 	@ echo
 	@ echo "*** Building - Debug Test Executable ***"
 	@ echo
@@ -74,14 +80,14 @@ lua : subDirs
 	@ echo
 	@ echo "*** Building - Lua ***"
 	@ echo
-	cd debug;$(MAKE) --makefile=../makefile_lua cflags="$(cflags_debug)"
+	cd debug && $(MAKE) --makefile=../makefile_lua cflags="$(cflags_debug)"
 
 .PHONY : dep
 dep : subDirs
 	@ echo
 	@ echo "*** Building Dependencies ***"
 	@ echo
-	for makeFile in $(module_makefiles); do cd debug;$(MAKE) --makefile=../$$makeFile dep cflags="$(cflags_debug)"; done
+	cd debug && for makeFile in $(module_makefiles); do $(MAKE) --makefile=../$$makeFile dep cflags="$(cflags_debug)" || exit 1; done
 
 .PHONY : clean
 clean : subDirs
@@ -99,7 +105,7 @@ doc :
 	@ echo
 	@ echo "*** Building - Documentation ***"
 	@ echo
-	cd ../doc; doxygen Doxyfile
+	cd ../doc && doxygen Doxyfile
 	ln -sf html/index.html ../doc/generated/index.html
 
 .PHONY : lua_clean
@@ -114,8 +120,8 @@ test : subDirs $(modules)
 	@ echo
 	@ echo "*** Building and Running Tests ***"
 	@ echo
-	for makeFile in $(module_makefiles); do cd test;$(MAKE) --makefile=../$$makeFile cflags="$(cflags_test)"; done
-	cd test; $(MAKE) --makefile=../makefile_test cflags="$(cflags_test)"
+	cd test && for makeFile in $(module_makefiles); do $(MAKE) --makefile=../$$makeFile cflags="$(cflags_test)" || exit 1; done
+	cd test && $(MAKE) --makefile=../makefile_test cflags="$(cflags_test)"
 
 .PHONY : subDirs
 subDirs :

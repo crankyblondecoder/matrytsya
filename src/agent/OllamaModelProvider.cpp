@@ -111,7 +111,7 @@ namespace
 	}
 
 	std::string __buildRequestBody(const std::string& modelName, std::vector<ChatMessage>& messages,
-		std::vector<Handle<ModelToolBindings>>& tools)
+		std::vector<Handle<ModelToolBindings>>& tools, double temperature)
 	{
 		rapidjson::StringBuffer buffer;
 
@@ -177,6 +177,17 @@ namespace
 				}
 
 				writer.EndArray();
+			}
+
+			// Left off entirely where no temperature was asked for, so that the server's own default
+			// stands rather than being overwritten with a guess at what it is.
+			if(temperature != ModelRequest::PROVIDER_DEFAULT_TEMPERATURE)
+			{
+				writer.Key("options");
+				writer.StartObject();
+					writer.Key("temperature");
+					writeJsonTemperature(writer, temperature);
+				writer.EndObject();
 			}
 		writer.EndObject();
 
@@ -290,9 +301,13 @@ std::string OllamaModelProvider::_processRequest(Handle<Model> model, ModelReque
 
 	std::string modelName = model.getInstance() -> getName();
 
+	// Read once, so that every round of the same request is sampled the same way.
+	double temperature = request.getTemperature();
+
 	for(unsigned round = 0; round < MAX_TOOL_CALL_ROUNDS; ++round)
 	{
-		std::string body = _httpPost(_url + "/api/chat", __buildRequestBody(modelName, messages, tools));
+		std::string body = _httpPost(_url + "/api/chat",
+			__buildRequestBody(modelName, messages, tools, temperature));
 
 		rapidjson::Document document;
 

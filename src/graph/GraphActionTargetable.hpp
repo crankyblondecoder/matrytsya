@@ -1,6 +1,7 @@
 #ifndef GRAPH_ACTION_TARGETABLE_H
 #define GRAPH_ACTION_TARGETABLE_H
 
+#include "actionTargets/AgentActionTarget.hpp"
 #include "actionTargets/AnimateActionTarget.hpp"
 #include "actionTargets/PingActionTarget.hpp"
 #include "actionTargets/SceneActionTarget.hpp"
@@ -58,6 +59,9 @@ class GraphActionTargetable
 
 		/// Get the target for the version action.
 		virtual VersionActionTarget* getVersionActionTarget();
+
+		/// Get the target for the agent action.
+		virtual AgentActionTarget* getAgentActionTarget();
 
 	protected:
 

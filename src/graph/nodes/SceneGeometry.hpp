@@ -8,6 +8,7 @@
 #include "../graphSceneElements.hpp"
 #include "../../util/Handle.hpp"
 #include "../GraphVersioned.hpp"
+#include "../../thread/thread.hpp"
 
 class GraphHiveSceneSurface;
 
@@ -15,6 +16,8 @@ class GraphHiveSceneSurface;
  * Shared vertex store and population API for scene geometry nodes. Owns the vertex list and the two
  * ways of appending to it (Vertex structs or raw serialised data), so that both the C++ and Lua-scripted
  * geometry nodes reuse a single implementation.
+ * @note Actions are applied to a node simultaneously, so a script appending vertexes can run at the same
+ *       time as a scene action reading them. Every access to the vertex store is therefore synchronised.
  */
 class SceneGeometry : public GraphVersioned
 {
@@ -94,10 +97,15 @@ class SceneGeometry : public GraphVersioned
 		/**
 		 * Get the vertex group to append new vertexes to for the given visibility, creating a new group
 		 * on the end of _vertexGroups if the last group present doesn't already have that visibility.
+		 * @note This method needs to be externally locked, and the returned reference is only valid for as
+		 *       long as that lock is held.
 		 * @param visibility Visibility of the vertexes about to be appended.
 		 * @returns The vertex group to append to.
 		 */
 		VertexGroup& __groupForVisibility(VertexVisibility visibility);
+
+		/// Guards _vertexGroups. Mutable so that the const read-only accessors can still take it.
+		mutable ThreadMutex _lock;
 
 		/**
 		 * The groups of vertexes that make up the scene object this node defines.

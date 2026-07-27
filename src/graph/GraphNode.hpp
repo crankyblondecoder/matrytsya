@@ -2,7 +2,6 @@
 #define GRAPH_NODE_H
 
 #include <atomic>
-#include <queue>
 #include <vector>
 
 class GraphAction;
@@ -26,12 +25,50 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 {
     public:
 
+		/// Identifies the concrete subclass of a node, so callers can find a specific kind without an RTTI cast.
+		enum class Type
+		{
+			/// A plain GraphNode. Reported by any node that doesn't identify a more specific type of its own.
+			GRAPH_NODE,
+
+			/// A PingNode.
+			PING_NODE,
+
+			/// A SceneGeometryNode.
+			SCENE_GEOMETRY_NODE,
+
+			/// A SceneTransformNode.
+			SCENE_TRANSFORM_NODE,
+
+			/// A ScriptNode.
+			SCRIPT_NODE,
+
+			/// A SceneGeometryScriptNode.
+			SCENE_GEOMETRY_SCRIPT_NODE,
+
+			/// A SceneTransformScriptNode.
+			SCENE_TRANSFORM_SCRIPT_NODE,
+
+			/// A SceneRootNode.
+			SCENE_ROOT_NODE,
+
+			/// A TeleportNode.
+			TELEPORT_NODE
+		};
+
 		/**
 		 * Create new graph node.
 		 * @note Because this is ref-counted it will require the automatic initial reference increase to be released
 		 *       before it can be deleted.
 		 */
         GraphNode();
+
+		/**
+		 * Get the concrete type of this node.
+		 * @note Default implementation reports Type::GRAPH_NODE. Subclasses that need to be identified as a
+		 *       specific kind of node override this to report their own type.
+		 */
+		virtual Type getType();
 
 		/**
 		 * Create and add an edge from this node to another node.
@@ -104,20 +141,10 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		void setPokeEnabled(bool enable);
 
 		/**
-		 * Schedule a graph action to be applied on this node.
-		 * If the action can't be processed immediately, it is placed on a queue for later execution.
-		 * @note The order of action application to this node is preserved.
-		 * @param action Action to schedule to apply to this node.
-		 * @returns True if could be scheduled. False otherwise.
+		 * Get whether this node still accepts actions being applied to it.
+		 * @returns False once the node has been decoupled from the graph.
 		 */
-		bool scheduleAction(Handle<GraphAction> action);
-
-		/**
-		 * Call in point for a thread work unit to process a scheduled action and potentially create a new
-		 * work unit for further processing if the action queue is not empty.
-		 * @param abort If true, the thread pool work unit was not assigned a thread.
-		 */
-		void processScheduledAction(bool abort);
+		bool getActionable();
 
     protected:
 
@@ -173,12 +200,6 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		/// Whether poking is enabled for this node. If false, all pokes are immediately discarded.
 		bool _pokeEnabled = false;
 
-		/// Queue of actions waiting to be applied to this node.
-		std::queue<Handle<GraphAction>> _scheduledActions;
-
-		/// Whether a work unit is currently active, or about to become active, for draining _scheduledActions.
-		bool _scheduledActionProcessing = false;
-
         // Do not allow copying.
         GraphNode(const GraphNode& copyFrom);
         GraphNode& operator= (const GraphNode& copyFrom);
@@ -190,13 +211,6 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 * @returns Point to graph edge that needs to be deleted outside of lock.
 		 */
         GraphEdge* __removeEdge(int edgeIndex);
-
-		/**
-		 * Create and submit a work unit to the hive to continue draining the scheduled action queue.
-		 * @note Must be called with _scheduledActionProcessing already set to true and outside of _lock.
-		 * @returns True if the work unit could be submitted. False otherwise.
-		 */
-		bool __executeScheduledActionWorkUnit();
 };
 
 #endif

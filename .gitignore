@@ -8,3 +8,4 @@ make.dep
 runUnitTests
 fix_perms.sh
 .claude
+doc/generated

@@ -65,7 +65,30 @@ std::vector<ModelSystemPrompt> ModelContext::getSystemPrompts()
 
 std::vector<Handle<ModelToolBindings>> ModelContext::getTools()
 {
-	return _tools;
+	std::vector<Handle<ModelToolBindings>> tools = _tools;
+
+	{ SYNC(_lock)
+
+		tools.insert(tools.end(), _temporaryTools.begin(), _temporaryTools.end());
+	}
+
+	return tools;
+}
+
+void ModelContext::addTemporaryToolBindings(std::vector<Handle<ModelToolBindings>> tools)
+{
+	{ SYNC(_lock)
+
+		_temporaryTools.insert(_temporaryTools.end(), tools.begin(), tools.end());
+	}
+}
+
+void ModelContext::clearTemporaryToolBindings()
+{
+	{ SYNC(_lock)
+
+		_temporaryTools.clear();
+	}
 }
 
 std::vector<ModelContext::ChatExchange> ModelContext::getChatHistory()

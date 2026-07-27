@@ -154,8 +154,25 @@ class ModelContext : public RefCounted
 
 		/**
 		 * Get the tool bindings the model may call while servicing a request.
+		 * @note Includes both the tools fixed at construction and any temporary bindings currently added,
+		 *       fixed ones first.
 		 */
 		std::vector<Handle<ModelToolBindings>> getTools();
+
+		/**
+		 * Add tool bindings the model may call while servicing a request, on top of the ones fixed at
+		 * construction, until cleared with clearTemporaryToolBindings().
+		 * @param tools Tool bindings to add.
+		 * @note Meant for bindings that only make sense for a limited stretch of a conversation, such as
+		 *       ones scoped to a single request or a transient capability, rather than for the whole context.
+		 */
+		void addTemporaryToolBindings(std::vector<Handle<ModelToolBindings>> tools);
+
+		/**
+		 * Remove every temporary tool binding added with addTemporaryToolBindings(), leaving only the tools
+		 * fixed at construction.
+		 */
+		void clearTemporaryToolBindings();
 
 		/**
 		 * Get the prompts already processed in this context, along with the tool calls made while working
@@ -227,6 +244,9 @@ class ModelContext : public RefCounted
 		/// Tool bindings the model may call while servicing a request. Fixed at construction, so no lock is
 		/// needed to read it.
 		std::vector<Handle<ModelToolBindings>> _tools;
+
+		/// Temporary tool bindings added on top of _tools, cleared with clearTemporaryToolBindings().
+		std::vector<Handle<ModelToolBindings>> _temporaryTools;
 
 		/// Prompts already processed and the responses given to them, oldest first.
 		std::vector<ChatExchange> _chatHistory;

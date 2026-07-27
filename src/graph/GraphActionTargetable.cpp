@@ -71,3 +71,8 @@ VersionActionTarget* GraphActionTargetable::getVersionActionTarget()
 	return 0;
 }
 
+AgentActionTarget* GraphActionTargetable::getAgentActionTarget()
+{
+	return 0;
+}
+

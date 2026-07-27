@@ -414,8 +414,7 @@ Handle<AgenticHarness> GraphHive::getAgenticHarness()
 	}
 }
 
-Handle<ModelContext> GraphHive::processAgenticRequest(AgenticHarness::Capability capability, std::string prompt,
-	Handle<ModelContext> context)
+Handle<ModelContext> GraphHive::createNodeModelContext(AgenticHarness::Capability capability)
 {
 	Handle<AgenticHarness> harness(0);
 
@@ -426,7 +425,34 @@ Handle<ModelContext> GraphHive::processAgenticRequest(AgenticHarness::Capability
 
 	if(!harness.isValid()) throw GraphException(GraphException::AGENTIC_HARNESS_NOT_SET);
 
-	return harness.getInstance() -> processRequest(prompt, AgenticHarness::Role::CHAT, capability, context);
+	return harness.getInstance() -> createContext(AgenticHarness::Role::NODE, capability);
+}
+
+Handle<ModelContext> GraphHive::processAgenticRequest(AgenticHarness::Capability capability, std::string prompt,
+	Handle<ModelContext> context)
+{
+	return __processAgenticRequest(AgenticHarness::Role::CHAT, capability, prompt, context);
+}
+
+Handle<ModelContext> GraphHive::processNodeAgenticRequest(AgenticHarness::Capability capability, std::string prompt,
+	Handle<ModelContext> context)
+{
+	return __processAgenticRequest(AgenticHarness::Role::NODE, capability, prompt, context);
+}
+
+Handle<ModelContext> GraphHive::__processAgenticRequest(AgenticHarness::Role role, AgenticHarness::Capability capability,
+	std::string prompt, Handle<ModelContext> context)
+{
+	Handle<AgenticHarness> harness(0);
+
+	{ SYNC(_lock)
+
+		harness = _agenticHarness;
+	}
+
+	if(!harness.isValid()) throw GraphException(GraphException::AGENTIC_HARNESS_NOT_SET);
+
+	return harness.getInstance() -> processRequest(prompt, role, capability, context);
 }
 
 bool GraphHive::executeWorkUnit(ThreadPoolWorkUnit* workUnit)

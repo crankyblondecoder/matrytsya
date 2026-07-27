@@ -20,6 +20,8 @@ class SceneGeometryNode : public GraphNode, public SceneActionTarget, public Str
 
         SceneGeometryNode();
 
+		Type getType() override;
+
 		void populateSurface(Handle<GraphHiveSceneSurface> surface) override;
 
 		void strobe() override;

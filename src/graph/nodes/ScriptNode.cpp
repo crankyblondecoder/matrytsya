@@ -42,156 +42,204 @@ ScriptNode::ScriptNode(const std::string& coreScript, const std::string& pokeScr
 	__installFreshEnv(_pokeLuaState, _pokeBaseEnvRef);
 }
 
+GraphNode::Type ScriptNode::getType()
+{
+	return Type::SCRIPT_NODE;
+}
+
 bool ScriptNode::invoke()
 {
 	if(_coreBytecode.empty()) return false;
 
-	__registerCoreGlobalsOnce();
+	// Note: The lock is deliberately held across the script run itself. Nothing else may touch the core
+	// state while a script is running against it, and a script's callbacks only ever reach back into this
+	// node's other state (vertexes, transform, animating flag), never into the core state, so no call made
+	// from inside the run can arrive back here.
+	{ SYNC(_coreLock)
 
-	bool success = luaL_loadbufferx(_coreLuaState, _coreBytecode.data(), _coreBytecode.size(), "script", "b") == LUA_OK;
+		__registerCoreGlobalsOnce();
 
-	// Mode "b" only accepts bytecode. _coreBytecode is compiled from _coreScript once, at construction, by
-	// this class itself rather than supplied by the script being run, so it never crosses the trust boundary
-	// that the "t"-only loading elsewhere in this module guards against.
-	if(success)
-	{
-		success = lua_pcall(_coreLuaState, 0, 0, 0) == LUA_OK;
+		bool success = luaL_loadbufferx(_coreLuaState, _coreBytecode.data(), _coreBytecode.size(), "script", "b") == LUA_OK;
+
+		// Mode "b" only accepts bytecode. _coreBytecode is compiled from _coreScript once, at construction, by
+		// this class itself rather than supplied by the script being run, so it never crosses the trust boundary
+		// that the "t"-only loading elsewhere in this module guards against.
+		if(success)
+		{
+			success = lua_pcall(_coreLuaState, 0, 0, 0) == LUA_OK;
+		}
+		else
+		{
+			lua_pop(_coreLuaState, 1);
+		}
+
+		// Note: lua_pcall already pops the function and any error message off the stack on failure, unlike
+		// luaL_loadbufferx, which leaves an error message on the stack that has to be popped explicitly.
+
+		// The environment the script just ran against is left live rather than replaced, so any global it set
+		// (or that setGlobal() staged ahead of this invoke()) is still there, as the starting state, the next
+		// time this node is invoked.
+		return success;
 	}
-	else
-	{
-		lua_pop(_coreLuaState, 1);
-	}
-
-	// Note: lua_pcall already pops the function and any error message off the stack on failure, unlike
-	// luaL_loadbufferx, which leaves an error message on the stack that has to be popped explicitly.
-
-	// The environment the script just ran against is left live rather than replaced, so any global it set
-	// (or that setGlobal() staged ahead of this invoke()) is still there, as the starting state, the next
-	// time this node is invoked.
-	return success;
 }
 
 void ScriptNode::setGlobal(const char* name, bool value)
 {
-	lua_pushboolean(_coreLuaState, value);
-	lua_setglobal(_coreLuaState, name);
+	{ SYNC(_coreLock)
+
+		lua_pushboolean(_coreLuaState, value);
+		lua_setglobal(_coreLuaState, name);
+	}
 }
 
 void ScriptNode::setGlobal(const char* name, int value)
 {
-	lua_pushinteger(_coreLuaState, value);
-	lua_setglobal(_coreLuaState, name);
+	{ SYNC(_coreLock)
+
+		lua_pushinteger(_coreLuaState, value);
+		lua_setglobal(_coreLuaState, name);
+	}
 }
 
 void ScriptNode::setGlobal(const char* name, double value)
 {
-	lua_pushnumber(_coreLuaState, value);
-	lua_setglobal(_coreLuaState, name);
+	{ SYNC(_coreLock)
+
+		lua_pushnumber(_coreLuaState, value);
+		lua_setglobal(_coreLuaState, name);
+	}
 }
 
 void ScriptNode::setGlobal(const char* name, const char* value)
 {
-	lua_pushstring(_coreLuaState, value);
-	lua_setglobal(_coreLuaState, name);
+	{ SYNC(_coreLock)
+
+		lua_pushstring(_coreLuaState, value);
+		lua_setglobal(_coreLuaState, name);
+	}
 }
 
 bool ScriptNode::getGlobal(const char* name, bool& value)
 {
-	lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
-	lua_getfield(_coreLuaState, -1, name); // [env, value]
+	{ SYNC(_coreLock)
 
-	bool found = lua_isboolean(_coreLuaState, -1);
-	if(found) value = lua_toboolean(_coreLuaState, -1);
+		lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
+		lua_getfield(_coreLuaState, -1, name); // [env, value]
 
-	lua_pop(_coreLuaState, 2);
-	return found;
+		bool found = lua_isboolean(_coreLuaState, -1);
+		if(found) value = lua_toboolean(_coreLuaState, -1);
+
+		lua_pop(_coreLuaState, 2);
+		return found;
+	}
 }
 
 bool ScriptNode::getGlobal(const char* name, int& value)
 {
-	lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
-	lua_getfield(_coreLuaState, -1, name); // [env, value]
+	{ SYNC(_coreLock)
 
-	bool found = lua_isinteger(_coreLuaState, -1);
-	if(found) value = static_cast<int>(lua_tointeger(_coreLuaState, -1));
+		lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
+		lua_getfield(_coreLuaState, -1, name); // [env, value]
 
-	lua_pop(_coreLuaState, 2);
-	return found;
+		bool found = lua_isinteger(_coreLuaState, -1);
+		if(found) value = static_cast<int>(lua_tointeger(_coreLuaState, -1));
+
+		lua_pop(_coreLuaState, 2);
+		return found;
+	}
 }
 
 bool ScriptNode::getGlobal(const char* name, double& value)
 {
-	lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
-	lua_getfield(_coreLuaState, -1, name); // [env, value]
+	{ SYNC(_coreLock)
 
-	bool found = lua_isnumber(_coreLuaState, -1);
-	if(found) value = lua_tonumber(_coreLuaState, -1);
+		lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
+		lua_getfield(_coreLuaState, -1, name); // [env, value]
 
-	lua_pop(_coreLuaState, 2);
-	return found;
+		bool found = lua_isnumber(_coreLuaState, -1);
+		if(found) value = lua_tonumber(_coreLuaState, -1);
+
+		lua_pop(_coreLuaState, 2);
+		return found;
+	}
 }
 
 bool ScriptNode::getGlobal(const char* name, const char*& value)
 {
-	lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
-	lua_getfield(_coreLuaState, -1, name); // [env, value]
+	{ SYNC(_coreLock)
 
-	bool found = lua_isstring(_coreLuaState, -1);
-	if(found) value = lua_tostring(_coreLuaState, -1);
+		lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
+		lua_getfield(_coreLuaState, -1, name); // [env, value]
 
-	// Note: the string pointer returned by lua_tostring() is anchored by the value left on the stack, which
-	// is in turn anchored by the env table (still referenced from the registry), so it remains valid until
-	// that table's "name" field is overwritten or the table itself is replaced/unreferenced.
-	lua_pop(_coreLuaState, 2);
-	return found;
+		bool found = lua_isstring(_coreLuaState, -1);
+		if(found) value = lua_tostring(_coreLuaState, -1);
+
+		// Note: the string pointer returned by lua_tostring() is anchored by the value left on the stack, which
+		// is in turn anchored by the env table (still referenced from the registry), so it remains valid until
+		// that table's "name" field is overwritten or the table itself is replaced/unreferenced.
+		lua_pop(_coreLuaState, 2);
+		return found;
+	}
 }
 
 bool ScriptNode::getPokeGlobal(const char* name, bool& value)
 {
-	lua_rawgeti(_pokeLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
-	lua_getfield(_pokeLuaState, -1, name); // [env, value]
+	{ SYNC(_pokeLock)
 
-	bool found = lua_isboolean(_pokeLuaState, -1);
-	if(found) value = lua_toboolean(_pokeLuaState, -1);
+		lua_rawgeti(_pokeLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
+		lua_getfield(_pokeLuaState, -1, name); // [env, value]
 
-	lua_pop(_pokeLuaState, 2);
-	return found;
+		bool found = lua_isboolean(_pokeLuaState, -1);
+		if(found) value = lua_toboolean(_pokeLuaState, -1);
+
+		lua_pop(_pokeLuaState, 2);
+		return found;
+	}
 }
 
 bool ScriptNode::getPokeGlobal(const char* name, int& value)
 {
-	lua_rawgeti(_pokeLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
-	lua_getfield(_pokeLuaState, -1, name); // [env, value]
+	{ SYNC(_pokeLock)
 
-	bool found = lua_isinteger(_pokeLuaState, -1);
-	if(found) value = static_cast<int>(lua_tointeger(_pokeLuaState, -1));
+		lua_rawgeti(_pokeLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
+		lua_getfield(_pokeLuaState, -1, name); // [env, value]
 
-	lua_pop(_pokeLuaState, 2);
-	return found;
+		bool found = lua_isinteger(_pokeLuaState, -1);
+		if(found) value = static_cast<int>(lua_tointeger(_pokeLuaState, -1));
+
+		lua_pop(_pokeLuaState, 2);
+		return found;
+	}
 }
 
 bool ScriptNode::getPokeGlobal(const char* name, double& value)
 {
-	lua_rawgeti(_pokeLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
-	lua_getfield(_pokeLuaState, -1, name); // [env, value]
+	{ SYNC(_pokeLock)
 
-	bool found = lua_isnumber(_pokeLuaState, -1);
-	if(found) value = lua_tonumber(_pokeLuaState, -1);
+		lua_rawgeti(_pokeLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
+		lua_getfield(_pokeLuaState, -1, name); // [env, value]
 
-	lua_pop(_pokeLuaState, 2);
-	return found;
+		bool found = lua_isnumber(_pokeLuaState, -1);
+		if(found) value = lua_tonumber(_pokeLuaState, -1);
+
+		lua_pop(_pokeLuaState, 2);
+		return found;
+	}
 }
 
 bool ScriptNode::getPokeGlobal(const char* name, const char*& value)
 {
-	lua_rawgeti(_pokeLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
-	lua_getfield(_pokeLuaState, -1, name); // [env, value]
+	{ SYNC(_pokeLock)
 
-	bool found = lua_isstring(_pokeLuaState, -1);
-	if(found) value = lua_tostring(_pokeLuaState, -1);
+		lua_rawgeti(_pokeLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
+		lua_getfield(_pokeLuaState, -1, name); // [env, value]
 
-	lua_pop(_pokeLuaState, 2);
-	return found;
+		bool found = lua_isstring(_pokeLuaState, -1);
+		if(found) value = lua_tostring(_pokeLuaState, -1);
+
+		lua_pop(_pokeLuaState, 2);
+		return found;
+	}
 }
 
 ScriptActionTarget* ScriptNode::getScriptActionTarget()
@@ -203,21 +251,26 @@ void ScriptNode::_poked(GraphPoke poke)
 {
 	if(_pokeBytecode.empty()) return;
 
-	__registerPokeGlobalsOnce();
+	// Note: As in invoke(), the lock is held across the script run so that nothing else drives the poke
+	// state while a poke script is running against it.
+	{ SYNC(_pokeLock)
 
-	__exposePokeContext(_pokeLuaState, poke);
+		__registerPokeGlobalsOnce();
 
-	if(luaL_loadbufferx(_pokeLuaState, _pokeBytecode.data(), _pokeBytecode.size(), "script", "b") == LUA_OK)
-	{
-		lua_pcall(_pokeLuaState, 0, 0, 0);
+		__exposePokeContext(_pokeLuaState, poke);
+
+		if(luaL_loadbufferx(_pokeLuaState, _pokeBytecode.data(), _pokeBytecode.size(), "script", "b") == LUA_OK)
+		{
+			lua_pcall(_pokeLuaState, 0, 0, 0);
+		}
+		else
+		{
+			lua_pop(_pokeLuaState, 1);
+		}
+
+		// The environment the poke script just ran against is left live rather than replaced, so any global it
+		// set is still there, as the starting state, the next time this node is poked.
 	}
-	else
-	{
-		lua_pop(_pokeLuaState, 1);
-	}
-
-	// The environment the poke script just ran against is left live rather than replaced, so any global it
-	// set is still there, as the starting state, the next time this node is poked.
 }
 
 void ScriptNode::__compileCoreScript()

@@ -32,27 +32,6 @@ unsigned GraphAction::getId()
 	return _id;
 }
 
-void GraphAction::applyScheduled(Handle<GraphNode> nodeHandle)
-{
-	{ SYNC(_lock)
-
-		// Sanity check, these two handles should always point to the same node if this function is called.
-		if(_boundNode != nodeHandle)
-		{
-			throw GraphException(GraphException::INVALID_NODE_HANDLE);
-		}
-	}
-
-	if(nodeHandle.isValid()) _apply(nodeHandle.getInstance());
-
-	bool keepGoing = __traverse();
-
-	// End of a pass on the scheduled-apply path: try to begin the next approved pass.
-	if(!keepGoing) keepGoing = __nextPass();
-
-	if(!(keepGoing && __executeWorkUnit())) __complete();
-}
-
 void GraphAction::setApplyToInitialNode()
 {
 	_applyToInitNode = true;
@@ -276,29 +255,29 @@ void GraphAction::start()
 
 void GraphAction::work()
 {
-	// This is an unusually long lock because it is important that any newly scheduled work unit (inside this block)
-	// waits at this point for the current work unit to complete. This also means a maximum of two work units can be
-	// active for this action at any one time because a new work unit can't be scheduled until the current work unit
-	// owns the mutex.
+	// A single work cycle for this action: apply to the bound node, then move on to the next one. Only one work
+	// unit for this action is ever outstanding, as the next is not submitted until this cycle has finished with
+	// the action state.
 
-	bool apply = false;
-	bool traverse = false;
 	bool execWorkUnit = false;
 	bool complete = false;
 
-	GraphNode* curBoundNode = 0;
-	Handle<GraphNode> prevBoundNodeHandle(0);
+	// Node this action is to be applied to on this work cycle. Invalid if there is nothing to apply to.
+	Handle<GraphNode> applyNodeHandle(0);
 
 	{ SYNC(_lock)
 
 		if(_boundNode.isValid())
 		{
-			curBoundNode = _boundNode.getInstance();
+			GraphNode* curBoundNode = _boundNode.getInstance();
 
 			if(!_initTraverse || _applyToInitNode)
 			{
 				// Act on currently bound node.
-				if(curBoundNode -> canActionTarget(this)) apply = true;
+				if(curBoundNode -> getActionable() && curBoundNode -> canActionTarget(this))
+				{
+					applyNodeHandle = _boundNode;
+				}
 
 				// Do any energy accounting.
 				// Always consume energy even when action can't target the bound node. This ensures that actions
@@ -311,40 +290,24 @@ void GraphAction::work()
 		}
 	}
 
-	if(apply)
-	{
-		// Note: Successfully scheduling an action means traversal, work unit execution and action completion
-		// are processed later on.
+	// Applied outside of the lock because this can re-enter this action, eg via the node emitting an action.
+	// Nothing serialises this against other actions, so a node can have several actions applied to it at once
+	// and must therefore handle its own internal synchronisation.
+	if(applyNodeHandle.isValid()) _apply(applyNodeHandle.getInstance());
 
-		if(!_boundNode.getInstance() -> scheduleAction(Handle<GraphAction>(this)))
-		{
-			// Couldn't schedule this action with the node so just try and keep action traversal going.
-			traverse = true;
-		}
+	if(__traverse())
+	{
+		execWorkUnit = true;
+	}
+	else if(__nextPass())
+	{
+		// Pass exhausted, but an approved new pass begins from the initial node.
+		execWorkUnit = true;
 	}
 	else
 	{
-		// Still should attempt to traverse, even if not applied.
-		traverse = true;
-	}
-
-	if(traverse)
-	{
-		if(__traverse())
-		{
-			execWorkUnit = true;
-		}
-		else if(__nextPass())
-		{
-			// Pass exhausted, but an approved new pass begins from the initial node.
-			execWorkUnit = true;
-		}
-		else
-		{
-			// Can't traverse and no further passes, which means action is complete.
-			execWorkUnit = false;
-			complete = true;
-		}
+		// Can't traverse and no further passes, which means action is complete.
+		complete = true;
 	}
 
 	if(execWorkUnit)

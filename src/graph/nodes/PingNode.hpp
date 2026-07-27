@@ -15,6 +15,8 @@ class PingNode : public GraphNode, public PingActionTarget
 
         PingNode();
 
+		Type getType() override;
+
 		bool ping() override;
 
 		/**

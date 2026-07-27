@@ -10,3 +10,6 @@
 
 - Actions are responsible for their own scheduling of thread time requests.
 
+- Actions are applied to a node as soon as they reach it. A node can therefore have several actions applied to
+  it simultaneously, and is responsible for synchronising its own state.
+

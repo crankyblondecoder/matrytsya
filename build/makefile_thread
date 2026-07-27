@@ -1,5 +1,5 @@
 srcFiles = ThreadBase.cpp ThreadPthread.cpp ThreadConditionBase.cpp ThreadConditionPthread.cpp ThreadLock.cpp ThreadMutexBase.cpp \
-		   ThreadMutexPthread.cpp ThreadPool.cpp ThreadPoolWorkThread.cpp
+		   ThreadMutexPthread.cpp ThreadPool.cpp ThreadPoolWorkThread.cpp ThreadResourceLock.cpp
 
 objFiles = $(srcFiles:.cpp=.o)
 

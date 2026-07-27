@@ -18,6 +18,8 @@ class TeleportNode : public GraphNode, public SerialisableActionTarget
 		 */
         TeleportNode(GraphNodeLocation destination);
 
+		Type getType() override;
+
 		/**
 		 * Teleport the payload of a serialisable action to this node's destination.
 		 */

@@ -34,7 +34,9 @@ class AgentException : public Exception
 			/// A model kept requesting tool calls past the permitted number of rounds.
 			TOOL_CALL_LIMIT_EXCEEDED,
 			/// No model was assigned to a role with sufficient capability to service a request.
-			NO_CANDIDATE_MODEL
+			NO_CANDIDATE_MODEL,
+			/// A model request was given a sampling temperature outside the permitted range.
+			INVALID_TEMPERATURE
 		};
 
 		virtual ~AgentException(){}
@@ -82,6 +84,9 @@ class AgentException : public Exception
 
 				case NO_CANDIDATE_MODEL:
 					return "No model is assigned to that role with sufficient capability.";
+
+				case INVALID_TEMPERATURE:
+					return "That sampling temperature is outside the permitted range.";
 
 				case UNKNOWN:
 					break;

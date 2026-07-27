@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "ModelContext.hpp"
+#include "ModelRequest.hpp"
 #include "ModelSystemPrompt.hpp"
 #include "../util/Handle.hpp"
 #include "../util/RefCounted.hpp"
@@ -27,12 +28,11 @@ class AgenticHarness : public RefCounted
 		{
 			/// Used for general chat interface.
 			CHAT,
-			/// Drives hive level decisions, i.e. The overall structure of the hive.
+			/// Drives hive level agentic interaction, i.e. planning or querying the overall structure of the hive.
 			HIVE,
-			/// Drives node level decisions, i.e. Node state to drive a particular behaviour, including
-			/// agentic requests inside scripts.
+			/// Drives node level agentic interaction, i.e. querying, setting up or altering a nodes state.
 			NODE,
-			/// Drives script level decisions, i.e. building a script for a particular purpose.
+			/// Drives script level agentic interaction, i.e. querying or building a script for a particular purpose.
 			SCRIPT
 		};
 
@@ -72,6 +72,10 @@ class AgenticHarness : public RefCounted
 
 			/// Model that is to fulfill the role with capability.
 			Handle<Model> model;
+
+			/// Sampling temperature every request serviced by the model in this role is made at, or
+			/// ModelRequest::PROVIDER_DEFAULT_TEMPERATURE where the choice is left to the provider.
+			double temperature;
 		};
 
 		/**
@@ -104,8 +108,17 @@ class AgenticHarness : public RefCounted
 		 * Assign a model to a role and capability.
 		 * @param roleCapability Role and capability to assign the model to.
 		 * @param model Model to assign.
+		 * @param temperature Sampling temperature every request serviced by the model in this role is to
+		 *        be made at, from 0 up to ModelRequest::MAX_TEMPERATURE. Left at
+		 *        ModelRequest::PROVIDER_DEFAULT_TEMPERATURE, no temperature is asked for and the provider
+		 *        answers at whatever it defaults to.
+		 * @throw AgentException When the temperature is neither ModelRequest::PROVIDER_DEFAULT_TEMPERATURE
+		 *        nor within the permitted range. Nothing is assigned when it is refused.
+		 * @note A temperature is cut to MODEL_TEMPERATURE_DECIMAL_PLACES decimal places on its way to a
+		 *       provider, so asking for more precision than that gains nothing.
 		 */
-		void addModelAssignment(RoleCapability roleCapability, Handle<Model> model);
+		void addModelAssignment(RoleCapability roleCapability, Handle<Model> model,
+			double temperature = ModelRequest::PROVIDER_DEFAULT_TEMPERATURE);
 
 		/**
 		 * Get all role/model assignments, in the order they were added.
@@ -135,6 +148,17 @@ class AgenticHarness : public RefCounted
 		 * Get all tool bindings, in the order they were added.
 		 */
 		std::vector<ToolBindingAssignment> getToolBindings();
+
+		/**
+		 * Create a new model context for the given role and capability, without processing any prompt
+		 * against it.
+		 * @param role Role the context is being created for.
+		 * @param capability Capability required of the model that will eventually service requests made in
+		 *        the context.
+		 * @returns The new context, built from the system prompts and tools assigned to the role and
+		 *          capability.
+		 */
+		Handle<ModelContext> createContext(Role role, Capability capability);
 
 		/**
 		 * Process a request against whichever assigned model is best suited to the given role and capability.

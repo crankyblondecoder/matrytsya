@@ -25,6 +25,9 @@ struct lua_State;
  *       written into each state's permanent base table once - the first time invoke() runs for the core
  *       state, the first time a poke happens for the poke state - and remain callable on every subsequent
  *       invoke()/poke without being re-registered, the same as any other global the script has already set.
+ * @note A Lua state cannot be driven by more than one thread at a time, and actions are applied to a node
+ *       simultaneously, so each state has its own lock that is held across every call into it - including
+ *       the script run itself. The two states lock independently, so a poke never waits on an invoke().
  */
 class ScriptNode : public GraphNode, public ScriptActionTarget
 {
@@ -35,6 +38,8 @@ class ScriptNode : public GraphNode, public ScriptActionTarget
 		 * @param pokeScript The script that is called for processing a poke.
 		 */
         ScriptNode(const std::string& coreScript, const std::string& pokeScript);
+
+		Type getType() override;
 
 		bool invoke() override;
 
@@ -252,6 +257,12 @@ class ScriptNode : public GraphNode, public ScriptActionTarget
 		/// Precompiled bytecode of _pokeScript, cached once at construction; empty if _pokeScript failed
 		/// to compile.
 		std::string _pokeBytecode;
+
+		/// Guards every call into _coreLuaState.
+		ThreadMutex _coreLock;
+
+		/// Guards every call into _pokeLuaState.
+		ThreadMutex _pokeLock;
 
 		/// Persistent, sandboxed Lua state this node owns for running its core script.
 		lua_State* _coreLuaState = 0;

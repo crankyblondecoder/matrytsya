@@ -43,6 +43,8 @@ namespace
 
 	const char* const _OLLAMA_MODEL_NAME = "qwen3-coder:30b";
 
+	const double _CHAT_TEMPERATURE = 0.2;
+
 	const char* const _CHAT_SYSTEM_PROMPT =
 		"You are the chat assistant of a Matrytsya hive: a live graph of named nodes that the user is "
 		"watching in a browser.\n"
@@ -135,7 +137,9 @@ namespace
 		AgenticHarness::RoleCapability chatRoleCapability{AgenticHarness::Role::CHAT,
 			AgenticHarness::Capability::LOW};
 
-		harness -> addModelAssignment(chatRoleCapability, modelHandle);
+		// Kept low, as this role is judged on whether it calls the right tool and holds to what the system
+		// prompt tells it to leave out, neither of which is helped by a warmer model.
+		harness -> addModelAssignment(chatRoleCapability, modelHandle, _CHAT_TEMPERATURE);
 
 		harness -> addSystemPrompt(chatRoleCapability, ModelSystemPrompt(_CHAT_SYSTEM_PROMPT));
 

@@ -2,6 +2,7 @@
 #define GRAPH_EDGE_H
 
 #include <atomic>
+#include <string>
 #include <vector>
 
 #include "../util/RefCounted.hpp"
@@ -56,6 +57,18 @@ class GraphEdge : public RefCounted
 		 */
 		bool canTraverse(unsigned long actionFlags);
 
+		/**
+		 * Get the description of this edge.
+		 * @returns Description, or an empty string if none has been set.
+		 */
+		std::string getDescription();
+
+		/**
+		 * Set the description of this edge.
+		 * @param description Description text.
+		 */
+		void setDescription(std::string description);
+
 	protected:
 
 		// This is a requirement of being ref counted.
@@ -74,6 +87,9 @@ class GraphEdge : public RefCounted
 
 		/// Flags that determine whether an action can traverse this edge.
 		std::atomic<unsigned long> _actionFlags{0};
+
+		/// Optional description of this edge. Empty if none has been set.
+		std::string _description;
 };
 
 #endif

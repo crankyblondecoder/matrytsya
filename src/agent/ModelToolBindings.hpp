@@ -34,8 +34,10 @@ class ModelToolBindings : public RefCounted
 		 * @param name Name of the binding to process.
 		 * @param parameterValues Values supplied for the parameters of the tool call.
 		 * @returns The result of the tool call.
+		 * @throw AgentException When the binding is not one this class exposes, or the call cannot be
+		 *        serviced.
 		 */
-		virtual ModelToolCallParameterValue processBinding( std::string name,
+		virtual ModelToolCallParameterValue processBinding(std::string name,
 			std::vector<ModelToolCallParameterValue> parameterValues) = 0;
 
 	protected:

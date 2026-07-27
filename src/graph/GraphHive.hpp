@@ -175,6 +175,18 @@ class GraphHive : public RefCounted, public GraphNamed
 		Handle<AgenticHarness> getAgenticHarness();
 
 		/**
+		 * Create a new model context for a node-level agentic conversation, without processing any prompt
+		 * against it.
+		 * @note Delegates to the agentic harness with the role fixed to AgenticHarness::Role::NODE.
+		 * @param capability Capability required of the model that will eventually service requests made in
+		 *        the context.
+		 * @returns The new context, built from the system prompts and tools assigned to the NODE role and
+		 *          given capability.
+		 * @throw GraphException When this hive has no agentic harness set.
+		 */
+		Handle<ModelContext> createNodeModelContext(AgenticHarness::Capability capability);
+
+		/**
 		 * Process an agentic request against this hive's agentic harness.
 		 * @note Delegates to the agentic harness with the role fixed to AgenticHarness::Role::CHAT.
 		 * @param capability Capability required of the model.
@@ -188,6 +200,22 @@ class GraphHive : public RefCounted, public GraphNamed
 		 *        assigned to the role with sufficient capability.
 		 */
 		Handle<ModelContext> processAgenticRequest(AgenticHarness::Capability capability, std::string prompt,
+			Handle<ModelContext> context = Handle<ModelContext>(0));
+
+		/**
+		 * Process an agentic request against this hive's agentic harness, on behalf of a specific node.
+		 * @note Delegates to the agentic harness with the role fixed to AgenticHarness::Role::NODE.
+		 * @param capability Capability required of the model.
+		 * @param prompt Text of the prompt to send to the model.
+		 * @param context Context of a previous interaction to continue. When not supplied, a new
+		 *        context is built from the system prompts and tools assigned to the role and
+		 *        capability.
+		 * @returns The context the request was serviced within.
+		 * @throw GraphException When this hive has no agentic harness set.
+		 * @throw AgentException When no prompt text was supplied, or when no candidate model is
+		 *        assigned to the role with sufficient capability.
+		 */
+		Handle<ModelContext> processNodeAgenticRequest(AgenticHarness::Capability capability, std::string prompt,
 			Handle<ModelContext> context = Handle<ModelContext>(0));
 
 		/**
@@ -245,6 +273,18 @@ class GraphHive : public RefCounted, public GraphNamed
 		 * @returns Node handle. If no node was found this will be invalid.
 		 */
 		Handle<GraphNode> __findNode(unsigned nodeId);
+
+		/**
+		 * Process an agentic request against this hive's agentic harness for the given role.
+		 * @param role Role to process the request as.
+		 * @param capability Capability required of the model.
+		 * @param prompt Text of the prompt to send to the model.
+		 * @param context Context of a previous interaction to continue.
+		 * @returns The context the request was serviced within.
+		 * @throw GraphException When this hive has no agentic harness set.
+		 */
+		Handle<ModelContext> __processAgenticRequest(AgenticHarness::Role role, AgenticHarness::Capability capability,
+			std::string prompt, Handle<ModelContext> context);
 
 		/// Thread pool that hive runs actions on.
 		ThreadPool* _threadPool = 0;

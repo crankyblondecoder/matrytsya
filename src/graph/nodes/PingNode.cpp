@@ -15,6 +15,11 @@ PingNode::PingNode() : GraphNode()
 	_addActionFlag(PING_GRAPH_ACTION);
 }
 
+GraphNode::Type PingNode::getType()
+{
+	return Type::PING_NODE;
+}
+
 bool PingNode::ping()
 {
 	_pingCount++;

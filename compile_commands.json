@@ -1,6 +1,6 @@
 [
   {
-    "file": "../../src/persist/HiveBuilder.cpp",
+    "file": "../../src/agent_bindings/BasicHiveToolBindings.cpp",
     "arguments": [
       "/usr/bin/g++",
       "-Wall",
@@ -10,963 +10,899 @@
       "-pthread",
       "-c",
       "-o",
+      "BasicHiveToolBindings.o",
+      "../../src/agent_bindings/BasicHiveToolBindings.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "BasicHiveToolBindings.o"
+  },
+  {
+    "file": "../../src/persist/HiveBuilder.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MP",
+      "-MT",
       "HiveBuilder.o",
       "../../src/persist/HiveBuilder.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "HiveBuilder.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/persist/json/JsonHiveLoader.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "json/JsonHiveLoader.o",
       "../../src/persist/json/JsonHiveLoader.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "json/JsonHiveLoader.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/GraphAction.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "GraphAction.o",
       "../../src/graph/GraphAction.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "GraphAction.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/GraphActionTargetable.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "GraphActionTargetable.o",
       "../../src/graph/GraphActionTargetable.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "GraphActionTargetable.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/GraphActionThreadPoolWorkUnit.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "GraphActionThreadPoolWorkUnit.o",
       "../../src/graph/GraphActionThreadPoolWorkUnit.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "GraphActionThreadPoolWorkUnit.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/GraphEdge.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "GraphEdge.o",
       "../../src/graph/GraphEdge.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "GraphEdge.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/GraphHive.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "GraphHive.o",
       "../../src/graph/GraphHive.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "GraphHive.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/GraphHiveCollection.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "GraphHiveCollection.o",
       "../../src/graph/GraphHiveCollection.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "GraphHiveCollection.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/GraphHiveSceneSurface.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "GraphHiveSceneSurface.o",
       "../../src/graph/GraphHiveSceneSurface.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "GraphHiveSceneSurface.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/GraphHiveSurface.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "GraphHiveSurface.o",
       "../../src/graph/GraphHiveSurface.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "GraphHiveSurface.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/GraphHiveStrobeScheduler.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "GraphHiveStrobeScheduler.o",
       "../../src/graph/GraphHiveStrobeScheduler.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "GraphHiveStrobeScheduler.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/GraphFocusable.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "GraphFocusable.o",
       "../../src/graph/GraphFocusable.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "GraphFocusable.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/GraphNamed.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "GraphNamed.o",
       "../../src/graph/GraphNamed.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "GraphNamed.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/GraphNode.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "GraphNode.o",
       "../../src/graph/GraphNode.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "GraphNode.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/GraphNodeLocation.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "GraphNodeLocation.o",
       "../../src/graph/GraphNodeLocation.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "GraphNodeLocation.o"
-  },
-  {
-    "file": "../../src/graph/GraphNodeScheduledActionThreadPoolWorkUnit.cpp",
-    "arguments": [
-      "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
-      "GraphNodeScheduledActionThreadPoolWorkUnit.o",
-      "../../src/graph/GraphNodeScheduledActionThreadPoolWorkUnit.cpp"
-    ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "GraphNodeScheduledActionThreadPoolWorkUnit.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/GraphPoke.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "GraphPoke.o",
       "../../src/graph/GraphPoke.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "GraphPoke.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/actions/ActionFactory.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "actions/ActionFactory.o",
       "../../src/graph/actions/ActionFactory.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "actions/ActionFactory.o"
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/graph/actions/AgentAction.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MP",
+      "-MT",
+      "actions/AgentAction.o",
+      "../../src/graph/actions/AgentAction.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/actions/AnimateAction.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "actions/AnimateAction.o",
       "../../src/graph/actions/AnimateAction.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "actions/AnimateAction.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/actions/PingAction.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "actions/PingAction.o",
       "../../src/graph/actions/PingAction.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "actions/PingAction.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/actions/SceneAction.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "actions/SceneAction.o",
       "../../src/graph/actions/SceneAction.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "actions/SceneAction.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/actions/StrobeAction.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "actions/StrobeAction.o",
       "../../src/graph/actions/StrobeAction.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "actions/StrobeAction.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/actions/ScriptAction.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "actions/ScriptAction.o",
       "../../src/graph/actions/ScriptAction.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "actions/ScriptAction.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/actions/SerialisableAction.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "actions/SerialisableAction.o",
       "../../src/graph/actions/SerialisableAction.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "actions/SerialisableAction.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/actions/SerialisableActionPayload.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "actions/SerialisableActionPayload.o",
       "../../src/graph/actions/SerialisableActionPayload.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "actions/SerialisableActionPayload.o"
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/graph/actions/VersionAction.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MP",
+      "-MT",
+      "actions/VersionAction.o",
+      "../../src/graph/actions/VersionAction.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/nodes/AnimateScriptNode.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "nodes/AnimateScriptNode.o",
       "../../src/graph/nodes/AnimateScriptNode.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "nodes/AnimateScriptNode.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/nodes/PingNode.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "nodes/PingNode.o",
       "../../src/graph/nodes/PingNode.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "nodes/PingNode.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/nodes/SceneGeometry.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "nodes/SceneGeometry.o",
       "../../src/graph/nodes/SceneGeometry.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "nodes/SceneGeometry.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/nodes/SceneGeometryNode.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "nodes/SceneGeometryNode.o",
       "../../src/graph/nodes/SceneGeometryNode.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "nodes/SceneGeometryNode.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/nodes/SceneGeometryScriptNode.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "nodes/SceneGeometryScriptNode.o",
       "../../src/graph/nodes/SceneGeometryScriptNode.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "nodes/SceneGeometryScriptNode.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/nodes/SceneRootNode.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "nodes/SceneRootNode.o",
       "../../src/graph/nodes/SceneRootNode.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "nodes/SceneRootNode.o"
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/graph/nodes/SceneTransform.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MP",
+      "-MT",
+      "nodes/SceneTransform.o",
+      "../../src/graph/nodes/SceneTransform.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/nodes/SceneTransformNode.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "nodes/SceneTransformNode.o",
       "../../src/graph/nodes/SceneTransformNode.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "nodes/SceneTransformNode.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/nodes/SceneTransformScriptNode.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "nodes/SceneTransformScriptNode.o",
       "../../src/graph/nodes/SceneTransformScriptNode.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "nodes/SceneTransformScriptNode.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/nodes/ScriptNode.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "nodes/ScriptNode.o",
       "../../src/graph/nodes/ScriptNode.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "nodes/ScriptNode.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/nodes/StrobeEmitterNode.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "nodes/StrobeEmitterNode.o",
       "../../src/graph/nodes/StrobeEmitterNode.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "nodes/StrobeEmitterNode.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/nodes/StrobeScriptNode.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "nodes/StrobeScriptNode.o",
       "../../src/graph/nodes/StrobeScriptNode.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "nodes/StrobeScriptNode.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/graph/nodes/TeleportNode.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "nodes/TeleportNode.o",
       "../../src/graph/nodes/TeleportNode.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "nodes/TeleportNode.o"
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/agent/AgenticHarness.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MP",
+      "-MT",
+      "AgenticHarness.o",
+      "../../src/agent/AgenticHarness.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/agent/Model.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MP",
+      "-MT",
+      "Model.o",
+      "../../src/agent/Model.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/agent/ModelContext.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MP",
+      "-MT",
+      "ModelContext.o",
+      "../../src/agent/ModelContext.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/agent/ModelPrompt.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MP",
+      "-MT",
+      "ModelPrompt.o",
+      "../../src/agent/ModelPrompt.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/agent/ModelProvider.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MP",
+      "-MT",
+      "ModelProvider.o",
+      "../../src/agent/ModelProvider.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/agent/ModelRequest.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MP",
+      "-MT",
+      "ModelRequest.o",
+      "../../src/agent/ModelRequest.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/agent/ModelSystemPrompt.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MP",
+      "-MT",
+      "ModelSystemPrompt.o",
+      "../../src/agent/ModelSystemPrompt.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/agent/ModelToolBindings.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MP",
+      "-MT",
+      "ModelToolBindings.o",
+      "../../src/agent/ModelToolBindings.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/agent/ModelToolCallParameterValue.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MP",
+      "-MT",
+      "ModelToolCallParameterValue.o",
+      "../../src/agent/ModelToolCallParameterValue.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/agent/ModelToolDefinition.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MP",
+      "-MT",
+      "ModelToolDefinition.o",
+      "../../src/agent/ModelToolDefinition.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/agent/ModelToolDefinitionParameter.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MP",
+      "-MT",
+      "ModelToolDefinitionParameter.o",
+      "../../src/agent/ModelToolDefinitionParameter.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/agent/OllamaModel.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MP",
+      "-MT",
+      "OllamaModel.o",
+      "../../src/agent/OllamaModel.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/agent/OllamaModelProvider.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MP",
+      "-MT",
+      "OllamaModelProvider.o",
+      "../../src/agent/OllamaModelProvider.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/agent/modelToolJson.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MP",
+      "-MT",
+      "modelToolJson.o",
+      "../../src/agent/modelToolJson.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/thread/ThreadBase.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "ThreadBase.o",
       "../../src/thread/ThreadBase.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "ThreadBase.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/thread/ThreadPthread.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "ThreadPthread.o",
       "../../src/thread/ThreadPthread.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "ThreadPthread.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/thread/ThreadConditionBase.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "ThreadConditionBase.o",
       "../../src/thread/ThreadConditionBase.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "ThreadConditionBase.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/thread/ThreadConditionPthread.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "ThreadConditionPthread.o",
       "../../src/thread/ThreadConditionPthread.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "ThreadConditionPthread.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/thread/ThreadLock.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "ThreadLock.o",
       "../../src/thread/ThreadLock.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "ThreadLock.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/thread/ThreadMutexBase.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "ThreadMutexBase.o",
       "../../src/thread/ThreadMutexBase.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "ThreadMutexBase.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/thread/ThreadMutexPthread.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "ThreadMutexPthread.o",
       "../../src/thread/ThreadMutexPthread.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "ThreadMutexPthread.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/thread/ThreadPool.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "ThreadPool.o",
       "../../src/thread/ThreadPool.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "ThreadPool.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/thread/ThreadPoolWorkThread.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "ThreadPoolWorkThread.o",
       "../../src/thread/ThreadPoolWorkThread.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "ThreadPoolWorkThread.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/log/log.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "log.o",
       "../../src/log/log.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "log.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/display/GraphHiveSceneSurfaceHtmlMap.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "GraphHiveSceneSurfaceHtmlMap.o",
       "../../src/display/GraphHiveSceneSurfaceHtmlMap.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "GraphHiveSceneSurfaceHtmlMap.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/display/GraphHiveSceneSurfaceWebglMap.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "GraphHiveSceneSurfaceWebglMap.o",
       "../../src/display/GraphHiveSceneSurfaceWebglMap.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "GraphHiveSceneSurfaceWebglMap.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/display/GraphHiveSurfaceMap.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "GraphHiveSurfaceMap.o",
       "../../src/display/GraphHiveSurfaceMap.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "GraphHiveSurfaceMap.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/display/GraphHiveSurfaceHttpMap.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "GraphHiveSurfaceHttpMap.o",
       "../../src/display/GraphHiveSurfaceHttpMap.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "GraphHiveSurfaceHttpMap.o"
+    "directory": "/data/devel/matrytsya/build/debug"
+  },
+  {
+    "file": "../../src/display/chatWindowTemplate.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-MM",
+      "-MP",
+      "-MT",
+      "chatWindowTemplate.o",
+      "../../src/display/chatWindowTemplate.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/display/webglPageTemplate.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "webglPageTemplate.o",
       "../../src/display/webglPageTemplate.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "webglPageTemplate.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/display/http/HttpRequest.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "http/HttpRequest.o",
       "../../src/display/http/HttpRequest.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "http/HttpRequest.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/display/http/HttpResponse.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "http/HttpResponse.o",
       "../../src/display/http/HttpResponse.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "http/HttpResponse.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/display/http/HttpServerBase.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "http/HttpServerBase.o",
       "../../src/display/http/HttpServerBase.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "http/HttpServerBase.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/display/http/HttpServerMongoose.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "http/HttpServerMongoose.o",
       "../../src/display/http/HttpServerMongoose.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "http/HttpServerMongoose.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/display/http/HttpServerMongoosePollThread.cpp",
     "arguments": [
       "/usr/bin/g++",
-      "-Wall",
-      "-std=c++20",
-      "-O0",
-      "-g",
-      "-pthread",
-      "-c",
-      "-o",
+      "-MM",
+      "-MP",
+      "-MT",
       "http/HttpServerMongoosePollThread.o",
       "../../src/display/http/HttpServerMongoosePollThread.cpp"
     ],
-    "directory": "/data/devel/matrytsya/build/debug",
-    "output": "http/HttpServerMongoosePollThread.o"
+    "directory": "/data/devel/matrytsya/build/debug"
   },
   {
     "file": "../../src/mongoose/mongoose.c",
@@ -976,6 +912,7 @@
       "-O3",
       "-pthread",
       "-DMG_ARCH=MG_ARCH_UNIX",
+      "-DMG_TLS=MG_TLS_BUILTIN",
       "-c",
       "-o",
       "mongoose.o",
