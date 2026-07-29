@@ -23,6 +23,11 @@ lua.a : $(objFiles)
 # Empty recipes for c files so they don't cause make to look for implicit rules to build them when they are prerequisites.
 $(srcFiles) : ;
 
+# See the "dep" target in makefile_std_dep. Lua carries its own dependency rules rather than including
+# that file, but it is still visited by the top level "dep" loop and so needs the target too.
+.PHONY : dep
+dep : $(objFiles:.o=.dep) ;
+
 %.dep : %.c
 	@ mkdir -p $$(dirname $@)
 	$(CC) -MM $< > $@

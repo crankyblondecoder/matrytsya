@@ -7,7 +7,7 @@ StrobeEmitterNode::~StrobeEmitterNode()
 {
 }
 
-StrobeEmitterNode::StrobeEmitterNode() : GraphNode()
+StrobeEmitterNode::StrobeEmitterNode(bool serialiseActions) : GraphSerialisedActionNode(serialiseActions)
 {
 }
 

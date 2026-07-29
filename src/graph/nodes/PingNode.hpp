@@ -1,7 +1,7 @@
 #ifndef PING_NODE_H
 #define PING_NODE_H
 
-#include "../GraphNode.hpp"
+#include "../GraphSerialisedActionNode.hpp"
 #include "../actionTargets/PingActionTarget.hpp"
 
 class PingAction;
@@ -9,7 +9,7 @@ class PingAction;
 /**
  * Simple graph node that just provides a ping point.
  */
-class PingNode : public GraphNode, public PingActionTarget
+class PingNode : public GraphSerialisedActionNode, public PingActionTarget
 {
     public:
 

@@ -152,13 +152,6 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		virtual ~GraphNode();
 
 		/**
-		 * Emit an action by making its origin this node.
-		 * @note All subclasses must use this function to emit actions so that correct binding to the node occurs.
-		 * @param action Action to emit. This must have its refcount increased prior to the call.
-		 */
-		void _emitAction(GraphAction* action);
-
-		/**
 		 * Set the energy cost of an action being applied to this node.
 		 */
 		void _setEnergyCost(unsigned cost);

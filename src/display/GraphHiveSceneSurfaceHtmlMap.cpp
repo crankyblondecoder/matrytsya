@@ -114,11 +114,15 @@ GraphHiveSceneSurfaceHtmlMap::GraphHiveSceneSurfaceHtmlMap(HttpServerBase& httpS
 	std::string path) :
 	GraphHiveSurfaceHttpMap(httpServer, surface, path), _sceneSurface(&surface)
 {
-	surface.addListener(this);
+	surface.addListener(*this);
 }
 
 GraphHiveSceneSurfaceHtmlMap::~GraphHiveSceneSurfaceHtmlMap()
 {
+	// Unbind before anything else, so the surface releases its ref on this and no further event can reach a
+	// map that is already tearing down.
+	_getSceneSurface().removeListener(*this);
+
 	bool chatThreadRunning;
 
 	{ SYNC(_lock)
@@ -638,7 +642,7 @@ void GraphHiveSceneSurfaceHtmlMap::_quitRequested()
 	_chatMessagesCond.unlockMutex();
 }
 
-void GraphHiveSceneSurfaceHtmlMap::hiveSurfaceChanged(Handle<GraphHiveSurface> hiveSurface)
+void GraphHiveSceneSurfaceHtmlMap::hiveSurfaceChanged(EventEmitter<GraphHiveSurfaceListener>& emitter)
 {
 	{ SYNC(_lock)
 
@@ -646,7 +650,7 @@ void GraphHiveSceneSurfaceHtmlMap::hiveSurfaceChanged(Handle<GraphHiveSurface> h
 	}
 }
 
-GraphHiveSurfaceListener* GraphHiveSceneSurfaceHtmlMap::getListener()
+void GraphHiveSceneSurfaceHtmlMap::populateEventListenerHandle(CastHandle<GraphHiveSurfaceListener>& handle)
 {
-	return this;
+	handle = CastHandle<GraphHiveSurfaceListener>(this, this);
 }

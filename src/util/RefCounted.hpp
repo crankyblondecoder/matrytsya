@@ -24,9 +24,10 @@ class RefCounted
 
 		/**
 		 * Attempt to obtain a reference lock.
+		 * @note This is safe to call from an external SYNC block.
 		 * @returns True if reference could be obtained. False otherwise.
 		 */
-		virtual bool incrRef()
+		virtual bool incrRef() final
 		{
 			bool success = false;
 
@@ -44,8 +45,9 @@ class RefCounted
 
 		/**
 		 * Remove a reference lock.
+		 * @note This is not safe to call from an external SYNC block because the pathway of delete is unknown.
 		 */
-		virtual void decrRef()
+		virtual void decrRef() final
 		{
 			bool invokeDelete = false;
 

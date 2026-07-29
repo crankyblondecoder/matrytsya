@@ -7,7 +7,7 @@ PingNode::~PingNode()
 {
 }
 
-PingNode::PingNode() : GraphNode()
+PingNode::PingNode() : GraphSerialisedActionNode()
 {
 	_setEnergyCost(1);
 

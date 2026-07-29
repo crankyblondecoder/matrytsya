@@ -8,7 +8,7 @@ SceneRootNode::~SceneRootNode()
 {
 }
 
-SceneRootNode::SceneRootNode() : StrobeEmitterNode()
+SceneRootNode::SceneRootNode() : StrobeEmitterNode(true)
 {
 	_setEnergyCost(1);
 }
@@ -35,3 +35,4 @@ void SceneRootNode::populateSceneSurface(Handle<GraphHiveSceneSurface> sceneSurf
 void SceneRootNode::_poked(GraphPoke poke)
 {
 }
+

@@ -3,16 +3,18 @@
 
 #include <string>
 
+#include "../util/RefCounted.hpp"
+
 class GraphHiveSurface;
 
 /**
  * Transport agnostic base class for anything that maps a GraphHiveSurface onto an externally accessible interface.
+ * @note Ref counted so that a listener binding to the surface it maps (see GraphHiveSceneSurfaceHtmlMap) can be
+ *       guarded safely.
  */
-class GraphHiveSurfaceMap
+class GraphHiveSurfaceMap : public RefCounted
 {
     public:
-
-        virtual ~GraphHiveSurfaceMap();
 
         /**
          * @param surface Surface this map represents. Not owned by this.
@@ -26,6 +28,9 @@ class GraphHiveSurfaceMap
         std::string getPath();
 
     protected:
+
+        // Required by ref counting.
+        virtual ~GraphHiveSurfaceMap();
 
         /**
          * Get the surface this map represents.

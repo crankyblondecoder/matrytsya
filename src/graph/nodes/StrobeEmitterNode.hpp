@@ -1,22 +1,25 @@
 #ifndef STROBE_EMITTER_NODE_H
 #define STROBE_EMITTER_NODE_H
 
-#include "../GraphNode.hpp"
+#include "../GraphSerialisedActionNode.hpp"
 
 /**
  * Graph node that emits strobe actions from itself.
  * @note This class is only intended to be inherited and not directly part of the graph.
  */
-class StrobeEmitterNode : public GraphNode
+class StrobeEmitterNode : public GraphSerialisedActionNode
 {
     public:
 
-        StrobeEmitterNode();
+		/**
+		 * @param serialiseActions Forwarded to GraphSerialisedActionNode. See its constructor for details.
+		 */
+        StrobeEmitterNode(bool serialiseActions = false);
 
 		/**
 		 * Emit a single strobe action from this node immediately.
 		 */
-		void emitStrobe();
+		virtual void emitStrobe();
 
 	protected:
 

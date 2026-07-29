@@ -20,8 +20,6 @@ class GraphHiveSceneSurfaceWebglMap : public GraphHiveSceneSurfaceHtmlMap
 {
     public:
 
-        virtual ~GraphHiveSceneSurfaceWebglMap();
-
         /**
          * @param httpServer Server to register this map with. Not owned by this.
          * @param surface Scene surface this map binds to for its whole lifetime. This map keeps its own
@@ -31,6 +29,9 @@ class GraphHiveSceneSurfaceWebglMap : public GraphHiveSceneSurfaceHtmlMap
         GraphHiveSceneSurfaceWebglMap(HttpServerBase& httpServer, GraphHiveSceneSurface& surface, std::string path);
 
     protected:
+
+        // Required by ref counting.
+        virtual ~GraphHiveSceneSurfaceWebglMap();
 
         void _renderPage(HttpResponse& response) override;
 

@@ -20,8 +20,6 @@ class GraphHiveSurfaceHttpMap : public GraphHiveSurfaceMap, public HttpRequestHa
 {
     public:
 
-        virtual ~GraphHiveSurfaceHttpMap();
-
         /**
          * @param httpServer Server to register this map with. Not owned by this.
          * @param surface Surface this map represents. Not owned by this.
@@ -44,6 +42,9 @@ class GraphHiveSurfaceHttpMap : public GraphHiveSurfaceMap, public HttpRequestHa
         bool hasReceivedFirstRequest();
 
     protected:
+
+        // Required by ref counting.
+        virtual ~GraphHiveSurfaceHttpMap();
 
         /**
          * Render the HTML page for this map.

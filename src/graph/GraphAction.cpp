@@ -184,11 +184,22 @@ void GraphAction::__complete()
 		_boundHive.getInstance() -> actionInactive(_hiveActionHandle);
 	}
 
-	// Notify subclass.
-	if(runCompleteHook) _complete();
+	if(runCompleteHook)
+	{
+		// Notify subclass.
+		_complete();
+
+		// Notify bound listeners.
+		__emitActionComplete();
+	}
 
 	// This allows initial ref count to be released. Must be done last.
 	if(runDecrRef) decrRef();
+}
+
+void GraphAction::__emitActionComplete()
+{
+	emitEvent(GraphActionListener::Event::ACTION_COMPLETE);
 }
 
 void GraphAction::start()

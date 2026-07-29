@@ -13,3 +13,8 @@ mongoose.a : $(objFiles)
 	@ echo "*** Building - Mongoose Module ***"
 	@ echo
 	ar rcs mongoose.a $(objFiles)
+
+# Mongoose is a single vendored C file with no dependency tracking. This target exists only so the top
+# level "dep" loop does not abort here. See the "dep" target in makefile_std_dep.
+.PHONY : dep
+dep : ;

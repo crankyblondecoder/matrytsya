@@ -40,7 +40,8 @@ GraphNode::~GraphNode()
 	}
 }
 
-GraphNode::GraphNode() : _id { _nextId++ }, _hive(nullptr)
+GraphNode::GraphNode()
+	: _id { _nextId++ }, _hive(nullptr)
 {
 }
 
@@ -316,11 +317,6 @@ Handle<GraphEdge> GraphNode::traverse(GraphAction& action)
 	}
 
 	return edgeToTraverse;
-}
-
-void GraphNode::_emitAction(GraphAction* action)
-{
-	action -> start();
 }
 
 void GraphNode::poke(GraphPoke pokeToProcess)

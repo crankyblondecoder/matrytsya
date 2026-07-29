@@ -181,12 +181,13 @@ int main(int argc, char const *argv[])
 
 	HttpServer httpServer(8080);
 
-	GraphHiveSceneSurfaceWebglMap webglMap(httpServer, *surface, "/scene/");
+	GraphHiveSceneSurfaceWebglMap* webglMap = new GraphHiveSceneSurfaceWebglMap(httpServer, *surface, "/scene/");
+	Handle<GraphHiveSceneSurfaceWebglMap> webglMapHandle(webglMap);
 
-	webglMap.setPollInterval(_WEBGL_POLL_INTERVAL_MS);
+	webglMap -> setPollInterval(_WEBGL_POLL_INTERVAL_MS);
 
 	// The map asks for MEDIUM by default, which no assignment above can satisfy.
-	webglMap.setChatCapability(AgenticHarness::Capability::LOW);
+	webglMap -> setChatCapability(AgenticHarness::Capability::LOW);
 
 	try
 	{
@@ -207,9 +208,9 @@ int main(int argc, char const *argv[])
 	// unrelated to strobing, which the hive has already been driving on its own scheduler thread for both the
 	// root node's emitter and the surface itself since the calls above registered them, and which stays a
 	// no-op until the flower centre is clicked regardless of when the wait below finishes.
-	while(_running && !webglMap.hasReceivedFirstRequest())
+	while(_running && !webglMap -> hasReceivedFirstRequest())
 	{
-		webglMap.waitForFirstRequest(500);
+		webglMap -> waitForFirstRequest(500);
 	}
 
 	// Nothing left to drive from this thread: the scheduler strobes both the root node and the surface on

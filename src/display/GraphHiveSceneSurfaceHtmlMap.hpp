@@ -5,6 +5,8 @@
 #include <vector>
 
 #include "../agent/AgenticHarness.hpp"
+#include "../util/CastHandle.hpp"
+#include "../util/EventEmitter.hpp"
 #include "../util/Handle.hpp"
 #include "../graph/GraphHiveSurfaceListener.hpp"
 #include "../thread/Thread.hpp"
@@ -33,11 +35,9 @@ class HttpResponse;
  * drawing while a chat is being answered.
  */
 class GraphHiveSceneSurfaceHtmlMap : public GraphHiveSurfaceHttpMap, private EventListener<GraphHiveSurfaceListener>,
-	private GraphHiveSurfaceListener, private Thread
+	private Thread
 {
     public:
-
-        virtual ~GraphHiveSceneSurfaceHtmlMap();
 
         /**
          * @param httpServer Server to register this map with. Not owned by this.
@@ -62,6 +62,9 @@ class GraphHiveSceneSurfaceHtmlMap : public GraphHiveSurfaceHttpMap, private Eve
         void setChatCapability(AgenticHarness::Capability capability);
 
     protected:
+
+        // Required by ref counting.
+        virtual ~GraphHiveSceneSurfaceHtmlMap();
 
         /**
          * Get the scene surface this map is bound to.
@@ -233,9 +236,9 @@ class GraphHiveSceneSurfaceHtmlMap : public GraphHiveSurfaceHttpMap, private Eve
 
         virtual void _quitRequested() override;
 
-        virtual void hiveSurfaceChanged(Handle<GraphHiveSurface> hiveSurface) override;
+        virtual void hiveSurfaceChanged(EventEmitter<GraphHiveSurfaceListener>& emitter) override;
 
-        virtual GraphHiveSurfaceListener* getListener() override;
+        virtual void populateEventListenerHandle(CastHandle<GraphHiveSurfaceListener>& handle) override;
 
         /// Scene surface this map is bound to for its whole lifetime.
         Handle<GraphHiveSceneSurface> _sceneSurface;

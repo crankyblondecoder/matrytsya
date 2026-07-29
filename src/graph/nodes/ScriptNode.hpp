@@ -5,7 +5,7 @@
 #include <string>
 
 #include "../actionTargets/ScriptActionTarget.hpp"
-#include "../GraphNode.hpp"
+#include "../GraphSerialisedActionNode.hpp"
 
 struct lua_State;
 
@@ -29,7 +29,7 @@ struct lua_State;
  *       simultaneously, so each state has its own lock that is held across every call into it - including
  *       the script run itself. The two states lock independently, so a poke never waits on an invoke().
  */
-class ScriptNode : public GraphNode, public ScriptActionTarget
+class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 {
     public:
 

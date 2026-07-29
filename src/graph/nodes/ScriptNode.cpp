@@ -23,7 +23,7 @@ ScriptNode::~ScriptNode()
 }
 
 ScriptNode::ScriptNode(const std::string& coreScript, const std::string& pokeScript)
-	: GraphNode(), _coreScript{coreScript}, _pokeScript(pokeScript)
+	: GraphSerialisedActionNode(), _coreScript{coreScript}, _pokeScript(pokeScript)
 {
 	_setEnergyCost(1);
 

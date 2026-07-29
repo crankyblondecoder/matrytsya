@@ -1,6 +1,16 @@
 # Empty recipes for cpp files so they don't cause make to look for implicit rules to build them when they are prerequisites.
 $(srcFiles) : ;
 
+# "make dep" pre-generates every dependency file without compiling anything, so that the bear wrapped
+# build in gen_compile_commands.sh only ever sees real compiler invocations. The include directives at
+# the bottom already force make to build these files, so this target only has to exist and succeed.
+# Without it "make dep" dies with "No rule to make target 'dep'", the top level loop's "|| exit 1"
+# aborts at the first module, and every remaining module's dependency scan runs inside bear instead -
+# where the "-MM" invocation wins bear's first-seen duplicate filter and replaces that file's real
+# compile command in compile_commands.json, leaving the language server with no -std=c++20.
+.PHONY : dep
+dep : $(objFiles:.o=.dep) ;
+
 %.dep : %.cpp
 	@ mkdir -p $$(dirname $@)
     # -MT names the rule's target explicitly. Without it, -MM emits the object's basename (e.g.
@@ -10,15 +20,15 @@ $(srcFiles) : ;
     # leaves the already generated dep files naming a file that no longer exists and has no rule, so make
     # refuses to build that module at all ("No rule to make target ... needed by ...") rather than simply
     # regenerating the dependencies. Both dep files need it, because both list the headers as prerequisites.
-	$(cname) -MM -MP -MT $(@:.dep=.o) $< > $@
-	$(cname) -MM -MP -MT $@ $< > $@Make
+	$(cname) $(depflags) -MM -MP -MT $(@:.dep=.o) $< > $@
+	$(cname) $(depflags) -MM -MP -MT $@ $< > $@Make
     # Build the depMake include file. The target is named again ahead of the recipe rather than letting the
     # recipe trail the generated text: -MP leaves the phony header targets last, so bare recipe lines would
     # attach to whichever header happened to be emitted last instead of to the dep rule. Make merges the
     # prerequisites from the rule above with this recipe, so $< is still the source file.
 	@ echo -e "\n$@ :" >> $@Make
-	@ echo -e "\t\$$(cname) -MM -MP -MT \$$(@:.dep=.o) $$< > \$$@" >> $@Make
-	@ echo -e "\t\$$(cname) -MM -MP -MT \$$@ $$< > \$$@Make" >> $@Make
+	@ echo -e "\t\$$(cname) \$$(depflags) -MM -MP -MT \$$(@:.dep=.o) $$< > \$$@" >> $@Make
+	@ echo -e "\t\$$(cname) \$$(depflags) -MM -MP -MT \$$@ $$< > \$$@Make" >> $@Make
 
 ifneq ($(MAKECMDGOALS),clean)
     include $(objFiles:.o=.dep)

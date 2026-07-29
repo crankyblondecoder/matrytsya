@@ -64,6 +64,9 @@ template <typename T> class Handle
 			return *this;
 		}
 
+		/**
+		 * @note This is not safe to call from an external SYNC block.
+		 */
 		~Handle()
 		{
 			clear();
@@ -106,6 +109,8 @@ template <typename T> class Handle
 
 		/**
 		 * Clear the handle, i.e. De-reference the pointed to instance and make this handle invalid.
+		 * @note This is not safe to call from an external SYNC block due to the possibility of the referenced
+		 *       instance destructor being called.
 		 */
 		void clear()
 		{

@@ -4,9 +4,11 @@
 #include <atomic>
 #include <vector>
 
+#include "../util/EventEmitter.hpp"
 #include "../util/RefCounted.hpp"
 #include "../thread/ThreadCondition.hpp"
 #include "../util/Handle.hpp"
+#include "GraphActionListener.hpp"
 
 class GraphEdge;
 class GraphHive;
@@ -17,8 +19,9 @@ class GraphNode;
  * specific interface.
  * @note Ref counted and will self de-reference once the action is complete. An action is complete once it can no longer
  *       traverse any edges.
+ * @note Emits to bound GraphActionListener instances when this action completes.
  */
-class GraphAction : public RefCounted
+class GraphAction : public RefCounted, public EventEmitter<GraphActionListener>
 {
     public:
 
@@ -255,6 +258,11 @@ class GraphAction : public RefCounted
 		 * Action is complete.
 		 */
 		void __complete();
+
+		/**
+		 * Notify bound listeners that this action has completed.
+		 */
+		void __emitActionComplete();
 
 		/**
 		 * Consume an amount of energy that this action has.

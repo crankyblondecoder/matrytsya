@@ -1,5 +1,4 @@
 #include "../agent/ModelContext.hpp"
-#include "../util/EventListener.hpp"
 #include "GraphException.hpp"
 #include "GraphHiveSurface.hpp"
 #include "GraphHiveSurfaceListener.hpp"
@@ -148,15 +147,7 @@ Handle<ModelContext> GraphHiveSurface::__findChatContext(unsigned contextId)
 
 void GraphHiveSurface::_emitSurfaceChanged()
 {
-	std::list<EventListener<GraphHiveSurfaceListener>*> listeners = _getListeners();
-
-	for(EventListener<GraphHiveSurfaceListener>* listener : listeners)
-	{
-		// The listener knows how to get the concrete listener interface.
-		GraphHiveSurfaceListener* surfListener = listener -> getListener();
-
-		if(surfListener) surfListener -> hiveSurfaceChanged(Handle<GraphHiveSurface>(this));
-	}
+	emitEvent(GraphHiveSurfaceListener::Event::SURFACE_CHANGED);
 }
 
 void GraphHiveSurface::close()

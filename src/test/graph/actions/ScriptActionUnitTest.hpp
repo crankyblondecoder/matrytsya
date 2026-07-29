@@ -8,7 +8,7 @@
 #include "../../../util/Handle.hpp"
 #include "../../../graph/GraphHive.hpp"
 #include "../../../graph/GraphHiveSceneSurface.hpp"
-#include "../../../graph/GraphNode.hpp"
+#include "../../../graph/GraphSerialisedActionNode.hpp"
 #include "../../../graph/graphActionFlagRegister.hpp"
 #include "../../../graph/graphSceneElements.hpp"
 #include "../../../graph/nodes/PingNode.hpp"
@@ -18,13 +18,13 @@
 /**
  * Graph node that emits a ScriptAction of its own, mirroring how PingNode exposes emitPing().
  */
-class ScriptEmitterNode : public GraphNode
+class ScriptEmitterNode : public GraphSerialisedActionNode
 {
 	public:
 
 		virtual ~ScriptEmitterNode() {}
 
-		ScriptEmitterNode() : GraphNode()
+		ScriptEmitterNode() : GraphSerialisedActionNode()
 		{
 			_setEnergyCost(1);
 		}
