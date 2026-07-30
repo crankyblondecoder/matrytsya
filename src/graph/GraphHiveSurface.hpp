@@ -124,8 +124,7 @@ class GraphHiveSurface : public RefCounted, public GraphNamed, public EventEmitt
 		 *       fixed when it is created, so raising it on a continued conversation changes which model
 		 *       answers without changing what it is told or what it may call.
 		 * @param prompt Text of the prompt to send to the model.
-		 * @param capability Capability required of the model. A model assigned a higher capability than
-		 *        requested may be substituted for one assigned the capability asked for.
+		 * @param capability Capability required of the model. Matched exactly against assigned models.
 		 * @param newContext True to start a fresh conversation, in which case contextId is ignored on the
 		 *        way in. False to continue the conversation held in the context contextId names.
 		 * @param contextId On entry, the id of the context to continue when newContext is false. On
@@ -137,7 +136,7 @@ class GraphHiveSurface : public RefCounted, public GraphNamed, public EventEmitt
 		 * @throw GraphException When this surface is not bound to a hive, when newContext is false and
 		 *        contextId does not name a context of this surface, or when the hive has no agentic
 		 *        harness set.
-		 * @throw AgentException When no prompt text was supplied, when no model of sufficient capability is
+		 * @throw AgentException When no prompt text was supplied, when no model of the requested capability is
 		 *        assigned to the chat role, or when the context is already servicing a chat.
 		 */
 		std::string chat(std::string prompt, AgenticHarness::Capability capability, bool newContext,

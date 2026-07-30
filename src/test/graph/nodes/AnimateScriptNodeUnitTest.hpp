@@ -4,12 +4,12 @@
 #include <gtest/gtest.h>
 
 #include "../../../graph/actionTargets/AnimateActionTarget.hpp"
-#include "../../../graph/actionTargets/ScriptActionTarget.hpp"
 #include "../../../graph/actions/ScriptAction.hpp"
 #include "../../../util/Handle.hpp"
 #include "../../../graph/GraphHive.hpp"
 #include "../../../graph/GraphNode.hpp"
 #include "../../../graph/nodes/AnimateScriptNode.hpp"
+#include "../../../graph/nodes/ScriptSession.hpp"
 
 /**
  * AnimateScriptNode never overrides StrobeActionTarget::strobe() (inherited via StrobeScriptNode), leaving
@@ -26,20 +26,23 @@ class TestAnimateScriptNode : public AnimateScriptNode
 };
 
 /**
- * A node's animating flag lives outside the per-invoke Lua environment (it is node state, flipped either
- * directly via setAnimating() or by an AnimateAction) and defaults to false until something changes it.
+ * A node's animating flag lives outside the Lua environment (it is node state, flipped either directly via
+ * setAnimating() or by an AnimateAction) and defaults to false until something changes it.
  */
 TEST(AnimateScriptNodeTest, DefaultAnimatingStateIsFalse)
 {
 	TestAnimateScriptNode* node = new TestAnimateScriptNode("seenAnimating = getAnimating()", "");
 
-	ScriptActionTarget* target = node -> getScriptActionTarget();
+	{ Handle<ScriptSession> sessionHandle = node -> requestCoreSession();
 
-	ASSERT_TRUE(target -> invoke());
+		ScriptSession* session = sessionHandle.getInstance();
 
-	bool seenAnimating = true;
-	ASSERT_TRUE(target -> getGlobal("seenAnimating", seenAnimating));
-	EXPECT_FALSE(seenAnimating) << "A freshly constructed node should not be animating.";
+		ASSERT_TRUE(session -> run());
+
+		bool seenAnimating = true;
+		ASSERT_TRUE(session -> getGlobal("seenAnimating", seenAnimating));
+		EXPECT_FALSE(seenAnimating) << "A freshly constructed node should not be animating.";
+	}
 
 	node -> decrRef();
 }
@@ -47,32 +50,35 @@ TEST(AnimateScriptNodeTest, DefaultAnimatingStateIsFalse)
 /**
  * setAnimating() called from Lua without the emit argument (or with it false) flips the node's own
  * animating flag. That flag is node state rather than a Lua global, so it must still be set on the next
- * invoke via getAnimating() regardless of what the script itself does with its own globals.
+ * run via getAnimating() regardless of what the script itself does with its own globals.
  */
-TEST(AnimateScriptNodeTest, SetAnimatingFromLuaPersistsAcrossInvokesWithoutEmitting)
+TEST(AnimateScriptNodeTest, SetAnimatingFromLuaPersistsAcrossRunsWithoutEmitting)
 {
 	TestAnimateScriptNode* node = new TestAnimateScriptNode(
 		"priorAnimating = getAnimating()\n"
 		"setAnimating(true)\n"
 		"afterAnimating = getAnimating()\n", "");
 
-	ScriptActionTarget* target = node -> getScriptActionTarget();
+	{ Handle<ScriptSession> sessionHandle = node -> requestCoreSession();
 
-	ASSERT_TRUE(target -> invoke());
+		ScriptSession* session = sessionHandle.getInstance();
 
-	bool priorAnimating = true, afterAnimating = false;
-	ASSERT_TRUE(target -> getGlobal("priorAnimating", priorAnimating));
-	ASSERT_TRUE(target -> getGlobal("afterAnimating", afterAnimating));
+		ASSERT_TRUE(session -> run());
 
-	EXPECT_FALSE(priorAnimating) << "Node should not have been animating before the first setAnimating() call.";
-	EXPECT_TRUE(afterAnimating) << "setAnimating(true) should be reflected immediately by getAnimating().";
+		bool priorAnimating = true, afterAnimating = false;
+		ASSERT_TRUE(session -> getGlobal("priorAnimating", priorAnimating));
+		ASSERT_TRUE(session -> getGlobal("afterAnimating", afterAnimating));
 
-	// Second invoke: the script re-reads getAnimating() into priorAnimating itself, exercising that the
-	// animating flag (node state, not a Lua global) is what persisted, not the priorAnimating global.
-	ASSERT_TRUE(target -> invoke());
+		EXPECT_FALSE(priorAnimating) << "Node should not have been animating before the first setAnimating() call.";
+		EXPECT_TRUE(afterAnimating) << "setAnimating(true) should be reflected immediately by getAnimating().";
 
-	ASSERT_TRUE(target -> getGlobal("priorAnimating", priorAnimating));
-	EXPECT_TRUE(priorAnimating) << "Animating flag set by a previous invoke should persist to later invokes.";
+		// Second run: the script re-reads getAnimating() into priorAnimating itself, exercising that the
+		// animating flag (node state, not a Lua global) is what persisted, not the priorAnimating global.
+		ASSERT_TRUE(session -> run());
+
+		ASSERT_TRUE(session -> getGlobal("priorAnimating", priorAnimating));
+		EXPECT_TRUE(priorAnimating) << "Animating flag set by a previous run should persist to later runs.";
+	}
 
 	node -> decrRef();
 }
@@ -130,19 +136,29 @@ TEST(AnimateScriptNodeTest, AnimateActionTriggeredFromLuaScriptPropagatesToConne
 	hive -> waitOnInitialActionActive(0);
 	hive -> waitOnNoActionsActive(0);
 
-	bool priorAnimating = true, afterAnimating = false;
-	ASSERT_TRUE(triggerNode -> getScriptActionTarget() -> getGlobal("priorAnimating", priorAnimating));
-	ASSERT_TRUE(triggerNode -> getScriptActionTarget() -> getGlobal("afterAnimating", afterAnimating));
-	EXPECT_FALSE(priorAnimating) << "Trigger node should not have been animating before its own script ran.";
-	EXPECT_TRUE(afterAnimating) << "Trigger node's own flag should flip immediately.";
+	{ Handle<ScriptSession> sessionHandle = triggerNode -> requestCoreSession();
 
-	// Re-invoke downstreamNode's script fresh, now that the hive is quiet, for an authoritative read.
-	ASSERT_TRUE(downstreamNode -> getScriptActionTarget() -> invoke());
+		ScriptSession* session = sessionHandle.getInstance();
 
-	bool seenAnimating = false;
-	ASSERT_TRUE(downstreamNode -> getScriptActionTarget() -> getGlobal("seenAnimating", seenAnimating));
-	EXPECT_TRUE(seenAnimating) << "AnimateAction emitted by the trigger node's script should have propagated "
-		"to the connected downstream node.";
+		bool priorAnimating = true, afterAnimating = false;
+		ASSERT_TRUE(session -> getGlobal("priorAnimating", priorAnimating));
+		ASSERT_TRUE(session -> getGlobal("afterAnimating", afterAnimating));
+		EXPECT_FALSE(priorAnimating) << "Trigger node should not have been animating before its own script ran.";
+		EXPECT_TRUE(afterAnimating) << "Trigger node's own flag should flip immediately.";
+	}
+
+	// Re-run downstreamNode's script fresh, now that the hive is quiet, for an authoritative read.
+	{ Handle<ScriptSession> sessionHandle = downstreamNode -> requestCoreSession();
+
+		ScriptSession* session = sessionHandle.getInstance();
+
+		ASSERT_TRUE(session -> run());
+
+		bool seenAnimating = false;
+		ASSERT_TRUE(session -> getGlobal("seenAnimating", seenAnimating));
+		EXPECT_TRUE(seenAnimating) << "AnimateAction emitted by the trigger node's script should have propagated "
+			"to the connected downstream node.";
+	}
 
 	action -> decrRef();
 
@@ -177,11 +193,16 @@ TEST(AnimateScriptNodeTest, SetAnimatingWithoutEmitArgumentDoesNotPropagate)
 	hive -> waitOnInitialActionActive(0);
 	hive -> waitOnNoActionsActive(0);
 
-	ASSERT_TRUE(downstreamNode -> getScriptActionTarget() -> invoke());
+	{ Handle<ScriptSession> sessionHandle = downstreamNode -> requestCoreSession();
 
-	bool seenAnimating = true;
-	ASSERT_TRUE(downstreamNode -> getScriptActionTarget() -> getGlobal("seenAnimating", seenAnimating));
-	EXPECT_FALSE(seenAnimating) << "setAnimating() without emit=true should not emit an AnimateAction.";
+		ScriptSession* session = sessionHandle.getInstance();
+
+		ASSERT_TRUE(session -> run());
+
+		bool seenAnimating = true;
+		ASSERT_TRUE(session -> getGlobal("seenAnimating", seenAnimating));
+		EXPECT_FALSE(seenAnimating) << "setAnimating() without emit=true should not emit an AnimateAction.";
+	}
 
 	action -> decrRef();
 
@@ -220,11 +241,16 @@ TEST(AnimateScriptNodeTest, SequentialAnimateActionsResolveToFinalState)
 	hive -> waitOnInitialActionActive(0);
 	hive -> waitOnNoActionsActive(0);
 
-	ASSERT_TRUE(downstreamNode -> getScriptActionTarget() -> invoke());
+	{ Handle<ScriptSession> sessionHandle = downstreamNode -> requestCoreSession();
 
-	bool seenAnimating = true;
-	ASSERT_TRUE(downstreamNode -> getScriptActionTarget() -> getGlobal("seenAnimating", seenAnimating));
-	EXPECT_FALSE(seenAnimating) << "Downstream node should end up not-animating after the on/off sequence.";
+		ScriptSession* session = sessionHandle.getInstance();
+
+		ASSERT_TRUE(session -> run());
+
+		bool seenAnimating = true;
+		ASSERT_TRUE(session -> getGlobal("seenAnimating", seenAnimating));
+		EXPECT_FALSE(seenAnimating) << "Downstream node should end up not-animating after the on/off sequence.";
+	}
 
 	action -> decrRef();
 

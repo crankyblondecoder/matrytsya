@@ -13,7 +13,8 @@ AgentAction::~AgentAction()
 {
 }
 
-AgentAction::AgentAction(Handle<GraphNode> initNode, AgenticHarness::Capability capability, std::vector<NodePrompt> prompts)
+AgentAction::AgentAction(Handle<GraphNode> initNode, AgenticHarness::Capability capability,
+	std::vector<NodePrompt> prompts)
 	: GraphAction(initNode, _startingEnergy), _capability(capability), _prompts(prompts), _context(0)
 {
 	_addFlag(AGENT_GRAPH_ACTION, true);
@@ -31,7 +32,7 @@ void AgentAction::_apply(GraphNode* target)
 
 	if(!_context.isValid())
 	{
-		_context = hive.getInstance() -> createNodeModelContext(_capability);
+		_context = hive.getInstance() -> createModelContext(AgenticHarness::Role::NODE, _capability);
 	}
 
 	AgentActionTarget* agentTarget = target -> getAgentActionTarget();
@@ -39,7 +40,7 @@ void AgentAction::_apply(GraphNode* target)
 	if(agentTarget)
 	{
 		_context.getInstance() -> clearTemporaryToolBindings();
-		_context.getInstance() -> addTemporaryToolBindings(agentTarget -> getModelToolBindings());
+		_context.getInstance() -> addTemporaryToolBindings(agentTarget -> getModelToolBindings(_capability));
 	}
 
 	_context = hive.getInstance() -> processNodeAgenticRequest(_capability, match -> prompt, _context);

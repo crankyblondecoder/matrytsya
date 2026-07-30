@@ -38,7 +38,6 @@ class AgenticHarness : public RefCounted
 
 		/**
 		 * Broad agent model capabilities.
-		 * @note A more capable agent can be substituted for a less capable one.
 		 */
 		enum class Capability
 		{
@@ -161,11 +160,10 @@ class AgenticHarness : public RefCounted
 		Handle<ModelContext> createContext(Role role, Capability capability);
 
 		/**
-		 * Process a request against whichever assigned model is best suited to the given role and capability.
+		 * Process a request against whichever assigned model matches the given role and capability.
 		 * @param prompt Text of the prompt to send to the model.
 		 * @param role Role the request is being made for. Matched exactly against assigned models.
-		 * @param capability Capability required of the model. A model assigned a higher capability than
-		 *        requested may be substituted, per the note on Capability.
+		 * @param capability Capability required of the model. Matched exactly against assigned models.
 		 * @param context Context of a previous interaction to continue, carrying the system prompts, tools
 		 *        and chat history it was built with. When not supplied, a new context is built from the
 		 *        system prompts and tools assigned to the role and capability.
@@ -173,7 +171,7 @@ class AgenticHarness : public RefCounted
 		 *          calls made while working on it and the response given to it appended to its chat
 		 *          history. Pass it back in to continue the same conversation.
 		 * @throw AgentException When no prompt text was supplied, or when no candidate model is assigned to
-		 *        the role with sufficient capability.
+		 *        the role with that capability.
 		 */
 		Handle<ModelContext> processRequest(std::string prompt, Role role, Capability capability,
 			Handle<ModelContext> context = Handle<ModelContext>(0));

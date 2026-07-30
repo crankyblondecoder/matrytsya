@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include "../../agent/AgenticHarness.hpp"
 #include "../../util/Handle.hpp"
 #include "ActionTarget.hpp"
 
@@ -21,9 +22,12 @@ class AgentActionTarget : virtual public ActionTarget
 
 		/**
 		 * Get the tool bindings this target makes available to the agentic request applied to it.
+		 * @param capability Capability of the model the tool bindings are being requested for.
+		 * @note This is intended to be on a per node instance level, not the node type level and exists to support
+		 *       script defined bindings.
 		 * @returns The tool bindings.
 		 */
-		virtual std::vector<Handle<ModelToolBindings>> getModelToolBindings() = 0;
+		virtual std::vector<Handle<ModelToolBindings>> getModelToolBindings(AgenticHarness::Capability capability) = 0;
 
 	protected:
 

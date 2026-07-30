@@ -6,6 +6,8 @@
 
 #include "../GraphAction.hpp"
 
+class ScriptSession;
+
 /**
  * Graph action that invokes each visited node's script as it traverses the graph.
  * @note Each node owns its own isolated, sandboxed Lua state (see ScriptNode); this action does not own a
@@ -30,7 +32,7 @@ class ScriptAction : public GraphAction
 
 		/**
 		 * Publish a boolean as a global visible to every node this action visits from now on, by pushing it
-		 * into each node's own environment just before that node's invoke() runs.
+		 * into each node's own environment just before that node's script runs.
 		 * @param name Global name the value will be visible under.
 		 * @param value Boolean value to publish.
 		 */
@@ -38,7 +40,7 @@ class ScriptAction : public GraphAction
 
 		/**
 		 * Publish an integer as a global visible to every node this action visits from now on, by pushing it
-		 * into each node's own environment just before that node's invoke() runs.
+		 * into each node's own environment just before that node's script runs.
 		 * @param name Global name the value will be visible under.
 		 * @param value Integer value to publish.
 		 */
@@ -46,7 +48,7 @@ class ScriptAction : public GraphAction
 
 		/**
 		 * Publish a floating point number as a global visible to every node this action visits from now on,
-		 * by pushing it into each node's own environment just before that node's invoke() runs.
+		 * by pushing it into each node's own environment just before that node's script runs.
 		 * @param name Global name the value will be visible under.
 		 * @param value Double value to publish.
 		 */
@@ -54,7 +56,7 @@ class ScriptAction : public GraphAction
 
 		/**
 		 * Publish a string as a global visible to every node this action visits from now on, by pushing it
-		 * into each node's own environment just before that node's invoke() runs.
+		 * into each node's own environment just before that node's script runs.
 		 * @param name Global name the value will be visible under.
 		 * @param value String value to publish.
 		 */
@@ -106,6 +108,16 @@ class ScriptAction : public GraphAction
         ScriptAction& operator= (const ScriptAction& copyFrom);
 
 		/**
+		 * Request a session on the last visited node's core state, so a _getGlobal() can read back what that
+		 * node's script left behind.
+		 * @returns Handle to the session, or an invalid handle if no node has been visited yet, the last
+		 *          visited node has no script state, or that state could not be claimed.
+		 * @note Never throws. A state that cannot be claimed is reported as an invalid handle, because an
+		 *       exception escaping into the action work cycle would strand the action.
+		 */
+		Handle<ScriptSession> __requestLastVisitedSession();
+
+		/**
 		 * Tagged holder for one shared global's value, keyed by name in _sharedGlobals. Exactly one of the
 		 * type-specific members is meaningful, selected by type.
 		 */
@@ -119,7 +131,7 @@ class ScriptAction : public GraphAction
 		};
 
 		/// Values published via _shareGlobal(), pushed into every node's own environment just before that
-		/// node's invoke() runs from the point they're published onward.
+		/// node's script runs from the point they're published onward.
 		std::map<std::string, SharedValue> _sharedGlobals;
 
 		/**

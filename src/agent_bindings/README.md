@@ -1,3 +1,5 @@
-This module holds concrete ModelToolBindings implementations that let an AI model act on a hive's graph.
+This module holds concrete ModelToolBindings implementations that let an AI model act on a hive's graph, together with the ModelToolBindingsFactory that builds them against one instance of the class they operate on, for a given AgenticHarness Capability. There is a method per target class, each fixed to the Role that class is reached through, so a hive that needs something other than the standard set is given a subclass of the factory that overrides the method serving that class.
 
 It is a separate module from agent because these bindings depend on both agent (ModelToolBindings) and graph (GraphHive, GraphNode), and agent's own module cannot depend on graph without creating a circular link dependency, since graph in turn depends on agent (AgenticHarness, ModelContext).
+
+For the same reason the factory a hive holds is declared by graph, as the abstract GraphToolBindingsFactory, and only implemented here: a hive is given its factory from outside rather than building one itself, so graph never has to link back against this module. See matrytsya_test.cpp for where that is set.

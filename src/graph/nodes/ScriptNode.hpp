@@ -6,6 +6,7 @@
 
 #include "../actionTargets/ScriptActionTarget.hpp"
 #include "../GraphSerialisedActionNode.hpp"
+#include "../../thread/ThreadResourceLock.hpp"
 
 struct lua_State;
 
@@ -17,17 +18,21 @@ struct lua_State;
  *       and debug are never opened, so neither state has filesystem, process, environment or introspection
  *       access. Each state's memory is drawn from an allocator private to it and independently capped, so
  *       the only resources available to either script are those explicitly granted to it.
- * @note Each state's global environment persists across every invoke()/poke: a global a script sets during
- *       one run is still visible as its own starting state on the next run of the same script on the same
- *       node, so a script can keep state (e.g. a running counter or a direction flag) in an ordinary global
- *       instead of smuggling it through some other channel.
+ * @note Neither state is reachable except through a ScriptSession requested from this node, so that is also
+ *       the only way to set or read a global on either of them.
+ * @note Each state's global environment persists across every run: a global a script sets during one run is
+ *       still visible as its own starting state on the next run of the same script on the same node, so a
+ *       script can keep state (e.g. a running counter or a direction flag) in an ordinary global instead of
+ *       smuggling it through some other channel.
  * @note Extra globals a subclass registers via _registerCoreGlobals() (e.g. getStrobe(), addVertex()) are
- *       written into each state's permanent base table once - the first time invoke() runs for the core
- *       state, the first time a poke happens for the poke state - and remain callable on every subsequent
- *       invoke()/poke without being re-registered, the same as any other global the script has already set.
+ *       written into each state's permanent base table once - the first time a core session runs a script,
+ *       the first time a poke happens for the poke state - and remain callable on every subsequent run
+ *       without being re-registered, the same as any other global the script has already set.
  * @note A Lua state cannot be driven by more than one thread at a time, and actions are applied to a node
- *       simultaneously, so each state has its own lock that is held across every call into it - including
- *       the script run itself. The two states lock independently, so a poke never waits on an invoke().
+ *       simultaneously, so each state has its own resource lock. A session claims it on request and holds it
+ *       for the session's whole life - staged globals, the script run itself and anything read back
+ *       afterwards - rather than for one call at a time. The two states lock independently, so a poke never
+ *       waits on a core session.
  */
 class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 {
@@ -41,57 +46,20 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 
 		Type getType() override;
 
-		bool invoke() override;
-
-		void setGlobal(const char* name, bool value) override;
-		void setGlobal(const char* name, int value) override;
-		void setGlobal(const char* name, double value) override;
-		void setGlobal(const char* name, const char* value) override;
-
-		bool getGlobal(const char* name, bool& value) override;
-		bool getGlobal(const char* name, int& value) override;
-		bool getGlobal(const char* name, double& value) override;
-		bool getGlobal(const char* name, const char*& value) override;
+		Handle<ScriptSession> requestCoreSession() override;
 
 		/**
-		 * Read a global out of the poke state's environment as it stood immediately after the last poke (or
-		 * as it stood freshly sandboxed, if this node has never been poked). Analogous to getGlobal(), but
-		 * for the poke script's own state rather than the core script's.
-		 * @param name Global name to look up.
-		 * @param value Set to the global's value if found.
-		 * @returns Whether a boolean by that name was found.
+		 * Request exclusive access to this node's poke state, for running its poke script and for setting and
+		 * reading that state's globals. Analogous to requestCoreSession(), but for the poke script's own
+		 * state rather than the core script's.
+		 * @returns Handle to the session. Access to the state lasts only as long as the last reference to it.
+		 * @throw ThreadException If the calling thread already holds a session on the poke state.
+		 * @throw GraphException::SCRIPT_SESSION_NODE_UNAVAILABLE If this node could not be referenced.
+		 * @note Blocks until any session another thread holds on the poke state has been released.
+		 * @note The caller must hold a reference to this node across the call and for as long as it waits, as
+		 *       the resource lock it waits on cannot be destructed while a thread is waiting on it.
 		 */
-		bool getPokeGlobal(const char* name, bool& value);
-
-		/**
-		 * Read a global out of the poke state's environment as it stood immediately after the last poke (or
-		 * as it stood freshly sandboxed, if this node has never been poked). Analogous to getGlobal(), but
-		 * for the poke script's own state rather than the core script's.
-		 * @param name Global name to look up.
-		 * @param value Set to the global's value if found.
-		 * @returns Whether an integer by that name was found.
-		 */
-		bool getPokeGlobal(const char* name, int& value);
-
-		/**
-		 * Read a global out of the poke state's environment as it stood immediately after the last poke (or
-		 * as it stood freshly sandboxed, if this node has never been poked). Analogous to getGlobal(), but
-		 * for the poke script's own state rather than the core script's.
-		 * @param name Global name to look up.
-		 * @param value Set to the global's value if found.
-		 * @returns Whether a number by that name was found.
-		 */
-		bool getPokeGlobal(const char* name, double& value);
-
-		/**
-		 * Read a global out of the poke state's environment as it stood immediately after the last poke (or
-		 * as it stood freshly sandboxed, if this node has never been poked). Analogous to getGlobal(), but
-		 * for the poke script's own state rather than the core script's.
-		 * @param name Global name to look up.
-		 * @param value Set to the global's value if found.
-		 * @returns Whether a string by that name was found.
-		 */
-		bool getPokeGlobal(const char* name, const char*& value);
+		Handle<ScriptSession> requestPokeSession();
 
 		ScriptActionTarget* getScriptActionTarget() override;
 
@@ -101,12 +69,12 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
         virtual ~ScriptNode();
 
 		/**
-		 * Hook called once per Lua state this node owns - once the first time invoke() runs a script
+		 * Hook called once per Lua state this node owns - once the first time a core session runs a script
 		 * against the core state, and once the first time this node is poked, against the poke state -
 		 * with that state's live global table temporarily pointed at its permanent base env table rather
-		 * than a per-invoke one. Subclasses override this to register extra globals (typically C closures
-		 * bound to this node instance via upvalue) that must remain callable on every future invoke()/poke
-		 * without being re-registered each time. Default implementation does nothing.
+		 * than the live one. Subclasses override this to register extra globals (typically C closures
+		 * bound to this node instance via upvalue) that must remain callable on every future run without
+		 * being re-registered each time. Default implementation does nothing.
 		 * @param luaState The Lua state (core or poke) being registered against, positioned with an empty
 		 *        stack and its live global table temporarily set to that state's permanent base env table.
 		 */
@@ -138,12 +106,39 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 
     private:
 
+		// A session is the only thing permitted to drive either of this node's states, so it is the only
+		// thing given access to them.
+		friend class ScriptSession;
+
         // Do not allow copying.
         ScriptNode(const ScriptNode& copyFrom);
         ScriptNode& operator= (const ScriptNode& copyFrom);
 
 		/**
-		 * Compile _coreScript once and cache the result in _coreBytecode, so invoke() never has to
+		 * Run the core script against the core state.
+		 * @returns True if the script ran successfully. False if it never compiled or failed at runtime.
+		 * @note The calling thread must already hold this node's core state lock, i.e. this is only ever
+		 *       reached through a core ScriptSession.
+		 */
+		bool __runCore();
+
+		/**
+		 * Run the poke script against the poke state.
+		 * @returns True if the script ran successfully. False if it never compiled or failed at runtime.
+		 * @note The calling thread must already hold this node's poke state lock, i.e. this is only ever
+		 *       reached through a poke ScriptSession.
+		 */
+		bool __runPoke();
+
+		/**
+		 * Release the resource lock on one of this node's states, ending the session that held it.
+		 * @param poke True to release the poke state, false to release the core state.
+		 * @note Called from ScriptSession's destructor, so a failure to unlock is logged rather than thrown.
+		 */
+		void __releaseState(bool poke);
+
+		/**
+		 * Compile _coreScript once and cache the result in _coreBytecode, so a core session never has to
 		 * re-parse the source text. _coreScript never changes after construction, so this only needs
 		 * to run once.
 		 */
@@ -184,11 +179,18 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		 * Install a fresh table as luaState's live global table, with its __index metamethod falling
 		 * through to the table referenced by baseEnvRef, so library functions remain visible but no write
 		 * lands in the base table. Called once per state, at construction, to seed the persistent
-		 * environment that state's invoke()/poke calls run against and write into from then on.
+		 * environment that state's sessions run against and write into from then on.
 		 * @param luaState State to install the fresh environment into.
 		 * @param baseEnvRef Registry ref (in luaState) to fall through reads to.
 		 */
 		static void __installFreshEnv(lua_State* luaState, int baseEnvRef);
+
+		/**
+		 * Get the printable name of a poke type, as exposed to a poke script as POKE_TYPE.
+		 * @param type Poke type to name.
+		 * @returns The name of that type.
+		 */
+		static const char* __pokeTypeName(GraphPoke::PokeType type);
 
 		/**
 		 * Register this node's core Lua bindings exactly once, the first time it is needed, writing them
@@ -209,22 +211,13 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		/**
 		 * Shared implementation behind __registerCoreGlobalsOnce()/__registerPokeGlobalsOnce(): temporarily
 		 * points luaState's live global table at baseEnvRef so _registerCoreGlobals()'s lua_setglobal()
-		 * calls land there instead of the current per-invoke table, calls _registerCoreGlobals(), then
+		 * calls land there instead of the current live env table, calls _registerCoreGlobals(), then
 		 * restores the live global table that was in effect beforehand.
 		 * @param luaState Lua state to register against.
 		 * @param baseEnvRef Registry ref (in luaState) of the permanent base env table to register into.
 		 * @param registered In/out: skipped entirely if already true; set true once registration runs.
 		 */
 		void __registerGlobalsOnce(lua_State* luaState, int baseEnvRef, bool& registered);
-
-		/**
-		 * Push GraphPoke's contents as Lua globals (POKE_TYPE, HIT_DURATION, DRAG_VECTOR) onto luaState,
-		 * ahead of running the poke script, so the script can branch on what kind of poke this is.
-		 * @param luaState The poke Lua state, positioned with the fresh per-invoke environment already
-		 *        installed.
-		 * @param poke The poke whose contents should be exposed.
-		 */
-		static void __exposePokeContext(lua_State* luaState, GraphPoke poke);
 
 		/**
 		 * Allocator shared by both persistent Lua states this node owns, capped independently per state via
@@ -258,11 +251,11 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		/// to compile.
 		std::string _pokeBytecode;
 
-		/// Guards every call into _coreLuaState.
-		ThreadMutex _coreLock;
+		/// Claimed for the life of a core session; guards every call into _coreLuaState.
+		ThreadResourceLock _coreLock;
 
-		/// Guards every call into _pokeLuaState.
-		ThreadMutex _pokeLock;
+		/// Claimed for the life of a poke session; guards every call into _pokeLuaState.
+		ThreadResourceLock _pokeLock;
 
 		/// Persistent, sandboxed Lua state this node owns for running its core script.
 		lua_State* _coreLuaState = 0;
@@ -277,8 +270,8 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		int _coreBaseEnvRef = 0;
 
 		/// Whether _registerCoreGlobals() has already run once for this node instance. Guards
-		/// __registerCoreGlobalsOnce() so subclass bindings are installed exactly once, the first time
-		/// invoke() runs a script, instead of being re-registered on every invoke().
+		/// __registerCoreGlobalsOnce() so subclass bindings are installed exactly once, the first time a
+		/// core session runs a script, instead of being re-registered on every run.
 		bool _coreGlobalsRegistered = false;
 
 		/// Registry ref (in _pokeLuaState) to the clean sandboxed base env table.

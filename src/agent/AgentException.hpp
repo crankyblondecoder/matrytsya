@@ -33,7 +33,7 @@ class AgentException : public Exception
 			MODEL_REQUEST_FAILED,
 			/// A model kept requesting tool calls past the permitted number of rounds.
 			TOOL_CALL_LIMIT_EXCEEDED,
-			/// No model was assigned to a role with sufficient capability to service a request.
+			/// No model was assigned to a role with the requested capability to service a request.
 			NO_CANDIDATE_MODEL,
 			/// A model request was given a sampling temperature outside the permitted range.
 			INVALID_TEMPERATURE
@@ -83,7 +83,7 @@ class AgentException : public Exception
 					return "Too many rounds of tool calls were requested.";
 
 				case NO_CANDIDATE_MODEL:
-					return "No model is assigned to that role with sufficient capability.";
+					return "No model is assigned to that role with that capability.";
 
 				case INVALID_TEMPERATURE:
 					return "That sampling temperature is outside the permitted range.";

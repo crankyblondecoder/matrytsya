@@ -14,6 +14,7 @@
 #include "../../../graph/nodes/PingNode.hpp"
 #include "../../../graph/nodes/SceneGeometryScriptNode.hpp"
 #include "../../../graph/nodes/ScriptNode.hpp"
+#include "../../../graph/nodes/ScriptSession.hpp"
 
 /**
  * Graph node that emits a ScriptAction of its own, mirroring how PingNode exposes emitPing().
@@ -172,12 +173,15 @@ TEST(ScriptActionTest, GlobalsAreIsolatedPerNode)
 
 	ScriptAction* action = sourceNode -> emitScript(true);
 
-	bool wasNil = false;
-	ASSERT_TRUE(readerNode -> getScriptActionTarget() -> getGlobal("leakedWasNil", wasNil))
-		<< "Reader node's script was never invoked.";
+	{ Handle<ScriptSession> sessionHandle = readerNode -> requestCoreSession();
 
-	EXPECT_TRUE(wasNil)
-		<< "Global set by one node's script should not be visible to the next node's script.";
+		bool wasNil = false;
+		ASSERT_TRUE(sessionHandle.getInstance() -> getGlobal("leakedWasNil", wasNil))
+			<< "Reader node's script was never invoked.";
+
+		EXPECT_TRUE(wasNil)
+			<< "Global set by one node's script should not be visible to the next node's script.";
+	}
 
 	action -> decrRef();
 
@@ -210,13 +214,19 @@ TEST(ScriptActionTest, ExplicitlySharedGlobalsAreVisibleToEveryNode)
 
 	int value = -1;
 
-	ASSERT_TRUE(readerNode1 -> getScriptActionTarget() -> getGlobal("observedShared", value))
-		<< "Reader node 1's script was never invoked.";
-	EXPECT_EQ(value, 99) << "Explicitly shared global should be visible to every node.";
+	{ Handle<ScriptSession> sessionHandle = readerNode1 -> requestCoreSession();
 
-	ASSERT_TRUE(readerNode2 -> getScriptActionTarget() -> getGlobal("observedShared", value))
-		<< "Reader node 2's script was never invoked.";
-	EXPECT_EQ(value, 99) << "Explicitly shared global should be visible to every node.";
+		ASSERT_TRUE(sessionHandle.getInstance() -> getGlobal("observedShared", value))
+			<< "Reader node 1's script was never invoked.";
+		EXPECT_EQ(value, 99) << "Explicitly shared global should be visible to every node.";
+	}
+
+	{ Handle<ScriptSession> sessionHandle = readerNode2 -> requestCoreSession();
+
+		ASSERT_TRUE(sessionHandle.getInstance() -> getGlobal("observedShared", value))
+			<< "Reader node 2's script was never invoked.";
+		EXPECT_EQ(value, 99) << "Explicitly shared global should be visible to every node.";
+	}
 
 	action -> decrRef();
 

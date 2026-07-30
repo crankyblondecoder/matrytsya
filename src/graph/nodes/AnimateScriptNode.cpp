@@ -1,8 +1,12 @@
 #include "AnimateScriptNode.hpp"
 
-#include "../../lua/lua.hpp"
 #include "../actions/AnimateAction.hpp"
 #include "../graphActionFlagRegister.hpp"
+#include "../GraphHive.hpp"
+#include "../GraphToolBindingsFactory.hpp"
+#include "../../agent/ModelToolBindings.hpp"
+
+#include "../../lua/lua.hpp"
 
 AnimateScriptNode::~AnimateScriptNode()
 {
@@ -12,6 +16,7 @@ AnimateScriptNode::AnimateScriptNode(const std::string& coreScript, const std::s
 	: StrobeScriptNode(coreScript, pokeScript)
 {
 	_addActionFlag(ANIMATE_GRAPH_ACTION);
+	_addActionFlag(AGENT_GRAPH_ACTION);
 }
 
 void AnimateScriptNode::setAnimating(bool flag, unsigned serial)
@@ -50,7 +55,32 @@ bool AnimateScriptNode::__getAnimating()
 	}
 }
 
+bool AnimateScriptNode::getAnimating()
+{
+	return __getAnimating();
+}
+
 AnimateActionTarget* AnimateScriptNode::getAnimateActionTarget()
+{
+	return this;
+}
+
+std::vector<Handle<ModelToolBindings>> AnimateScriptNode::getModelToolBindings(AgenticHarness::Capability capability)
+{
+	// Only what the hive's factory holds for this class; no script defined tool bindings are supported yet.
+	Handle<GraphHive> hive = getHive();
+
+	if(!hive.isValid()) return std::vector<Handle<ModelToolBindings>>();
+
+	Handle<GraphToolBindingsFactory> factory = hive.getInstance() -> getToolBindingsFactory();
+
+	if(!factory.isValid()) return std::vector<Handle<ModelToolBindings>>();
+
+	return factory.getInstance() -> getAnimateScriptNodeToolBindings(capability,
+		Handle<AnimateScriptNode>(this));
+}
+
+AgentActionTarget* AnimateScriptNode::getAgentActionTarget()
 {
 	return this;
 }

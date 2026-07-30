@@ -1,10 +1,13 @@
 #include "ScriptNode.hpp"
 
+#include "ScriptSession.hpp"
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphException.hpp"
 #include "../GraphPoke.hpp"
 
 #include "../../lua/lua.hpp"
+#include "../../log/log.hpp"
+#include "../../thread/ThreadException.hpp"
 
 #include <cmath>
 #include <cstdlib>
@@ -36,8 +39,8 @@ ScriptNode::ScriptNode(const std::string& coreScript, const std::string& pokeScr
 	_coreLuaState = __createSandboxedState(&_coreMemoryUsed, &_coreBaseEnvRef);
 	_pokeLuaState = __createSandboxedState(&_pokeMemoryUsed, &_pokeBaseEnvRef);
 
-	// Prime both states with a fresh environment up front, so setGlobal()/_registerCoreGlobals() have a
-	// live fresh table to write into even before the first invoke()/poke.
+	// Prime both states with a fresh environment up front, so a session's setGlobal() and
+	// _registerCoreGlobals() have a live fresh table to write into even before the first run.
 	__installFreshEnv(_coreLuaState, _coreBaseEnvRef);
 	__installFreshEnv(_pokeLuaState, _pokeBaseEnvRef);
 }
@@ -47,198 +50,124 @@ GraphNode::Type ScriptNode::getType()
 	return Type::SCRIPT_NODE;
 }
 
-bool ScriptNode::invoke()
+Handle<ScriptSession> ScriptNode::requestCoreSession()
+{
+	_coreLock.lock();
+
+	ScriptSession* session = 0;
+
+	try
+	{
+		session = new ScriptSession(this, _coreLuaState, false);
+	}
+	catch(...)
+	{
+		_coreLock.unlock();
+		throw;
+	}
+
+	Handle<ScriptSession> sessionHandle(session);
+
+	// The reference the session was constructed with belongs to the handle now.
+	session -> decrRef();
+
+	return sessionHandle;
+}
+
+Handle<ScriptSession> ScriptNode::requestPokeSession()
+{
+	_pokeLock.lock();
+
+	ScriptSession* session = 0;
+
+	try
+	{
+		session = new ScriptSession(this, _pokeLuaState, true);
+	}
+	catch(...)
+	{
+		_pokeLock.unlock();
+		throw;
+	}
+
+	Handle<ScriptSession> sessionHandle(session);
+
+	// The reference the session was constructed with belongs to the handle now.
+	session -> decrRef();
+
+	return sessionHandle;
+}
+
+bool ScriptNode::__runCore()
 {
 	if(_coreBytecode.empty()) return false;
 
-	// Note: The lock is deliberately held across the script run itself. Nothing else may touch the core
-	// state while a script is running against it, and a script's callbacks only ever reach back into this
-	// node's other state (vertexes, transform, animating flag), never into the core state, so no call made
-	// from inside the run can arrive back here.
-	{ SYNC(_coreLock)
+	// Note: The session's lock is deliberately still held across the script run itself. Nothing else may
+	// touch the core state while a script is running against it, and a script's callbacks only ever reach
+	// back into this node's other state (vertexes, transform, animating flag), never into the core state, so
+	// no call made from inside the run can arrive back here.
 
-		__registerCoreGlobalsOnce();
+	__registerCoreGlobalsOnce();
 
-		bool success = luaL_loadbufferx(_coreLuaState, _coreBytecode.data(), _coreBytecode.size(), "script", "b") == LUA_OK;
+	bool success = luaL_loadbufferx(_coreLuaState, _coreBytecode.data(), _coreBytecode.size(), "script", "b") == LUA_OK;
 
-		// Mode "b" only accepts bytecode. _coreBytecode is compiled from _coreScript once, at construction, by
-		// this class itself rather than supplied by the script being run, so it never crosses the trust boundary
-		// that the "t"-only loading elsewhere in this module guards against.
-		if(success)
-		{
-			success = lua_pcall(_coreLuaState, 0, 0, 0) == LUA_OK;
-		}
-		else
-		{
-			lua_pop(_coreLuaState, 1);
-		}
-
-		// Note: lua_pcall already pops the function and any error message off the stack on failure, unlike
-		// luaL_loadbufferx, which leaves an error message on the stack that has to be popped explicitly.
-
-		// The environment the script just ran against is left live rather than replaced, so any global it set
-		// (or that setGlobal() staged ahead of this invoke()) is still there, as the starting state, the next
-		// time this node is invoked.
-		return success;
+	// Mode "b" only accepts bytecode. _coreBytecode is compiled from _coreScript once, at construction, by
+	// this class itself rather than supplied by the script being run, so it never crosses the trust boundary
+	// that the "t"-only loading elsewhere in this module guards against.
+	if(success)
+	{
+		success = lua_pcall(_coreLuaState, 0, 0, 0) == LUA_OK;
 	}
+	else
+	{
+		lua_pop(_coreLuaState, 1);
+	}
+
+	// Note: lua_pcall already pops the function and any error message off the stack on failure, unlike
+	// luaL_loadbufferx, which leaves an error message on the stack that has to be popped explicitly.
+
+	// The environment the script just ran against is left live rather than replaced, so any global it set (or
+	// that the session staged ahead of this run) is still there, as the starting state, for the next session.
+	return success;
 }
 
-void ScriptNode::setGlobal(const char* name, bool value)
+bool ScriptNode::__runPoke()
 {
-	{ SYNC(_coreLock)
+	if(_pokeBytecode.empty()) return false;
 
-		lua_pushboolean(_coreLuaState, value);
-		lua_setglobal(_coreLuaState, name);
+	// Note: As in __runCore(), the session's lock is still held across the script run so that nothing else
+	// drives the poke state while a poke script is running against it.
+
+	__registerPokeGlobalsOnce();
+
+	bool success = luaL_loadbufferx(_pokeLuaState, _pokeBytecode.data(), _pokeBytecode.size(), "script", "b") == LUA_OK;
+
+	if(success)
+	{
+		success = lua_pcall(_pokeLuaState, 0, 0, 0) == LUA_OK;
 	}
+	else
+	{
+		lua_pop(_pokeLuaState, 1);
+	}
+
+	// The environment the poke script just ran against is left live rather than replaced, so any global it
+	// set is still there, as the starting state, the next time this node is poked.
+	return success;
 }
 
-void ScriptNode::setGlobal(const char* name, int value)
+void ScriptNode::__releaseState(bool poke)
 {
-	{ SYNC(_coreLock)
-
-		lua_pushinteger(_coreLuaState, value);
-		lua_setglobal(_coreLuaState, name);
+	try
+	{
+		if(poke) _pokeLock.unlock();
+		else _coreLock.unlock();
 	}
-}
-
-void ScriptNode::setGlobal(const char* name, double value)
-{
-	{ SYNC(_coreLock)
-
-		lua_pushnumber(_coreLuaState, value);
-		lua_setglobal(_coreLuaState, name);
-	}
-}
-
-void ScriptNode::setGlobal(const char* name, const char* value)
-{
-	{ SYNC(_coreLock)
-
-		lua_pushstring(_coreLuaState, value);
-		lua_setglobal(_coreLuaState, name);
-	}
-}
-
-bool ScriptNode::getGlobal(const char* name, bool& value)
-{
-	{ SYNC(_coreLock)
-
-		lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
-		lua_getfield(_coreLuaState, -1, name); // [env, value]
-
-		bool found = lua_isboolean(_coreLuaState, -1);
-		if(found) value = lua_toboolean(_coreLuaState, -1);
-
-		lua_pop(_coreLuaState, 2);
-		return found;
-	}
-}
-
-bool ScriptNode::getGlobal(const char* name, int& value)
-{
-	{ SYNC(_coreLock)
-
-		lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
-		lua_getfield(_coreLuaState, -1, name); // [env, value]
-
-		bool found = lua_isinteger(_coreLuaState, -1);
-		if(found) value = static_cast<int>(lua_tointeger(_coreLuaState, -1));
-
-		lua_pop(_coreLuaState, 2);
-		return found;
-	}
-}
-
-bool ScriptNode::getGlobal(const char* name, double& value)
-{
-	{ SYNC(_coreLock)
-
-		lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
-		lua_getfield(_coreLuaState, -1, name); // [env, value]
-
-		bool found = lua_isnumber(_coreLuaState, -1);
-		if(found) value = lua_tonumber(_coreLuaState, -1);
-
-		lua_pop(_coreLuaState, 2);
-		return found;
-	}
-}
-
-bool ScriptNode::getGlobal(const char* name, const char*& value)
-{
-	{ SYNC(_coreLock)
-
-		lua_rawgeti(_coreLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
-		lua_getfield(_coreLuaState, -1, name); // [env, value]
-
-		bool found = lua_isstring(_coreLuaState, -1);
-		if(found) value = lua_tostring(_coreLuaState, -1);
-
-		// Note: the string pointer returned by lua_tostring() is anchored by the value left on the stack, which
-		// is in turn anchored by the env table (still referenced from the registry), so it remains valid until
-		// that table's "name" field is overwritten or the table itself is replaced/unreferenced.
-		lua_pop(_coreLuaState, 2);
-		return found;
-	}
-}
-
-bool ScriptNode::getPokeGlobal(const char* name, bool& value)
-{
-	{ SYNC(_pokeLock)
-
-		lua_rawgeti(_pokeLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
-		lua_getfield(_pokeLuaState, -1, name); // [env, value]
-
-		bool found = lua_isboolean(_pokeLuaState, -1);
-		if(found) value = lua_toboolean(_pokeLuaState, -1);
-
-		lua_pop(_pokeLuaState, 2);
-		return found;
-	}
-}
-
-bool ScriptNode::getPokeGlobal(const char* name, int& value)
-{
-	{ SYNC(_pokeLock)
-
-		lua_rawgeti(_pokeLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
-		lua_getfield(_pokeLuaState, -1, name); // [env, value]
-
-		bool found = lua_isinteger(_pokeLuaState, -1);
-		if(found) value = static_cast<int>(lua_tointeger(_pokeLuaState, -1));
-
-		lua_pop(_pokeLuaState, 2);
-		return found;
-	}
-}
-
-bool ScriptNode::getPokeGlobal(const char* name, double& value)
-{
-	{ SYNC(_pokeLock)
-
-		lua_rawgeti(_pokeLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
-		lua_getfield(_pokeLuaState, -1, name); // [env, value]
-
-		bool found = lua_isnumber(_pokeLuaState, -1);
-		if(found) value = lua_tonumber(_pokeLuaState, -1);
-
-		lua_pop(_pokeLuaState, 2);
-		return found;
-	}
-}
-
-bool ScriptNode::getPokeGlobal(const char* name, const char*& value)
-{
-	{ SYNC(_pokeLock)
-
-		lua_rawgeti(_pokeLuaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [env]
-		lua_getfield(_pokeLuaState, -1, name); // [env, value]
-
-		bool found = lua_isstring(_pokeLuaState, -1);
-		if(found) value = lua_tostring(_pokeLuaState, -1);
-
-		lua_pop(_pokeLuaState, 2);
-		return found;
+	catch(ThreadException& ex)
+	{
+		// A session is released from its destructor, so there is nowhere for this to be thrown to. It only
+		// happens if the session outlived the thread that requested it, which is not permitted.
+		LOG(Logger::LogLevel::ERROR, "Could not release script state lock.")
 	}
 }
 
@@ -249,27 +178,29 @@ ScriptActionTarget* ScriptNode::getScriptActionTarget()
 
 void ScriptNode::_poked(GraphPoke poke)
 {
-	if(_pokeBytecode.empty()) return;
+	try
+	{
+		{ Handle<ScriptSession> sessionHandle = requestPokeSession();
 
-	// Note: As in invoke(), the lock is held across the script run so that nothing else drives the poke
-	// state while a poke script is running against it.
-	{ SYNC(_pokeLock)
+			ScriptSession* session = sessionHandle.getInstance();
 
-		__registerPokeGlobalsOnce();
+			// The poke's contents are staged as globals ahead of the run so the script can branch on what
+			// kind of poke this is.
+			session -> setGlobal("POKE_TYPE", __pokeTypeName(poke.getType()));
+			session -> setGlobal("HIT_DURATION", poke.getHitDuration());
 
-		__exposePokeContext(_pokeLuaState, poke);
+			float dragVector[3];
+			poke.getDragVector(dragVector);
 
-		if(luaL_loadbufferx(_pokeLuaState, _pokeBytecode.data(), _pokeBytecode.size(), "script", "b") == LUA_OK)
-		{
-			lua_pcall(_pokeLuaState, 0, 0, 0);
+			session -> setGlobal("DRAG_VECTOR", dragVector, 3);
+
+			session -> run();
 		}
-		else
-		{
-			lua_pop(_pokeLuaState, 1);
-		}
-
-		// The environment the poke script just ran against is left live rather than replaced, so any global it
-		// set is still there, as the starting state, the next time this node is poked.
+	}
+	catch(ThreadException& ex)
+	{
+		// A poke that can't claim the poke state is dropped rather than propagated back into the graph.
+		LOG(Logger::LogLevel::DEBUG, "Poke dropped; could not obtain a session on the poke state.")
 	}
 }
 
@@ -282,7 +213,7 @@ void ScriptNode::__compileCoreScript()
 	// Mode "t" refuses precompiled bytecode chunks, which could otherwise be used to crash or escape the VM.
 	if(luaL_loadbufferx(scratchState, _coreScript.c_str(), _coreScript.size(), "script", "t") == LUA_OK)
 	{
-		// Strip debug info: invoke() never inspects line numbers or names from a failed pcall.
+		// Strip debug info: __runCore() never inspects line numbers or names from a failed pcall.
 		lua_dump(scratchState, __writeBytecode, &_coreBytecode, 1);
 	}
 
@@ -298,7 +229,7 @@ void ScriptNode::__compilePokeScript()
 	// Mode "t" refuses precompiled bytecode chunks, which could otherwise be used to crash or escape the VM.
 	if(luaL_loadbufferx(scratchState, _pokeScript.c_str(), _pokeScript.size(), "script", "t") == LUA_OK)
 	{
-		// Strip debug info: _poked() never inspects line numbers or names from a failed pcall.
+		// Strip debug info: __runPoke() never inspects line numbers or names from a failed pcall.
 		lua_dump(scratchState, __writeBytecode, &_pokeBytecode, 1);
 	}
 
@@ -331,7 +262,7 @@ lua_State* ScriptNode::__createSandboxedState(size_t* memoryUsed, int* baseEnvRe
 	lua_pushcfunction(luaState, __safeLoad);
 	lua_setglobal(luaState, "load");
 
-	// Keep this table around as the clean base every fresh per-invoke env reads through to; it is never
+	// Keep this table around as the clean base the live env reads through to; it is never
 	// installed as the live global table again after this point.
 	lua_pushglobaltable(luaState);
 	*baseEnvRef = luaL_ref(luaState, LUA_REGISTRYINDEX);
@@ -365,13 +296,13 @@ void ScriptNode::__registerGlobalsOnce(lua_State* luaState, int baseEnvRef, bool
 {
 	if(registered) return;
 
-	// Save whatever is currently live as globals (e.g. globals just written by setGlobal() ahead of this
-	// invoke()), so those writes aren't lost by temporarily swapping globals to the base table below.
+	// Save whatever is currently live as globals (e.g. globals just written by the session ahead of this
+	// run), so those writes aren't lost by temporarily swapping globals to the base table below.
 	lua_rawgeti(luaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [currentEnv]
 	int currentEnvRef = luaL_ref(luaState, LUA_REGISTRYINDEX); // [ ]
 
 	// Temporarily make the permanent base table live as globals, so _registerCoreGlobals()'s
-	// lua_setglobal() calls land there instead of the current per-invoke table, and so they survive
+	// lua_setglobal() calls land there instead of the current live env table, and so they survive
 	// every future __installFreshEnv() reset.
 	lua_rawgeti(luaState, LUA_REGISTRYINDEX, baseEnvRef); // [base]
 	lua_rawseti(luaState, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS); // [ ]
@@ -387,33 +318,14 @@ void ScriptNode::__registerGlobalsOnce(lua_State* luaState, int baseEnvRef, bool
 	registered = true;
 }
 
-void ScriptNode::__exposePokeContext(lua_State* luaState, GraphPoke poke)
+const char* ScriptNode::__pokeTypeName(GraphPoke::PokeType type)
 {
-	const char* typeName = "HIT";
+	if(type == GraphPoke::PokeType::GRAB) return "GRAB";
+	if(type == GraphPoke::PokeType::DRAG) return "DRAG";
+	if(type == GraphPoke::PokeType::HOVER_ENTER) return "HOVER_ENTER";
+	if(type == GraphPoke::PokeType::HOVER_LEAVE) return "HOVER_LEAVE";
 
-	if(poke.getType() == GraphPoke::PokeType::GRAB) typeName = "GRAB";
-	else if(poke.getType() == GraphPoke::PokeType::DRAG) typeName = "DRAG";
-	else if(poke.getType() == GraphPoke::PokeType::HOVER_ENTER) typeName = "HOVER_ENTER";
-	else if(poke.getType() == GraphPoke::PokeType::HOVER_LEAVE) typeName = "HOVER_LEAVE";
-
-	lua_pushstring(luaState, typeName);
-	lua_setglobal(luaState, "POKE_TYPE");
-
-	lua_pushinteger(luaState, poke.getHitDuration());
-	lua_setglobal(luaState, "HIT_DURATION");
-
-	float dragVector[3];
-	poke.getDragVector(dragVector);
-
-	lua_createtable(luaState, 3, 0); // [dragVector]
-
-	for(int i = 0; i < 3; i++)
-	{
-		lua_pushnumber(luaState, dragVector[i]);
-		lua_seti(luaState, -2, i + 1); // [dragVector]
-	}
-
-	lua_setglobal(luaState, "DRAG_VECTOR");
+	return "HIT";
 }
 
 void* ScriptNode::__alloc(void* userData, void* ptr, size_t oldSize, size_t newSize)

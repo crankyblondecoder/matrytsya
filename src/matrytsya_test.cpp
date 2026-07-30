@@ -5,13 +5,14 @@
 #include "agent/ModelSystemPrompt.hpp"
 #include "agent/ModelToolBindings.hpp"
 #include "agent/OllamaModelProvider.hpp"
-#include "agent_bindings/BasicHiveToolBindings.hpp"
+#include "agent_bindings/ModelToolBindingsFactory.hpp"
 #include "display/DisplayException.hpp"
 #include "display/GraphHiveSceneSurfaceWebglMap.hpp"
 #include "display/http/HttpServer.hpp"
 #include "util/Handle.hpp"
 #include "graph/GraphHive.hpp"
 #include "graph/GraphHiveSceneSurface.hpp"
+#include "graph/GraphToolBindingsFactory.hpp"
 #include "persist/HiveBuilder.hpp"
 #include "persist/json/JsonHiveLoader.hpp"
 
@@ -19,6 +20,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include <signal.h>
 #include <unistd.h>
@@ -85,14 +87,16 @@ namespace
 	}
 
 	/**
-	 * Build an agentic harness backed by the test Ollama server, with its model, a system prompt and basic
-	 * hive tool bindings all assigned to the chat role at low capability.
+	 * Build an agentic harness backed by the test Ollama server, with its model, a system prompt and the
+	 * factory's chat tool bindings all assigned to the chat role at low capability.
 	 * @param hive Hive the tool bindings are to report on.
+	 * @param toolBindingsFactory Factory the chat tool bindings are taken from.
 	 * @returns Handle to the harness.
 	 * @note Exits the process when the server cannot be reached or does not serve the model, since a chat
 	 *       surface with nothing behind it is of no use to this test.
 	 */
-	Handle<AgenticHarness> _buildAgenticHarness(Handle<GraphHive> hive)
+	Handle<AgenticHarness> _buildAgenticHarness(Handle<GraphHive> hive,
+		Handle<GraphToolBindingsFactory> toolBindingsFactory)
 	{
 		Handle<ModelProvider> providerHandle(0);
 
@@ -143,12 +147,15 @@ namespace
 
 		harness -> addSystemPrompt(chatRoleCapability, ModelSystemPrompt(_CHAT_SYSTEM_PROMPT));
 
-		BasicHiveToolBindings* toolBindings = new BasicHiveToolBindings(hive);
+		// Taken from the factory rather than built here, so that what the chat assistant is given is decided
+		// in the one place that decides it for every other role as well.
+		std::vector<Handle<ModelToolBindings>> chatTools = toolBindingsFactory.getInstance() ->
+			getChatToolBindings(chatRoleCapability.capability, hive);
 
-		harness -> addToolBinding({chatRoleCapability}, Handle<ModelToolBindings>(toolBindings));
-
-		// The harness holds the reference through its assignment; release the implicit construction ref.
-		toolBindings -> decrRef();
+		for(Handle<ModelToolBindings>& chatTool : chatTools)
+		{
+			harness -> addToolBinding({chatRoleCapability}, chatTool);
+		}
 
 		Handle<AgenticHarness> harnessHandle(harness);
 
@@ -175,9 +182,21 @@ int main(int argc, char const *argv[])
 		exit(1);
 	}
 
+	// Built here rather than by the hive itself, as the concrete factory belongs to agent_bindings, which
+	// depends on graph.
+	ModelToolBindingsFactory* toolBindingsFactory = new ModelToolBindingsFactory();
+
+	Handle<GraphToolBindingsFactory> toolBindingsFactoryHandle(toolBindingsFactory);
+
+	// The handle holds the reference; release the implicit construction ref.
+	toolBindingsFactory -> decrRef();
+
+	hive -> setToolBindingsFactory(toolBindingsFactoryHandle);
+
 	// Set before the surface is served, so that the first chat request cannot arrive without a model behind
-	// it.
-	hive -> setAgenticHarness(_buildAgenticHarness(hiveHandle));
+	// it. The factory is passed in rather than read back off the hive, so the harness cannot end up with no
+	// chat tools purely because of the order these two calls are made in.
+	hive -> setAgenticHarness(_buildAgenticHarness(hiveHandle, toolBindingsFactoryHandle));
 
 	HttpServer httpServer(8080);
 

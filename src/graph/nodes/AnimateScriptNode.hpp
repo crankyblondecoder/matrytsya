@@ -2,15 +2,20 @@
 #define ANIMATE_SCRIPT_NODE_H
 
 #include <string>
+#include <vector>
 
+#include "../actionTargets/AgentActionTarget.hpp"
 #include "../actionTargets/AnimateActionTarget.hpp"
+#include "../../util/Handle.hpp"
 #include "StrobeScriptNode.hpp"
 
+class ModelToolBindings;
+
 /**
- * Graph node that combines StrobeScriptNode's strobing support with animate action support.
+ * Graph node that combines StrobeScriptNode's strobing support with animate and agent action support.
  * @note This class is only intended to be inherited and not directly part of the graph.
  */
-class AnimateScriptNode : public StrobeScriptNode, public AnimateActionTarget
+class AnimateScriptNode : public StrobeScriptNode, public AnimateActionTarget, public AgentActionTarget
 {
     public:
 
@@ -23,7 +28,17 @@ class AnimateScriptNode : public StrobeScriptNode, public AnimateActionTarget
 		// Animate target API point.
 		void setAnimating(bool flag, unsigned serial) override;
 
+		/**
+		 * Get whether this node is currently in animating mode.
+		 */
+		bool getAnimating();
+
 		AnimateActionTarget* getAnimateActionTarget() override;
+
+		// Agent target API point.
+		std::vector<Handle<ModelToolBindings>> getModelToolBindings(AgenticHarness::Capability capability) override;
+
+		AgentActionTarget* getAgentActionTarget() override;
 
 	protected:
 

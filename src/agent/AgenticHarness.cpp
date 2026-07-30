@@ -102,9 +102,7 @@ Handle<ModelContext> AgenticHarness::processRequest(std::string prompt, Role rol
 	for(ModelAssignment& assignment : _assignments)
 	{
 		if(assignment.roleCapability.role != role) continue;
-
-		// A more capable model can be substituted for the one requested.
-		if(assignment.roleCapability.capability < capability) continue;
+		if(assignment.roleCapability.capability != capability) continue;
 
 		candidateModel = assignment.model;
 

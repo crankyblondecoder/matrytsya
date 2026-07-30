@@ -1,4 +1,4 @@
-srcFiles = BasicHiveToolBindings.cpp
+srcFiles = AnimateScriptNodeToolBindings.cpp BasicHiveToolBindings.cpp ModelToolBindingsFactory.cpp
 
 objFiles = $(srcFiles:.cpp=.o)
 

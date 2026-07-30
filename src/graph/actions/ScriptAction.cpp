@@ -3,6 +3,9 @@
 #include "../actionTargets/ScriptActionTarget.hpp"
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphNode.hpp"
+#include "../nodes/ScriptSession.hpp"
+
+#include "../../thread/ThreadException.hpp"
 
 ScriptAction::~ScriptAction()
 {
@@ -22,22 +25,41 @@ void ScriptAction::_apply(GraphNode* target)
 
 	if(scriptTarget)
 	{
-		for(const auto& entry : _sharedGlobals)
+		try
 		{
-			const std::string& name = entry.first;
-			const SharedValue& sharedValue = entry.second;
+			// One session, so the shared globals and the run that reads them cannot be interleaved with
+			// another action being applied to the same node.
+			{ Handle<ScriptSession> sessionHandle = scriptTarget -> requestCoreSession();
 
-			switch(sharedValue.type)
-			{
-				case SharedValue::Type::BOOL:   scriptTarget -> setGlobal(name.c_str(), sharedValue.boolValue); break;
-				case SharedValue::Type::INT:    scriptTarget -> setGlobal(name.c_str(), sharedValue.intValue); break;
-				case SharedValue::Type::DOUBLE: scriptTarget -> setGlobal(name.c_str(), sharedValue.doubleValue); break;
-				case SharedValue::Type::STRING: scriptTarget -> setGlobal(name.c_str(), sharedValue.stringValue.c_str()); break;
+				ScriptSession* session = sessionHandle.getInstance();
+
+				for(const auto& entry : _sharedGlobals)
+				{
+					const std::string& name = entry.first;
+					const SharedValue& sharedValue = entry.second;
+
+					switch(sharedValue.type)
+					{
+						case SharedValue::Type::BOOL:   session -> setGlobal(name.c_str(), sharedValue.boolValue); break;
+						case SharedValue::Type::INT:    session -> setGlobal(name.c_str(), sharedValue.intValue); break;
+						case SharedValue::Type::DOUBLE: session -> setGlobal(name.c_str(), sharedValue.doubleValue); break;
+						case SharedValue::Type::STRING: session -> setGlobal(name.c_str(), sharedValue.stringValue.c_str()); break;
+					}
+				}
+
+				session -> run();
 			}
 		}
+		catch(ThreadException& ex)
+		{
+			// Nothing may escape into the work cycle: an exception out of here strands the action, as the
+			// traversal and completion that follow this call would never run. A node whose state could not be
+			// claimed is simply left unvisited.
+			return;
+		}
 
-		scriptTarget -> invoke();
-
+		// Assigned outside the session so that releasing the previously visited node, which can delete it,
+		// never happens while a state lock is held.
 		_lastVisitedNode = Handle<GraphNode>(target);
 	}
 }
@@ -79,12 +101,33 @@ void ScriptAction::_shareGlobal(const char* name, const char* value)
 	entry.stringValue = value;
 }
 
-bool ScriptAction::_getGlobal(const char* name, bool& value)
+Handle<ScriptSession> ScriptAction::__requestLastVisitedSession()
 {
 	if(_lastVisitedNode.isValid())
 	{
 		ScriptActionTarget* target = _lastVisitedNode.getInstance() -> getScriptActionTarget();
-		if(target && target -> getGlobal(name, value)) return true;
+
+		if(target)
+		{
+			try
+			{
+				return target -> requestCoreSession();
+			}
+			catch(ThreadException& ex)
+			{
+				// A state that can't be claimed reads the same way as a node that never set the global.
+			}
+		}
+	}
+
+	return Handle<ScriptSession>(0);
+}
+
+bool ScriptAction::_getGlobal(const char* name, bool& value)
+{
+	{ Handle<ScriptSession> sessionHandle = __requestLastVisitedSession();
+
+		if(sessionHandle.isValid() && sessionHandle.getInstance() -> getGlobal(name, value)) return true;
 	}
 
 	auto it = _sharedGlobals.find(name);
@@ -100,10 +143,9 @@ bool ScriptAction::_getGlobal(const char* name, bool& value)
 
 bool ScriptAction::_getGlobal(const char* name, int& value)
 {
-	if(_lastVisitedNode.isValid())
-	{
-		ScriptActionTarget* target = _lastVisitedNode.getInstance() -> getScriptActionTarget();
-		if(target && target -> getGlobal(name, value)) return true;
+	{ Handle<ScriptSession> sessionHandle = __requestLastVisitedSession();
+
+		if(sessionHandle.isValid() && sessionHandle.getInstance() -> getGlobal(name, value)) return true;
 	}
 
 	auto it = _sharedGlobals.find(name);
@@ -119,10 +161,9 @@ bool ScriptAction::_getGlobal(const char* name, int& value)
 
 bool ScriptAction::_getGlobal(const char* name, double& value)
 {
-	if(_lastVisitedNode.isValid())
-	{
-		ScriptActionTarget* target = _lastVisitedNode.getInstance() -> getScriptActionTarget();
-		if(target && target -> getGlobal(name, value)) return true;
+	{ Handle<ScriptSession> sessionHandle = __requestLastVisitedSession();
+
+		if(sessionHandle.isValid() && sessionHandle.getInstance() -> getGlobal(name, value)) return true;
 	}
 
 	auto it = _sharedGlobals.find(name);
@@ -138,10 +179,9 @@ bool ScriptAction::_getGlobal(const char* name, double& value)
 
 bool ScriptAction::_getGlobal(const char* name, const char*& value)
 {
-	if(_lastVisitedNode.isValid())
-	{
-		ScriptActionTarget* target = _lastVisitedNode.getInstance() -> getScriptActionTarget();
-		if(target && target -> getGlobal(name, value)) return true;
+	{ Handle<ScriptSession> sessionHandle = __requestLastVisitedSession();
+
+		if(sessionHandle.isValid() && sessionHandle.getInstance() -> getGlobal(name, value)) return true;
 	}
 
 	auto it = _sharedGlobals.find(name);

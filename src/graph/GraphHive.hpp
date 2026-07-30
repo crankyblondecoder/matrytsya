@@ -15,6 +15,7 @@
 #include "GraphNamed.hpp"
 #include "GraphNodeLocation.hpp"
 #include "GraphPoke.hpp"
+#include "GraphToolBindingsFactory.hpp"
 #include "nodes/StrobeEmitterNode.hpp"
 
 class GraphNode;
@@ -175,16 +176,31 @@ class GraphHive : public RefCounted, public GraphNamed
 		Handle<AgenticHarness> getAgenticHarness();
 
 		/**
-		 * Create a new model context for a node-level agentic conversation, without processing any prompt
-		 * against it.
-		 * @note Delegates to the agentic harness with the role fixed to AgenticHarness::Role::NODE.
+		 * Set the tool bindings factory this hive supplies to whatever within it needs the tool bindings of a
+		 * concrete class.
+		 * @param toolBindingsFactory Handle of the factory to set. May be an invalid handle to clear.
+		 * @note The concrete factory lives in the agent_bindings module, which depends on this one, so the
+		 *       factory is built outside the graph and set here rather than being built by this hive.
+		 */
+		void setToolBindingsFactory(Handle<GraphToolBindingsFactory> toolBindingsFactory);
+
+		/**
+		 * Get the tool bindings factory set on this hive.
+		 * @returns Handle to the tool bindings factory. Invalid handle if none has been set.
+		 */
+		Handle<GraphToolBindingsFactory> getToolBindingsFactory();
+
+		/**
+		 * Create a new model context for an agentic conversation, without processing any prompt against it.
+		 * @note Delegates to the agentic harness.
+		 * @param role Role the context is being created for.
 		 * @param capability Capability required of the model that will eventually service requests made in
 		 *        the context.
-		 * @returns The new context, built from the system prompts and tools assigned to the NODE role and
-		 *          given capability.
+		 * @returns The new context, built from the system prompts and tools assigned to the given role and
+		 *          capability.
 		 * @throw GraphException When this hive has no agentic harness set.
 		 */
-		Handle<ModelContext> createNodeModelContext(AgenticHarness::Capability capability);
+		Handle<ModelContext> createModelContext(AgenticHarness::Role role, AgenticHarness::Capability capability);
 
 		/**
 		 * Process an agentic request against this hive's agentic harness.
@@ -197,7 +213,7 @@ class GraphHive : public RefCounted, public GraphNamed
 		 * @returns The context the request was serviced within.
 		 * @throw GraphException When this hive has no agentic harness set.
 		 * @throw AgentException When no prompt text was supplied, or when no candidate model is
-		 *        assigned to the role with sufficient capability.
+		 *        assigned to the role with that capability.
 		 */
 		Handle<ModelContext> processAgenticRequest(AgenticHarness::Capability capability, std::string prompt,
 			Handle<ModelContext> context = Handle<ModelContext>(0));
@@ -213,7 +229,7 @@ class GraphHive : public RefCounted, public GraphNamed
 		 * @returns The context the request was serviced within.
 		 * @throw GraphException When this hive has no agentic harness set.
 		 * @throw AgentException When no prompt text was supplied, or when no candidate model is
-		 *        assigned to the role with sufficient capability.
+		 *        assigned to the role with that capability.
 		 */
 		Handle<ModelContext> processNodeAgenticRequest(AgenticHarness::Capability capability, std::string prompt,
 			Handle<ModelContext> context = Handle<ModelContext>(0));
@@ -297,6 +313,9 @@ class GraphHive : public RefCounted, public GraphNamed
 
 		/// Agentic harness this hive can use to drive agentic decisions.
 		Handle<AgenticHarness> _agenticHarness;
+
+		/// Factory this hive supplies the tool bindings of a concrete class from.
+		Handle<GraphToolBindingsFactory> _toolBindingsFactory;
 
 		/// Nodes contained in this hive.
 		std::vector<GraphNode*>	_nodes;

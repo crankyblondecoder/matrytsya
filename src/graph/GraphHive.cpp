@@ -26,7 +26,7 @@ GraphHive::~GraphHive()
 	}
 }
 
-GraphHive::GraphHive(unsigned numThreads) : _agenticHarness(0)
+GraphHive::GraphHive(unsigned numThreads) : _agenticHarness(0), _toolBindingsFactory(0)
 {
 	try
 	{
@@ -414,7 +414,23 @@ Handle<AgenticHarness> GraphHive::getAgenticHarness()
 	}
 }
 
-Handle<ModelContext> GraphHive::createNodeModelContext(AgenticHarness::Capability capability)
+void GraphHive::setToolBindingsFactory(Handle<GraphToolBindingsFactory> toolBindingsFactory)
+{
+	{ SYNC(_lock)
+
+		if(_active) _toolBindingsFactory = toolBindingsFactory;
+	}
+}
+
+Handle<GraphToolBindingsFactory> GraphHive::getToolBindingsFactory()
+{
+	{ SYNC(_lock)
+
+		return _toolBindingsFactory;
+	}
+}
+
+Handle<ModelContext> GraphHive::createModelContext(AgenticHarness::Role role, AgenticHarness::Capability capability)
 {
 	Handle<AgenticHarness> harness(0);
 
@@ -425,7 +441,7 @@ Handle<ModelContext> GraphHive::createNodeModelContext(AgenticHarness::Capabilit
 
 	if(!harness.isValid()) throw GraphException(GraphException::AGENTIC_HARNESS_NOT_SET);
 
-	return harness.getInstance() -> createContext(AgenticHarness::Role::NODE, capability);
+	return harness.getInstance() -> createContext(role, capability);
 }
 
 Handle<ModelContext> GraphHive::processAgenticRequest(AgenticHarness::Capability capability, std::string prompt,
