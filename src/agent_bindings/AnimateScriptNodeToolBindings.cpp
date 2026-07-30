@@ -6,8 +6,8 @@
 #include "../agent/ModelToolDefinitionParameter.hpp"
 #include "../graph/nodes/AnimateScriptNode.hpp"
 
-AnimateScriptNodeToolBindings::AnimateScriptNodeToolBindings(Handle<AnimateScriptNode> node) :
-	_node{node}
+AnimateScriptNodeToolBindings::AnimateScriptNodeToolBindings(Handle<AnimateScriptNode> node, unsigned serial) :
+	_node{node}, _serial{serial}
 {
 	_registerBinding("getAnimating");
 	_registerBinding("setAnimating");
@@ -42,13 +42,13 @@ ModelToolCallParameterValue AnimateScriptNodeToolBindings::processBinding(std::s
 {
 	if(name == "getAnimating")
 	{
-		return ModelToolCallParameterValue("animating", getAnimating());
+		return ModelToolCallParameterValue("animating", __getAnimating());
 	}
 	else if(name == "setAnimating")
 	{
 		bool animating = std::get<bool>(_getParameterValue(parameterValues, "animating").getValue());
 
-		setAnimating(animating);
+		__setAnimating(animating);
 
 		return ModelToolCallParameterValue("animating", animating);
 	}
@@ -58,12 +58,12 @@ ModelToolCallParameterValue AnimateScriptNodeToolBindings::processBinding(std::s
 	}
 }
 
-bool AnimateScriptNodeToolBindings::getAnimating()
+bool AnimateScriptNodeToolBindings::__getAnimating()
 {
 	return _node.getInstance() -> getAnimating();
 }
 
-void AnimateScriptNodeToolBindings::setAnimating(bool animating)
+void AnimateScriptNodeToolBindings::__setAnimating(bool animating)
 {
-	_node.getInstance() -> setAnimating(animating, 0);
+	_node.getInstance() -> setAnimating(animating, _serial);
 }

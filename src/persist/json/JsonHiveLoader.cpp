@@ -18,6 +18,7 @@ namespace
 		if(type == "SceneGeometryScriptNode") return HiveNodeDescriptor::SCENE_GEOMETRY_SCRIPT;
 		if(type == "SceneTransformNode") return HiveNodeDescriptor::SCENE_TRANSFORM;
 		if(type == "SceneTransformScriptNode") return HiveNodeDescriptor::SCENE_TRANSFORM_SCRIPT;
+		if(type == "AgentNode") return HiveNodeDescriptor::AGENT;
 
 		throw PersistException(PersistException::UNKNOWN_NODE_TYPE);
 	}
@@ -195,6 +196,69 @@ namespace
 		pokeScript = nodeValue["pokeScript"].GetString();
 	}
 
+	void __parseAgentFields(const rapidjson::Value& nodeValue, HiveNodeDescriptor& descriptor)
+	{
+		if(!nodeValue.HasMember("capability") || !nodeValue["capability"].IsString())
+		{
+			throw PersistException(PersistException::JSON_INVALID_AGENT_CAPABILITY);
+		}
+
+		// Only checked for being a name here; whether it is a name that exists is HiveBuilder's concern.
+		descriptor.capabilityName = nodeValue["capability"].GetString();
+
+		if(!nodeValue.HasMember("prompts") || !nodeValue["prompts"].IsArray() || nodeValue["prompts"].Empty())
+		{
+			throw PersistException(PersistException::JSON_INVALID_AGENT_PROMPTS);
+		}
+
+		for(auto& promptValue : nodeValue["prompts"].GetArray())
+		{
+			if(!promptValue.IsObject() ||
+				!promptValue.HasMember("nodeType") || !promptValue["nodeType"].IsString() ||
+				!promptValue.HasMember("prompt") || !promptValue["prompt"].IsString())
+			{
+				throw PersistException(PersistException::JSON_INVALID_AGENT_PROMPTS);
+			}
+
+			HiveAgentPromptDescriptor promptDescriptor;
+
+			promptDescriptor.nodeTypeName = promptValue["nodeType"].GetString();
+			promptDescriptor.prompt = promptValue["prompt"].GetString();
+
+			if(promptValue.HasMember("nodeIdentifier"))
+			{
+				if(!promptValue["nodeIdentifier"].IsString())
+				{
+					throw PersistException(PersistException::JSON_INVALID_AGENT_PROMPTS);
+				}
+
+				promptDescriptor.nodeIdentifier = promptValue["nodeIdentifier"].GetString();
+			}
+
+			descriptor.prompts.push_back(promptDescriptor);
+		}
+
+		if(nodeValue.HasMember("autoTriggerAgentAction"))
+		{
+			if(!nodeValue["autoTriggerAgentAction"].IsBool())
+			{
+				throw PersistException(PersistException::JSON_INVALID_AGENT_AUTO_TRIGGER);
+			}
+
+			descriptor.autoTriggerAgentAction = nodeValue["autoTriggerAgentAction"].GetBool();
+		}
+
+		if(nodeValue.HasMember("serialiseEmittedActions"))
+		{
+			if(!nodeValue["serialiseEmittedActions"].IsBool())
+			{
+				throw PersistException(PersistException::JSON_INVALID_AGENT_SERIALISE_ACTIONS);
+			}
+
+			descriptor.serialiseEmittedActions = nodeValue["serialiseEmittedActions"].GetBool();
+		}
+	}
+
 	HiveNodeDescriptor __parseNode(const rapidjson::Value& nodeValue)
 	{
 		if(!nodeValue.IsObject() || !nodeValue.HasMember("type") || !nodeValue["type"].IsString())
@@ -251,6 +315,11 @@ namespace
 		if(__isScriptType(descriptor.type))
 		{
 			__parseScriptSource(nodeValue, descriptor.coreScript, descriptor.pokeScript);
+		}
+
+		if(descriptor.type == HiveNodeDescriptor::AGENT)
+		{
+			__parseAgentFields(nodeValue, descriptor);
 		}
 
 		return descriptor;

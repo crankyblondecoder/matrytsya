@@ -23,11 +23,14 @@ class AgentActionTarget : virtual public ActionTarget
 		/**
 		 * Get the tool bindings this target makes available to the agentic request applied to it.
 		 * @param capability Capability of the model the tool bindings are being requested for.
+		 * @param serial Serial number of the action driving the request, passed through to any bindings that
+		 *        apply their effect against a serialised target.
 		 * @note This is intended to be on a per node instance level, not the node type level and exists to support
 		 *       script defined bindings.
 		 * @returns The tool bindings.
 		 */
-		virtual std::vector<Handle<ModelToolBindings>> getModelToolBindings(AgenticHarness::Capability capability) = 0;
+		virtual std::vector<Handle<ModelToolBindings>> getModelToolBindings(AgenticHarness::Capability capability,
+			unsigned serial) = 0;
 
 	protected:
 

@@ -246,8 +246,9 @@ void GraphHiveSceneSurface::addLocalTransform(const Transform& transform, unsign
 		{
 			modelTransform.id = id;
 
-			// Pre-multiplies (This is standard OpenGL behaviour).
-			multiplyTransforms(modelTransform.transform, transform, _modelTransforms.back().transform);
+			// The accumulated parent transform is multiplied by the local one, so the local transform applies
+			// in the parent's frame (This is standard model matrix stacking).
+			multiplyTransforms(modelTransform.transform, _modelTransforms.back().transform, transform);
 
 			_modelTransforms.push_back(modelTransform);
 		}

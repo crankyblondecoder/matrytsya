@@ -74,11 +74,14 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		 * with that state's live global table temporarily pointed at its permanent base env table rather
 		 * than the live one. Subclasses override this to register extra globals (typically C closures
 		 * bound to this node instance via upvalue) that must remain callable on every future run without
-		 * being re-registered each time. Default implementation does nothing.
+		 * being re-registered each time.
 		 * @param luaState The Lua state (core or poke) being registered against, positioned with an empty
 		 *        stack and its live global table temporarily set to that state's permanent base env table.
+		 * @note This implementation registers the NodeType constants and trigger() binding, so an
+		 *       overriding subclass must call it, otherwise neither is callable from that subclass's
+		 *       scripts.
 		 */
-		virtual void _registerCoreGlobals(lua_State* luaState) {}
+		virtual void _registerCoreGlobals(lua_State* luaState);
 
 		/**
 		 * Read an optional array field out of the table at the given stack index into a fixed-size double
@@ -218,6 +221,32 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		 * @param registered In/out: skipped entirely if already true; set true once registration runs.
 		 */
 		void __registerGlobalsOnce(lua_State* luaState, int baseEnvRef, bool& registered);
+
+		/**
+		 * Register the NodeType constant table and the trigger() binding into luaState, so both the core
+		 * and the poke script of every ScriptNode subclass can emit a TriggerAction.
+		 * @param luaState Lua state to register into.
+		 */
+		void __registerTriggerBindings(lua_State* luaState);
+
+		/**
+		 * Lua binding: trigger([nodeName], [nodeType]). Emits a TriggerAction from this node, optionally
+		 * restricted to nodes of the given name and/or of the given NodeType constant. Both arguments are
+		 * optional and either may be nil, in which case that restriction is not applied.
+		 * @note The emitted action is never applied to this node itself, so a script cannot trigger the
+		 *       node it is running on.
+		 * @throw Raises a Lua error if nodeType is present but is not a NodeType constant.
+		 */
+		static int __luaTrigger(lua_State* luaState);
+
+		/**
+		 * Read a NodeType constant off the Lua stack.
+		 * @param luaState Lua state to read from.
+		 * @param index Stack index of the value to read.
+		 * @returns The node type the value names.
+		 * @throw Raises a Lua error, which does not return, if the value is not a NodeType constant.
+		 */
+		static GraphNode::Type __checkNodeType(lua_State* luaState, int index);
 
 		/**
 		 * Allocator shared by both persistent Lua states this node owns, capped independently per state via

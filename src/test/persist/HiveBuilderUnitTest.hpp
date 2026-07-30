@@ -7,6 +7,7 @@
 #include "../../graph/GraphHive.hpp"
 #include "../../graph/GraphNode.hpp"
 #include "../../graph/actions/PingAction.hpp"
+#include "../../graph/nodes/AgentNode.hpp"
 #include "../../graph/nodes/PingNode.hpp"
 #include "../../graph/nodes/SceneRootNode.hpp"
 #include "../../persist/HiveBuilder.hpp"
@@ -71,6 +72,23 @@ namespace
 		HiveNodeDescriptor descriptor{};
 		descriptor.type = HiveNodeDescriptor::SCENE_ROOT;
 		descriptor.name = name;
+
+		return descriptor;
+	}
+
+	HiveNodeDescriptor _makeAgentDescriptor(const std::string& name, const std::string& capabilityName,
+		const std::string& promptNodeTypeName)
+	{
+		HiveNodeDescriptor descriptor{};
+		descriptor.type = HiveNodeDescriptor::AGENT;
+		descriptor.name = name;
+		descriptor.capabilityName = capabilityName;
+
+		HiveAgentPromptDescriptor prompt;
+		prompt.nodeTypeName = promptNodeTypeName;
+		prompt.prompt = "describe this node";
+
+		descriptor.prompts.push_back(prompt);
 
 		return descriptor;
 	}
@@ -347,6 +365,95 @@ TEST(HiveBuilderTest, StrobeSurfaceTargetNotFound_ThrowsStrobeSurfaceNotFound)
 	loader.strobeSurfaces.emplace_back("missing", 5u);
 
 	EXPECT_THROW(HiveBuilder::build(loader, 1), PersistException);
+}
+
+/**
+ * An agent node descriptor builds into an AgentNode carrying every field it was described with, and
+ * its name-based capability and prompt node type are translated into their enum values.
+ */
+TEST(HiveBuilderTest, AgentNodeDescriptor_BuildsWithAllFields)
+{
+	FakeHiveLoader loader;
+	loader.hiveName = "Hive";
+
+	HiveNodeDescriptor descriptor = _makeAgentDescriptor("agent", "HIGH", "PING_NODE");
+	descriptor.prompts[0].nodeIdentifier = "ping1";
+	descriptor.autoTriggerAgentAction = false;
+
+	loader.nodes.push_back(descriptor);
+
+	GraphHive* hive = HiveBuilder::build(loader, 1);
+	Handle<GraphHive> hiveHandle(hive);
+
+	Handle<GraphNode> agentHandle = hive -> getNode("agent");
+
+	ASSERT_TRUE(agentHandle.isValid());
+	ASSERT_EQ(agentHandle.getInstance() -> getType(), GraphNode::Type::AGENT_NODE);
+
+	AgentNode* agentNode = static_cast<AgentNode*>(agentHandle.getInstance());
+
+	EXPECT_EQ(agentNode -> getCapability(), AgenticHarness::Capability::HIGH);
+	EXPECT_FALSE(agentNode -> getAutoTriggerAgentAction());
+
+	ASSERT_EQ(agentNode -> getPrompts().size(), 1u);
+	EXPECT_EQ(agentNode -> getPrompts()[0].nodeIdentifier, "ping1");
+	EXPECT_EQ(agentNode -> getPrompts()[0].nodeType, GraphNode::Type::PING_NODE);
+	EXPECT_EQ(agentNode -> getPrompts()[0].prompt, "describe this node");
+
+	hive -> shutdown();
+}
+
+/**
+ * An agent node whose capability name isn't one of the known capabilities is rejected.
+ */
+TEST(HiveBuilderTest, AgentNodeUnknownCapability_ThrowsUnknownAgentCapability)
+{
+	FakeHiveLoader loader;
+	loader.hiveName = "Hive";
+	loader.nodes.push_back(_makeAgentDescriptor("agent", "EXTREME", "PING_NODE"));
+
+	EXPECT_THROW(HiveBuilder::build(loader, 1), PersistException);
+}
+
+/**
+ * An agent node prompt whose node type name isn't a known node type is rejected, rather than
+ * silently becoming a prompt that can never match.
+ */
+TEST(HiveBuilderTest, AgentNodeUnknownPromptNodeType_ThrowsUnknownAgentPromptNodeType)
+{
+	FakeHiveLoader loader;
+	loader.hiveName = "Hive";
+	loader.nodes.push_back(_makeAgentDescriptor("agent", "LOW", "NOT_A_NODE_TYPE"));
+
+	EXPECT_THROW(HiveBuilder::build(loader, 1), PersistException);
+}
+
+/**
+ * An edge can be restricted to the agent and trigger action flags, which an agent node's wiring
+ * relies on.
+ */
+TEST(HiveBuilderTest, AgentAndTriggerActionFlags_AreRecognised)
+{
+	FakeHiveLoader loader;
+	loader.hiveName = "Hive";
+
+	HiveNodeDescriptor source = _makeAgentDescriptor("agent", "LOW", "PING_NODE");
+
+	HiveEdgeDescriptor edge;
+	edge.toNodeName = "target";
+	edge.actionFlagNames.push_back("AGENT_GRAPH_ACTION");
+	edge.actionFlagNames.push_back("TRIGGER_GRAPH_ACTION");
+	source.edges.push_back(edge);
+
+	loader.nodes.push_back(source);
+	loader.nodes.push_back(_makePingDescriptor("target"));
+
+	GraphHive* hive = HiveBuilder::build(loader, 1);
+	Handle<GraphHive> hiveHandle(hive);
+
+	EXPECT_TRUE(hive -> getNode("agent").isValid());
+
+	hive -> shutdown();
 }
 
 #endif

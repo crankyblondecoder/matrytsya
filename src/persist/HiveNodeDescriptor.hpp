@@ -22,6 +22,21 @@ struct HiveEdgeDescriptor
 };
 
 /**
+ * Describes a single prompt of an agent node, paired with the node that prompt is sent for.
+ */
+struct HiveAgentPromptDescriptor
+{
+	/// Name of the node this prompt applies to. Empty means match on node type alone.
+	std::string nodeIdentifier;
+
+	/// Name of the node type this prompt applies to, as it appears in GraphNode::Type (e.g. "PING_NODE").
+	std::string nodeTypeName;
+
+	/// Prompt sent when this entry matches the node being visited.
+	std::string prompt;
+};
+
+/**
  * Format-agnostic description of a single hive node, as supplied by a HiveLoader and consumed by
  * HiveBuilder. Fields not relevant to this descriptor's type are left at their defaults.
  */
@@ -36,7 +51,8 @@ struct HiveNodeDescriptor
 		SCENE_GEOMETRY,
 		SCENE_GEOMETRY_SCRIPT,
 		SCENE_TRANSFORM,
-		SCENE_TRANSFORM_SCRIPT
+		SCENE_TRANSFORM_SCRIPT,
+		AGENT
 	};
 
 	/// Concrete node type this descriptor describes.
@@ -71,6 +87,20 @@ struct HiveNodeDescriptor
 
 	/// Lua source a script node runs when poked. Only meaningful for the *_SCRIPT types.
 	std::string pokeScript;
+
+	/// Name of the capability required of the model servicing an AgentNode's prompts, as it appears in
+	/// AgenticHarness::Capability (e.g. "MEDIUM"). Only meaningful when type == AGENT.
+	std::string capabilityName;
+
+	/// Prompts an AgentNode emits, each paired with the node it is sent for. Only meaningful when
+	/// type == AGENT.
+	std::vector<HiveAgentPromptDescriptor> prompts;
+
+	/// Whether a trigger arriving at an AgentNode emits an agent action. Only meaningful when type == AGENT.
+	bool autoTriggerAgentAction = true;
+
+	/// Whether actions emitted by an AgentNode are serialised. Only meaningful when type == AGENT.
+	bool serialiseEmittedActions = true;
 };
 
 #endif

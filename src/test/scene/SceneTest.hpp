@@ -241,9 +241,10 @@ TEST(SceneTest, GeneratedSceneUsesIdentityTransformWhenNoneApplied)
 
 TEST(SceneTest, GeneratedSceneCombinesNestedTransformsInTraversalOrder)
 {
-	// Root -> scale (applied first, further from the geometry) -> translate (applied second, closer to the
-	// geometry) -> geometry. Scale then translate gives an easily hand-checkable combined transform: the
-	// scale factor stays on the diagonal, and the translation column carries the translate node's own offset.
+	// Root -> scale (further from the geometry, so the outer frame) -> translate (closer to the geometry, so
+	// nested inside the scale) -> geometry. Scale then translate gives an easily hand-checkable combined
+	// transform: the scale factor stays on the diagonal, and the translation column carries the translate
+	// node's own offset scaled by its parent.
 
 	GraphHive* hive = new GraphHive(2);
 	Handle<GraphHive> hiveHandle(hive);
@@ -323,7 +324,7 @@ TEST(SceneTest, GeneratedSceneCombinesNestedTransformsInTraversalOrder)
 		2.0, 0.0, 0.0, 0.0,
 		0.0, 2.0, 0.0, 0.0,
 		0.0, 0.0, 2.0, 0.0,
-		3.0, 0.0, 0.0, 1.0
+		6.0, 0.0, 0.0, 1.0
 	};
 
 	for(int index = 0; index < 16; index++)

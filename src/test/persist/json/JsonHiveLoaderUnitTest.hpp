@@ -18,10 +18,10 @@
 #include <string>
 
 /**
- * A JSON document covering all seven concrete node types, an edge (with an action flag
+ * A JSON document covering all eight concrete node types, an edge (with an action flag
  * restriction), and a strobe emitter registration parses into descriptors with the expected fields.
  */
-TEST(JsonHiveLoaderTest, FullValidHive_AllSevenNodeTypesParsed)
+TEST(JsonHiveLoaderTest, FullValidHive_AllEightNodeTypesParsed)
 {
 	std::string json = R"({
 		"name": "TestHive",
@@ -37,7 +37,9 @@ TEST(JsonHiveLoaderTest, FullValidHive_AllSevenNodeTypesParsed)
 				"vertexes": [ { "posn": [0, 0, 0], "colour": [255, 0, 0, 255] } ] },
 			{ "type": "SceneTransformNode", "name": "xform1",
 				"transform": [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1] },
-			{ "type": "SceneTransformScriptNode", "name": "xformScript1", "coreScript": "", "pokeScript": "" }
+			{ "type": "SceneTransformScriptNode", "name": "xformScript1", "coreScript": "", "pokeScript": "" },
+			{ "type": "AgentNode", "name": "agent1", "capability": "HIGH",
+				"prompts": [ { "nodeType": "PING_NODE", "prompt": "describe this node" } ] }
 		],
 		"strobeEmitters": [ { "nodeName": "root1", "periodMs": 100 } ]
 	})";
@@ -45,7 +47,7 @@ TEST(JsonHiveLoaderTest, FullValidHive_AllSevenNodeTypesParsed)
 	JsonHiveLoader loader(json);
 
 	EXPECT_EQ(loader.getHiveName(), "TestHive");
-	ASSERT_EQ(loader.getNodeCount(), 8u);
+	ASSERT_EQ(loader.getNodeCount(), 9u);
 
 	HiveNodeDescriptor ping1 = loader.getNode(0);
 	EXPECT_EQ(ping1.type, HiveNodeDescriptor::PING);
@@ -87,6 +89,14 @@ TEST(JsonHiveLoaderTest, FullValidHive_AllSevenNodeTypesParsed)
 	EXPECT_EQ(xformScript1.type, HiveNodeDescriptor::SCENE_TRANSFORM_SCRIPT);
 	EXPECT_FALSE(xformScript1.hasTransform);
 	EXPECT_EQ(xformScript1.coreScript, "");
+
+	HiveNodeDescriptor agent1 = loader.getNode(8);
+	EXPECT_EQ(agent1.type, HiveNodeDescriptor::AGENT);
+	EXPECT_EQ(agent1.capabilityName, "HIGH");
+	ASSERT_EQ(agent1.prompts.size(), 1u);
+	EXPECT_EQ(agent1.prompts[0].nodeTypeName, "PING_NODE");
+	EXPECT_EQ(agent1.prompts[0].prompt, "describe this node");
+	EXPECT_EQ(agent1.prompts[0].nodeIdentifier, "");
 
 	ASSERT_EQ(loader.getStrobeEmitterCount(), 1u);
 
@@ -215,6 +225,112 @@ TEST(JsonHiveLoaderTest, ScriptNodeMissingCoreScript_ThrowsJsonInvalidScriptSour
 	std::string json = R"({
 		"name": "Hive",
 		"nodes": [ { "type": "SceneGeometryScriptNode", "name": "g1", "pokeScript": "" } ]
+	})";
+
+	EXPECT_THROW(JsonHiveLoader loader(json), PersistException);
+}
+
+/**
+ * An AgentNode omitting both of its optional booleans defaults them to true, per the schema, and
+ * parses a prompt that carries an explicit node identifier.
+ */
+TEST(JsonHiveLoaderTest, AgentNodeOmittingOptionalFlags_DefaultsBothToTrue)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [
+			{ "type": "AgentNode", "name": "a1", "capability": "LOW",
+				"prompts": [ { "nodeIdentifier": "geom1", "nodeType": "SCENE_GEOMETRY_NODE", "prompt": "summarise" } ] }
+		]
+	})";
+
+	JsonHiveLoader loader(json);
+
+	HiveNodeDescriptor descriptor = loader.getNode(0);
+
+	EXPECT_TRUE(descriptor.autoTriggerAgentAction);
+	EXPECT_TRUE(descriptor.serialiseEmittedActions);
+	ASSERT_EQ(descriptor.prompts.size(), 1u);
+	EXPECT_EQ(descriptor.prompts[0].nodeIdentifier, "geom1");
+}
+
+/**
+ * An AgentNode's optional booleans are carried through when supplied.
+ */
+TEST(JsonHiveLoaderTest, AgentNodeOptionalFlagsFalse_AreParsed)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [
+			{ "type": "AgentNode", "name": "a1", "capability": "MEDIUM",
+				"autoTriggerAgentAction": false, "serialiseEmittedActions": false,
+				"prompts": [ { "nodeType": "PING_NODE", "prompt": "p" } ] }
+		]
+	})";
+
+	JsonHiveLoader loader(json);
+
+	HiveNodeDescriptor descriptor = loader.getNode(0);
+
+	EXPECT_FALSE(descriptor.autoTriggerAgentAction);
+	EXPECT_FALSE(descriptor.serialiseEmittedActions);
+}
+
+/**
+ * An AgentNode missing its required "capability" is rejected.
+ */
+TEST(JsonHiveLoaderTest, AgentNodeMissingCapability_ThrowsJsonInvalidAgentCapability)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [
+			{ "type": "AgentNode", "name": "a1", "prompts": [ { "nodeType": "PING_NODE", "prompt": "p" } ] }
+		]
+	})";
+
+	EXPECT_THROW(JsonHiveLoader loader(json), PersistException);
+}
+
+/**
+ * An AgentNode with an empty "prompts" array is rejected; it would have nothing to emit.
+ */
+TEST(JsonHiveLoaderTest, AgentNodeEmptyPrompts_ThrowsJsonInvalidAgentPrompts)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [ { "type": "AgentNode", "name": "a1", "capability": "LOW", "prompts": [] } ]
+	})";
+
+	EXPECT_THROW(JsonHiveLoader loader(json), PersistException);
+}
+
+/**
+ * An AgentNode prompt missing its required "prompt" is rejected.
+ */
+TEST(JsonHiveLoaderTest, AgentNodePromptMissingPromptText_ThrowsJsonInvalidAgentPrompts)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [
+			{ "type": "AgentNode", "name": "a1", "capability": "LOW",
+				"prompts": [ { "nodeType": "PING_NODE" } ] }
+		]
+	})";
+
+	EXPECT_THROW(JsonHiveLoader loader(json), PersistException);
+}
+
+/**
+ * An AgentNode's "autoTriggerAgentAction" member must be a boolean if present.
+ */
+TEST(JsonHiveLoaderTest, AgentNodeNonBooleanAutoTrigger_ThrowsJsonInvalidAgentAutoTrigger)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [
+			{ "type": "AgentNode", "name": "a1", "capability": "LOW", "autoTriggerAgentAction": "yes",
+				"prompts": [ { "nodeType": "PING_NODE", "prompt": "p" } ] }
+		]
 	})";
 
 	EXPECT_THROW(JsonHiveLoader loader(json), PersistException);

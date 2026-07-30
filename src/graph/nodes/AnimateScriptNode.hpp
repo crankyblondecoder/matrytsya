@@ -36,7 +36,8 @@ class AnimateScriptNode : public StrobeScriptNode, public AnimateActionTarget, p
 		AnimateActionTarget* getAnimateActionTarget() override;
 
 		// Agent target API point.
-		std::vector<Handle<ModelToolBindings>> getModelToolBindings(AgenticHarness::Capability capability) override;
+		std::vector<Handle<ModelToolBindings>> getModelToolBindings(AgenticHarness::Capability capability,
+			unsigned serial) override;
 
 		AgentActionTarget* getAgentActionTarget() override;
 

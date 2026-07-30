@@ -44,12 +44,12 @@ class ModelToolBindingsFactory : public GraphToolBindingsFactory
 			AgenticHarness::Capability capability, Handle<GraphHive> hive) override;
 
 		/**
-		 * @returns AnimateScriptNodeToolBindings built against the node. Empty for a node that could not be
-		 *          referenced.
+		 * @returns AnimateScriptNodeToolBindings built against the node and serial. Empty for a node that
+		 *          could not be referenced.
 		 * @note The tools do not vary by capability.
 		 */
 		virtual std::vector<Handle<ModelToolBindings>> getAnimateScriptNodeToolBindings(
-			AgenticHarness::Capability capability, Handle<AnimateScriptNode> node) override;
+			AgenticHarness::Capability capability, unsigned serial, Handle<AnimateScriptNode> node) override;
 
 	protected:
 

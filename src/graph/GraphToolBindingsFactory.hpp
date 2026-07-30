@@ -51,13 +51,15 @@ class GraphToolBindingsFactory : public RefCounted
 		/**
 		 * Get the tool bindings that an animate script node makes available.
 		 * @param capability Capability of the model the bindings are being requested for.
+		 * @param serial Serial number of the action driving the request, passed through to the bindings so
+		 *        the animating flag they set carries it.
 		 * @param node Node the bindings are to operate against.
 		 * @returns The bindings the node makes available for the capability. Empty where there are none.
 		 * @note Fixed to AgenticHarness::Role::NODE, as a node's own bindings are only ever reached through
 		 *       the node role.
 		 */
 		virtual std::vector<Handle<ModelToolBindings>> getAnimateScriptNodeToolBindings(
-			AgenticHarness::Capability capability, Handle<AnimateScriptNode> node) = 0;
+			AgenticHarness::Capability capability, unsigned serial, Handle<AnimateScriptNode> node) = 0;
 
 	protected:
 

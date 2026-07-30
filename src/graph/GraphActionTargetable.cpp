@@ -76,3 +76,8 @@ AgentActionTarget* GraphActionTargetable::getAgentActionTarget()
 	return 0;
 }
 
+TriggerActionTarget* GraphActionTargetable::getTriggerActionTarget()
+{
+	return 0;
+}
+

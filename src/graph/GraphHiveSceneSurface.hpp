@@ -122,9 +122,9 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		/**
 		 * Add a local transform to the scene.
 		 * If there is an existing transform with the given id, it will be copied to the end of the model transform
-		 * list, and the given transform ignored. Otherwise the given transform is pre-multiplied to the last
-		 * stored model transform to make the new model transform which is added to the end of the model transform
-		 * list.
+		 * list, and the given transform ignored. Otherwise the last stored model transform is post-multiplied by
+		 * the given transform to make the new model transform which is added to the end of the model transform
+		 * list, i.e. the given transform is applied in the frame of the last stored one.
 		 * @param transform The local transform to add.
 		 * @param id Identifying value stored against the new model transform. This is not required to be unique but
 		 *        any transforms with the same id will be considered to be the effectively the same.

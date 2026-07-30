@@ -3,11 +3,13 @@
 
 #include <string>
 
+// Both are needed in full because the node type and capability translation helpers return their enums.
+#include "../agent/AgenticHarness.hpp"
+#include "../graph/GraphNode.hpp"
 #include "../util/Handle.hpp"
 
 class GraphHive;
 class GraphHiveSurface;
-class GraphNode;
 class HiveLoader;
 struct HiveNodeDescriptor;
 struct HiveSurfaceDescriptor;
@@ -70,6 +72,20 @@ class HiveBuilder
 		 * @throw PersistException(UNKNOWN_ACTION_FLAG) If the name is not recognised.
 		 */
 		static unsigned long __actionFlagFromName(const std::string& name);
+
+		/**
+		 * Translate a capability name into its enum value.
+		 * @param name Capability name, as it appears in AgenticHarness::Capability.
+		 * @throw PersistException(UNKNOWN_AGENT_CAPABILITY) If the name is not recognised.
+		 */
+		static AgenticHarness::Capability __capabilityFromName(const std::string& name);
+
+		/**
+		 * Translate a node type name into its enum value.
+		 * @param name Node type name, as it appears in GraphNode::Type.
+		 * @throw PersistException(UNKNOWN_AGENT_PROMPT_NODE_TYPE) If the name is not recognised.
+		 */
+		static GraphNode::Type __nodeTypeFromName(const std::string& name);
 };
 
 #endif

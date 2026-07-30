@@ -40,6 +40,9 @@ class SceneGeometry : public GraphVersioned
 			HOVERED_OVER
 		};
 
+		/**
+		 * Defines a group of vertexes that can be treated as an individual unit.
+		 */
 		struct VertexGroup
 		{
 			/// Id unique over all vertex groups.

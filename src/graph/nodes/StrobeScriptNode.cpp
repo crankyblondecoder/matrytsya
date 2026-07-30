@@ -23,6 +23,8 @@ StrobeActionTarget* StrobeScriptNode::getStrobeActionTarget()
 
 void StrobeScriptNode::_registerCoreGlobals(lua_State* luaState)
 {
+	ScriptNode::_registerCoreGlobals(luaState);
+
 	__registerStrobeBindings(luaState);
 }
 

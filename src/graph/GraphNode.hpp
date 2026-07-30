@@ -53,7 +53,10 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 			SCENE_ROOT_NODE,
 
 			/// A TeleportNode.
-			TELEPORT_NODE
+			TELEPORT_NODE,
+
+			/// An AgentNode.
+			AGENT_NODE
 		};
 
 		/**

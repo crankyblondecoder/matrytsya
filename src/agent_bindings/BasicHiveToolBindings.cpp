@@ -43,14 +43,14 @@ ModelToolCallParameterValue BasicHiveToolBindings::processBinding(std::string na
 {
 	if(name == "getNodeNames")
 	{
-		return ModelToolCallParameterValue("nodeNames", getNodeNames());
+		return ModelToolCallParameterValue("nodeNames", __getNodeNames());
 	}
 	else if(name == "getNodeId")
 	{
 		std::string nodeName = std::get<std::string>(
 			_getParameterValue(parameterValues, "nodeName").getValue());
 
-		return ModelToolCallParameterValue("nodeId", getNodeId(nodeName));
+		return ModelToolCallParameterValue("nodeId", __getNodeId(nodeName));
 	}
 	else
 	{
@@ -58,12 +58,12 @@ ModelToolCallParameterValue BasicHiveToolBindings::processBinding(std::string na
 	}
 }
 
-std::vector<std::string> BasicHiveToolBindings::getNodeNames()
+std::vector<std::string> BasicHiveToolBindings::__getNodeNames()
 {
 	return _hive.getInstance() -> getNodeNames();
 }
 
-long long BasicHiveToolBindings::getNodeId(std::string nodeName)
+long long BasicHiveToolBindings::__getNodeId(std::string nodeName)
 {
 	Handle<GraphNode> node = _hive.getInstance() -> getNode(nodeName);
 

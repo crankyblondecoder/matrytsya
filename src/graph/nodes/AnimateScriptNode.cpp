@@ -65,7 +65,8 @@ AnimateActionTarget* AnimateScriptNode::getAnimateActionTarget()
 	return this;
 }
 
-std::vector<Handle<ModelToolBindings>> AnimateScriptNode::getModelToolBindings(AgenticHarness::Capability capability)
+std::vector<Handle<ModelToolBindings>> AnimateScriptNode::getModelToolBindings(AgenticHarness::Capability capability,
+	unsigned serial)
 {
 	// Only what the hive's factory holds for this class; no script defined tool bindings are supported yet.
 	Handle<GraphHive> hive = getHive();
@@ -76,7 +77,7 @@ std::vector<Handle<ModelToolBindings>> AnimateScriptNode::getModelToolBindings(A
 
 	if(!factory.isValid()) return std::vector<Handle<ModelToolBindings>>();
 
-	return factory.getInstance() -> getAnimateScriptNodeToolBindings(capability,
+	return factory.getInstance() -> getAnimateScriptNodeToolBindings(capability, serial,
 		Handle<AnimateScriptNode>(this));
 }
 

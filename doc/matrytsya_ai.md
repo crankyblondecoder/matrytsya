@@ -24,7 +24,11 @@ Traversal:
 
 A scene-generation action walks the graph and, at each transform node, contributes that node's local transform (rotation/translation/scale) into a shared cumulative transform stack for the scene surface being populated.
 
-- New transform is pre-multiplied against the current top of the stack (standard model-matrix stacking) → the transform's effective parent-to-node result.
+- New cumulative = current top of the stack × the node's own transform (standard model-matrix stacking: parent × local) → the transform's effective parent-to-node result. A node's transform is therefore authored in the frame established by the transform nodes visited before it, never in world space.
+- Geometry is placed by whatever is on top of the stack when the geometry node is visited.
+- The stack is push-only within a pass: continuing the traversal never undoes a contribution.
 - The edge-not-node exclusion means multiple paths can still reach the same transform node twice via different edges.
 - On revisit: the node is looked up by id in the existing stack and its already-computed cumulative transform (from the first visit) is re-pushed as-is. No recompute, no re-multiply.
-- A revisit is therefore a no-op for the transform's contribution — neither duplicated nor compounded.
+- A revisit is therefore a no-op for the transform's contribution — neither duplicated nor compounded — and is the only way back to an earlier frame. Authoring idiom: end each subtree with an edge back to the transform node that defines the shared frame, so that node's next edge continues into the following subtree from that frame.
+- A transform node cannot be shared between parent frames: a revisit replays its first cumulative result rather than recomposing, so each frame a transform is needed in requires its own node.
+- A revisit is a visit for every other purpose: a script node's core script runs again, so a node used as a frame-reset point should be a plain transform node, not a scripted one.

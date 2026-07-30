@@ -1,6 +1,7 @@
 #include "ScriptNode.hpp"
 
 #include "ScriptSession.hpp"
+#include "../actions/TriggerAction.hpp"
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphException.hpp"
 #include "../GraphPoke.hpp"
@@ -17,6 +18,33 @@ namespace
 	// Globals the base library opens with that reach outside the sandbox (filesystem or stdio); stripped once
 	// each state is created.
 	const char* const DISALLOWED_GLOBALS[] = {"dofile", "loadfile", "print", "warn"};
+
+	struct NodeTypeName
+	{
+		/// Field name this type is exposed under in the NodeType global table.
+		const char* name;
+
+		/// Type that name stands for.
+		GraphNode::Type type;
+	};
+
+	// Every GraphNode::Type, as exposed to a script through the NodeType global table. A type absent from
+	// here cannot be named by a script, so this must be extended whenever GraphNode::Type is.
+	const NodeTypeName NODE_TYPES[] =
+	{
+		{"GRAPH_NODE", GraphNode::Type::GRAPH_NODE},
+		{"PING_NODE", GraphNode::Type::PING_NODE},
+		{"SCENE_GEOMETRY_NODE", GraphNode::Type::SCENE_GEOMETRY_NODE},
+		{"SCENE_TRANSFORM_NODE", GraphNode::Type::SCENE_TRANSFORM_NODE},
+		{"SCRIPT_NODE", GraphNode::Type::SCRIPT_NODE},
+		{"SCENE_GEOMETRY_SCRIPT_NODE", GraphNode::Type::SCENE_GEOMETRY_SCRIPT_NODE},
+		{"SCENE_TRANSFORM_SCRIPT_NODE", GraphNode::Type::SCENE_TRANSFORM_SCRIPT_NODE},
+		{"SCENE_ROOT_NODE", GraphNode::Type::SCENE_ROOT_NODE},
+		{"TELEPORT_NODE", GraphNode::Type::TELEPORT_NODE},
+		{"AGENT_NODE", GraphNode::Type::AGENT_NODE}
+	};
+
+	const int NODE_TYPE_COUNT = sizeof(NODE_TYPES) / sizeof(NODE_TYPES[0]);
 }
 
 ScriptNode::~ScriptNode()
@@ -316,6 +344,64 @@ void ScriptNode::__registerGlobalsOnce(lua_State* luaState, int baseEnvRef, bool
 	luaL_unref(luaState, LUA_REGISTRYINDEX, currentEnvRef);
 
 	registered = true;
+}
+
+void ScriptNode::_registerCoreGlobals(lua_State* luaState)
+{
+	__registerTriggerBindings(luaState);
+}
+
+void ScriptNode::__registerTriggerBindings(lua_State* luaState)
+{
+	// Expose GraphNode::Type as a global table of integer constants that round-trip through
+	// __checkNodeType(); the values must match static_cast<lua_Integer> of each enum member.
+	lua_createtable(luaState, 0, NODE_TYPE_COUNT);
+
+	for(const NodeTypeName& entry : NODE_TYPES)
+	{
+		lua_pushinteger(luaState, static_cast<lua_Integer>(entry.type));
+		lua_setfield(luaState, -2, entry.name);
+	}
+
+	lua_setglobal(luaState, "NodeType");
+
+	lua_pushlightuserdata(luaState, this);
+	lua_pushcclosure(luaState, __luaTrigger, 1);
+	lua_setglobal(luaState, "trigger");
+}
+
+int ScriptNode::__luaTrigger(lua_State* luaState)
+{
+	ScriptNode* node = static_cast<ScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
+
+	// An empty name is what TriggerAction takes as "any name", so an absent or nil first argument needs no
+	// special handling here.
+	const char* nodeName = luaL_optstring(luaState, 1, "");
+
+	// A type, on the other hand, has no such "any" value: GRAPH_NODE is a type in its own right, so whether
+	// to restrict by type at all has to be carried separately.
+	bool restrictToNodeType = !lua_isnoneornil(luaState, 2);
+
+	GraphNode::Type nodeType = restrictToNodeType ?
+		__checkNodeType(luaState, 2) : GraphNode::Type::GRAPH_NODE;
+
+	node -> _emitAction(new TriggerAction(Handle<GraphNode>(node), nodeName, restrictToNodeType, nodeType));
+
+	return 0;
+}
+
+GraphNode::Type ScriptNode::__checkNodeType(lua_State* luaState, int index)
+{
+	lua_Integer value = luaL_checkinteger(luaState, index);
+
+	for(const NodeTypeName& entry : NODE_TYPES)
+	{
+		if(static_cast<lua_Integer>(entry.type) == value) return entry.type;
+	}
+
+	// luaL_error does not return; the return below is only present to satisfy the compiler.
+	luaL_error(luaState, "invalid NodeType value: %d", static_cast<int>(value));
+	return GraphNode::Type::GRAPH_NODE;
 }
 
 const char* ScriptNode::__pokeTypeName(GraphPoke::PokeType type)

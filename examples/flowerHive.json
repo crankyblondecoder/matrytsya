@@ -20,6 +20,9 @@
 				},
 				{
 					"toNodeName": "flower2Offset"
+				},
+				{
+					"toNodeName": "flower3Offset"
 				}
 			]
 		},
@@ -33,13 +36,41 @@
 			"pokeScript": "if POKE_TYPE == \"HIT\" then setAnimating(not getAnimating(), true) end",
 			"edges": [
 				{
-					"toNodeName": "petalTransform0"
+					"toNodeName": "hub1"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "hub1",
+			"transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "tilt1_0"
+				},
+				{
+					"toNodeName": "spoke1_1"
+				},
+				{
+					"toNodeName": "spoke1_2"
+				},
+				{
+					"toNodeName": "spoke1_3"
+				},
+				{
+					"toNodeName": "spoke1_4"
+				},
+				{
+					"toNodeName": "spoke1_5"
+				},
+				{
+					"toNodeName": "spoke1_6"
 				}
 			]
 		},
 		{
 			"type": "SceneTransformScriptNode",
-			"name": "petalTransform0",
+			"name": "tilt1_0",
 			"coreScript": "if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); local step = 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end",
 			"pokeScript": "",
 			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
@@ -57,16 +88,26 @@
 			"pokeScript": "",
 			"edges": [
 				{
-					"toNodeName": "petalTransform1"
+					"toNodeName": "hub1"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "spoke1_1",
+			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "tilt1_1"
 				}
 			]
 		},
 		{
 			"type": "SceneTransformScriptNode",
-			"name": "petalTransform1",
-			"coreScript": "",
+			"name": "tilt1_1",
+			"coreScript": "if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); local step = 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end",
 			"pokeScript": "",
-			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal1"
@@ -81,16 +122,26 @@
 			"pokeScript": "",
 			"edges": [
 				{
-					"toNodeName": "petalTransform2"
+					"toNodeName": "hub1"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "spoke1_2",
+			"transform": [-0.222521, 0.0, -0.974928, 0.0, 0.0, 1.0, 0.0, 0.0, 0.974928, 0.0, -0.222521, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "tilt1_2"
 				}
 			]
 		},
 		{
 			"type": "SceneTransformScriptNode",
-			"name": "petalTransform2",
-			"coreScript": "",
+			"name": "tilt1_2",
+			"coreScript": "if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); local step = 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end",
 			"pokeScript": "",
-			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal2"
@@ -105,16 +156,26 @@
 			"pokeScript": "",
 			"edges": [
 				{
-					"toNodeName": "petalTransform3"
+					"toNodeName": "hub1"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "spoke1_3",
+			"transform": [-0.900969, 0.0, -0.433884, 0.0, 0.0, 1.0, 0.0, 0.0, 0.433884, 0.0, -0.900969, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "tilt1_3"
 				}
 			]
 		},
 		{
 			"type": "SceneTransformScriptNode",
-			"name": "petalTransform3",
-			"coreScript": "",
+			"name": "tilt1_3",
+			"coreScript": "if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); local step = 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end",
 			"pokeScript": "",
-			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal3"
@@ -129,16 +190,26 @@
 			"pokeScript": "",
 			"edges": [
 				{
-					"toNodeName": "petalTransform4"
+					"toNodeName": "hub1"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "spoke1_4",
+			"transform": [-0.900969, 0.0, 0.433884, 0.0, 0.0, 1.0, 0.0, 0.0, -0.433884, 0.0, -0.900969, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "tilt1_4"
 				}
 			]
 		},
 		{
 			"type": "SceneTransformScriptNode",
-			"name": "petalTransform4",
-			"coreScript": "",
+			"name": "tilt1_4",
+			"coreScript": "if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); local step = 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end",
 			"pokeScript": "",
-			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal4"
@@ -153,16 +224,26 @@
 			"pokeScript": "",
 			"edges": [
 				{
-					"toNodeName": "petalTransform5"
+					"toNodeName": "hub1"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "spoke1_5",
+			"transform": [-0.222521, 0.0, 0.974928, 0.0, 0.0, 1.0, 0.0, 0.0, -0.974928, 0.0, -0.222521, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "tilt1_5"
 				}
 			]
 		},
 		{
 			"type": "SceneTransformScriptNode",
-			"name": "petalTransform5",
-			"coreScript": "",
+			"name": "tilt1_5",
+			"coreScript": "if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); local step = 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end",
 			"pokeScript": "",
-			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal5"
@@ -177,22 +258,29 @@
 			"pokeScript": "",
 			"edges": [
 				{
-					"toNodeName": "petalTransform6"
+					"toNodeName": "hub1"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "spoke1_6",
+			"transform": [0.62349, 0.0, 0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, -0.781831, 0.0, 0.62349, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "tilt1_6"
 				}
 			]
 		},
 		{
 			"type": "SceneTransformScriptNode",
-			"name": "petalTransform6",
-			"coreScript": "",
+			"name": "tilt1_6",
+			"coreScript": "if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); local step = 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end",
 			"pokeScript": "",
-			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal6"
-				},
-				{
-					"toNodeName": "rootTransform"
 				}
 			]
 		},
@@ -204,7 +292,7 @@
 			"pokeScript": "",
 			"edges": [
 				{
-					"toNodeName": "petalTransform6",
+					"toNodeName": "rootTransform",
 					"actionFlags": [
 						"SCENE_GRAPH_ACTION",
 						"SCENE_STROBE_GRAPH_ACTION"
@@ -230,31 +318,57 @@
 			"pokeScript": "if POKE_TYPE == \"HIT\" then setAnimating(false, true); setAnimating(true, true) end",
 			"edges": [
 				{
-					"toNodeName": "petalTransform0_2"
+					"toNodeName": "spinTransform2"
 				}
 			]
 		},
 		{
 			"type": "SceneTransformScriptNode",
 			"name": "spinTransform2",
-			"coreScript": "if getStrobe() and getAnimating() then local justStarted = not wasAnimating; wasAnimating = true; if justStarted then speed = 0.5; tick = 0; end; tick = tick + 1; local t = getTransform(); local angle = math.atan(t[3], t[1]); angle = angle + speed; local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[3] = s; t[9] = -s; t[11] = c; t[13] = 7.0 * (1 - c); t[14] = 0; t[15] = -7.0 * s; setTransform(t); speed = speed * 0.955; if speed < 0.01 or tick >= 100 then setAnimating(false); end else wasAnimating = false; end",
+			"coreScript": "if getStrobe() and getAnimating() then local justStarted = not wasAnimating; wasAnimating = true; if justStarted then speed = 0.5; tick = 0; end; tick = tick + 1; local t = getTransform(); local angle = math.atan(t[3], t[1]); angle = angle + speed; local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[3] = s; t[9] = -s; t[11] = c; setTransform(t); speed = speed * 0.955; if speed < 0.01 or tick >= 100 then setAnimating(false); end else wasAnimating = false; end",
 			"pokeScript": "",
 			"transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
 			"edges": [
 				{
-					"toNodeName": "petal0_2"
+					"toNodeName": "hub2"
 				}
 			]
 		},
 		{
-			"type": "SceneTransformScriptNode",
-			"name": "petalTransform0_2",
-			"coreScript": "",
-			"pokeScript": "",
-			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.5968709999999997, -3.044762, 0.0, 1.0],
+			"type": "SceneTransformNode",
+			"name": "hub2",
+			"transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
 			"edges": [
 				{
-					"toNodeName": "spinTransform2"
+					"toNodeName": "tilt2_0"
+				},
+				{
+					"toNodeName": "spoke2_1"
+				},
+				{
+					"toNodeName": "spoke2_2"
+				},
+				{
+					"toNodeName": "spoke2_3"
+				},
+				{
+					"toNodeName": "spoke2_4"
+				},
+				{
+					"toNodeName": "spoke2_5"
+				},
+				{
+					"toNodeName": "spoke2_6"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "tilt2_0",
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "petal0_2"
 				}
 			]
 		},
@@ -266,16 +380,24 @@
 			"pokeScript": "",
 			"edges": [
 				{
-					"toNodeName": "petalTransform1_2"
+					"toNodeName": "hub2"
 				}
 			]
 		},
 		{
-			"type": "SceneTransformScriptNode",
-			"name": "petalTransform1_2",
-			"coreScript": "",
-			"pokeScript": "",
-			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 2.6355700000000004, 0.0, 5.472817, 1.0],
+			"type": "SceneTransformNode",
+			"name": "spoke2_1",
+			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "tilt2_1"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "tilt2_1",
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal1_2"
@@ -290,16 +412,24 @@
 			"pokeScript": "",
 			"edges": [
 				{
-					"toNodeName": "petalTransform2_2"
+					"toNodeName": "hub2"
 				}
 			]
 		},
 		{
-			"type": "SceneTransformScriptNode",
-			"name": "petalTransform2_2",
-			"coreScript": "",
-			"pokeScript": "",
-			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 2.6355700000000004, 0.0, 5.472817, 1.0],
+			"type": "SceneTransformNode",
+			"name": "spoke2_2",
+			"transform": [-0.222521, 0.0, -0.974928, 0.0, 0.0, 1.0, 0.0, 0.0, 0.974928, 0.0, -0.222521, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "tilt2_2"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "tilt2_2",
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal2_2"
@@ -314,16 +444,24 @@
 			"pokeScript": "",
 			"edges": [
 				{
-					"toNodeName": "petalTransform3_2"
+					"toNodeName": "hub2"
 				}
 			]
 		},
 		{
-			"type": "SceneTransformScriptNode",
-			"name": "petalTransform3_2",
-			"coreScript": "",
-			"pokeScript": "",
-			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 2.6355700000000004, 0.0, 5.472817, 1.0],
+			"type": "SceneTransformNode",
+			"name": "spoke2_3",
+			"transform": [-0.900969, 0.0, -0.433884, 0.0, 0.0, 1.0, 0.0, 0.0, 0.433884, 0.0, -0.900969, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "tilt2_3"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "tilt2_3",
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal3_2"
@@ -338,16 +476,24 @@
 			"pokeScript": "",
 			"edges": [
 				{
-					"toNodeName": "petalTransform4_2"
+					"toNodeName": "hub2"
 				}
 			]
 		},
 		{
-			"type": "SceneTransformScriptNode",
-			"name": "petalTransform4_2",
-			"coreScript": "",
-			"pokeScript": "",
-			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 2.6355700000000004, 0.0, 5.472817, 1.0],
+			"type": "SceneTransformNode",
+			"name": "spoke2_4",
+			"transform": [-0.900969, 0.0, 0.433884, 0.0, 0.0, 1.0, 0.0, 0.0, -0.433884, 0.0, -0.900969, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "tilt2_4"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "tilt2_4",
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal4_2"
@@ -362,16 +508,24 @@
 			"pokeScript": "",
 			"edges": [
 				{
-					"toNodeName": "petalTransform5_2"
+					"toNodeName": "hub2"
 				}
 			]
 		},
 		{
-			"type": "SceneTransformScriptNode",
-			"name": "petalTransform5_2",
-			"coreScript": "",
-			"pokeScript": "",
-			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 2.6355700000000004, 0.0, 5.472817, 1.0],
+			"type": "SceneTransformNode",
+			"name": "spoke2_5",
+			"transform": [-0.222521, 0.0, 0.974928, 0.0, 0.0, 1.0, 0.0, 0.0, -0.974928, 0.0, -0.222521, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "tilt2_5"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "tilt2_5",
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal5_2"
@@ -386,16 +540,24 @@
 			"pokeScript": "",
 			"edges": [
 				{
-					"toNodeName": "petalTransform6_2"
+					"toNodeName": "hub2"
 				}
 			]
 		},
 		{
-			"type": "SceneTransformScriptNode",
-			"name": "petalTransform6_2",
-			"coreScript": "",
-			"pokeScript": "",
-			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 2.6355700000000004, 0.0, 5.472817, 1.0],
+			"type": "SceneTransformNode",
+			"name": "spoke2_6",
+			"transform": [0.62349, 0.0, 0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, -0.781831, 0.0, 0.62349, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "tilt2_6"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "tilt2_6",
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal6_2"
@@ -405,6 +567,274 @@
 		{
 			"type": "SceneGeometryScriptNode",
 			"name": "petal6_2",
+			"pokeEnabled": false,
+			"coreScript": "if vertexCount() == 0 then local hue = 0.857143 local length, maxHalfWidth, segments = 2.2, 0.45, 10 local function hsvToRgb(h, sat, val) local chroma = val * sat local huePrime = h * 6 local x = chroma * (1 - math.abs((huePrime % 2) - 1)) local m = val - chroma local rp, gp, bp if huePrime < 1 then rp, gp, bp = chroma, x, 0 elseif huePrime < 2 then rp, gp, bp = x, chroma, 0 elseif huePrime < 3 then rp, gp, bp = 0, chroma, x elseif huePrime < 4 then rp, gp, bp = 0, x, chroma elseif huePrime < 5 then rp, gp, bp = x, 0, chroma else rp, gp, bp = chroma, 0, x end return (rp + m) * 255, (gp + m) * 255, (bp + m) * 255 end local baseR, baseG, baseB = hsvToRgb(hue, 0.85, 0.95) local tipR, tipG, tipB = hsvToRgb(hue, 0.25, 1.0) local prevLeft, prevRight for i = 0, segments do local t = i / segments local x = t * length local halfWidth = maxHalfWidth * math.sin(math.pi * t) local cR = baseR + (tipR - baseR) * t local cG = baseG + (tipG - baseG) * t local cB = baseB + (tipB - baseB) * t local left = Vertex{posn = {x, 0, halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 0}, normal = {0, 1, 0}} local right = Vertex{posn = {x, 0, -halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 1}, normal = {0, 1, 0}} if i > 0 then addVertex(prevLeft); addVertex(prevRight); addVertex(right) addVertex(prevLeft); addVertex(right); addVertex(left) end prevLeft, prevRight = left, right end end ",
+			"pokeScript": "",
+			"edges": [
+				{
+					"toNodeName": "rootTransform",
+					"actionFlags": [
+						"SCENE_GRAPH_ACTION",
+						"SCENE_STROBE_GRAPH_ACTION"
+					]
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "flower3Offset",
+			"transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 3.5, 0.0, 6.062177826491071, 1.0],
+			"edges": [
+				{
+					"toNodeName": "body3"
+				}
+			]
+		},
+		{
+			"type": "SceneGeometryScriptNode",
+			"name": "body3",
+			"pokeEnabled": true,
+			"coreScript": "if vertexCount() == 0 then local radius = 0.900000 local latSeg = 10 local lonSeg = 20 local apexR, apexG, apexB = 255, 216.75, 51 local rimR, rimG, rimB = 76.5, 127.5, 38.25 local function ringVertex(latIndex, lonIndex, nx, ny, nz) local latFraction = latIndex / latSeg local phi = latFraction * (math.pi / 2) local y = radius * math.sin(phi) local r = radius * math.cos(phi) local cR = rimR + (apexR - rimR) * latFraction local cG = rimG + (apexG - rimG) * latFraction local cB = rimB + (apexB - rimB) * latFraction local theta = (lonIndex / lonSeg) * (2 * math.pi) local x = r * math.cos(theta) local z = r * math.sin(theta) if not nx then nx, ny, nz = x / radius, y / radius, z / radius end return Vertex{posn = {x, y, z}, colour = {cR, cG, cB, 255}, texCoords = {lonIndex / lonSeg, latFraction}, normal = {nx, ny, nz}} end local function ring(latIndex) local verts = {} for lon = 0, lonSeg do verts[lon + 1] = ringVertex(latIndex, lon) end return verts end local prevRing = ring(0) for lat = 1, latSeg do local currRing = ring(lat) for lon = 1, lonSeg do local bottomLeft, bottomRight = prevRing[lon], prevRing[lon + 1] local topLeft, topRight = currRing[lon], currRing[lon + 1] addVertex(bottomLeft); addVertex(bottomRight); addVertex(topRight) addVertex(bottomLeft); addVertex(topRight); addVertex(topLeft) end prevRing = currRing end for lon = 0, lonSeg - 1 do local centre = Vertex{posn = {0, 0, 0}, colour = {rimR, rimG, rimB, 255}, texCoords = {0.5, 0.5}, normal = {0, -1, 0}} local flatA = ringVertex(0, lon, 0, -1, 0) local flatB = ringVertex(0, lon + 1, 0, -1, 0) addVertex(centre); addVertex(flatB); addVertex(flatA) end local haloInner, haloOuter, haloSeg, haloY = 1.05, 1.65, 48, 0.05 local haloR, haloG, haloB, haloA = 18, 90, 135, 80 local function haloVertex(seg, rad) local a = (seg / haloSeg) * 2 * math.pi return Vertex{posn = {rad * math.cos(a), haloY, rad * math.sin(a)}, colour = {haloR, haloG, haloB, haloA}, texCoords = {seg / haloSeg, 0}, normal = {0, 1, 0}} end local halo = {} for seg = 0, haloSeg - 1 do local i0 = haloVertex(seg, haloInner) local i1 = haloVertex(seg + 1, haloInner) local o0 = haloVertex(seg, haloOuter) local o1 = haloVertex(seg + 1, haloOuter) halo[#halo + 1] = i0; halo[#halo + 1] = o0; halo[#halo + 1] = o1; halo[#halo + 1] = i0; halo[#halo + 1] = o1; halo[#halo + 1] = i1 end addVertexes(halo, VertexVisibility.HOVERED_OVER) end ",
+			"pokeScript": "",
+			"edges": [
+				{
+					"toNodeName": "hub3"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "hub3",
+			"transform": [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "tilt3_0"
+				},
+				{
+					"toNodeName": "spoke3_1"
+				},
+				{
+					"toNodeName": "spoke3_2"
+				},
+				{
+					"toNodeName": "spoke3_3"
+				},
+				{
+					"toNodeName": "spoke3_4"
+				},
+				{
+					"toNodeName": "spoke3_5"
+				},
+				{
+					"toNodeName": "spoke3_6"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "tilt3_0",
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "petal0_3"
+				}
+			]
+		},
+		{
+			"type": "SceneGeometryScriptNode",
+			"name": "petal0_3",
+			"pokeEnabled": false,
+			"coreScript": "if vertexCount() == 0 then local hue = 0.000000 local length, maxHalfWidth, segments = 2.2, 0.45, 10 local function hsvToRgb(h, sat, val) local chroma = val * sat local huePrime = h * 6 local x = chroma * (1 - math.abs((huePrime % 2) - 1)) local m = val - chroma local rp, gp, bp if huePrime < 1 then rp, gp, bp = chroma, x, 0 elseif huePrime < 2 then rp, gp, bp = x, chroma, 0 elseif huePrime < 3 then rp, gp, bp = 0, chroma, x elseif huePrime < 4 then rp, gp, bp = 0, x, chroma elseif huePrime < 5 then rp, gp, bp = x, 0, chroma else rp, gp, bp = chroma, 0, x end return (rp + m) * 255, (gp + m) * 255, (bp + m) * 255 end local baseR, baseG, baseB = hsvToRgb(hue, 0.85, 0.95) local tipR, tipG, tipB = hsvToRgb(hue, 0.25, 1.0) local prevLeft, prevRight for i = 0, segments do local t = i / segments local x = t * length local halfWidth = maxHalfWidth * math.sin(math.pi * t) local cR = baseR + (tipR - baseR) * t local cG = baseG + (tipG - baseG) * t local cB = baseB + (tipB - baseB) * t local left = Vertex{posn = {x, 0, halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 0}, normal = {0, 1, 0}} local right = Vertex{posn = {x, 0, -halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 1}, normal = {0, 1, 0}} if i > 0 then addVertex(prevLeft); addVertex(prevRight); addVertex(right) addVertex(prevLeft); addVertex(right); addVertex(left) end prevLeft, prevRight = left, right end end ",
+			"pokeScript": "",
+			"edges": [
+				{
+					"toNodeName": "hub3"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "spoke3_1",
+			"transform": [0.62349, 0.0, -0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, 0.781831, 0.0, 0.62349, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "tilt3_1"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "tilt3_1",
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "petal1_3"
+				}
+			]
+		},
+		{
+			"type": "SceneGeometryScriptNode",
+			"name": "petal1_3",
+			"pokeEnabled": false,
+			"coreScript": "if vertexCount() == 0 then local hue = 0.142857 local length, maxHalfWidth, segments = 2.2, 0.45, 10 local function hsvToRgb(h, sat, val) local chroma = val * sat local huePrime = h * 6 local x = chroma * (1 - math.abs((huePrime % 2) - 1)) local m = val - chroma local rp, gp, bp if huePrime < 1 then rp, gp, bp = chroma, x, 0 elseif huePrime < 2 then rp, gp, bp = x, chroma, 0 elseif huePrime < 3 then rp, gp, bp = 0, chroma, x elseif huePrime < 4 then rp, gp, bp = 0, x, chroma elseif huePrime < 5 then rp, gp, bp = x, 0, chroma else rp, gp, bp = chroma, 0, x end return (rp + m) * 255, (gp + m) * 255, (bp + m) * 255 end local baseR, baseG, baseB = hsvToRgb(hue, 0.85, 0.95) local tipR, tipG, tipB = hsvToRgb(hue, 0.25, 1.0) local prevLeft, prevRight for i = 0, segments do local t = i / segments local x = t * length local halfWidth = maxHalfWidth * math.sin(math.pi * t) local cR = baseR + (tipR - baseR) * t local cG = baseG + (tipG - baseG) * t local cB = baseB + (tipB - baseB) * t local left = Vertex{posn = {x, 0, halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 0}, normal = {0, 1, 0}} local right = Vertex{posn = {x, 0, -halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 1}, normal = {0, 1, 0}} if i > 0 then addVertex(prevLeft); addVertex(prevRight); addVertex(right) addVertex(prevLeft); addVertex(right); addVertex(left) end prevLeft, prevRight = left, right end end ",
+			"pokeScript": "",
+			"edges": [
+				{
+					"toNodeName": "hub3"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "spoke3_2",
+			"transform": [-0.222521, 0.0, -0.974928, 0.0, 0.0, 1.0, 0.0, 0.0, 0.974928, 0.0, -0.222521, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "tilt3_2"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "tilt3_2",
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "petal2_3"
+				}
+			]
+		},
+		{
+			"type": "SceneGeometryScriptNode",
+			"name": "petal2_3",
+			"pokeEnabled": false,
+			"coreScript": "if vertexCount() == 0 then local hue = 0.285714 local length, maxHalfWidth, segments = 2.2, 0.45, 10 local function hsvToRgb(h, sat, val) local chroma = val * sat local huePrime = h * 6 local x = chroma * (1 - math.abs((huePrime % 2) - 1)) local m = val - chroma local rp, gp, bp if huePrime < 1 then rp, gp, bp = chroma, x, 0 elseif huePrime < 2 then rp, gp, bp = x, chroma, 0 elseif huePrime < 3 then rp, gp, bp = 0, chroma, x elseif huePrime < 4 then rp, gp, bp = 0, x, chroma elseif huePrime < 5 then rp, gp, bp = x, 0, chroma else rp, gp, bp = chroma, 0, x end return (rp + m) * 255, (gp + m) * 255, (bp + m) * 255 end local baseR, baseG, baseB = hsvToRgb(hue, 0.85, 0.95) local tipR, tipG, tipB = hsvToRgb(hue, 0.25, 1.0) local prevLeft, prevRight for i = 0, segments do local t = i / segments local x = t * length local halfWidth = maxHalfWidth * math.sin(math.pi * t) local cR = baseR + (tipR - baseR) * t local cG = baseG + (tipG - baseG) * t local cB = baseB + (tipB - baseB) * t local left = Vertex{posn = {x, 0, halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 0}, normal = {0, 1, 0}} local right = Vertex{posn = {x, 0, -halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 1}, normal = {0, 1, 0}} if i > 0 then addVertex(prevLeft); addVertex(prevRight); addVertex(right) addVertex(prevLeft); addVertex(right); addVertex(left) end prevLeft, prevRight = left, right end end ",
+			"pokeScript": "",
+			"edges": [
+				{
+					"toNodeName": "hub3"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "spoke3_3",
+			"transform": [-0.900969, 0.0, -0.433884, 0.0, 0.0, 1.0, 0.0, 0.0, 0.433884, 0.0, -0.900969, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "tilt3_3"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "tilt3_3",
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "petal3_3"
+				}
+			]
+		},
+		{
+			"type": "SceneGeometryScriptNode",
+			"name": "petal3_3",
+			"pokeEnabled": false,
+			"coreScript": "if vertexCount() == 0 then local hue = 0.428571 local length, maxHalfWidth, segments = 2.2, 0.45, 10 local function hsvToRgb(h, sat, val) local chroma = val * sat local huePrime = h * 6 local x = chroma * (1 - math.abs((huePrime % 2) - 1)) local m = val - chroma local rp, gp, bp if huePrime < 1 then rp, gp, bp = chroma, x, 0 elseif huePrime < 2 then rp, gp, bp = x, chroma, 0 elseif huePrime < 3 then rp, gp, bp = 0, chroma, x elseif huePrime < 4 then rp, gp, bp = 0, x, chroma elseif huePrime < 5 then rp, gp, bp = x, 0, chroma else rp, gp, bp = chroma, 0, x end return (rp + m) * 255, (gp + m) * 255, (bp + m) * 255 end local baseR, baseG, baseB = hsvToRgb(hue, 0.85, 0.95) local tipR, tipG, tipB = hsvToRgb(hue, 0.25, 1.0) local prevLeft, prevRight for i = 0, segments do local t = i / segments local x = t * length local halfWidth = maxHalfWidth * math.sin(math.pi * t) local cR = baseR + (tipR - baseR) * t local cG = baseG + (tipG - baseG) * t local cB = baseB + (tipB - baseB) * t local left = Vertex{posn = {x, 0, halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 0}, normal = {0, 1, 0}} local right = Vertex{posn = {x, 0, -halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 1}, normal = {0, 1, 0}} if i > 0 then addVertex(prevLeft); addVertex(prevRight); addVertex(right) addVertex(prevLeft); addVertex(right); addVertex(left) end prevLeft, prevRight = left, right end end ",
+			"pokeScript": "",
+			"edges": [
+				{
+					"toNodeName": "hub3"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "spoke3_4",
+			"transform": [-0.900969, 0.0, 0.433884, 0.0, 0.0, 1.0, 0.0, 0.0, -0.433884, 0.0, -0.900969, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "tilt3_4"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "tilt3_4",
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "petal4_3"
+				}
+			]
+		},
+		{
+			"type": "SceneGeometryScriptNode",
+			"name": "petal4_3",
+			"pokeEnabled": false,
+			"coreScript": "if vertexCount() == 0 then local hue = 0.571429 local length, maxHalfWidth, segments = 2.2, 0.45, 10 local function hsvToRgb(h, sat, val) local chroma = val * sat local huePrime = h * 6 local x = chroma * (1 - math.abs((huePrime % 2) - 1)) local m = val - chroma local rp, gp, bp if huePrime < 1 then rp, gp, bp = chroma, x, 0 elseif huePrime < 2 then rp, gp, bp = x, chroma, 0 elseif huePrime < 3 then rp, gp, bp = 0, chroma, x elseif huePrime < 4 then rp, gp, bp = 0, x, chroma elseif huePrime < 5 then rp, gp, bp = x, 0, chroma else rp, gp, bp = chroma, 0, x end return (rp + m) * 255, (gp + m) * 255, (bp + m) * 255 end local baseR, baseG, baseB = hsvToRgb(hue, 0.85, 0.95) local tipR, tipG, tipB = hsvToRgb(hue, 0.25, 1.0) local prevLeft, prevRight for i = 0, segments do local t = i / segments local x = t * length local halfWidth = maxHalfWidth * math.sin(math.pi * t) local cR = baseR + (tipR - baseR) * t local cG = baseG + (tipG - baseG) * t local cB = baseB + (tipB - baseB) * t local left = Vertex{posn = {x, 0, halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 0}, normal = {0, 1, 0}} local right = Vertex{posn = {x, 0, -halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 1}, normal = {0, 1, 0}} if i > 0 then addVertex(prevLeft); addVertex(prevRight); addVertex(right) addVertex(prevLeft); addVertex(right); addVertex(left) end prevLeft, prevRight = left, right end end ",
+			"pokeScript": "",
+			"edges": [
+				{
+					"toNodeName": "hub3"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "spoke3_5",
+			"transform": [-0.222521, 0.0, 0.974928, 0.0, 0.0, 1.0, 0.0, 0.0, -0.974928, 0.0, -0.222521, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "tilt3_5"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "tilt3_5",
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "petal5_3"
+				}
+			]
+		},
+		{
+			"type": "SceneGeometryScriptNode",
+			"name": "petal5_3",
+			"pokeEnabled": false,
+			"coreScript": "if vertexCount() == 0 then local hue = 0.714286 local length, maxHalfWidth, segments = 2.2, 0.45, 10 local function hsvToRgb(h, sat, val) local chroma = val * sat local huePrime = h * 6 local x = chroma * (1 - math.abs((huePrime % 2) - 1)) local m = val - chroma local rp, gp, bp if huePrime < 1 then rp, gp, bp = chroma, x, 0 elseif huePrime < 2 then rp, gp, bp = x, chroma, 0 elseif huePrime < 3 then rp, gp, bp = 0, chroma, x elseif huePrime < 4 then rp, gp, bp = 0, x, chroma elseif huePrime < 5 then rp, gp, bp = x, 0, chroma else rp, gp, bp = chroma, 0, x end return (rp + m) * 255, (gp + m) * 255, (bp + m) * 255 end local baseR, baseG, baseB = hsvToRgb(hue, 0.85, 0.95) local tipR, tipG, tipB = hsvToRgb(hue, 0.25, 1.0) local prevLeft, prevRight for i = 0, segments do local t = i / segments local x = t * length local halfWidth = maxHalfWidth * math.sin(math.pi * t) local cR = baseR + (tipR - baseR) * t local cG = baseG + (tipG - baseG) * t local cB = baseB + (tipB - baseB) * t local left = Vertex{posn = {x, 0, halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 0}, normal = {0, 1, 0}} local right = Vertex{posn = {x, 0, -halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 1}, normal = {0, 1, 0}} if i > 0 then addVertex(prevLeft); addVertex(prevRight); addVertex(right) addVertex(prevLeft); addVertex(right); addVertex(left) end prevLeft, prevRight = left, right end end ",
+			"pokeScript": "",
+			"edges": [
+				{
+					"toNodeName": "hub3"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "spoke3_6",
+			"transform": [0.62349, 0.0, 0.781831, 0.0, 0.0, 1.0, 0.0, 0.0, -0.781831, 0.0, 0.62349, 0.0, 0.0, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "tilt3_6"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "tilt3_6",
+			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
+			"edges": [
+				{
+					"toNodeName": "petal6_3"
+				}
+			]
+		},
+		{
+			"type": "SceneGeometryScriptNode",
+			"name": "petal6_3",
 			"pokeEnabled": false,
 			"coreScript": "if vertexCount() == 0 then local hue = 0.857143 local length, maxHalfWidth, segments = 2.2, 0.45, 10 local function hsvToRgb(h, sat, val) local chroma = val * sat local huePrime = h * 6 local x = chroma * (1 - math.abs((huePrime % 2) - 1)) local m = val - chroma local rp, gp, bp if huePrime < 1 then rp, gp, bp = chroma, x, 0 elseif huePrime < 2 then rp, gp, bp = x, chroma, 0 elseif huePrime < 3 then rp, gp, bp = 0, chroma, x elseif huePrime < 4 then rp, gp, bp = 0, x, chroma elseif huePrime < 5 then rp, gp, bp = x, 0, chroma else rp, gp, bp = chroma, 0, x end return (rp + m) * 255, (gp + m) * 255, (bp + m) * 255 end local baseR, baseG, baseB = hsvToRgb(hue, 0.85, 0.95) local tipR, tipG, tipB = hsvToRgb(hue, 0.25, 1.0) local prevLeft, prevRight for i = 0, segments do local t = i / segments local x = t * length local halfWidth = maxHalfWidth * math.sin(math.pi * t) local cR = baseR + (tipR - baseR) * t local cG = baseG + (tipG - baseG) * t local cB = baseB + (tipB - baseB) * t local left = Vertex{posn = {x, 0, halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 0}, normal = {0, 1, 0}} local right = Vertex{posn = {x, 0, -halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 1}, normal = {0, 1, 0}} if i > 0 then addVertex(prevLeft); addVertex(prevRight); addVertex(right) addVertex(prevLeft); addVertex(right); addVertex(left) end prevLeft, prevRight = left, right end end ",
 			"pokeScript": ""

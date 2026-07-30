@@ -49,6 +49,10 @@ class PersistException : public Exception
 			SURFACE_NODE_WRONG_TYPE,
 			/// A strobe surface registration referenced a surface name that does not exist among this hive's surfaces.
 			STROBE_SURFACE_NOT_FOUND,
+			/// An agent node's capability was not one of the names in AgenticHarness::Capability.
+			UNKNOWN_AGENT_CAPABILITY,
+			/// An agent node prompt's node type was not one of the names in GraphNode::Type.
+			UNKNOWN_AGENT_PROMPT_NODE_TYPE,
 
 			// -- JsonHiveLoader errors --
 
@@ -89,7 +93,15 @@ class PersistException : public Exception
 			/// A surface's "initialFocusNodeName" member was present but not a string.
 			JSON_INVALID_SURFACE_INITIAL_FOCUS_NODE_NAME,
 			/// A surface's "focusViewportFraction" member was present but not a positive number.
-			JSON_INVALID_SURFACE_FOCUS_VIEWPORT_FRACTION
+			JSON_INVALID_SURFACE_FOCUS_VIEWPORT_FRACTION,
+			/// An AgentNode's "capability" member was missing or not a string.
+			JSON_INVALID_AGENT_CAPABILITY,
+			/// An AgentNode's "prompts" member was missing, not an array, empty, or a prompt object was malformed.
+			JSON_INVALID_AGENT_PROMPTS,
+			/// An AgentNode's "autoTriggerAgentAction" member was present but not a boolean.
+			JSON_INVALID_AGENT_AUTO_TRIGGER,
+			/// An AgentNode's "serialiseEmittedActions" member was present but not a boolean.
+			JSON_INVALID_AGENT_SERIALISE_ACTIONS
         };
 
         virtual ~PersistException(){}

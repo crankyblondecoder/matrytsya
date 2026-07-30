@@ -51,9 +51,36 @@
 				"SCRIPT_GRAPH_ACTION",
 				"SCENE_GRAPH_ACTION",
 				"SCENE_STROBE_GRAPH_ACTION",
-				"ANIMATE_GRAPH_ACTION"
+				"ANIMATE_GRAPH_ACTION",
+				"AGENT_GRAPH_ACTION",
+				"TRIGGER_GRAPH_ACTION"
 			],
 			"description": "Used to describe the type of a particular graph action. Some actions may support multiple types."
+		},
+
+		"nodeType": {
+			"enum": [
+				"GRAPH_NODE",
+				"PING_NODE",
+				"SCENE_GEOMETRY_NODE",
+				"SCENE_TRANSFORM_NODE",
+				"SCRIPT_NODE",
+				"SCENE_GEOMETRY_SCRIPT_NODE",
+				"SCENE_TRANSFORM_SCRIPT_NODE",
+				"SCENE_ROOT_NODE",
+				"TELEPORT_NODE",
+				"AGENT_NODE"
+			],
+			"description": "Identifies a kind of node, so that something visiting a node can recognise what it has arrived at. GRAPH_NODE is reported by any node that does not identify a more specific kind of its own."
+		},
+
+		"capability": {
+			"enum": [
+				"LOW",
+				"MEDIUM",
+				"HIGH"
+			],
+			"description": "How capable a model must be to service a request. LOW: can do simple tasks well. MEDIUM: can do average tasks well. HIGH: can do complex tasks well."
 		},
 
 		"vertexVisibility": {
@@ -369,10 +396,66 @@
 			"unevaluatedProperties": false
 		},
 
+		"agentPrompt": {
+			"description": "A single prompt, paired with the node it is sent for. As an agent action traverses the graph, each node it reaches is matched against these entries in order and the first entry that matches supplies the prompt sent for that node. A node matching no entry is passed over silently.",
+			"type": "object",
+			"required": ["nodeType", "prompt"],
+			"additionalProperties": false,
+			"properties": {
+				"nodeIdentifier": {
+					"type": "string",
+					"description": "Name of the node this prompt applies to. Omit or leave empty to match on node type alone. This names a node anywhere the action reaches, which need not be a node of this hive."
+				},
+				"nodeType": {
+					"$ref": "#/$defs/nodeType",
+					"description": "Kind of node this prompt applies to. Must match for the prompt to be used, whether or not nodeIdentifier is set."
+				},
+				"prompt": {
+					"type": "string",
+					"description": "Prompt sent when this entry matches the node being visited."
+				}
+			}
+		},
+
+		"agentNode": {
+			"description": "A node that holds a set of prompts and emits them as an agent action, driving one conversation onwards from node to node as that action traverses the graph. The conversation is carried forward across every node the action matches, so later prompts see what earlier ones produced.",
+			"allOf": [
+				{ "$ref": "#/$defs/nodeBase" },
+				{
+					"required": ["capability", "prompts"],
+					"properties": {
+						"type": { "const": "AgentNode" },
+						"capability": {
+							"$ref": "#/$defs/capability",
+							"description": "How capable the model servicing this node's prompts must be."
+						},
+						"prompts": {
+							"type": "array",
+							"minItems": 1,
+							"items": { "$ref": "#/$defs/agentPrompt" },
+							"description": "Prompts the emitted action sends, each paired with the node it is sent for. Matched in the order given."
+						},
+						"autoTriggerAgentAction": {
+							"type": "boolean",
+							"default": true,
+							"description": "Whether a trigger arriving at this node emits an agent action. If false, this node holds its prompts but never emits them in response to a trigger, leaving emission to something else."
+						},
+						"serialiseEmittedActions": {
+							"type": "boolean",
+							"default": true,
+							"description": "Whether actions emitted by this node are queued so that only one is ever in flight at a time, the next starting once the current one completes. If false, a node triggered again while an emitted action is still running starts a second conversation alongside the first."
+						}
+					}
+				}
+			],
+			"unevaluatedProperties": false
+		},
+
 		"node": {
 			"description": "Concrete nodes that can be added directly to a hive.",
 			"oneOf": [
 				{ "$ref": "#/$defs/pingNode" },
+				{ "$ref": "#/$defs/agentNode" },
 				{ "$ref": "#/$defs/teleportNode" },
 				{ "$ref": "#/$defs/sceneRootNode" },
 				{ "$ref": "#/$defs/sceneGeometryNode" },

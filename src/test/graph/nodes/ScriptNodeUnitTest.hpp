@@ -3,11 +3,17 @@
 
 #include <gtest/gtest.h>
 
+#include <atomic>
+
+#include "../../../graph/actionTargets/TriggerActionTarget.hpp"
+#include "../../../graph/graphActionFlagRegister.hpp"
+#include "../../../graph/GraphHive.hpp"
 #include "../../../graph/GraphPoke.hpp"
 #include "../../../graph/nodes/ScriptNode.hpp"
 #include "../../../graph/nodes/ScriptSession.hpp"
 #include "../../../graph/nodes/StrobeScriptNode.hpp"
 #include "../../../thread/ThreadException.hpp"
+#include "../../../util/Handle.hpp"
 
 /**
  * StrobeScriptNode subclass that counts how many times _registerCoreGlobals() runs, so tests can assert
@@ -31,6 +37,28 @@ class CountingStrobeScriptNode : public StrobeScriptNode
 			registrationCount++;
 			StrobeScriptNode::_registerCoreGlobals(luaState);
 		}
+};
+
+/**
+ * ScriptNode subclass that can be triggered, counting each trigger it receives, so tests can observe a
+ * TriggerAction emitted by another node's script arriving. No production node is a trigger target yet, so
+ * the receiving half of the trigger() binding has to be stood up here.
+ */
+class TriggerCountingScriptNode : public ScriptNode, public TriggerActionTarget
+{
+	public:
+
+		TriggerCountingScriptNode() : ScriptNode("", "")
+		{
+			_addActionFlag(TRIGGER_GRAPH_ACTION);
+		}
+
+		void trigger() override { triggerCount++; }
+
+		TriggerActionTarget* getTriggerActionTarget() override { return this; }
+
+		/// Written from whichever worker thread applies the action, read from the test thread.
+		std::atomic<int> triggerCount{0};
 };
 
 /**
@@ -369,6 +397,151 @@ TEST(ScriptNodeTest, StrobeBindingPersistsAndReflectsLiveStateAcrossRuns)
 	}
 
 	node -> decrRef();
+}
+
+/**
+ * trigger() called from a core script emits a TriggerAction from that node, which traverses the graph and
+ * triggers every connected trigger target it reaches. This is the mechanism a script uses to fire a
+ * subgraph from a single call.
+ */
+TEST(ScriptNodeTest, TriggerFromCoreScriptReachesConnectedNode)
+{
+	GraphHive* hive = new GraphHive(2);
+	Handle<GraphHive> hiveHandle(hive);
+
+	ScriptNode* emittingNode = new ScriptNode("trigger()", "");
+	TriggerCountingScriptNode* downstreamNode = new TriggerCountingScriptNode();
+
+	hive -> addNode(emittingNode);
+	hive -> addNode(downstreamNode);
+
+	Handle<GraphNode> downstreamHandle(downstreamNode);
+	emittingNode -> createEdge(downstreamHandle, {});
+
+	// Running the script directly, rather than via a ScriptAction, keeps the emitted TriggerAction as the
+	// only action traversing the hive. It is started synchronously from inside the run, so it is already
+	// registered active by the time the session is released below.
+	{ Handle<ScriptSession> sessionHandle = emittingNode -> requestCoreSession();
+
+		ASSERT_TRUE(sessionHandle.getInstance() -> run());
+	}
+
+	hive -> waitOnNoActionsActive(0);
+
+	EXPECT_EQ(downstreamNode -> triggerCount.load(), 1) << "TriggerAction emitted by the core script should "
+		"have reached the connected downstream node exactly once.";
+
+	hive -> shutdown();
+}
+
+/**
+ * The trigger() binding is registered into the poke state as well as the core state, so a poke script can
+ * fire a subgraph in response to a poke.
+ */
+TEST(ScriptNodeTest, TriggerFromPokeScriptReachesConnectedNode)
+{
+	GraphHive* hive = new GraphHive(2);
+	Handle<GraphHive> hiveHandle(hive);
+
+	ScriptNode* emittingNode = new ScriptNode("", "if POKE_TYPE == 'HIT' then trigger() end");
+	TriggerCountingScriptNode* downstreamNode = new TriggerCountingScriptNode();
+
+	hive -> addNode(emittingNode);
+	hive -> addNode(downstreamNode);
+
+	Handle<GraphNode> downstreamHandle(downstreamNode);
+	emittingNode -> createEdge(downstreamHandle, {});
+
+	emittingNode -> setPokeEnabled(true);
+
+	GraphPoke::PokeData data{};
+	data.hitDuration = 100;
+
+	emittingNode -> poke(GraphPoke(GraphPoke::PokeType::HIT, data));
+
+	hive -> waitOnNoActionsActive(0);
+
+	EXPECT_EQ(downstreamNode -> triggerCount.load(), 1) << "TriggerAction emitted by the poke script should "
+		"have reached the connected downstream node.";
+
+	hive -> shutdown();
+}
+
+/**
+ * The optional arguments to trigger() restrict which nodes the emitted action fires: only nodes matching
+ * the given name, and only nodes of the given NodeType, are triggered.
+ */
+TEST(ScriptNodeTest, TriggerRestrictsByNodeNameAndType)
+{
+	GraphHive* hive = new GraphHive(2);
+	Handle<GraphHive> hiveHandle(hive);
+
+	ScriptNode* emittingNode = new ScriptNode("trigger('wanted', NodeType.SCRIPT_NODE)", "");
+
+	TriggerCountingScriptNode* wantedNode = new TriggerCountingScriptNode();
+	TriggerCountingScriptNode* unwantedNode = new TriggerCountingScriptNode();
+
+	wantedNode -> setName("wanted");
+	unwantedNode -> setName("unwanted");
+
+	hive -> addNode(emittingNode);
+	hive -> addNode(wantedNode);
+	hive -> addNode(unwantedNode);
+
+	Handle<GraphNode> wantedHandle(wantedNode);
+	Handle<GraphNode> unwantedHandle(unwantedNode);
+
+	emittingNode -> createEdge(wantedHandle, {});
+	emittingNode -> createEdge(unwantedHandle, {});
+
+	{ Handle<ScriptSession> sessionHandle = emittingNode -> requestCoreSession();
+
+		ASSERT_TRUE(sessionHandle.getInstance() -> run());
+	}
+
+	hive -> waitOnNoActionsActive(0);
+
+	EXPECT_EQ(wantedNode -> triggerCount.load(), 1) << "The node the trigger named should have been triggered.";
+	EXPECT_EQ(unwantedNode -> triggerCount.load(), 0) << "A node the trigger did not name should have been "
+		"traversed but left untriggered.";
+
+	hive -> shutdown();
+}
+
+/**
+ * A node type that is not one of the NodeType constants cannot be honoured, so trigger() raises a Lua
+ * error rather than silently falling back to triggering everything.
+ */
+TEST(ScriptNodeTest, TriggerWithUnrecognisedNodeTypeFails)
+{
+	GraphHive* hive = new GraphHive(2);
+	Handle<GraphHive> hiveHandle(hive);
+
+	ScriptNode* emittingNode = new ScriptNode("trigger('', 9999)\nreachedEnd = true", "");
+	TriggerCountingScriptNode* downstreamNode = new TriggerCountingScriptNode();
+
+	hive -> addNode(emittingNode);
+	hive -> addNode(downstreamNode);
+
+	Handle<GraphNode> downstreamHandle(downstreamNode);
+	emittingNode -> createEdge(downstreamHandle, {});
+
+	{ Handle<ScriptSession> sessionHandle = emittingNode -> requestCoreSession();
+
+		ScriptSession* session = sessionHandle.getInstance();
+
+		EXPECT_FALSE(session -> run()) << "An unrecognised NodeType value should fail the run.";
+
+		bool reachedEnd = false;
+		EXPECT_FALSE(session -> getGlobal("reachedEnd", reachedEnd))
+			<< "The script should not have continued past the failed trigger() call.";
+	}
+
+	hive -> waitOnNoActionsActive(0);
+
+	EXPECT_EQ(downstreamNode -> triggerCount.load(), 0) << "No TriggerAction should have been emitted.";
+
+	hive -> shutdown();
 }
 
 #endif

@@ -29,19 +29,6 @@ class BasicHiveToolBindings : public ModelToolBindings
 		virtual ModelToolCallParameterValue processBinding(std::string name,
 			std::vector<ModelToolCallParameterValue> parameterValues) override;
 
-		/**
-		 * Get the names of all the nodes in the bound hive.
-		 */
-		std::vector<std::string> getNodeNames();
-
-		/**
-		 * Get the id of a node in the bound hive, given its name.
-		 * @param nodeName Name of the node to find.
-		 * @returns Id of the node.
-		 * @throw AgentException When no node with that name exists in the bound hive.
-		 */
-		long long getNodeId(std::string nodeName);
-
 	protected:
 
 		virtual ~BasicHiveToolBindings(){}
@@ -51,6 +38,19 @@ class BasicHiveToolBindings : public ModelToolBindings
 		// Disable copying.
 		BasicHiveToolBindings(const BasicHiveToolBindings& copyFrom);
 		BasicHiveToolBindings& operator= (const BasicHiveToolBindings& copyFrom);
+
+		/**
+		 * Get the names of all the nodes in the bound hive.
+		 */
+		std::vector<std::string> __getNodeNames();
+
+		/**
+		 * Get the id of a node in the bound hive, given its name.
+		 * @param nodeName Name of the node to find.
+		 * @returns Id of the node.
+		 * @throw AgentException When no node with that name exists in the bound hive.
+		 */
+		long long __getNodeId(std::string nodeName);
 
 		/// Hive that the bindings operate against.
 		Handle<GraphHive> _hive;

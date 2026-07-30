@@ -12,6 +12,8 @@
 #include "../graph/GraphNamed.hpp"
 #include "../graph/GraphNode.hpp"
 #include "../graph/graphActionFlagRegister.hpp"
+#include "../graph/actions/AgentAction.hpp"
+#include "../graph/nodes/AgentNode.hpp"
 #include "../graph/nodes/PingNode.hpp"
 #include "../graph/nodes/SceneGeometryNode.hpp"
 #include "../graph/nodes/SceneGeometryScriptNode.hpp"
@@ -289,6 +291,25 @@ GraphNode* HiveBuilder::__createNode(const HiveNodeDescriptor& descriptor)
 			return node;
 		}
 
+		case HiveNodeDescriptor::AGENT:
+		{
+			std::vector<AgentAction::NodePrompt> prompts;
+
+			for(const HiveAgentPromptDescriptor& promptDescriptor : descriptor.prompts)
+			{
+				AgentAction::NodePrompt prompt;
+
+				prompt.nodeIdentifier = promptDescriptor.nodeIdentifier;
+				prompt.nodeType = __nodeTypeFromName(promptDescriptor.nodeTypeName);
+				prompt.prompt = promptDescriptor.prompt;
+
+				prompts.push_back(prompt);
+			}
+
+			return new AgentNode(__capabilityFromName(descriptor.capabilityName), prompts,
+				descriptor.autoTriggerAgentAction, descriptor.serialiseEmittedActions);
+		}
+
 		default:
 		{
 			throw PersistException(PersistException::UNKNOWN_NODE_TYPE);
@@ -332,6 +353,33 @@ unsigned long HiveBuilder::__actionFlagFromName(const std::string& name)
 	if(name == "SCENE_GRAPH_ACTION") return SCENE_GRAPH_ACTION;
 	if(name == "SCENE_STROBE_GRAPH_ACTION") return SCENE_STROBE_GRAPH_ACTION;
 	if(name == "ANIMATE_GRAPH_ACTION") return ANIMATE_GRAPH_ACTION;
+	if(name == "AGENT_GRAPH_ACTION") return AGENT_GRAPH_ACTION;
+	if(name == "TRIGGER_GRAPH_ACTION") return TRIGGER_GRAPH_ACTION;
 
 	throw PersistException(PersistException::UNKNOWN_ACTION_FLAG);
+}
+
+AgenticHarness::Capability HiveBuilder::__capabilityFromName(const std::string& name)
+{
+	if(name == "LOW") return AgenticHarness::Capability::LOW;
+	if(name == "MEDIUM") return AgenticHarness::Capability::MEDIUM;
+	if(name == "HIGH") return AgenticHarness::Capability::HIGH;
+
+	throw PersistException(PersistException::UNKNOWN_AGENT_CAPABILITY);
+}
+
+GraphNode::Type HiveBuilder::__nodeTypeFromName(const std::string& name)
+{
+	if(name == "GRAPH_NODE") return GraphNode::Type::GRAPH_NODE;
+	if(name == "PING_NODE") return GraphNode::Type::PING_NODE;
+	if(name == "SCENE_GEOMETRY_NODE") return GraphNode::Type::SCENE_GEOMETRY_NODE;
+	if(name == "SCENE_TRANSFORM_NODE") return GraphNode::Type::SCENE_TRANSFORM_NODE;
+	if(name == "SCRIPT_NODE") return GraphNode::Type::SCRIPT_NODE;
+	if(name == "SCENE_GEOMETRY_SCRIPT_NODE") return GraphNode::Type::SCENE_GEOMETRY_SCRIPT_NODE;
+	if(name == "SCENE_TRANSFORM_SCRIPT_NODE") return GraphNode::Type::SCENE_TRANSFORM_SCRIPT_NODE;
+	if(name == "SCENE_ROOT_NODE") return GraphNode::Type::SCENE_ROOT_NODE;
+	if(name == "TELEPORT_NODE") return GraphNode::Type::TELEPORT_NODE;
+	if(name == "AGENT_NODE") return GraphNode::Type::AGENT_NODE;
+
+	throw PersistException(PersistException::UNKNOWN_AGENT_PROMPT_NODE_TYPE);
 }

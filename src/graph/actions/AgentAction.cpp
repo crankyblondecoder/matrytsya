@@ -40,7 +40,7 @@ void AgentAction::_apply(GraphNode* target)
 	if(agentTarget)
 	{
 		_context.getInstance() -> clearTemporaryToolBindings();
-		_context.getInstance() -> addTemporaryToolBindings(agentTarget -> getModelToolBindings(_capability));
+		_context.getInstance() -> addTemporaryToolBindings(agentTarget -> getModelToolBindings(_capability, getId()));
 	}
 
 	_context = hive.getInstance() -> processNodeAgenticRequest(_capability, match -> prompt, _context);

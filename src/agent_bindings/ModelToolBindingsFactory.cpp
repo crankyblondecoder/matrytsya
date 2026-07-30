@@ -19,13 +19,13 @@ std::vector<Handle<ModelToolBindings>> ModelToolBindingsFactory::getChatToolBind
 }
 
 std::vector<Handle<ModelToolBindings>> ModelToolBindingsFactory::getAnimateScriptNodeToolBindings(
-	AgenticHarness::Capability capability, Handle<AnimateScriptNode> node)
+	AgenticHarness::Capability capability, unsigned serial, Handle<AnimateScriptNode> node)
 {
 	std::vector<Handle<ModelToolBindings>> tools;
 
 	if(!node.isValid()) return tools;
 
-	AnimateScriptNodeToolBindings* bindings = new AnimateScriptNodeToolBindings(node);
+	AnimateScriptNodeToolBindings* bindings = new AnimateScriptNodeToolBindings(node, serial);
 
 	Handle<ModelToolBindings> handle(bindings);
 

@@ -91,9 +91,8 @@ namespace
 	 * factory's chat tool bindings all assigned to the chat role at low capability.
 	 * @param hive Hive the tool bindings are to report on.
 	 * @param toolBindingsFactory Factory the chat tool bindings are taken from.
-	 * @returns Handle to the harness.
-	 * @note Exits the process when the server cannot be reached or does not serve the model, since a chat
-	 *       surface with nothing behind it is of no use to this test.
+	 * @returns Handle to the harness, or an invalid handle when the server cannot be reached or does not
+	 *          serve the model, in which case the hive is left to chat with no model behind it.
 	 */
 	Handle<AgenticHarness> _buildAgenticHarness(Handle<GraphHive> hive,
 		Handle<GraphToolBindingsFactory> toolBindingsFactory)
@@ -112,8 +111,9 @@ namespace
 		catch(AgentException& exception)
 		{
 			std::cerr << "Could not use the Ollama server at " << _OLLAMA_URL << ": "
-				<< exception.getDescription() << std::endl;
-			exit(1);
+				<< exception.getDescription() << " -- disabling model use." << std::endl;
+
+			return Handle<AgenticHarness>(0);
 		}
 
 		Handle<Model> modelHandle(0);
@@ -130,8 +130,9 @@ namespace
 		if(!modelHandle.isValid())
 		{
 			std::cerr << "The Ollama server at " << _OLLAMA_URL << " does not serve the model "
-				<< _OLLAMA_MODEL_NAME << std::endl;
-			exit(1);
+				<< _OLLAMA_MODEL_NAME << " -- disabling model use." << std::endl;
+
+			return Handle<AgenticHarness>(0);
 		}
 
 		AgenticHarness* harness = new AgenticHarness();

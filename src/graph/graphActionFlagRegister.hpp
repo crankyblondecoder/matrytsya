@@ -19,8 +19,9 @@
 #define VERSION_GRAPH_ACTION 0x00000040
 /// Supports being driven by per-node agentic prompts.
 #define AGENT_GRAPH_ACTION 0x00000080
+/// Supports triggering a node.
+#define TRIGGER_GRAPH_ACTION 0x00000100
 
-//#define _GRAPH_ACTION 0x00000100
 //#define _GRAPH_ACTION 0x00000200
 //#define _GRAPH_ACTION 0x00000400
 //#define _GRAPH_ACTION 0x00000800

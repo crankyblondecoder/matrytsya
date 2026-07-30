@@ -8,6 +8,7 @@
 #include "actionTargets/StrobeActionTarget.hpp"
 #include "actionTargets/ScriptActionTarget.hpp"
 #include "actionTargets/SerialisableActionTarget.hpp"
+#include "actionTargets/TriggerActionTarget.hpp"
 #include "actionTargets/VersionActionTarget.hpp"
 
 #include <atomic>
@@ -62,6 +63,9 @@ class GraphActionTargetable
 
 		/// Get the target for the agent action.
 		virtual AgentActionTarget* getAgentActionTarget();
+
+		/// Get the target for the trigger action.
+		virtual TriggerActionTarget* getTriggerActionTarget();
 
 	protected:
 
