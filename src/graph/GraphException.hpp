@@ -58,7 +58,9 @@ class GraphException : public Exception
 			/// An agentic request was made against a hive with no agentic harness set.
 			AGENTIC_HARNESS_NOT_SET,
 			/// The supplied id does not name a chat context of the hive surface it was given to.
-			INVALID_CHAT_CONTEXT_ID
+			INVALID_CHAT_CONTEXT_ID,
+			/// The supplied name does not name a GraphNode::Type.
+			UNKNOWN_NODE_TYPE_NAME
         };
 
         virtual ~GraphException(){}

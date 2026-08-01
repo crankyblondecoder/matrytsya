@@ -6,7 +6,7 @@ actions/ActionFactory.cpp actions/AgentAction.cpp actions/AnimateAction.cpp acti
 actions/SerialisableActionPayload.cpp actions/TriggerAction.cpp actions/VersionAction.cpp \
 nodes/AgentNode.cpp nodes/AnimateScriptNode.cpp nodes/PingNode.cpp nodes/SceneGeometry.cpp nodes/SceneGeometryNode.cpp nodes/SceneGeometryScriptNode.cpp nodes/SceneRootNode.cpp \
 nodes/SceneTransform.cpp nodes/SceneTransformNode.cpp nodes/SceneTransformScriptNode.cpp nodes/ScriptNode.cpp nodes/ScriptSession.cpp \
-nodes/StrobeEmitterNode.cpp nodes/StrobeScriptNode.cpp nodes/TeleportNode.cpp
+nodes/StrobeEmitterNode.cpp nodes/StrobeScriptNode.cpp nodes/TeleportNode.cpp nodes/TriggerNode.cpp
 
 objFiles = $(srcFiles:.cpp=.o)
 

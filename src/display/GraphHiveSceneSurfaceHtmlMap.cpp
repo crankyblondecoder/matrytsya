@@ -633,8 +633,8 @@ void GraphHiveSceneSurfaceHtmlMap::threadEntry()
 
 void GraphHiveSceneSurfaceHtmlMap::_quitRequested()
 {
-	// Wakes the chat thread if it is waiting on a prompt being queued. One already with the model is not
-	// interrupted; the thread only gets back to its quit check once the model has answered it.
+	// Wakes the chat thread if it is waiting on a prompt being queued. One already with the model abandons
+	// its wait on the quit flag being set, and is reported to the browser as an aborted request.
 	_chatMessagesCond.lockMutex();
 
 	_chatMessagesCond.broadcast();

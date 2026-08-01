@@ -34,6 +34,9 @@ class AgentAction : public GraphAction
 			/// Prompt sent as part of this action's agentic request when this entry matches the node
 			/// being applied to.
 			std::string prompt;
+
+			/// Terminate (complete) the action once the prompt has completed processing.
+			bool terminateOnResponse = false;
 		};
 
         virtual ~AgentAction();
@@ -53,7 +56,7 @@ class AgentAction : public GraphAction
 
 	protected:
 
-		void _apply(GraphNode* target) override;
+		bool _apply(GraphNode* target) override;
 
 		bool _starting() override;
 		void _complete() override;

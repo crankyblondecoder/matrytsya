@@ -23,6 +23,33 @@ namespace
 
 		return "HIT";
 	}
+
+	struct TypeName
+	{
+		/// Name this type is exposed under.
+		const char* name;
+
+		/// Type that name stands for.
+		GraphNode::Type type;
+	};
+
+	// Every GraphNode::Type, mapped to the name it's exposed under. A type absent from here cannot be
+	// round-tripped through GraphNode::typeName()/typeFromName(), so this must be extended whenever
+	// GraphNode::Type is.
+	const TypeName TYPE_NAMES[] =
+	{
+		{"GRAPH_NODE", GraphNode::Type::GRAPH_NODE},
+		{"PING_NODE", GraphNode::Type::PING_NODE},
+		{"SCENE_GEOMETRY_NODE", GraphNode::Type::SCENE_GEOMETRY_NODE},
+		{"SCENE_TRANSFORM_NODE", GraphNode::Type::SCENE_TRANSFORM_NODE},
+		{"SCRIPT_NODE", GraphNode::Type::SCRIPT_NODE},
+		{"SCENE_GEOMETRY_SCRIPT_NODE", GraphNode::Type::SCENE_GEOMETRY_SCRIPT_NODE},
+		{"SCENE_TRANSFORM_SCRIPT_NODE", GraphNode::Type::SCENE_TRANSFORM_SCRIPT_NODE},
+		{"SCENE_ROOT_NODE", GraphNode::Type::SCENE_ROOT_NODE},
+		{"TELEPORT_NODE", GraphNode::Type::TELEPORT_NODE},
+		{"AGENT_NODE", GraphNode::Type::AGENT_NODE},
+		{"TRIGGER_NODE", GraphNode::Type::TRIGGER_NODE}
+	};
 }
 
 std::atomic<unsigned> GraphNode::_nextId{0};
@@ -48,6 +75,39 @@ GraphNode::GraphNode()
 GraphNode::Type GraphNode::getType()
 {
 	return Type::GRAPH_NODE;
+}
+
+std::string GraphNode::typeName(Type type)
+{
+	for(const TypeName& entry : TYPE_NAMES)
+	{
+		if(entry.type == type) return entry.name;
+	}
+
+	// Unreachable so long as TYPE_NAMES covers every Type member.
+	return TYPE_NAMES[0].name;
+}
+
+GraphNode::Type GraphNode::typeFromName(const std::string& name)
+{
+	for(const TypeName& entry : TYPE_NAMES)
+	{
+		if(name == entry.name) return entry.type;
+	}
+
+	throw GraphException(GraphException::UNKNOWN_NODE_TYPE_NAME);
+}
+
+std::vector<std::string> GraphNode::typeNames()
+{
+	std::vector<std::string> names;
+
+	for(const TypeName& entry : TYPE_NAMES)
+	{
+		names.push_back(entry.name);
+	}
+
+	return names;
 }
 
 unsigned GraphNode::getId()
@@ -309,7 +369,7 @@ Handle<GraphEdge> GraphNode::traverse(GraphAction& action)
 
 		// Both the edge and the action must allow traversal.
 		if(edgeHandleToCheck.getInstance() -> canTraverse(action.getEdgeTraversalFlags()) &&
-				action.canTraverseEdge(edgeHandleToCheck))
+			action.canTraverseEdge(edgeHandleToCheck))
 		{
 			edgeToTraverse = edgeHandleToCheck;
 			break;
@@ -352,5 +412,10 @@ bool GraphNode::getActionable()
 {
 	// Once decoupled, a node can no longer have actions applied to it.
 	return !_decoupled;
+}
+
+void GraphNode::_emitAction(GraphAction* action)
+{
+	action -> start();
 }
 

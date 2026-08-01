@@ -2,6 +2,7 @@
 #define GRAPH_NODE_H
 
 #include <atomic>
+#include <string>
 #include <vector>
 
 class GraphAction;
@@ -56,7 +57,10 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 			TELEPORT_NODE,
 
 			/// An AgentNode.
-			AGENT_NODE
+			AGENT_NODE,
+
+			/// A TriggerNode.
+			TRIGGER_NODE
 		};
 
 		/**
@@ -72,6 +76,28 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 *       specific kind of node override this to report their own type.
 		 */
 		virtual Type getType();
+
+		/**
+		 * Get the name a node type is exposed under.
+		 * @param type Type to get the name of.
+		 * @returns The type's name.
+		 */
+		static std::string typeName(Type type);
+
+		/**
+		 * Get the node type a name stands for.
+		 * @param name Name to look up.
+		 * @returns The type the name stands for.
+		 * @throw GraphException With error UNKNOWN_NODE_TYPE_NAME if the name is not recognised.
+		 */
+		static Type typeFromName(const std::string& name);
+
+		/**
+		 * Get the name of every node type, in enum declaration order.
+		 * @note A type absent from this list cannot be round-tripped through typeName()/typeFromName(), so
+		 *       this must be extended whenever Type is.
+		 */
+		static std::vector<std::string> typeNames();
 
 		/**
 		 * Create and add an edge from this node to another node.
@@ -160,6 +186,14 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		void _setEnergyCost(unsigned cost);
 
 		/**
+		 * Emit an action by making its origin this node.
+		 * @note Default implementation simply starts the action. Subclasses that manage the actions they emit,
+		 *       eg by serialising them, override this to route the action through that mechanism.
+		 * @param action Action to emit. This must have its refcount increased prior to the call.
+		 */
+		virtual void _emitAction(GraphAction* action);
+
+		/**
 		 * Subclass hook to notify that this node has been poked.
 		 */
 		virtual void _poked(GraphPoke poke) = 0;
@@ -195,6 +229,10 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 
 		/// Whether poking is enabled for this node. If false, all pokes are immediately discarded.
 		bool _pokeEnabled = false;
+
+		// Emits a TriggerAction against an arbitrary bound node on an AI model's behalf, so it needs access to
+		// _emitAction the same way a GraphNode subclass would.
+		friend class TriggerEmitterToolBindings;
 
         // Do not allow copying.
         GraphNode(const GraphNode& copyFrom);

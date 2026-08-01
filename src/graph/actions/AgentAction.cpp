@@ -3,9 +3,11 @@
 #include "../../agent/ModelContext.hpp"
 #include "../../agent/ModelToolBindings.hpp"
 #include "../actionTargets/AgentActionTarget.hpp"
+#include "../actionTargets/AgentVisibleActionTarget.hpp"
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphHive.hpp"
 #include "../GraphNode.hpp"
+#include "../../log/log.hpp"
 
 #include <string>
 
@@ -15,39 +17,66 @@ AgentAction::~AgentAction()
 
 AgentAction::AgentAction(Handle<GraphNode> initNode, AgenticHarness::Capability capability,
 	std::vector<NodePrompt> prompts)
-	: GraphAction(initNode, _startingEnergy), _capability(capability), _prompts(prompts), _context(0)
+	: GraphAction(initNode, _startingEnergy, 1, true), _capability(capability), _prompts(prompts), _context(0)
 {
 	_addFlag(AGENT_GRAPH_ACTION, true);
 }
 
-void AgentAction::_apply(GraphNode* target)
+bool AgentAction::_apply(GraphNode* target)
 {
 	const NodePrompt* match = __findPrompt(target);
 
-	if(!match) return;
+	if(!match) return false;
 
 	Handle<GraphHive> hive = target -> getHive();
 
-	if(!hive.isValid()) return;
-
-	if(!_context.isValid())
+	if(hive.isValid())
 	{
-		_context = hive.getInstance() -> createModelContext(AgenticHarness::Role::NODE, _capability);
+		if(!_context.isValid())
+		{
+			_context = hive.getInstance() -> createModelContext(AgenticHarness::Role::NODE, _capability);
+		}
+
+		AgentActionTarget* agentTarget = target -> getAgentActionTarget();
+
+		if(agentTarget)
+		{
+			_context.getInstance() -> clearTemporaryToolBindings();
+			_context.getInstance() -> addTemporaryToolBindings(agentTarget -> getModelToolBindings(_capability, getId()));
+		}
+
+		// The request below blocks for as long as the model takes to answer, which is long enough for the
+		// surface to be repopulated several times over, so anything the node only shows while it is being
+		// worked on is revealed for exactly that window.
+		AgentVisibleActionTarget* agentVisibleTarget = target -> getAgentVisibleActionTarget();
+
+		if(agentVisibleTarget) agentVisibleTarget -> setAgentVisible(true);
+
+		LOG(Logger::LogLevel::DEBUG, "Processing node agentic request.")
+
+		try
+		{
+			_context = hive.getInstance() -> processNodeAgenticRequest(_capability, match -> prompt, _context);
+		}
+		catch(...)
+		{
+			// A failed request still has to put the node back, otherwise it would be left looking like it is
+			// being worked on for the rest of the hive's life.
+			if(agentVisibleTarget) agentVisibleTarget -> setAgentVisible(false);
+
+			throw;
+		}
+
+		if(agentVisibleTarget) agentVisibleTarget -> setAgentVisible(false);
+
+		// Bindings only apply to the node the request was made for, so they must not linger for whatever
+		// comes next in this context.
+		if(agentTarget) _context.getInstance() -> clearTemporaryToolBindings();
+
+		return match -> terminateOnResponse;
 	}
 
-	AgentActionTarget* agentTarget = target -> getAgentActionTarget();
-
-	if(agentTarget)
-	{
-		_context.getInstance() -> clearTemporaryToolBindings();
-		_context.getInstance() -> addTemporaryToolBindings(agentTarget -> getModelToolBindings(_capability, getId()));
-	}
-
-	_context = hive.getInstance() -> processNodeAgenticRequest(_capability, match -> prompt, _context);
-
-	// Bindings only apply to the node the request was made for, so they must not linger for whatever
-	// comes next in this context.
-	if(agentTarget) _context.getInstance() -> clearTemporaryToolBindings();
+	return false;
 }
 
 bool AgentAction::_starting()

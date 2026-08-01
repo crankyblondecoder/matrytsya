@@ -2,6 +2,7 @@
 
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphPoke.hpp"
+#include "../../log/log.hpp"
 #include "../../util/Handle.hpp"
 
 AgentNode::~AgentNode()
@@ -24,7 +25,7 @@ GraphNode::Type AgentNode::getType()
 	return Type::AGENT_NODE;
 }
 
-AgentAction* AgentNode::emitAgent(bool wait)
+AgentAction* AgentNode::emitAgentAction(bool wait)
 {
 	Handle<GraphNode> handle(this);
 
@@ -32,6 +33,8 @@ AgentAction* AgentNode::emitAgent(bool wait)
 	AgentAction* action = new AgentAction(handle, _capability, _prompts);
 
 	action -> incrRef();
+
+	LOG(Logger::LogLevel::DEBUG, "Emitting agent action.")
 
 	_emitAction(action);
 
@@ -44,7 +47,9 @@ void AgentNode::trigger()
 {
 	if(!_autoTriggerAgentAction) return;
 
-	AgentAction* action = emitAgent(false);
+	LOG(Logger::LogLevel::DEBUG, "Agent node triggered.")
+
+	AgentAction* action = emitAgentAction(false);
 
 	action -> decrRef();
 }

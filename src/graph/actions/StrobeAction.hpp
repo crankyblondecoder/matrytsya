@@ -17,7 +17,7 @@ class StrobeAction : public ScriptAction
 
 	protected:
 
-		void _apply(GraphNode* target) override;
+		bool _apply(GraphNode* target) override;
 
 	private:
 

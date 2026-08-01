@@ -15,7 +15,7 @@ SceneAction::SceneAction(Handle<GraphNode> initNode, Handle<GraphHiveSceneSurfac
 	_addFlag(SCENE_GRAPH_ACTION, true);
 }
 
-void SceneAction::_apply(GraphNode* target)
+bool SceneAction::_apply(GraphNode* target)
 {
 	SceneActionTarget* sceneTarget = target -> getSceneActionTarget();
 
@@ -33,6 +33,8 @@ void SceneAction::_apply(GraphNode* target)
 			if(_surface.isValid()) sceneTarget -> populateSurface(_surface);
 		}
 	}
+
+	return false;
 }
 
 bool SceneAction::_starting()

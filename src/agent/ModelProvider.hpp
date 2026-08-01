@@ -79,7 +79,8 @@ class ModelProvider : public RefCounted
 		/**
 		 * Verify that a server can be reached.
 		 * @param url URL of the server, including port.
-		 * @throw AgentException When the server cannot be reached.
+		 * @throw AgentException When the server cannot be reached, or when the thread this is called on is
+		 *        asked to stop before it answers.
 		 */
 		void _checkConnection(std::string url);
 
@@ -87,7 +88,8 @@ class ModelProvider : public RefCounted
 		 * Perform a blocking HTTP GET request.
 		 * @param url Full URL to request.
 		 * @returns Response body.
-		 * @throw AgentException When the request fails or times out.
+		 * @throw AgentException When the request fails or times out, or when the thread this is called on is
+		 *        asked to stop before the response arrives.
 		 */
 		std::string _httpGet(std::string url);
 
@@ -98,7 +100,10 @@ class ModelProvider : public RefCounted
 		 * @returns Response body.
 		 * @note This allows far longer than a plain GET, as a provider servicing a request has to run
 		 *       inference before it can reply.
-		 * @throw AgentException When the request fails or times out.
+		 * @note The wait is abandoned as soon as the thread this is called on is asked to stop, so that a
+		 *       request in flight cannot hold a worker up for the whole of a shutdown.
+		 * @throw AgentException When the request fails or times out, or when the thread this is called on is
+		 *        asked to stop before the response arrives.
 		 */
 		std::string _httpPost(std::string url, std::string body);
 

@@ -58,6 +58,8 @@ class ThreadPoolWorkThread : public Thread
 
 		void _quitRequested() override;
 
+		bool _isStopping() override;
+
     private:
 
 		/**

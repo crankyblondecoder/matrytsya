@@ -91,6 +91,23 @@ std::size_t SceneGeometry::getVertexCount() const
 	return count;
 }
 
+void SceneGeometry::setAgentVisible(bool flag)
+{
+	// Only an actual change is versioned, so repeatedly setting the same value doesn't make the surface
+	// think there is something new to populate.
+	if(_agentVisible.exchange(flag) != flag) _stateVersion++;
+}
+
+bool SceneGeometry::getAgentVisible() const
+{
+	return _agentVisible;
+}
+
+unsigned SceneGeometry::getSceneVersion()
+{
+	return GraphVersioned::getVersion() + _stateVersion;
+}
+
 void SceneGeometry::populateSurface(Handle<GraphHiveSceneSurface> surface, unsigned nodeId, bool pokeable)
 {
 	if(!surface.isValid()) return;
@@ -104,10 +121,21 @@ void SceneGeometry::populateSurface(Handle<GraphHiveSceneSurface> surface, unsig
 		groupsToPopulate = _vertexGroups;
 	}
 
+	// Read once for the whole populate rather than per group, so that a change part way through can't leave
+	// the surface holding a mixture of the old and new state for this node.
+	bool agentVisible = _agentVisible;
+
+	// The vertexes alone are versioned here. getSceneVersion() is what decides whether a populate happens at
+	// all, so passing that instead would make every agent visible change look like a whole new set of
+	// vertexes to the surface.
+	unsigned vertexVersion = GraphVersioned::getVersion();
+
 	GraphHiveSceneSurface* surfacePtr = surface.getInstance();
+
+	if(agentVisible) surfacePtr -> setNodeAgentVisible(nodeId);
 
 	for(const VertexGroup& vertGroup : groupsToPopulate)
 	{
-		surfacePtr -> addVertexes(vertGroup.vertexes, vertGroup.id, nodeId, getVersion(), pokeable, vertGroup.visibility);
+		surfacePtr -> addVertexes(vertGroup.vertexes, vertGroup.id, nodeId, vertexVersion, pokeable, vertGroup.visibility);
 	}
 }

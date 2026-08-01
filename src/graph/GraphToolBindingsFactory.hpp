@@ -9,6 +9,7 @@
 
 class AnimateScriptNode;
 class GraphHive;
+class GraphNode;
 class ModelToolBindings;
 
 /**
@@ -60,6 +61,17 @@ class GraphToolBindingsFactory : public RefCounted
 		 */
 		virtual std::vector<Handle<ModelToolBindings>> getAnimateScriptNodeToolBindings(
 			AgenticHarness::Capability capability, unsigned serial, Handle<AnimateScriptNode> node) = 0;
+
+		/**
+		 * Get the tool bindings that any graph node makes available.
+		 * @param capability Capability of the model the bindings are being requested for.
+		 * @param node Node the bindings are to operate against.
+		 * @returns The bindings the node makes available for the capability. Empty where there are none.
+		 * @note Fixed to AgenticHarness::Role::NODE, as a node's own bindings are only ever reached through
+		 *       the node role.
+		 */
+		virtual std::vector<Handle<ModelToolBindings>> getGraphNodeToolBindings(
+			AgenticHarness::Capability capability, Handle<GraphNode> node) = 0;
 
 	protected:
 

@@ -19,13 +19,16 @@ namespace
 		if(type == "SceneTransformNode") return HiveNodeDescriptor::SCENE_TRANSFORM;
 		if(type == "SceneTransformScriptNode") return HiveNodeDescriptor::SCENE_TRANSFORM_SCRIPT;
 		if(type == "AgentNode") return HiveNodeDescriptor::AGENT;
+		if(type == "TriggerNode") return HiveNodeDescriptor::TRIGGER;
 
 		throw PersistException(PersistException::UNKNOWN_NODE_TYPE);
 	}
 
 	bool __isScriptType(HiveNodeDescriptor::Type type)
 	{
-		return type == HiveNodeDescriptor::SCENE_GEOMETRY_SCRIPT || type == HiveNodeDescriptor::SCENE_TRANSFORM_SCRIPT;
+		return type == HiveNodeDescriptor::SCENE_GEOMETRY_SCRIPT ||
+			type == HiveNodeDescriptor::SCENE_TRANSFORM_SCRIPT ||
+			type == HiveNodeDescriptor::TRIGGER;
 	}
 
 	HiveSurfaceDescriptor::Type __surfaceTypeFromString(const std::string& type)
@@ -235,6 +238,16 @@ namespace
 				promptDescriptor.nodeIdentifier = promptValue["nodeIdentifier"].GetString();
 			}
 
+			if(promptValue.HasMember("terminateOnResponse"))
+			{
+				if(!promptValue["terminateOnResponse"].IsBool())
+				{
+					throw PersistException(PersistException::JSON_INVALID_AGENT_PROMPTS);
+				}
+
+				promptDescriptor.terminateOnResponse = promptValue["terminateOnResponse"].GetBool();
+			}
+
 			descriptor.prompts.push_back(promptDescriptor);
 		}
 
@@ -256,6 +269,19 @@ namespace
 			}
 
 			descriptor.serialiseEmittedActions = nodeValue["serialiseEmittedActions"].GetBool();
+		}
+	}
+
+	void __parseTriggerFields(const rapidjson::Value& nodeValue, HiveNodeDescriptor& descriptor)
+	{
+		if(nodeValue.HasMember("emitTriggerOnPoke"))
+		{
+			if(!nodeValue["emitTriggerOnPoke"].IsBool())
+			{
+				throw PersistException(PersistException::JSON_INVALID_TRIGGER_EMIT_ON_POKE);
+			}
+
+			descriptor.emitTriggerOnPoke = nodeValue["emitTriggerOnPoke"].GetBool();
 		}
 	}
 
@@ -320,6 +346,11 @@ namespace
 		if(descriptor.type == HiveNodeDescriptor::AGENT)
 		{
 			__parseAgentFields(nodeValue, descriptor);
+		}
+
+		if(descriptor.type == HiveNodeDescriptor::TRIGGER)
+		{
+			__parseTriggerFields(nodeValue, descriptor);
 		}
 
 		return descriptor;

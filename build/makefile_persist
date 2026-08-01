@@ -1,4 +1,6 @@
-srcFiles = HiveBuilder.cpp \
+srcFiles = HarnessBuilder.cpp \
+HiveBuilder.cpp \
+json/JsonHarnessLoader.cpp \
 json/JsonHiveLoader.cpp
 
 objFiles = $(srcFiles:.cpp=.o)

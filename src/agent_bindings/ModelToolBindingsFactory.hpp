@@ -9,6 +9,7 @@
 
 class AnimateScriptNode;
 class GraphHive;
+class GraphNode;
 class ModelToolBindings;
 
 /**
@@ -50,6 +51,14 @@ class ModelToolBindingsFactory : public GraphToolBindingsFactory
 		 */
 		virtual std::vector<Handle<ModelToolBindings>> getAnimateScriptNodeToolBindings(
 			AgenticHarness::Capability capability, unsigned serial, Handle<AnimateScriptNode> node) override;
+
+		/**
+		 * @returns TriggerEmitterToolBindings built against the node. Empty for a node that could not be
+		 *          referenced.
+		 * @note The tools do not vary by capability.
+		 */
+		virtual std::vector<Handle<ModelToolBindings>> getGraphNodeToolBindings(
+			AgenticHarness::Capability capability, Handle<GraphNode> node) override;
 
 	protected:
 

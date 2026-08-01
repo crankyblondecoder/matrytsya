@@ -25,7 +25,7 @@ class ScriptAction : public GraphAction
 
 	protected:
 
-		void _apply(GraphNode* target) override;
+		bool _apply(GraphNode* target) override;
 
 		bool _starting() override;
 		void _complete() override;

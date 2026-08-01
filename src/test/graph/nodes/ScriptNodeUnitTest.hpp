@@ -41,8 +41,8 @@ class CountingStrobeScriptNode : public StrobeScriptNode
 
 /**
  * ScriptNode subclass that can be triggered, counting each trigger it receives, so tests can observe a
- * TriggerAction emitted by another node's script arriving. No production node is a trigger target yet, so
- * the receiving half of the trigger() binding has to be stood up here.
+ * TriggerAction emitted by another node's script arriving. The receiving half is stood up here rather than
+ * using AgentNode, the one production trigger target, so these tests need no agentic harness behind them.
  */
 class TriggerCountingScriptNode : public ScriptNode, public TriggerActionTarget
 {

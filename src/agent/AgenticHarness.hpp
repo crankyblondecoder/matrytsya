@@ -104,6 +104,20 @@ class AgenticHarness : public RefCounted
 		AgenticHarness();
 
 		/**
+		 * Get the name of a role, as it is written in a hive definition file and in log output.
+		 * @param role Role to name.
+		 * @returns The role's name.
+		 */
+		static std::string getRoleName(Role role);
+
+		/**
+		 * Get the name of a capability, as it is written in a hive definition file and in log output.
+		 * @param capability Capability to name.
+		 * @returns The capability's name.
+		 */
+		static std::string getCapabilityName(Capability capability);
+
+		/**
 		 * Assign a model to a role and capability.
 		 * @param roleCapability Role and capability to assign the model to.
 		 * @param model Model to assign.

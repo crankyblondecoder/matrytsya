@@ -40,7 +40,7 @@ class GraphSerialisedActionNode : public GraphNode, private EventListener<GraphA
 		 *       started once every action emitted before it has completed.
 		 * @param action Action to emit. This must have its refcount increased prior to the call.
 		 */
-		void _emitAction(GraphAction* action);
+		virtual void _emitAction(GraphAction* action) override;
 
 	private:
 

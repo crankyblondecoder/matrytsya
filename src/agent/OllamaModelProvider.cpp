@@ -11,6 +11,7 @@
 #include "ModelToolDefinitionParameter.hpp"
 #include "OllamaModel.hpp"
 #include "modelToolJson.hpp"
+#include "../thread/ThreadBase.hpp"
 #include "../rapidjson/document.h"
 
 namespace
@@ -306,6 +307,14 @@ std::string OllamaModelProvider::_processRequest(Handle<Model> model, ModelReque
 
 	for(unsigned round = 0; round < MAX_TOOL_CALL_ROUNDS; ++round)
 	{
+		// The POST abandons its own wait, but the tool calls a round asks for are run between two of them
+		// and can take a while themselves, so a stop asked for during one is caught here rather than
+		// letting it start a further request that is only going to be thrown away.
+		if(ThreadBase::currentThreadStopping())
+		{
+			throw AgentException(AgentException::REQUEST_ABORTED);
+		}
+
 		std::string body = _httpPost(_url + "/api/chat",
 			__buildRequestBody(modelName, messages, tools, temperature));
 

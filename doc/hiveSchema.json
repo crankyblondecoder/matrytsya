@@ -69,7 +69,8 @@
 				"SCENE_TRANSFORM_SCRIPT_NODE",
 				"SCENE_ROOT_NODE",
 				"TELEPORT_NODE",
-				"AGENT_NODE"
+				"AGENT_NODE",
+				"TRIGGER_NODE"
 			],
 			"description": "Identifies a kind of node, so that something visiting a node can recognise what it has arrived at. GRAPH_NODE is reported by any node that does not identify a more specific kind of its own."
 		},
@@ -86,11 +87,12 @@
 		"vertexVisibility": {
 			"enum": [
 				"ALWAYS",
+				"AGENT",
 				"GRABBED",
 				"DRAGGING",
 				"HOVERED_OVER"
 			],
-			"description": "Controls when a vertex is displayed. ALWAYS: always visible. GRABBED: visible when in a grabbed state (e.g. a mouse button held down). DRAGGING: visible when being dragged (e.g. a mouse down then move). HOVERED_OVER: visible when hovered over (e.g. a non-button-down mouse over movement). Consecutive vertexes sharing the same visibility are grouped together."
+			"description": "Controls when a vertex is displayed. ALWAYS: always visible. AGENT: visible while an agentic action is being applied. GRABBED: visible when in a grabbed state (e.g. a mouse button held down). DRAGGING: visible when being dragged (e.g. a mouse down then move). HOVERED_OVER: visible when hovered over (e.g. a non-button-down mouse over movement). Consecutive vertexes sharing the same visibility are grouped together."
 		},
 
 		"edge": {
@@ -413,6 +415,11 @@
 				"prompt": {
 					"type": "string",
 					"description": "Prompt sent when this entry matches the node being visited."
+				},
+				"terminateOnResponse": {
+					"type": "boolean",
+					"default": false,
+					"description": "Whether the action completes once this prompt's response has been processed, rather than continuing on to match further nodes it reaches."
 				}
 			}
 		},
@@ -451,11 +458,30 @@
 			"unevaluatedProperties": false
 		},
 
+		"triggerNode": {
+			"description": "A Lua-scripted node that exists to emit trigger actions on behalf of an AI model. An agent action reaching this node offers the model a tool that emits a trigger action from here, optionally restricted to a node name and/or a node type, so the model chooses what part of the graph fires next. The emitted action is never applied back to this node, so it cannot trigger itself. Its coreScript and pokeScript run exactly as they do on any other scripted node.",
+			"allOf": [
+				{ "$ref": "#/$defs/scriptNodeBase" },
+				{
+					"properties": {
+						"type": { "const": "TriggerNode" },
+						"emitTriggerOnPoke": {
+							"type": "boolean",
+							"default": true,
+							"description": "Whether poking this node emits a trigger action of its own, unrestricted by name or type, once its pokeScript has run. The pokeScript runs on every poke either way; set this false to leave emission entirely to that script or to the model."
+						}
+					}
+				}
+			],
+			"unevaluatedProperties": false
+		},
+
 		"node": {
 			"description": "Concrete nodes that can be added directly to a hive.",
 			"oneOf": [
 				{ "$ref": "#/$defs/pingNode" },
 				{ "$ref": "#/$defs/agentNode" },
+				{ "$ref": "#/$defs/triggerNode" },
 				{ "$ref": "#/$defs/teleportNode" },
 				{ "$ref": "#/$defs/sceneRootNode" },
 				{ "$ref": "#/$defs/sceneGeometryNode" },

@@ -3,3 +3,5 @@ This module holds concrete ModelToolBindings implementations that let an AI mode
 It is a separate module from agent because these bindings depend on both agent (ModelToolBindings) and graph (GraphHive, GraphNode), and agent's own module cannot depend on graph without creating a circular link dependency, since graph in turn depends on agent (AgenticHarness, ModelContext).
 
 For the same reason the factory a hive holds is declared by graph, as the abstract GraphToolBindingsFactory, and only implemented here: a hive is given its factory from outside rather than building one itself, so graph never has to link back against this module. See matrytsya_test.cpp for where that is set.
+
+A harness definition file names the sets it wants (see doc/harnessSchema.json) rather than describing them, since bindings are built against a live hive. The persist module's HarnessBuilder maps each name onto the factory retrieval method that supplies it, so a retrieval method added here only becomes reachable from a definition file once it has a name in both places.

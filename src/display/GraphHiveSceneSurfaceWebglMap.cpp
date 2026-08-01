@@ -56,12 +56,14 @@ namespace
 	}
 
 	// Name that the viewer's JavaScript matches on to decide when a chunk is drawn; must stay in step with
-	// the VertexVisibility.* handling in webglPageTemplate.cpp.
+	// the VertexVisibility.* handling in webglPageTemplate.cpp. AGENT is the one the server drives, via the
+	// scene's agentVisibleNodeIds; the rest are resolved from input state by the viewer alone.
 	const char* visibilityName(SceneGeometry::VertexVisibility visibility)
 	{
 		switch(visibility)
 		{
 			case SceneGeometry::VertexVisibility::ALWAYS:       return "ALWAYS";
+			case SceneGeometry::VertexVisibility::AGENT:        return "AGENT";
 			case SceneGeometry::VertexVisibility::GRABBED:      return "GRABBED";
 			case SceneGeometry::VertexVisibility::DRAGGING:     return "DRAGGING";
 			case SceneGeometry::VertexVisibility::HOVERED_OVER: return "HOVERED_OVER";
@@ -159,8 +161,22 @@ void GraphHiveSceneSurfaceWebglMap::_serveMapData(HttpRequest& request, HttpResp
 
 	focusChunkIdsJson += "]";
 
+	// Node level rather than chunk level, so a node being worked on by an agent costs one id here instead of
+	// a flag on each of its chunks, and none of those chunks change.
+	std::string agentVisibleNodeIdsJson = "[";
+
+	for(std::size_t index = 0; index < scene.agentVisibleNodeIds.size(); index++)
+	{
+		if(index > 0) agentVisibleNodeIdsJson += ",";
+
+		agentVisibleNodeIdsJson += std::to_string(scene.agentVisibleNodeIds[index]);
+	}
+
+	agentVisibleNodeIdsJson += "]";
+
 	std::string json = "{\"focusChunkIds\":" + focusChunkIdsJson +
 		",\"focusViewportFraction\":" + jsonNumber(scene.focusViewportFraction) +
+		",\"agentVisibleNodeIds\":" + agentVisibleNodeIdsJson +
 		",\"modelTransforms\":[";
 
 	for(std::size_t index = 0; index < scene.modelTransforms.size(); index++)

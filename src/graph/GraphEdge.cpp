@@ -57,6 +57,11 @@ void GraphEdge::addActionFlag(unsigned long actionFlag)
 	_actionFlags |= actionFlag;
 }
 
+bool GraphEdge::hasAnyActionFlags(unsigned long actionFlags)
+{
+	return _actionFlags & actionFlags;
+}
+
 bool GraphEdge::canTraverse(unsigned long actionFlags)
 {
 	// No action flags set defaults to anything can traverse.

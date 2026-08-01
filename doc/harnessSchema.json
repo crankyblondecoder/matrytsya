@@ -1,0 +1,187 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "matrytsya/persist/json/harnessSchema.json",
+	"title": "Agentic Harness",
+	"description": "Describes the agentic harness that services a hive's model requests: the providers models are drawn from, and the models, system prompts and tool bindings assigned to each role and capability. Loaded once to build the harness. Every assignment names the role it serves and the capability it serves that role at; a request made for a role and capability is answered only by assignments naming that exact pair, so a role served at more than one capability needs an assignment per capability.",
+	"type": "object",
+	"required": ["providers", "modelAssignments"],
+	"additionalProperties": false,
+	"properties": {
+		"providers": {
+			"type": "array",
+			"minItems": 1,
+			"items": { "$ref": "#/$defs/provider" },
+			"description": "Servers that models are drawn from. Each provider's name must be unique within this providers array; model references refer to providers by this name."
+		},
+		"modelAssignments": {
+			"type": "array",
+			"minItems": 1,
+			"items": { "$ref": "#/$defs/modelAssignment" },
+			"description": "Models assigned to roles, each answering requests made for one role at one capability. Matched in the order given and the first entry matching the requested pair answers the request, so a pair assigned twice leaves the later entry unused. A request for a pair that no entry names fails."
+		},
+		"systemPrompts": {
+			"type": "array",
+			"items": { "$ref": "#/$defs/systemPromptAssignment" },
+			"description": "System prompts assigned to roles. Every entry matching the requested role and capability is used, in the order given, so a role can be given its instructions as several prompts. A role with no matching entry is served with no system prompt at all, leaving the model to work from the request alone."
+		},
+		"toolBindings": {
+			"type": "array",
+			"items": { "$ref": "#/$defs/toolBindingAssignment" },
+			"description": "Tool sets made available to roles. Every entry naming the requested role and capability is used, in the order given. Tools belonging to a single node are not listed here: a node level request is given the tools of the node being visited as it is reached, on top of anything assigned here."
+		}
+	},
+
+	"$defs": {
+
+		"role": {
+			"enum": [
+				"CHAT",
+				"HIVE",
+				"NODE",
+				"SCRIPT"
+			],
+			"description": "The part an assignment plays in the harness. CHAT: answers messages typed at the chat interface. HIVE: drives hive level work, i.e. planning against or querying the overall structure of the hive. NODE: drives node level work, i.e. querying, setting up or altering the state of a single node. SCRIPT: drives script level work, i.e. querying or building a script for a particular purpose."
+		},
+
+		"capability": {
+			"enum": [
+				"LOW",
+				"MEDIUM",
+				"HIGH"
+			],
+			"description": "How capable a model must be to service a request. LOW: can do simple tasks well. MEDIUM: can do average tasks well. HIGH: can do complex tasks well."
+		},
+
+		"roleCapability": {
+			"description": "A role paired with the capability it is served at. Assignments are matched on both together, exactly: an assignment made at one capability never stands in for a request made at another, however capable the model behind it is.",
+			"type": "object",
+			"required": ["role", "capability"],
+			"additionalProperties": false,
+			"properties": {
+				"role": {
+					"$ref": "#/$defs/role"
+				},
+				"capability": {
+					"$ref": "#/$defs/capability"
+				}
+			}
+		},
+
+		"providerName": {
+			"type": "string",
+			"minLength": 1,
+			"description": "Name that uniquely identifies a provider within this harness's providers array. Local to this file: it names the entry, and is not the name the server knows itself by."
+		},
+
+		"ollamaProvider": {
+			"description": "An Ollama server, hosted locally or remotely, serving whichever models it has been given. The server is contacted while the harness is built, both to confirm it can be reached and to read back the models it serves.",
+			"type": "object",
+			"required": ["type", "name", "url"],
+			"additionalProperties": false,
+			"properties": {
+				"type": { "const": "Ollama" },
+				"name": {
+					"$ref": "#/$defs/providerName"
+				},
+				"url": {
+					"type": "string",
+					"minLength": 1,
+					"description": "URL of the server, including scheme and port, e.g. \"http://localhost:11434\"."
+				}
+			}
+		},
+
+		"provider": {
+			"description": "Sources that models can be drawn from.",
+			"oneOf": [
+				{ "$ref": "#/$defs/ollamaProvider" }
+			]
+		},
+
+		"model": {
+			"description": "Identifies one model by the provider serving it and the name it is served under. The model must be one that provider reports; a name it does not serve cannot be assigned.",
+			"type": "object",
+			"required": ["providerName", "modelName"],
+			"additionalProperties": false,
+			"properties": {
+				"providerName": {
+					"$ref": "#/$defs/providerName",
+					"description": "Name of the provider, within this harness's providers array, that serves the model."
+				},
+				"modelName": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Name the provider serves the model under, matched exactly, e.g. \"qwen3-coder:30b\"."
+				}
+			}
+		},
+
+		"modelAssignment": {
+			"description": "Assigns a model to answer requests made for one role at one capability.",
+			"type": "object",
+			"required": ["roleCapability", "model"],
+			"additionalProperties": false,
+			"properties": {
+				"roleCapability": {
+					"$ref": "#/$defs/roleCapability",
+					"description": "Role and capability this model answers requests for."
+				},
+				"model": {
+					"$ref": "#/$defs/model",
+					"description": "Model that answers those requests. One model may be assigned to any number of roles."
+				},
+				"temperature": {
+					"type": "number",
+					"minimum": 0,
+					"maximum": 2,
+					"description": "Sampling temperature every request answered through this assignment is made at. Omit to ask for no temperature at all, leaving the choice to the provider. The temperature belongs to the assignment rather than to the model, so one model assigned to several roles can answer each of them at a different temperature. Only the first three decimal places are carried to the provider, so asking for more precision than that gains nothing."
+				}
+			}
+		},
+
+		"systemPromptAssignment": {
+			"description": "Assigns a system prompt to one role at one capability. The prompt is placed ahead of the request text of every conversation started for that pair, and stays in place for the whole of that conversation.",
+			"type": "object",
+			"required": ["roleCapability", "prompt"],
+			"additionalProperties": false,
+			"properties": {
+				"roleCapability": {
+					"$ref": "#/$defs/roleCapability",
+					"description": "Role and capability this prompt is used for."
+				},
+				"prompt": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Text of the system prompt."
+				}
+			}
+		},
+
+		"toolBindingSet": {
+			"enum": [
+				"HIVE",
+				"CHAT"
+			],
+			"description": "A set of tools built against the hive the harness belongs to. HIVE: the lookups the hive exposes for planning against or querying its overall structure. CHAT: the lookups a chat message is allowed to reach. The two are named separately because what a chat message may reach and what hive level planning may reach are separate questions, even where they currently come to the same tools."
+		},
+
+		"toolBindingAssignment": {
+			"description": "Makes one set of tools available to the roles listed. A set may be given to several role/capability pairs at once, and a pair may be given several sets by listing it in more than one entry.",
+			"type": "object",
+			"required": ["roleCapabilities", "tools"],
+			"additionalProperties": false,
+			"properties": {
+				"roleCapabilities": {
+					"type": "array",
+					"minItems": 1,
+					"items": { "$ref": "#/$defs/roleCapability" },
+					"description": "Role and capability pairs that may use the tools. A request matching any one of them is given them."
+				},
+				"tools": {
+					"$ref": "#/$defs/toolBindingSet",
+					"description": "Set of tools made available."
+				}
+			}
+		}
+	}
+}

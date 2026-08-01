@@ -3,6 +3,7 @@
 
 #include <atomic>
 
+#include "../actionTargets/AgentVisibleActionTarget.hpp"
 #include "../actionTargets/SceneActionTarget.hpp"
 #include "../actionTargets/StrobeActionTarget.hpp"
 #include "../GraphFocusable.hpp"
@@ -14,7 +15,7 @@
  * than a Lua script.
  */
 class SceneGeometryNode : public GraphNode, public SceneActionTarget, public StrobeActionTarget,
-	public GraphFocusable, public SceneGeometry
+	public AgentVisibleActionTarget, public GraphFocusable, public SceneGeometry
 {
     public:
 
@@ -31,6 +32,12 @@ class SceneGeometryNode : public GraphNode, public SceneActionTarget, public Str
 		SceneActionTarget* getSceneActionTarget() override;
 
 		StrobeActionTarget* getStrobeActionTarget() override;
+
+		AgentVisibleActionTarget* getAgentVisibleActionTarget() override;
+
+		void setAgentVisible(bool flag) override;
+
+		bool getAgentVisible() override;
 
 		unsigned getVersion() override;
 

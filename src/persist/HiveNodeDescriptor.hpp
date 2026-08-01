@@ -34,6 +34,9 @@ struct HiveAgentPromptDescriptor
 
 	/// Prompt sent when this entry matches the node being visited.
 	std::string prompt;
+
+	/// Terminate (complete) the action once the prompt has completed processing.
+	bool terminateOnResponse = false;
 };
 
 /**
@@ -52,7 +55,8 @@ struct HiveNodeDescriptor
 		SCENE_GEOMETRY_SCRIPT,
 		SCENE_TRANSFORM,
 		SCENE_TRANSFORM_SCRIPT,
-		AGENT
+		AGENT,
+		TRIGGER
 	};
 
 	/// Concrete node type this descriptor describes.
@@ -101,6 +105,9 @@ struct HiveNodeDescriptor
 
 	/// Whether actions emitted by an AgentNode are serialised. Only meaningful when type == AGENT.
 	bool serialiseEmittedActions = true;
+
+	/// Whether poking a TriggerNode emits a trigger action of its own. Only meaningful when type == TRIGGER.
+	bool emitTriggerOnPoke = true;
 };
 
 #endif

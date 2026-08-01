@@ -97,6 +97,7 @@ TEST(JsonHiveLoaderTest, FullValidHive_AllEightNodeTypesParsed)
 	EXPECT_EQ(agent1.prompts[0].nodeTypeName, "PING_NODE");
 	EXPECT_EQ(agent1.prompts[0].prompt, "describe this node");
 	EXPECT_EQ(agent1.prompts[0].nodeIdentifier, "");
+	EXPECT_FALSE(agent1.prompts[0].terminateOnResponse);
 
 	ASSERT_EQ(loader.getStrobeEmitterCount(), 1u);
 
@@ -277,6 +278,43 @@ TEST(JsonHiveLoaderTest, AgentNodeOptionalFlagsFalse_AreParsed)
 }
 
 /**
+ * An AgentNode prompt's "terminateOnResponse" is carried through when supplied.
+ */
+TEST(JsonHiveLoaderTest, AgentNodePromptTerminateOnResponseTrue_IsParsed)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [
+			{ "type": "AgentNode", "name": "a1", "capability": "MEDIUM",
+				"prompts": [ { "nodeType": "PING_NODE", "prompt": "p", "terminateOnResponse": true } ] }
+		]
+	})";
+
+	JsonHiveLoader loader(json);
+
+	HiveNodeDescriptor descriptor = loader.getNode(0);
+
+	ASSERT_EQ(descriptor.prompts.size(), 1u);
+	EXPECT_TRUE(descriptor.prompts[0].terminateOnResponse);
+}
+
+/**
+ * An AgentNode prompt's "terminateOnResponse" must be a boolean if present.
+ */
+TEST(JsonHiveLoaderTest, AgentNodePromptNonBooleanTerminateOnResponse_ThrowsJsonInvalidAgentPrompts)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [
+			{ "type": "AgentNode", "name": "a1", "capability": "LOW",
+				"prompts": [ { "nodeType": "PING_NODE", "prompt": "p", "terminateOnResponse": "yes" } ] }
+		]
+	})";
+
+	EXPECT_THROW(JsonHiveLoader loader(json), PersistException);
+}
+
+/**
  * An AgentNode missing its required "capability" is rejected.
  */
 TEST(JsonHiveLoaderTest, AgentNodeMissingCapability_ThrowsJsonInvalidAgentCapability)
@@ -330,6 +368,76 @@ TEST(JsonHiveLoaderTest, AgentNodeNonBooleanAutoTrigger_ThrowsJsonInvalidAgentAu
 		"nodes": [
 			{ "type": "AgentNode", "name": "a1", "capability": "LOW", "autoTriggerAgentAction": "yes",
 				"prompts": [ { "nodeType": "PING_NODE", "prompt": "p" } ] }
+		]
+	})";
+
+	EXPECT_THROW(JsonHiveLoader loader(json), PersistException);
+}
+
+/**
+ * A TriggerNode is a script type, so its scripts are parsed like any other script node's, and
+ * "emitTriggerOnPoke" defaults to true when omitted, per the schema.
+ */
+TEST(JsonHiveLoaderTest, TriggerNodeOmittingEmitOnPoke_ParsesScriptsAndDefaultsToTrue)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [
+			{ "type": "TriggerNode", "name": "t1", "coreScript": "core", "pokeScript": "poke" }
+		]
+	})";
+
+	JsonHiveLoader loader(json);
+
+	HiveNodeDescriptor descriptor = loader.getNode(0);
+
+	EXPECT_EQ(descriptor.type, HiveNodeDescriptor::TRIGGER);
+	EXPECT_EQ(descriptor.coreScript, "core");
+	EXPECT_EQ(descriptor.pokeScript, "poke");
+	EXPECT_TRUE(descriptor.emitTriggerOnPoke);
+}
+
+/**
+ * A TriggerNode's "emitTriggerOnPoke" is carried through when supplied.
+ */
+TEST(JsonHiveLoaderTest, TriggerNodeEmitOnPokeFalse_IsParsed)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [
+			{ "type": "TriggerNode", "name": "t1", "coreScript": "", "pokeScript": "",
+				"emitTriggerOnPoke": false }
+		]
+	})";
+
+	JsonHiveLoader loader(json);
+
+	EXPECT_FALSE(loader.getNode(0).emitTriggerOnPoke);
+}
+
+/**
+ * A TriggerNode missing its required "coreScript" is rejected, the same as any other script node.
+ */
+TEST(JsonHiveLoaderTest, TriggerNodeMissingCoreScript_ThrowsJsonInvalidScriptSource)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [ { "type": "TriggerNode", "name": "t1", "pokeScript": "" } ]
+	})";
+
+	EXPECT_THROW(JsonHiveLoader loader(json), PersistException);
+}
+
+/**
+ * A TriggerNode's "emitTriggerOnPoke" member must be a boolean if present.
+ */
+TEST(JsonHiveLoaderTest, TriggerNodeNonBooleanEmitOnPoke_ThrowsJsonInvalidTriggerEmitOnPoke)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [
+			{ "type": "TriggerNode", "name": "t1", "coreScript": "", "pokeScript": "",
+				"emitTriggerOnPoke": "yes" }
 		]
 	})";
 

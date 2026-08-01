@@ -52,6 +52,11 @@ class GraphEdge : public RefCounted
 		void addActionFlag(unsigned long actionFlag);
 
 		/**
+		 * Determine if this edge has any of the given action flags.
+		 */
+		bool hasAnyActionFlags(unsigned long actionFlags);
+
+		/**
 		 * Determine whether this edge can be traversed based on its action flags.
 		 * @param actionFlags Action flags to check against.
 		 */

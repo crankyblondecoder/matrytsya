@@ -36,7 +36,9 @@ class AgentException : public Exception
 			/// No model was assigned to a role with the requested capability to service a request.
 			NO_CANDIDATE_MODEL,
 			/// A model request was given a sampling temperature outside the permitted range.
-			INVALID_TEMPERATURE
+			INVALID_TEMPERATURE,
+			/// A request was abandoned because the thread servicing it was asked to stop.
+			REQUEST_ABORTED
 		};
 
 		virtual ~AgentException(){}
@@ -87,6 +89,9 @@ class AgentException : public Exception
 
 				case INVALID_TEMPERATURE:
 					return "That sampling temperature is outside the permitted range.";
+
+				case REQUEST_ABORTED:
+					return "The request was abandoned because the application is shutting down.";
 
 				case UNKNOWN:
 					break;

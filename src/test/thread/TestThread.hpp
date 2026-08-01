@@ -24,6 +24,11 @@ class TestThread : public Thread
 		// Keep a copy of the last execption caused condition based stuff.
 		ThreadException* lastCondExcept;
 
+		// What ThreadBase::currentThreadStopping() answered while the thread was still looping, and what it
+		// answered once the loop had been asked to quit.
+		bool stoppingWhileRunning;
+		bool stoppingAfterQuit;
+
 		virtual ~TestThread()
 		{
 			if(lastCondExcept != nullptr) delete lastCondExcept;
@@ -37,6 +42,8 @@ class TestThread : public Thread
 			condWaiting = false;
 			condWaitError = false;
 			lastCondExcept = nullptr;
+			stoppingWhileRunning = false;
+			stoppingAfterQuit = false;
 		}
 
         virtual void threadEntry()
@@ -49,6 +56,10 @@ class TestThread : public Thread
 			{
 				// To stop thrashing, sleep for a small time.
 				nanoSleep(0, 1000);
+
+				// Nothing has asked this thread to stop yet, so anything it is carrying must be told it can
+				// carry on.
+				if(ThreadBase::currentThreadStopping()) stoppingWhileRunning = true;
 
 				// Check for condition to wait on.
 				if(_condToWaitOn != nullptr)
@@ -90,6 +101,9 @@ class TestThread : public Thread
 					}
 				}
 			}
+
+			// Read before the entry point returns, as that is where the thread stops publishing itself.
+			stoppingAfterQuit = ThreadBase::currentThreadStopping();
         }
 
 		void waitOnCond(ThreadCondition* cond, ThreadCondition* signalCond)

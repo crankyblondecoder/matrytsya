@@ -29,8 +29,10 @@ class GraphAction : public RefCounted, public EventEmitter<GraphActionListener>
 		 * @param initNode Initial node the new action is bound to. This action will not be applied to this node.
 		 * @param energy The energy that is assigned to the action.
 		 * @param numPasses How many complete traversal passes this action should take.
+		 * @param edgeTraversalIsExact Whether this action requires an exact edge traversal flag match.
 		 */
-		GraphAction(Handle<GraphNode> initNode, unsigned energy, unsigned numPasses = 1);
+		GraphAction(Handle<GraphNode> initNode, unsigned energy, unsigned numPasses = 1,
+			bool edgeTraversalIsExact = false);
 
 		/**
 		 * Get the required flags that determine if this action is invoked on a node.
@@ -140,8 +142,10 @@ class GraphAction : public RefCounted, public EventEmitter<GraphActionListener>
 		 * Apply this action to a node.
 		 * @note Actions are applied to a node as soon as they reach it, so a node can be the target of several
 		 *       actions simultaneously. Nodes are responsible for synchronising their own state.
+		 * @returns True if the action is now complete and should not continue traversing. False to continue
+		 *          traversing as normal.
 		 */
-		virtual void _apply(GraphNode* node) = 0;
+		virtual bool _apply(GraphNode* node) = 0;
 
 		/**
 		 * Subclass hook to determine if the next pass should be processed.
@@ -229,6 +233,10 @@ class GraphAction : public RefCounted, public EventEmitter<GraphActionListener>
 		 * match the node.
 		 */
 		std::atomic<unsigned long> _optionalFlags{0};
+
+		/// Whether for this action to traverse an edge, at least one of the edges flags must match the flags
+		/// returned from getEdgeTraversalFlags(). Wildcard "anything can traverse" edges can never match.
+		bool _edgeTraversalIsExact;
 
 		/// List of id's of edges this action has already traversed.
 		std::vector<unsigned> _traversedEdges;

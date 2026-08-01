@@ -42,6 +42,21 @@ SceneActionTarget* SceneGeometryScriptNode::getSceneActionTarget()
 	return this;
 }
 
+AgentVisibleActionTarget* SceneGeometryScriptNode::getAgentVisibleActionTarget()
+{
+	return this;
+}
+
+void SceneGeometryScriptNode::setAgentVisible(bool flag)
+{
+	SceneGeometry::setAgentVisible(flag);
+}
+
+bool SceneGeometryScriptNode::getAgentVisible()
+{
+	return SceneGeometry::getAgentVisible();
+}
+
 int SceneGeometryScriptNode::__luaVertexConstructor(lua_State* luaState)
 {
 	luaL_checktype(luaState, 1, LUA_TTABLE);
@@ -72,6 +87,7 @@ SceneGeometry::VertexVisibility SceneGeometryScriptNode::__checkVisibility(lua_S
 	switch(static_cast<SceneGeometry::VertexVisibility>(value))
 	{
 		case SceneGeometry::VertexVisibility::ALWAYS:
+		case SceneGeometry::VertexVisibility::AGENT:
 		case SceneGeometry::VertexVisibility::GRABBED:
 		case SceneGeometry::VertexVisibility::DRAGGING:
 		case SceneGeometry::VertexVisibility::HOVERED_OVER:
@@ -127,6 +143,24 @@ int SceneGeometryScriptNode::__luaVertexCount(lua_State* luaState)
 	return 1;
 }
 
+int SceneGeometryScriptNode::__luaSetAgentVisible(lua_State* luaState)
+{
+	SceneGeometryScriptNode* node = static_cast<SceneGeometryScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
+
+	node -> SceneGeometry::setAgentVisible(lua_toboolean(luaState, 1));
+
+	return 0;
+}
+
+int SceneGeometryScriptNode::__luaGetAgentVisible(lua_State* luaState)
+{
+	SceneGeometryScriptNode* node = static_cast<SceneGeometryScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
+
+	lua_pushboolean(luaState, node -> SceneGeometry::getAgentVisible());
+
+	return 1;
+}
+
 void SceneGeometryScriptNode::__registerVertexBindings(lua_State* luaState)
 {
 	// Only creates the metatable the first time it is seen by this lua_State; a no-op on later calls.
@@ -138,10 +172,13 @@ void SceneGeometryScriptNode::__registerVertexBindings(lua_State* luaState)
 
 	// Expose the VertexVisibility enum as a global table of integer constants that round-trip through
 	// __checkVisibility(); the values must match static_cast<lua_Integer> of each enum member.
-	lua_createtable(luaState, 0, 4);
+	lua_createtable(luaState, 0, 5);
 
 	lua_pushinteger(luaState, static_cast<lua_Integer>(SceneGeometry::VertexVisibility::ALWAYS));
 	lua_setfield(luaState, -2, "ALWAYS");
+
+	lua_pushinteger(luaState, static_cast<lua_Integer>(SceneGeometry::VertexVisibility::AGENT));
+	lua_setfield(luaState, -2, "AGENT");
 
 	lua_pushinteger(luaState, static_cast<lua_Integer>(SceneGeometry::VertexVisibility::GRABBED));
 	lua_setfield(luaState, -2, "GRABBED");
@@ -165,9 +202,19 @@ void SceneGeometryScriptNode::__registerVertexBindings(lua_State* luaState)
 	lua_pushlightuserdata(luaState, this);
 	lua_pushcclosure(luaState, __luaVertexCount, 1);
 	lua_setglobal(luaState, "vertexCount");
+
+	lua_pushlightuserdata(luaState, this);
+	lua_pushcclosure(luaState, __luaSetAgentVisible, 1);
+	lua_setglobal(luaState, "setAgentVisible");
+
+	lua_pushlightuserdata(luaState, this);
+	lua_pushcclosure(luaState, __luaGetAgentVisible, 1);
+	lua_setglobal(luaState, "getAgentVisible");
 }
 
 unsigned SceneGeometryScriptNode::getVersion()
 {
-	return GraphVersioned::getVersion();
+	// The scene version rather than the vertex version, so that a change to the agent visible flag alone is
+	// still enough to make a scene action repopulate the surface.
+	return SceneGeometry::getSceneVersion();
 }

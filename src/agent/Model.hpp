@@ -16,6 +16,10 @@ class Model : public RefCounted
 {
 	public:
 
+		/// When true, every prompt sent to a model and every response received back from it are written
+		/// to standard output.
+		static bool _logToConsole;
+
 		/**
 		 * Get the provider that this model was sourced from.
 		 */

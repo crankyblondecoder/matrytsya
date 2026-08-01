@@ -17,7 +17,7 @@ PingAction::PingAction(Handle<GraphNode>& initNode)
 	_addFlag(PING_GRAPH_ACTION, false);
 }
 
-void PingAction::_apply(GraphNode* target)
+bool PingAction::_apply(GraphNode* target)
 {
 	PingActionTarget* pingTarget = target -> getPingActionTarget();
 
@@ -28,7 +28,7 @@ void PingAction::_apply(GraphNode* target)
 	}
 
 	// Any serialisation should happen after all other actions are applied.
-	SerialisableAction::_apply(target);
+	return SerialisableAction::_apply(target);
 }
 
 bool PingAction::_starting()

@@ -1,5 +1,22 @@
 [
   {
+    "file": "../../src/agent_bindings/AnimateScriptNodeToolBindings.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "AnimateScriptNodeToolBindings.o",
+      "../../src/agent_bindings/AnimateScriptNodeToolBindings.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "AnimateScriptNodeToolBindings.o"
+  },
+  {
     "file": "../../src/agent_bindings/BasicHiveToolBindings.cpp",
     "arguments": [
       "/usr/bin/g++",
@@ -17,6 +34,40 @@
     "output": "BasicHiveToolBindings.o"
   },
   {
+    "file": "../../src/agent_bindings/ModelToolBindingsFactory.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "ModelToolBindingsFactory.o",
+      "../../src/agent_bindings/ModelToolBindingsFactory.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "ModelToolBindingsFactory.o"
+  },
+  {
+    "file": "../../src/persist/HarnessBuilder.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "HarnessBuilder.o",
+      "../../src/persist/HarnessBuilder.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "HarnessBuilder.o"
+  },
+  {
     "file": "../../src/persist/HiveBuilder.cpp",
     "arguments": [
       "/usr/bin/g++",
@@ -32,6 +83,23 @@
     ],
     "directory": "/data/devel/matrytsya/build/debug",
     "output": "HiveBuilder.o"
+  },
+  {
+    "file": "../../src/persist/json/JsonHarnessLoader.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "json/JsonHarnessLoader.o",
+      "../../src/persist/json/JsonHarnessLoader.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "json/JsonHarnessLoader.o"
   },
   {
     "file": "../../src/persist/json/JsonHiveLoader.cpp",
@@ -289,6 +357,23 @@
     "output": "GraphPoke.o"
   },
   {
+    "file": "../../src/graph/GraphSerialisedActionNode.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphSerialisedActionNode.o",
+      "../../src/graph/GraphSerialisedActionNode.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphSerialisedActionNode.o"
+  },
+  {
     "file": "../../src/graph/actions/ActionFactory.cpp",
     "arguments": [
       "/usr/bin/g++",
@@ -442,6 +527,23 @@
     "output": "actions/SerialisableActionPayload.o"
   },
   {
+    "file": "../../src/graph/actions/TriggerAction.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "actions/TriggerAction.o",
+      "../../src/graph/actions/TriggerAction.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "actions/TriggerAction.o"
+  },
+  {
     "file": "../../src/graph/actions/VersionAction.cpp",
     "arguments": [
       "/usr/bin/g++",
@@ -457,6 +559,23 @@
     ],
     "directory": "/data/devel/matrytsya/build/debug",
     "output": "actions/VersionAction.o"
+  },
+  {
+    "file": "../../src/graph/nodes/AgentNode.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "nodes/AgentNode.o",
+      "../../src/graph/nodes/AgentNode.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "nodes/AgentNode.o"
   },
   {
     "file": "../../src/graph/nodes/AnimateScriptNode.cpp",
@@ -627,6 +746,23 @@
     ],
     "directory": "/data/devel/matrytsya/build/debug",
     "output": "nodes/ScriptNode.o"
+  },
+  {
+    "file": "../../src/graph/nodes/ScriptSession.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "nodes/ScriptSession.o",
+      "../../src/graph/nodes/ScriptSession.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "nodes/ScriptSession.o"
   },
   {
     "file": "../../src/graph/nodes/StrobeEmitterNode.cpp",

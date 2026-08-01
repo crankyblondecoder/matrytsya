@@ -19,7 +19,7 @@ ScriptAction::ScriptAction(Handle<GraphNode>& initNode, unsigned energy)
 	_addFlag(SCRIPT_GRAPH_ACTION, false);
 }
 
-void ScriptAction::_apply(GraphNode* target)
+bool ScriptAction::_apply(GraphNode* target)
 {
 	ScriptActionTarget* scriptTarget = target -> getScriptActionTarget();
 
@@ -55,13 +55,15 @@ void ScriptAction::_apply(GraphNode* target)
 			// Nothing may escape into the work cycle: an exception out of here strands the action, as the
 			// traversal and completion that follow this call would never run. A node whose state could not be
 			// claimed is simply left unvisited.
-			return;
+			return false;
 		}
 
 		// Assigned outside the session so that releasing the previously visited node, which can delete it,
 		// never happens while a state lock is held.
 		_lastVisitedNode = Handle<GraphNode>(target);
 	}
+
+	return false;
 }
 
 bool ScriptAction::_starting()

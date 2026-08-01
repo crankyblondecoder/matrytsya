@@ -29,6 +29,19 @@ class AnimateScriptNode : public StrobeScriptNode, public AnimateActionTarget, p
 		void setAnimating(bool flag, unsigned serial) override;
 
 		/**
+		 * Set whether this node is animating.
+		 * This is intended as a tool call entry point.
+		 * @param animating True if in animating mode, false otherwise.
+		 * @param serial Serial number of the given animating flag. If zero, serial number comparison is not used.
+		 *        If non-zero, the given serial must be greater than the current serial.
+		 * @param emitAnimateAction Emit an animate action from this node, carrying the mode to everything that
+		 *        action reaches. This happens whenever the serial permits the set, even if this node was
+		 *        already in the given mode, so that a mode can be re-asserted over a subtree in which a node
+		 *        has since cleared itself.
+		 */
+		void setAnimating(bool flag, unsigned serial, bool emitAnimateAction);
+
+		/**
 		 * Get whether this node is currently in animating mode.
 		 */
 		bool getAnimating();
@@ -91,7 +104,10 @@ class AnimateScriptNode : public StrobeScriptNode, public AnimateActionTarget, p
 		 * @param animating True if in animating mode, false otherwise.
 		 * @param serial Serial number of the given animating flag. If zero, serial number comparison is not used.
 		 *        If non-zero, the given serial must be greater than the current serial.
-		 * @param emitAnimateAction Emit an animate action from this node if the mode changed.
+		 * @param emitAnimateAction Emit an animate action from this node, carrying the mode to everything that
+		 *        action reaches. This happens whenever the serial permits the set, even if this node was
+		 *        already in the given mode, so that a mode can be re-asserted over a subtree in which a node
+		 *        has since cleared itself.
 		 */
 		void __setAnimating(bool animating, unsigned serial, bool emitAnimateAction);
 

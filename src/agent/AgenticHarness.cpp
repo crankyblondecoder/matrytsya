@@ -5,6 +5,7 @@
 #include "ModelContext.hpp"
 #include "ModelRequest.hpp"
 #include "ModelToolBindings.hpp"
+#include "../log/log.hpp"
 
 AgenticHarness::AgenticHarness()
 {
@@ -12,6 +13,31 @@ AgenticHarness::AgenticHarness()
 
 AgenticHarness::~AgenticHarness()
 {
+}
+
+std::string AgenticHarness::getRoleName(Role role)
+{
+	switch(role)
+	{
+		case Role::CHAT: return "CHAT";
+		case Role::HIVE: return "HIVE";
+		case Role::NODE: return "NODE";
+		case Role::SCRIPT: return "SCRIPT";
+	}
+
+	return "UNKNOWN";
+}
+
+std::string AgenticHarness::getCapabilityName(Capability capability)
+{
+	switch(capability)
+	{
+		case Capability::LOW: return "LOW";
+		case Capability::MEDIUM: return "MEDIUM";
+		case Capability::HIGH: return "HIGH";
+	}
+
+	return "UNKNOWN";
 }
 
 void AgenticHarness::addModelAssignment(RoleCapability roleCapability, Handle<Model> model, double temperature)
@@ -75,6 +101,13 @@ Handle<ModelContext> AgenticHarness::createContext(Role role, Capability capabil
 		}
 	}
 
+	// Reported because assignments are matched on the exact role and capability, so a context can come back
+	// with nothing on it purely because the pair it was asked for was never assigned. Without this, that
+	// shows up much later as a model that ignores its instructions or cannot call the tool it was told to.
+	LOG(Logger::LogLevel::DEBUG, "Creating model context for role " + getRoleName(role) + " at capability "
+		+ getCapabilityName(capability) + ": " + std::to_string(systemPrompts.size()) + " system prompt(s), "
+		+ std::to_string(tools.size()) + " tool binding(s).")
+
 	ModelContext* newContext = new ModelContext(systemPrompts, tools);
 
 	Handle<ModelContext> context(newContext);
@@ -115,6 +148,22 @@ Handle<ModelContext> AgenticHarness::processRequest(std::string prompt, Role rol
 
 	if(!candidateModel.isValid())
 	{
+		// Logged rather than left to the throw alone, as this is raised on a graph action's worker thread,
+		// where the exception is caught and discarded well before it can reach anyone who would notice it.
+		std::string assigned;
+
+		for(ModelAssignment& assignment : _assignments)
+		{
+			if(!assigned.empty()) assigned += ", ";
+
+			assigned += getRoleName(assignment.roleCapability.role) + "/"
+				+ getCapabilityName(assignment.roleCapability.capability);
+		}
+
+		LOG(Logger::LogLevel::ERROR, "No model assigned to role " + getRoleName(role) + " at capability "
+			+ getCapabilityName(capability) + ". Assigned role/capability pairs: "
+			+ (assigned.empty() ? "none" : assigned) + ".")
+
 		throw AgentException(AgentException::NO_CANDIDATE_MODEL);
 	}
 
@@ -124,6 +173,10 @@ Handle<ModelContext> AgenticHarness::processRequest(std::string prompt, Role rol
 	{
 		context = createContext(role, capability);
 	}
+
+	LOG(Logger::LogLevel::DEBUG, "Role " + getRoleName(role) + " at capability "
+		+ getCapabilityName(capability) + " serviced by model " + candidateModel.getInstance() -> getName()
+		+ " at temperature " + std::to_string(temperature) + ".")
 
 	ModelRequest request(context, ModelPrompt(prompt), temperature);
 

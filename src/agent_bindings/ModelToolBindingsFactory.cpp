@@ -2,8 +2,10 @@
 
 #include "AnimateScriptNodeToolBindings.hpp"
 #include "BasicHiveToolBindings.hpp"
+#include "TriggerEmitterToolBindings.hpp"
 #include "../agent/ModelToolBindings.hpp"
 #include "../graph/GraphHive.hpp"
+#include "../graph/GraphNode.hpp"
 #include "../graph/nodes/AnimateScriptNode.hpp"
 
 std::vector<Handle<ModelToolBindings>> ModelToolBindingsFactory::getHiveToolBindings(
@@ -26,6 +28,25 @@ std::vector<Handle<ModelToolBindings>> ModelToolBindingsFactory::getAnimateScrip
 	if(!node.isValid()) return tools;
 
 	AnimateScriptNodeToolBindings* bindings = new AnimateScriptNodeToolBindings(node, serial);
+
+	Handle<ModelToolBindings> handle(bindings);
+
+	// The handle carries the reference out to the caller; release the implicit construction ref.
+	bindings -> decrRef();
+
+	tools.push_back(handle);
+
+	return tools;
+}
+
+std::vector<Handle<ModelToolBindings>> ModelToolBindingsFactory::getGraphNodeToolBindings(
+	AgenticHarness::Capability capability, Handle<GraphNode> node)
+{
+	std::vector<Handle<ModelToolBindings>> tools;
+
+	if(!node.isValid()) return tools;
+
+	TriggerEmitterToolBindings* bindings = new TriggerEmitterToolBindings(node);
 
 	Handle<ModelToolBindings> handle(bindings);
 

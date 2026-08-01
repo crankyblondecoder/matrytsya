@@ -109,14 +109,16 @@ class AccumulatingScriptAction : public ScriptAction
 
 	protected:
 
-		void _apply(GraphNode* target) override
+		bool _apply(GraphNode* target) override
 		{
-			ScriptAction::_apply(target);
+			bool complete = ScriptAction::_apply(target);
 
 			int value = 0;
 
 			// This makes the updated global from the last node application available to the next script node.
 			if(_getGlobal("counter", value)) _shareGlobal("counter", value);
+
+			return complete;
 		}
 };
 
@@ -522,6 +524,183 @@ TEST(ScriptActionTest, SceneGeometryScriptNodeExposesVertexCountToLua)
 	EXPECT_EQ(action -> getCountAfterMany(), 3) << "Vertex count should reflect a following addVertexes() call.";
 
 	action -> decrRef();
+
+	hive -> shutdown();
+}
+
+TEST(ScriptActionTest, SceneGeometryAgentVisibleFlagReachesSurfaceWithoutTouchingChunks)
+{
+	GraphHive* hive = new GraphHive(2);
+	Handle<GraphHive> hiveHandle(hive);
+
+	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
+
+	SceneGeometryScriptNode* geometryNode = new SceneGeometryScriptNode(
+		"addVertex(Vertex{posn = {1, 0, 0}})\n"
+		"addVertex(Vertex{posn = {0, 1, 0}}, VertexVisibility.AGENT)\n", "");
+
+	hive -> addNode(sourceNode);
+	hive -> addNode(geometryNode);
+
+	Handle<GraphNode> geometryHandle(geometryNode);
+
+	sourceNode -> createEdge(geometryHandle, {});
+
+	ScriptAction* action = sourceNode -> emitScript(true);
+
+	action -> decrRef();
+
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(Handle<SceneRootNode>(0));
+
+	surface -> setHive(hiveHandle);
+	Handle<GraphNode> sourceHandle(sourceNode);
+
+	SceneAction* firstSceneAction = new SceneAction(sourceHandle, Handle<GraphHiveSceneSurface>(surface));
+
+	firstSceneAction -> incrRef();
+	firstSceneAction -> start();
+	firstSceneAction -> waitOnComplete(0);
+	firstSceneAction -> decrRef();
+
+	GraphHiveSceneSurface::Scene before = surface -> getScene();
+
+	ASSERT_EQ(before.chunks.size(), 2u);
+	EXPECT_TRUE(before.agentVisibleNodeIds.empty())
+		<< "A node that has never been marked agent visible should not appear in the scene's agent visible nodes.";
+
+	unsigned vertexVersionBefore = geometryNode -> GraphVersioned::getVersion();
+	unsigned sceneVersionBefore = geometryNode -> getSceneVersion();
+
+	geometryNode -> setAgentVisible(true);
+
+	EXPECT_EQ(geometryNode -> GraphVersioned::getVersion(), vertexVersionBefore)
+		<< "Setting the agent visible flag must not bump the vertex version, or every chunk would look new.";
+	EXPECT_NE(geometryNode -> getSceneVersion(), sceneVersionBefore)
+		<< "Setting the agent visible flag must bump the scene version, or the surface would never repopulate.";
+
+	SceneAction* secondSceneAction = new SceneAction(sourceHandle, Handle<GraphHiveSceneSurface>(surface));
+
+	secondSceneAction -> incrRef();
+	secondSceneAction -> start();
+	secondSceneAction -> waitOnComplete(0);
+	secondSceneAction -> decrRef();
+
+	GraphHiveSceneSurface::Scene after = surface -> getScene();
+
+	ASSERT_EQ(after.agentVisibleNodeIds.size(), 1u);
+	EXPECT_EQ(after.agentVisibleNodeIds[0], geometryNode -> getId())
+		<< "A node marked agent visible should be named in the scene's agent visible nodes.";
+
+	// The point of carrying this as node level state: the geometry itself is untouched, so nothing about any
+	// chunk changes and the viewer never has to be sent the vertexes again.
+	ASSERT_EQ(after.chunks.size(), before.chunks.size());
+
+	for(std::size_t index = 0; index < after.chunks.size(); index++)
+	{
+		EXPECT_EQ(after.chunks[index].id, before.chunks[index].id);
+		EXPECT_EQ(after.chunks[index].version, before.chunks[index].version)
+			<< "Chunk " << index << " should not have been versioned by an agent visible change.";
+		EXPECT_EQ(after.chunks[index].vertexVersion, before.chunks[index].vertexVersion)
+			<< "Chunk " << index << "'s vertex version should be untouched by an agent visible change.";
+		EXPECT_EQ(after.chunks[index].vertexes.size(), before.chunks[index].vertexes.size())
+			<< "Chunk " << index << "'s vertexes should have survived an agent visible change.";
+	}
+
+	EXPECT_EQ(after.chunks[1].visibility, SceneGeometry::VertexVisibility::AGENT);
+
+	surface -> close();
+
+	hive -> shutdown();
+}
+
+TEST(ScriptActionTest, SceneGeometryUnchangedAgentVisibleFlagLeavesTheSceneAlone)
+{
+	GraphHive* hive = new GraphHive(2);
+	Handle<GraphHive> hiveHandle(hive);
+
+	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
+
+	SceneGeometryScriptNode* geometryNode = new SceneGeometryScriptNode(
+		"addVertex(Vertex{posn = {1, 0, 0}})\n"
+		"addVertex(Vertex{posn = {0, 1, 0}}, VertexVisibility.AGENT)\n", "");
+
+	hive -> addNode(sourceNode);
+	hive -> addNode(geometryNode);
+
+	Handle<GraphNode> geometryHandle(geometryNode);
+
+	sourceNode -> createEdge(geometryHandle, {});
+
+	ScriptAction* action = sourceNode -> emitScript(true);
+
+	action -> decrRef();
+
+	GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(Handle<SceneRootNode>(0));
+
+	surface -> setHive(hiveHandle);
+	Handle<GraphNode> sourceHandle(sourceNode);
+
+	SceneAction* firstSceneAction = new SceneAction(sourceHandle, Handle<GraphHiveSceneSurface>(surface));
+
+	firstSceneAction -> incrRef();
+	firstSceneAction -> start();
+	firstSceneAction -> waitOnComplete(0);
+	firstSceneAction -> decrRef();
+
+	GraphHiveSceneSurface::Scene before = surface -> getScene();
+
+	// Setting the flag to the value it already holds is not a change, so the second action below should find
+	// the scene version exactly as it left it and skip populating the surface altogether.
+	geometryNode -> setAgentVisible(false);
+
+	SceneAction* secondSceneAction = new SceneAction(sourceHandle, Handle<GraphHiveSceneSurface>(surface));
+
+	secondSceneAction -> incrRef();
+	secondSceneAction -> start();
+	secondSceneAction -> waitOnComplete(0);
+	secondSceneAction -> decrRef();
+
+	GraphHiveSceneSurface::Scene after = surface -> getScene();
+
+	EXPECT_TRUE(after.agentVisibleNodeIds.empty());
+
+	ASSERT_EQ(after.chunks.size(), before.chunks.size());
+
+	for(std::size_t index = 0; index < after.chunks.size(); index++)
+	{
+		EXPECT_EQ(after.chunks[index].version, before.chunks[index].version)
+			<< "Chunk " << index << " should not have been versioned when nothing changed.";
+	}
+
+	surface -> close();
+
+	hive -> shutdown();
+}
+
+TEST(ScriptActionTest, SceneGeometryScriptNodeExposesAgentVisibleToLua)
+{
+	GraphHive* hive = new GraphHive(2);
+	Handle<GraphHive> hiveHandle(hive);
+
+	ScriptEmitterNode* sourceNode = new ScriptEmitterNode();
+
+	SceneGeometryScriptNode* geometryNode = new SceneGeometryScriptNode(
+		"addVertex(Vertex{posn = {1, 0, 0}}, VertexVisibility.AGENT)\n"
+		"setAgentVisible(not getAgentVisible())\n", "");
+
+	hive -> addNode(sourceNode);
+	hive -> addNode(geometryNode);
+
+	Handle<GraphNode> geometryHandle(geometryNode);
+
+	sourceNode -> createEdge(geometryHandle, {});
+
+	ScriptAction* action = sourceNode -> emitScript(true);
+
+	action -> decrRef();
+
+	EXPECT_TRUE(geometryNode -> getAgentVisible())
+		<< "A script should be able to read the agent visible flag and set it.";
 
 	hive -> shutdown();
 }

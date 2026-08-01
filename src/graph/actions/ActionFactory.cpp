@@ -3,6 +3,7 @@
 #include "PingAction.hpp"
 #include "SerialisableAction.hpp"
 #include "SerialisableActionPayload.hpp"
+#include "TriggerAction.hpp"
 #include "../GraphException.hpp"
 
 SerialisableAction* ActionFactory::create(Handle<GraphNode>& initNode, SerialisableActionPayload& payload)
@@ -13,6 +14,10 @@ SerialisableAction* ActionFactory::create(Handle<GraphNode>& initNode, Serialisa
 	{
 		case SerialisableAction::SerialisableActionType::PING:
 			action = new PingAction(initNode);
+			break;
+
+		case SerialisableAction::SerialisableActionType::TRIGGER:
+			action = new TriggerAction(initNode);
 			break;
 
 		default:

@@ -4,6 +4,7 @@
 #include "Model.hpp"
 #include "ModelContext.hpp"
 #include "ModelRequest.hpp"
+#include "../thread/ThreadBase.hpp"
 
 #include "../mongoose/mongoose.h"
 
@@ -111,13 +112,21 @@ void ModelProvider::_checkConnection(std::string url)
 	{
 		uint64_t start = mg_millis();
 
-		while(!state.connected && !state.failed && (mg_millis() - start) < CONNECT_TIMEOUT_MS)
+		while(!state.connected && !state.failed && !ThreadBase::currentThreadStopping()
+			&& (mg_millis() - start) < CONNECT_TIMEOUT_MS)
 		{
 			mg_mgr_poll(&mgr, 50);
 		}
 	}
 
 	mg_mgr_free(&mgr);
+
+	// Reported apart from a failure, so that a check dropped because the application is going down is not
+	// taken for a provider that could not be reached.
+	if(!state.connected && ThreadBase::currentThreadStopping())
+	{
+		throw AgentException(AgentException::REQUEST_ABORTED);
+	}
 
 	if(!connection || !state.connected)
 	{
@@ -159,13 +168,21 @@ std::string ModelProvider::_httpGet(std::string url)
 	{
 		uint64_t start = mg_millis();
 
-		while(!state.done && !state.failed && (mg_millis() - start) < CONNECT_TIMEOUT_MS)
+		while(!state.done && !state.failed && !ThreadBase::currentThreadStopping()
+			&& (mg_millis() - start) < CONNECT_TIMEOUT_MS)
 		{
 			mg_mgr_poll(&mgr, 50);
 		}
 	}
 
 	mg_mgr_free(&mgr);
+
+	// Reported apart from a failure, so that a request dropped because the application is going down is not
+	// taken for a provider that could not be reached.
+	if(!state.done && ThreadBase::currentThreadStopping())
+	{
+		throw AgentException(AgentException::REQUEST_ABORTED);
+	}
 
 	if(!connection || !state.done || state.failed)
 	{
@@ -223,13 +240,22 @@ std::string ModelProvider::_httpPost(std::string url, std::string body)
 	{
 		uint64_t start = mg_millis();
 
-		while(!state.done && !state.failed && (mg_millis() - start) < REQUEST_TIMEOUT_MS)
+		while(!state.done && !state.failed && !ThreadBase::currentThreadStopping()
+			&& (mg_millis() - start) < REQUEST_TIMEOUT_MS)
 		{
 			mg_mgr_poll(&mgr, 50);
 		}
 	}
 
 	mg_mgr_free(&mgr);
+
+	// Reported apart from a failure, so that a request dropped because the application is going down is not
+	// taken for a provider that could not be reached. This matters far more here than it does for a plain
+	// GET, as this is the wait that can otherwise hold a thread for the whole of a model's inference.
+	if(!state.done && ThreadBase::currentThreadStopping())
+	{
+		throw AgentException(AgentException::REQUEST_ABORTED);
+	}
 
 	if(!connection || !state.done || state.failed)
 	{

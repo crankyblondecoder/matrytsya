@@ -26,7 +26,10 @@ class SerialisableAction : public GraphAction
 			UNKNOWN,
 
 			/// Ping action.
-			PING
+			PING,
+
+			/// Trigger action.
+			TRIGGER
 		};
 
 		/**
@@ -42,7 +45,7 @@ class SerialisableAction : public GraphAction
 
 	protected:
 
-		void _apply(GraphNode* target) override;
+		bool _apply(GraphNode* target) override;
 
 		void _complete() override;
 

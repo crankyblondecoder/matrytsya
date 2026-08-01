@@ -15,7 +15,7 @@ SerialisableAction::SerialisableAction(Handle<GraphNode>& initNode, unsigned ene
 	_addFlag(SERIALISABLE_GRAPH_ACTION, false);
 }
 
-void SerialisableAction::_apply(GraphNode* target)
+bool SerialisableAction::_apply(GraphNode* target)
 {
 	SerialisableActionTarget* actionTarget = target -> getSerialisableActionTarget();
 
@@ -29,6 +29,8 @@ void SerialisableAction::_apply(GraphNode* target)
 			payload -> decrRef();
 		}
 	}
+
+	return false;
 }
 
 void SerialisableAction::_complete()

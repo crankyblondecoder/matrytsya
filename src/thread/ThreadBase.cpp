@@ -58,8 +58,14 @@ bool ThreadBase::start()
 
 void ThreadBase::__threadEntry()
 {
+	// Published for the whole of the derived entry point, so that blocking work anywhere below it can ask
+	// whether the thread carrying it has been asked to stop.
+	_currentThread = this;
+
     // Invoke derived class thread entry.
     threadEntry();
+
+	_currentThread = 0;
 
 	_stopCond.lockMutex();
 
@@ -194,8 +200,22 @@ void ThreadBase::nanoSleep(int seconds, long nanoSeconds)
 	}
 }
 
+bool ThreadBase::currentThreadStopping()
+{
+	// A thread this was never told about, i.e. the main thread, is by definition not one that is being
+	// asked to stop, so it is answered no rather than left to fault on the null.
+	if(!_currentThread) return false;
+
+	return _currentThread -> _isStopping();
+}
+
 bool ThreadBase::_getQuit()
 {
 	// Because the quit flag is atomic, it doesn't need the flag mutex to guard it.
     return _quit;
+}
+
+bool ThreadBase::_isStopping()
+{
+	return _getQuit();
 }

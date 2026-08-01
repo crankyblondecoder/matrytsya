@@ -14,7 +14,7 @@ VersionAction::VersionAction(Handle<GraphNode> initNode)
 	_addFlag(VERSION_GRAPH_ACTION, true);
 }
 
-void VersionAction::_apply(GraphNode* target)
+bool VersionAction::_apply(GraphNode* target)
 {
 	VersionActionTarget* versionTarget = target -> getVersionActionTarget();
 
@@ -22,6 +22,8 @@ void VersionAction::_apply(GraphNode* target)
 	{
 		_version += versionTarget -> getVersion();
 	}
+
+	return false;
 }
 
 bool VersionAction::_starting()

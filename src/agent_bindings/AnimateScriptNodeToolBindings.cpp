@@ -65,5 +65,6 @@ bool AnimateScriptNodeToolBindings::__getAnimating()
 
 void AnimateScriptNodeToolBindings::__setAnimating(bool animating)
 {
-	_node.getInstance() -> setAnimating(animating, _serial);
+	// Emits action because it is considered to be a similar action to poking the node.
+	_node.getInstance() -> setAnimating(animating, _serial, true);
 }

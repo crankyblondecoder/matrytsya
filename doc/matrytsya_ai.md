@@ -5,6 +5,7 @@
 ## Related documents
 
 - [hiveSchema.json](hiveSchema.json) — JSON schema a hive definition must satisfy: nodes, edges, strobe emitters, surfaces, strobe surface registrations.
+- [harnessSchema.json](harnessSchema.json) — JSON schema an agentic harness definition must satisfy: providers, and the models, system prompts and tool sets assigned to each role and capability. Separate from the hive definition: a harness is not part of a hive's structure, and a hive can run without one.
 - [LuaNodeAPI.md](LuaNodeAPI.md) — Lua bindings for a hive's `coreScript`/`pokeScript` sources, per concrete node type.
 
 ## Action

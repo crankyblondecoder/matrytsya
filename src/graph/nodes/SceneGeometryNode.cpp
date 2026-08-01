@@ -44,11 +44,28 @@ StrobeActionTarget* SceneGeometryNode::getStrobeActionTarget()
 	return this;
 }
 
+AgentVisibleActionTarget* SceneGeometryNode::getAgentVisibleActionTarget()
+{
+	return this;
+}
+
+void SceneGeometryNode::setAgentVisible(bool flag)
+{
+	SceneGeometry::setAgentVisible(flag);
+}
+
+bool SceneGeometryNode::getAgentVisible()
+{
+	return SceneGeometry::getAgentVisible();
+}
+
 void SceneGeometryNode::_poked(GraphPoke poke)
 {
 }
 
 unsigned SceneGeometryNode::getVersion()
 {
-	return GraphVersioned::getVersion();
+	// The scene version rather than the vertex version, so that a change to the agent visible flag alone is
+	// still enough to make a scene action repopulate the surface.
+	return SceneGeometry::getSceneVersion();
 }

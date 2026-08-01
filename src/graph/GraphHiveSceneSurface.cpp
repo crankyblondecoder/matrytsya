@@ -80,6 +80,7 @@ void GraphHiveSceneSurface::_populateStart()
 	_chunkUpdates.clear();
 	_unchangedChunkIndexes.clear();
 	_modelTransforms.clear();
+	_agentVisibleNodeIds.clear();
 
 	ModelTransform identity;
 
@@ -104,8 +105,11 @@ void GraphHiveSceneSurface::_populateEnd()
 		// Note: It is assumed that _unchangedChunkIndexes would never contain a duplicate and if the sizes of this
 		//       vector and the current scenes chunk vector are the same then they match exactly.
 
+		// The agent visible node ids are built in traversal order, which is stable between populates, so
+		// comparing the lists directly is enough to spot a node being marked or unmarked.
 		sceneChanged = numTransf != _currentScene.modelTransforms.size() || _chunkUpdates.size() > 0 ||
-			_chunks.size() > 0 || _unchangedChunkIndexes.size() != _currentScene.chunks.size();
+			_chunks.size() > 0 || _unchangedChunkIndexes.size() != _currentScene.chunks.size() ||
+			_agentVisibleNodeIds != _currentScene.agentVisibleNodeIds;
 
 		if(!sceneChanged && numTransf)
 		{
@@ -148,6 +152,7 @@ void GraphHiveSceneSurface::_populateEnd()
 			// Assume this clears the build vectors.
 			_currentScene.chunks = std::move(_chunks);
 			_currentScene.modelTransforms = std::move(_modelTransforms);
+			_currentScene.agentVisibleNodeIds = std::move(_agentVisibleNodeIds);
 		}
 
 		// Notify that the surface has changed.
@@ -252,6 +257,14 @@ void GraphHiveSceneSurface::addLocalTransform(const Transform& transform, unsign
 
 			_modelTransforms.push_back(modelTransform);
 		}
+	}
+}
+
+void GraphHiveSceneSurface::setNodeAgentVisible(unsigned nodeId)
+{
+	{ SYNC(_lock)
+
+		_agentVisibleNodeIds.push_back(nodeId);
 	}
 }
 

@@ -270,7 +270,8 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 	// The most recently loaded scene, split per chunk with world-space geometry precomputed, so that only the
 	// currently visible chunks need be concatenated and uploaded whenever the hover state changes. Each entry is
-	// { id, nodeId, opaque, positions, colors, normals }; opaque means VertexVisibility.ALWAYS.
+	// { id, nodeId, opaque, agent, positions, colors, normals }; opaque means VertexVisibility.ALWAYS and agent
+	// means VertexVisibility.AGENT.
 	var sceneChunks = [];
 
 	// Maps a chunk id to the id of the node that owns it, so hovering one of a node's chunks can reveal that
@@ -293,6 +294,11 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	// Id of the node currently under the pointer (via one of its pokeable chunks), or null. Drives which
 	// HOVERED_OVER chunks are shown.
 	var hoveredNodeId = null;
+
+	// Set of node ids the server says currently have an agentic action being applied to them, as reported by
+	// each load's agentVisibleNodeIds. Drives which AGENT chunks are shown; unlike the other non-ALWAYS
+	// visibilities that is server state rather than something the pointer decides here.
+	var agentVisibleNodes = {};
 
 	// Number of vertices at the front of the uploaded buffers that make up the opaque pass; the remainder are
 	// the currently visible translucent (non-ALWAYS) chunks, drawn as a second blended pass.
@@ -706,6 +712,13 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 		for(var f = 0; f < data.focusChunkIds.length; f++) focusChunkIds[data.focusChunkIds[f]] = true;
 
+		agentVisibleNodes = {};
+
+		if(data.agentVisibleNodeIds)
+		{
+			for(var a = 0; a < data.agentVisibleNodeIds.length; a++) agentVisibleNodes[data.agentVisibleNodeIds[a]] = true;
+		}
+
 		// A model transform is unchanged from the previous load only if the same index held the same 16
 		// values. Comparing per-transform here is cheap (there are usually far fewer transforms than vertices)
 		// and lets each chunk below skip re-deriving world-space geometry unless its own transform moved.
@@ -738,6 +751,7 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 			// A missing/unknown visibility is treated as ALWAYS, matching the server default.
 			var opaque = (chunk.visibility === undefined || chunk.visibility === 'ALWAYS');
+			var agentChunk = (chunk.visibility === 'AGENT');
 
 			chunkPokeable[chunk.id] = !!chunk.pokeable;
 			chunkNodeId[chunk.id] = chunk.nodeId;
@@ -827,7 +841,7 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 				}
 			}
 
-			sceneChunks.push({ id: chunk.id, nodeId: chunk.nodeId, opaque: opaque,
+			sceneChunks.push({ id: chunk.id, nodeId: chunk.nodeId, opaque: opaque, agent: agentChunk,
 				positions: worldPositions, colors: colors, normals: worldNormals });
 		}
 
@@ -876,8 +890,10 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	}
 
 	// Concatenates the currently visible chunks into the GPU buffers: every opaque (ALWAYS) chunk first, then
-	// any translucent chunk whose owning node is currently hovered. opaqueVertexCount records the boundary so
-	// draw() can render the two as separate passes. Called on load and whenever the hover state changes.
+	// each translucent chunk that something currently reveals - an AGENT chunk whose node the server has
+	// marked as being worked on, or any other chunk whose owning node is hovered. opaqueVertexCount records
+	// the boundary so draw() can render the two as separate passes. Called on load and whenever the hover
+	// state changes.
 	function rebuildGeometry()
 	{
 		var positions = [];
@@ -901,7 +917,11 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		{
 			var transChunk = sceneChunks[t];
 
-			if(transChunk.opaque || transChunk.nodeId !== hoveredNodeId) continue;
+			if(transChunk.opaque) continue;
+
+			// AGENT geometry is revealed by its node's server side flag rather than by the pointer, so it is
+			// deliberately not shown on hover the way the remaining visibilities are.
+			if(transChunk.agent ? !agentVisibleNodes[transChunk.nodeId] : transChunk.nodeId !== hoveredNodeId) continue;
 
 			positions.push.apply(positions, transChunk.positions);
 			colors.push.apply(colors, transChunk.colors);

@@ -1,6 +1,11 @@
 #include "Model.hpp"
 
 #include "ModelProvider.hpp"
+#include "ModelRequest.hpp"
+
+#include <iostream>
+
+bool Model::_logToConsole = false;
 
 Model::Model(Handle<ModelProvider> provider, std::string name, std::string description,
 	std::string inputTokenCost, std::string outputTokenCost, bool free) :
@@ -44,5 +49,19 @@ bool Model::getFree()
 
 std::string Model::_processRequest(ModelRequest& request)
 {
-	return getProvider().getInstance() -> processRequest(Handle<Model>(this), request);
+	if(_logToConsole)
+	{
+		std::cout << "----- Model request (" << _name << ") -----" << std::endl
+			<< request.getPrompt().getPrompt() << std::endl;
+	}
+
+	std::string response = getProvider().getInstance() -> processRequest(Handle<Model>(this), request);
+
+	if(_logToConsole)
+	{
+		std::cout << "----- Model response (" << _name << ") -----" << std::endl
+			<< response << std::endl;
+	}
+
+	return response;
 }

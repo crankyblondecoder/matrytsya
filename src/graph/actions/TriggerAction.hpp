@@ -3,13 +3,15 @@
 
 #include <string>
 
-#include "../GraphAction.hpp"
 #include "../GraphNode.hpp"
+#include "SerialisableAction.hpp"
+
+class SerialisableActionPayload;
 
 /**
  * Graph action that triggers nodes as it traverses the graph.
  */
-class TriggerAction : public GraphAction
+class TriggerAction : public SerialisableAction
 {
     public:
 
@@ -21,15 +23,21 @@ class TriggerAction : public GraphAction
 		 * @param restrictToNodeType If true, restricts triggering to nodes of nodeType.
 		 * @param nodeType Node type required when restrictToNodeType is true.
 		 */
-		TriggerAction(Handle<GraphNode> initNode, std::string nodeName = "", bool restrictToNodeType = false,
+		TriggerAction(Handle<GraphNode>& initNode, std::string nodeName = "", bool restrictToNodeType = false,
 			GraphNode::Type nodeType = GraphNode::Type::GRAPH_NODE);
+
+		SerialisableActionType getSerialisbleType() override;
 
 	protected:
 
-		void _apply(GraphNode* target) override;
+		bool _apply(GraphNode* target) override;
 
 		bool _starting() override;
 		void _complete() override;
+
+		SerialisableActionPayload* _serialise() override;
+
+		void _deserialise(SerialisableActionPayload& data) override;
 
     private:
 

@@ -25,10 +25,18 @@ class SceneGeometry : public GraphVersioned
 
 		virtual ~SceneGeometry();
 
+		/**
+		 * Defines when a vertex should be made visible.
+		 * Typically used by surface maps to let a client side decide when to display the geometry rather than
+		 * relying on round trips back to the server to update visual state (which is slow and expensive).
+		 */
 		enum class VertexVisibility
 		{
 			/// Always visible.
 			ALWAYS,
+
+			/// Visible when an agentic action is being applied.
+			AGENT,
 
 			/// Visible when in a grabbed state. This typically maps to actions like mouse button held down.
 			GRABBED,
@@ -88,6 +96,30 @@ class SceneGeometry : public GraphVersioned
 		std::size_t getVertexCount() const;
 
 		/**
+		 * Set whether the VertexVisibility::AGENT vertexes held by this should currently be shown.
+		 * @note This is deliberately kept out of the vertex version, so that turning it on and off updates
+		 *       nothing but a single node id in the surface's scene. The vertexes themselves are never
+		 *       resent.
+		 * @param flag True to show the agent vertexes, false to hide them again.
+		 */
+		void setAgentVisible(bool flag);
+
+		/**
+		 * @returns Whether the VertexVisibility::AGENT vertexes held by this should currently be shown.
+		 */
+		bool getAgentVisible() const;
+
+		/**
+		 * Get a version covering everything about this that a scene surface needs to reflect, i.e. both the
+		 * vertexes and the agent visible flag.
+		 * @note This is what a scene action should sum, whereas the vertexes alone are versioned by
+		 *       GraphVersioned::getVersion(). Keeping the two apart is what lets the agent visible flag change
+		 *       without every chunk of this node looking like it holds new vertexes.
+		 * @returns Combined version. Only ever increases.
+		 */
+		unsigned getSceneVersion();
+
+		/**
 		 * Populate the given scene surface with vertexes from this.
 		 * @param surface Surface to populate.
 		 * @param nodeId Node ID to use when populating surface.
@@ -114,6 +146,13 @@ class SceneGeometry : public GraphVersioned
 		 * The groups of vertexes that make up the scene object this node defines.
 		 */
 		std::vector<VertexGroup> _vertexGroups;
+
+		/// Whether the VertexVisibility::AGENT vertexes held by this should currently be shown.
+		std::atomic<bool> _agentVisible{false};
+
+		/// Counts changes to state that a scene surface reflects but that leaves the vertexes untouched.
+		/// Combined with the vertex version by getSceneVersion(). Only ever increases.
+		std::atomic<unsigned> _stateVersion{0};
 };
 
 #endif

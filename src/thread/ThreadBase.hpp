@@ -51,6 +51,15 @@ class ThreadBase
 		 */
 		bool getRunning();
 
+		/**
+		 * Get whether the thread the caller is running on has been asked to stop.
+		 * Intended for long running or blocking work deep in a call stack, so that it can abandon what it
+		 * is doing rather than hold its thread up for the whole of a shutdown.
+		 * @returns True when the calling thread was started by a ThreadBase that is stopping. False when it
+		 *          is not stopping, or when the thread was not started by a ThreadBase at all.
+		 */
+		static bool currentThreadStopping();
+
         /** Sub class thread entry point */
         virtual void threadEntry() = 0;
 
@@ -85,11 +94,22 @@ class ThreadBase
 		 */
 		virtual void _quitRequested() = 0;
 
+		/**
+		 * Sub-class hook reporting whether this thread has been asked to stop.
+		 * Overridden where a sub-class is told to stop by something other than the quit flag, so that
+		 * currentThreadStopping() answers on whichever of them comes first.
+		 * @returns True when this thread should be winding up what it is doing.
+		 */
+		virtual bool _isStopping();
+
     private:
 
         // It does not make sense to copy a thread so do not allow it.
         ThreadBase(const ThreadBase& copyFrom);
         ThreadBase& operator= (const ThreadBase& copyFrom);
+
+		/// Thread running on the calling thread, or 0 where that thread was not started by a ThreadBase.
+		static inline thread_local ThreadBase* _currentThread = 0;
 
 		/// Flag to indicate that this thread should quit.
         std::atomic<bool> _quit{false};

@@ -25,6 +25,11 @@ void AnimateScriptNode::setAnimating(bool flag, unsigned serial)
 	__setAnimating(flag, serial, false);
 }
 
+void AnimateScriptNode::setAnimating(bool flag, unsigned serial, bool emitAnimateAction)
+{
+	__setAnimating(flag, serial, emitAnimateAction);
+}
+
 void AnimateScriptNode::__setAnimating(bool animating, unsigned serial, bool emitAnimateAction)
 {
 	bool emitAction = false;
@@ -33,12 +38,12 @@ void AnimateScriptNode::__setAnimating(bool animating, unsigned serial, bool emi
 
 		if(serial == 0 || serial > _animatingSerial)
 		{
-			if(_animating != animating)
-			{
-				_animating = animating;
+			_animating = animating;
 
-				emitAction = emitAnimateAction;
-			}
+			// An explicit request re-asserts the mode across the subtree even when this node's own flag is
+			// unchanged, because a node below may have cleared itself since it was last set. Emitting only on
+			// a change here would leave such a node stuck, as nothing would carry the mode back down to it.
+			emitAction = emitAnimateAction;
 
 			if(serial != 0) _animatingSerial = serial;
 		}

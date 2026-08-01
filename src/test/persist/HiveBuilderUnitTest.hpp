@@ -10,6 +10,7 @@
 #include "../../graph/nodes/AgentNode.hpp"
 #include "../../graph/nodes/PingNode.hpp"
 #include "../../graph/nodes/SceneRootNode.hpp"
+#include "../../graph/nodes/TriggerNode.hpp"
 #include "../../persist/HiveBuilder.hpp"
 #include "../../persist/HiveLoader.hpp"
 #include "../../persist/HiveNodeDescriptor.hpp"
@@ -89,6 +90,17 @@ namespace
 		prompt.prompt = "describe this node";
 
 		descriptor.prompts.push_back(prompt);
+
+		return descriptor;
+	}
+
+	HiveNodeDescriptor _makeTriggerDescriptor(const std::string& name)
+	{
+		HiveNodeDescriptor descriptor{};
+		descriptor.type = HiveNodeDescriptor::TRIGGER;
+		descriptor.name = name;
+		descriptor.coreScript = "CORE_RAN = true";
+		descriptor.pokeScript = "POKE_RAN = true";
 
 		return descriptor;
 	}
@@ -378,6 +390,7 @@ TEST(HiveBuilderTest, AgentNodeDescriptor_BuildsWithAllFields)
 
 	HiveNodeDescriptor descriptor = _makeAgentDescriptor("agent", "HIGH", "PING_NODE");
 	descriptor.prompts[0].nodeIdentifier = "ping1";
+	descriptor.prompts[0].terminateOnResponse = true;
 	descriptor.autoTriggerAgentAction = false;
 
 	loader.nodes.push_back(descriptor);
@@ -399,6 +412,58 @@ TEST(HiveBuilderTest, AgentNodeDescriptor_BuildsWithAllFields)
 	EXPECT_EQ(agentNode -> getPrompts()[0].nodeIdentifier, "ping1");
 	EXPECT_EQ(agentNode -> getPrompts()[0].nodeType, GraphNode::Type::PING_NODE);
 	EXPECT_EQ(agentNode -> getPrompts()[0].prompt, "describe this node");
+	EXPECT_TRUE(agentNode -> getPrompts()[0].terminateOnResponse);
+
+	hive -> shutdown();
+}
+
+/**
+ * A trigger node descriptor builds into a TriggerNode carrying its scripts, and emitTriggerOnPoke is
+ * carried through rather than being left at the constructor's default.
+ */
+TEST(HiveBuilderTest, TriggerNodeDescriptor_BuildsWithAllFields)
+{
+	FakeHiveLoader loader;
+	loader.hiveName = "Hive";
+
+	HiveNodeDescriptor descriptor = _makeTriggerDescriptor("trigger");
+	descriptor.emitTriggerOnPoke = false;
+
+	loader.nodes.push_back(descriptor);
+
+	GraphHive* hive = HiveBuilder::build(loader, 1);
+	Handle<GraphHive> hiveHandle(hive);
+
+	Handle<GraphNode> triggerHandle = hive -> getNode("trigger");
+
+	ASSERT_TRUE(triggerHandle.isValid());
+	ASSERT_EQ(triggerHandle.getInstance() -> getType(), GraphNode::Type::TRIGGER_NODE);
+
+	TriggerNode* triggerNode = static_cast<TriggerNode*>(triggerHandle.getInstance());
+
+	EXPECT_FALSE(triggerNode -> getEmitTriggerOnPoke());
+
+	hive -> shutdown();
+}
+
+/**
+ * emitTriggerOnPoke defaults to true, so a descriptor that never mentions it still builds a node that
+ * emits on being poked.
+ */
+TEST(HiveBuilderTest, TriggerNodeDescriptorWithoutEmitFlag_DefaultsToEmitting)
+{
+	FakeHiveLoader loader;
+	loader.hiveName = "Hive";
+	loader.nodes.push_back(_makeTriggerDescriptor("trigger"));
+
+	GraphHive* hive = HiveBuilder::build(loader, 1);
+	Handle<GraphHive> hiveHandle(hive);
+
+	Handle<GraphNode> triggerHandle = hive -> getNode("trigger");
+
+	ASSERT_TRUE(triggerHandle.isValid());
+
+	EXPECT_TRUE(static_cast<TriggerNode*>(triggerHandle.getInstance()) -> getEmitTriggerOnPoke());
 
 	hive -> shutdown();
 }

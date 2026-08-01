@@ -14,7 +14,7 @@ StrobeAction::StrobeAction(Handle<GraphNode>& initNode)
 	_addFlag(SCENE_STROBE_GRAPH_ACTION, true);
 }
 
-void StrobeAction::_apply(GraphNode* target)
+bool StrobeAction::_apply(GraphNode* target)
 {
 	StrobeActionTarget* strobeTarget = target -> getStrobeActionTarget();
 
@@ -24,12 +24,14 @@ void StrobeAction::_apply(GraphNode* target)
 		strobeTarget -> strobe();
 	}
 
-	ScriptAction::_apply(target);
+	bool complete = ScriptAction::_apply(target);
 
 	if(strobeTarget)
 	{
 		// This is done after the script is applied so that the script can correctly query the strobing state.
 		strobeTarget -> setStrobe(false);
 	}
+
+	return complete;
 }
 

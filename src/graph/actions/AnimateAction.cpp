@@ -14,7 +14,7 @@ AnimateAction::AnimateAction(Handle<GraphNode> initNode, bool animating)
 	_addFlag(ANIMATE_GRAPH_ACTION, true);
 }
 
-void AnimateAction::_apply(GraphNode* target)
+bool AnimateAction::_apply(GraphNode* target)
 {
 	AnimateActionTarget* animateTarget = target -> getAnimateActionTarget();
 
@@ -22,6 +22,8 @@ void AnimateAction::_apply(GraphNode* target)
 	{
 		animateTarget -> setAnimating(_animating, getId());
 	}
+
+	return false;
 }
 
 bool AnimateAction::_starting()

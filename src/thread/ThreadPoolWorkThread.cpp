@@ -54,6 +54,13 @@ void ThreadPoolWorkThread::_quitRequested()
 	// Just do nothing at this stage.
 }
 
+bool ThreadPoolWorkThread::_isStopping()
+{
+	// The pool raises the shutdown flag before it starts waiting on this worker, whereas the quit flag is
+	// only set later by stop(), so a work unit still running has to be told by whichever comes first.
+	return _shutdown || _getQuit();
+}
+
 void ThreadPoolWorkThread::shutDown()
 {
 	_shutdown = true;

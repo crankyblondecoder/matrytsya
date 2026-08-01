@@ -93,6 +93,10 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 			/// The model transforms that apply to scene chunks.
 			std::vector<ModelTransform> modelTransforms;
 
+			/// Ids of the nodes currently having an agentic action applied to them, i.e. the nodes whose
+			/// VertexVisibility::AGENT chunks should be shown. Only the nodes that are, so usually empty.
+			std::vector<unsigned> agentVisibleNodeIds;
+
 			/// Whether an initial-focus node is set for this surface.
 			bool hasInitialFocusNode = false;
 
@@ -118,6 +122,15 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		 */
 		void addVertexes(const std::vector<Vertex>& vertexes, unsigned chunkId, unsigned nodeId, unsigned version,
 			bool pokeable, SceneGeometry::VertexVisibility visibility);
+
+		/**
+		 * Mark a node as currently having an agentic action applied to it, so that its
+		 * VertexVisibility::AGENT chunks are shown.
+		 * @note This is node level rather than chunk level state, so it carries no vertexes and leaves every
+		 *       chunk of the node untouched. A node not marked during a populate is not agent visible.
+		 * @param nodeId Id of the node to mark.
+		 */
+		void setNodeAgentVisible(unsigned nodeId);
 
 		/**
 		 * Add a local transform to the scene.
@@ -178,6 +191,9 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 
 		/// The model transforms that apply to the surface chunks currently being built. The last transform in this list is the "current" one.
 		std::vector<ModelTransform> _modelTransforms;
+
+		/// Ids of the agent visible nodes of the surface currently being built.
+		std::vector<unsigned> _agentVisibleNodeIds;
 
 		/// The current scene that the surface can display. This is a kind of double buffering.
 		Scene _currentScene;

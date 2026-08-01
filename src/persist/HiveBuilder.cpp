@@ -9,6 +9,7 @@
 #include "../graph/GraphHive.hpp"
 #include "../graph/GraphHiveSceneSurface.hpp"
 #include "../graph/GraphHiveSurface.hpp"
+#include "../graph/GraphException.hpp"
 #include "../graph/GraphNamed.hpp"
 #include "../graph/GraphNode.hpp"
 #include "../graph/graphActionFlagRegister.hpp"
@@ -22,6 +23,7 @@
 #include "../graph/nodes/SceneTransformScriptNode.hpp"
 #include "../graph/nodes/StrobeEmitterNode.hpp"
 #include "../graph/nodes/TeleportNode.hpp"
+#include "../graph/nodes/TriggerNode.hpp"
 
 #include <map>
 
@@ -302,12 +304,18 @@ GraphNode* HiveBuilder::__createNode(const HiveNodeDescriptor& descriptor)
 				prompt.nodeIdentifier = promptDescriptor.nodeIdentifier;
 				prompt.nodeType = __nodeTypeFromName(promptDescriptor.nodeTypeName);
 				prompt.prompt = promptDescriptor.prompt;
+				prompt.terminateOnResponse = promptDescriptor.terminateOnResponse;
 
 				prompts.push_back(prompt);
 			}
 
 			return new AgentNode(__capabilityFromName(descriptor.capabilityName), prompts,
 				descriptor.autoTriggerAgentAction, descriptor.serialiseEmittedActions);
+		}
+
+		case HiveNodeDescriptor::TRIGGER:
+		{
+			return new TriggerNode(descriptor.coreScript, descriptor.pokeScript, descriptor.emitTriggerOnPoke);
 		}
 
 		default:
@@ -370,16 +378,12 @@ AgenticHarness::Capability HiveBuilder::__capabilityFromName(const std::string& 
 
 GraphNode::Type HiveBuilder::__nodeTypeFromName(const std::string& name)
 {
-	if(name == "GRAPH_NODE") return GraphNode::Type::GRAPH_NODE;
-	if(name == "PING_NODE") return GraphNode::Type::PING_NODE;
-	if(name == "SCENE_GEOMETRY_NODE") return GraphNode::Type::SCENE_GEOMETRY_NODE;
-	if(name == "SCENE_TRANSFORM_NODE") return GraphNode::Type::SCENE_TRANSFORM_NODE;
-	if(name == "SCRIPT_NODE") return GraphNode::Type::SCRIPT_NODE;
-	if(name == "SCENE_GEOMETRY_SCRIPT_NODE") return GraphNode::Type::SCENE_GEOMETRY_SCRIPT_NODE;
-	if(name == "SCENE_TRANSFORM_SCRIPT_NODE") return GraphNode::Type::SCENE_TRANSFORM_SCRIPT_NODE;
-	if(name == "SCENE_ROOT_NODE") return GraphNode::Type::SCENE_ROOT_NODE;
-	if(name == "TELEPORT_NODE") return GraphNode::Type::TELEPORT_NODE;
-	if(name == "AGENT_NODE") return GraphNode::Type::AGENT_NODE;
-
-	throw PersistException(PersistException::UNKNOWN_AGENT_PROMPT_NODE_TYPE);
+	try
+	{
+		return GraphNode::typeFromName(name);
+	}
+	catch(GraphException&)
+	{
+		throw PersistException(PersistException::UNKNOWN_AGENT_PROMPT_NODE_TYPE);
+	}
 }

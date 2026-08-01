@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include "../actionTargets/AgentVisibleActionTarget.hpp"
 #include "../actionTargets/SceneActionTarget.hpp"
 #include "../GraphFocusable.hpp"
 #include "AnimateScriptNode.hpp"
@@ -11,8 +12,8 @@
 /**
  * Graph node that represents scene geometry.
  */
-class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarget, public GraphFocusable,
-	public SceneGeometry
+class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarget,
+	public AgentVisibleActionTarget, public GraphFocusable, public SceneGeometry
 {
     public:
 
@@ -29,6 +30,12 @@ class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarg
 		void strobe() override;
 
 		SceneActionTarget* getSceneActionTarget() override;
+
+		AgentVisibleActionTarget* getAgentVisibleActionTarget() override;
+
+		void setAgentVisible(bool flag) override;
+
+		bool getAgentVisible() override;
 
 		unsigned getVersion() override;
 
@@ -103,9 +110,27 @@ class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarg
 		static int __luaVertexCount(lua_State* luaState);
 
 		/**
+		 * Lua-facing `setAgentVisible(visible)`: sets whether the node bound as this closure's upvalue should
+		 * currently show its VertexVisibility.AGENT vertexes.
+		 * @param luaState Lua state the call is running against; argument 1 is the boolean to set and upvalue
+		 *        1 is a light userdata pointing at the target SceneGeometryScriptNode.
+		 * @returns Always 0.
+		 */
+		static int __luaSetAgentVisible(lua_State* luaState);
+
+		/**
+		 * Lua-facing `getAgentVisible()`: returns whether the node bound as this closure's upvalue is
+		 * currently showing its VertexVisibility.AGENT vertexes.
+		 * @param luaState Lua state the call is running against; upvalue 1 is a light userdata pointing at
+		 *        the target SceneGeometryScriptNode.
+		 * @returns Always 1 (the flag is left on the stack).
+		 */
+		static int __luaGetAgentVisible(lua_State* luaState);
+
+		/**
 		 * Register the `Vertex` constructor, the `VertexVisibility` constants table and the
-		 * `addVertex()`/`addVertexes()`/`vertexCount()` global functions against luaState, binding each
-		 * function to this node instance via upvalue.
+		 * `addVertex()`/`addVertexes()`/`vertexCount()`/`setAgentVisible()`/`getAgentVisible()` global
+		 * functions against luaState, binding each function to this node instance via upvalue.
 		 * @param luaState Lua state to register the globals against.
 		 */
 		void __registerVertexBindings(lua_State* luaState);

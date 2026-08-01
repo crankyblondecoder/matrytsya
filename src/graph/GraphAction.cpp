@@ -6,6 +6,9 @@
 #include "../util/Handle.hpp"
 #include "GraphHive.hpp"
 #include "GraphNode.hpp"
+#include "../log/log.hpp"
+
+#include <string>
 
 std::atomic<unsigned> GraphAction::_nextId{1};
 
@@ -16,8 +19,10 @@ GraphAction::~GraphAction()
 	_boundNode.clear();
 }
 
-GraphAction::GraphAction(Handle<GraphNode> initNode, unsigned energy, unsigned numPasses) : _id { _nextId++ },
-	_initNode(initNode), _boundNode(initNode), _boundHive(0), _numPasses(numPasses < 1 ? 1 : numPasses)
+GraphAction::GraphAction(Handle<GraphNode> initNode, unsigned energy, unsigned numPasses,
+	bool edgeTraversalIsExact) : _id { _nextId++ },
+	_initNode(initNode), _boundNode(initNode), _boundHive(0), _numPasses(numPasses < 1 ? 1 : numPasses),
+	_edgeTraversalIsExact(edgeTraversalIsExact)
 {
 	_energy = energy;
 
@@ -304,9 +309,33 @@ void GraphAction::work()
 	// Applied outside of the lock because this can re-enter this action, eg via the node emitting an action.
 	// Nothing serialises this against other actions, so a node can have several actions applied to it at once
 	// and must therefore handle its own internal synchronisation.
-	if(applyNodeHandle.isValid()) _apply(applyNodeHandle.getInstance());
+	bool applyComplete = false;
 
-	if(__traverse())
+	if(applyNodeHandle.isValid())
+	{
+		try
+		{
+			applyComplete = _apply(applyNodeHandle.getInstance());
+		}
+		catch(...)
+		{
+			// An escaping apply is caught here because the work unit above this only discards it, which would
+			// leave the action short of __complete() and hang anything waiting on it. There is nothing useful
+			// left for the action to do, so it is finished off rather than traversed any further. What went
+			// wrong is left to whatever threw to log, as only it knows.
+			LOG(Logger::LogLevel::ERROR, "Apply threw for graph action " + std::to_string(getId())
+				+ " -- completing the action.")
+
+			applyComplete = true;
+		}
+	}
+
+	if(applyComplete)
+	{
+		// The apply hook has determined the action is now complete, so it must not continue traversing.
+		complete = true;
+	}
+	else if(__traverse())
 	{
 		execWorkUnit = true;
 	}
@@ -455,17 +484,27 @@ bool GraphAction::canTraverseEdge(Handle<GraphEdge> handle)
 
 	if(handle.isValid())
 	{
-		unsigned edgeId = handle.getInstance() -> getId();
-
-		unsigned numTraversedEdges = _traversedEdges.size();
-
-		for(unsigned index = 0; index < numTraversedEdges; index++)
+		// Do a check for exact flag match requirement first.
+		if(_edgeTraversalIsExact)
 		{
-			if(_traversedEdges[index] == edgeId)
+			// Action flags must match edge flags explicitly.
+			canTraverse = handle.getInstance() -> hasAnyActionFlags(getEdgeTraversalFlags());
+		}
+
+		if(canTraverse)
+		{
+			unsigned edgeId = handle.getInstance() -> getId();
+
+			unsigned numTraversedEdges = _traversedEdges.size();
+
+			for(unsigned index = 0; index < numTraversedEdges; index++)
 			{
-				// Edge has already been traversed by this action.
-				canTraverse = false;
-				break;
+				if(_traversedEdges[index] == edgeId)
+				{
+					// Edge has already been traversed by this action.
+					canTraverse = false;
+					break;
+				}
 			}
 		}
 	}

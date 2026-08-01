@@ -21,7 +21,7 @@ class AgentNode : public GraphSerialisedActionNode, public TriggerActionTarget
 		 * @param prompts Prompts the emitted action sends, each paired with the node it applies to.
 		 * @param autoTriggerAgentAction If true, a trigger arriving at this node emits an agent action. If
 		 *        false, trigger() does nothing and an agent action is only emitted by an explicit
-		 *        emitAgent() call.
+		 *        emitAgentAction() call.
 		 * @param serialiseEmittedActions Forwarded to GraphSerialisedActionNode. See its constructor for
 		 *        details. Defaults to true so that a re-trigger queues behind the conversation already in
 		 *        flight rather than running a second one alongside it.
@@ -36,7 +36,7 @@ class AgentNode : public GraphSerialisedActionNode, public TriggerActionTarget
 		 * @param wait Wait for the action to complete.
 		 * @returns Agent action that was emitted. Will be refincr so caller must decref this to dispose.
 		 */
-		AgentAction* emitAgent(bool wait);
+		AgentAction* emitAgentAction(bool wait);
 
 		/**
 		 * Emit an agent action carrying this node's prompts from this node, without waiting on it.
