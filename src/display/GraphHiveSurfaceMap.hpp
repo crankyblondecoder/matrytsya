@@ -27,6 +27,11 @@ class GraphHiveSurfaceMap : public RefCounted
          */
         std::string getPath();
 
+        /**
+         * Get the name of the surface this map represents.
+         */
+        std::string getSurfaceName();
+
     protected:
 
         // Required by ref counting.

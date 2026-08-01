@@ -31,6 +31,11 @@ class GraphHiveCollection
 		Handle<GraphHive> getHive(std::string hiveName);
 
 		/**
+		 * Get the names of all the hives in this collection, in the order they were added.
+		 */
+		std::vector<std::string> getHiveNames();
+
+		/**
 		 * Teleport a graph action.
 		 * @param actionPayload Payload of action to teleport.
 		 * @param nodeLocation Location of node to teleport action to.

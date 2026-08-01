@@ -16,6 +16,11 @@ std::string GraphHiveSurfaceMap::getPath()
 	return _path;
 }
 
+std::string GraphHiveSurfaceMap::getSurfaceName()
+{
+	return _surface.getName();
+}
+
 GraphHiveSurface& GraphHiveSurfaceMap::_getSurface()
 {
 	return _surface;

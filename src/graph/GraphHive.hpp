@@ -95,6 +95,11 @@ class GraphHive : public RefCounted, public GraphNamed
 		Handle<GraphHiveSurface> getSurface(std::string surfaceName);
 
 		/**
+		 * Get the names of all the surfaces in this hive.
+		 */
+		std::vector<std::string> getSurfaceNames();
+
+		/**
 		 * Find a scene surface in this hive by name.
 		 * @param surfaceName Name of surface to find.
 		 * @returns Handle to the surface. Invalid handle if no surface with that name exists in this

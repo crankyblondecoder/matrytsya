@@ -813,6 +813,24 @@ Handle<GraphHiveSurface> GraphHive::getSurface(std::string surfaceName)
 	return Handle<GraphHiveSurface>(foundSurface);
 }
 
+std::vector<std::string> GraphHive::getSurfaceNames()
+{
+	std::vector<std::string> names;
+
+	{ SYNC(_lock)
+
+		if(_active)
+		{
+			for(GraphHiveSurface* surface : _surfaces)
+			{
+				if(surface) names.push_back(surface -> getName());
+			}
+		}
+	}
+
+	return names;
+}
+
 Handle<GraphHiveSceneSurface> GraphHive::getSceneSurface(std::string surfaceName)
 {
 	Handle<GraphHiveSurface> surface = getSurface(surfaceName);

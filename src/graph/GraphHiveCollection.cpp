@@ -54,6 +54,21 @@ Handle<GraphHive> GraphHiveCollection::getHive(std::string hiveName)
 	return Handle<GraphHive>(0);
 }
 
+std::vector<std::string> GraphHiveCollection::getHiveNames()
+{
+	std::vector<std::string> names;
+
+	{ SYNC(_lock)
+
+		for(Handle<GraphHive>* handle : _hives)
+		{
+			if(handle && handle -> isValid()) names.push_back(handle -> getInstance() -> getName());
+		}
+	}
+
+	return names;
+}
+
 void GraphHiveCollection::teleportAction(SerialisableActionPayload& actionPayload, GraphNodeLocation& nodeLocation)
 {
 	// TODO Teleport to other hosts, i.e. Use the host/port.

@@ -614,6 +614,12 @@
 					]
 				},
 				{
+					"toNodeName": "flowerTrigger",
+					"actionFlags": [
+						"AGENT_GRAPH_ACTION"
+					]
+				},
+				{
 					"toNodeName": "hub3"
 				}
 			]
@@ -958,7 +964,12 @@
 				{
 					"nodeIdentifier": "body3",
 					"nodeType": "SCENE_GEOMETRY_SCRIPT_NODE",
-					"prompt": "You are now visiting the node named body3, the centre of flower 3. This is a different node again, with its own setAnimating tool. Take this node out of animating mode: call the setAnimating tool once with animating set to false. Reply with nothing but a short confirmation once the tool call has been made.",
+					"prompt": "You are now visiting the node named body3, the centre of flower 3. This is a different node again, with its own setAnimating tool. Take this node out of animating mode: call the setAnimating tool once with animating set to false. Reply with nothing but a short confirmation once the tool call has been made."
+				},
+				{
+					"nodeIdentifier": "flowerTrigger",
+					"nodeType": "TRIGGER_NODE",
+					"prompt": "You are now visiting the node named flowerTrigger. It carries no geometry and no animating mode; the one tool it offers emits a trigger action into the rest of the graph. Call the emitTrigger tool once, supplying neither nodeName nor nodeType so that the trigger goes out unrestricted. Both restrictions matter here: a trigger carrying either one is passed over by the teleport node that would otherwise carry it on to the engine hive, and nothing would reach the engine. Reply with nothing but a short confirmation once the tool call has been made.",
 					"terminateOnResponse": true
 				}
 			],
@@ -970,6 +981,28 @@
 					]
 				}
 			]
+		},
+		{
+			"type": "TriggerNode",
+			"name": "flowerTrigger",
+			"coreScript": "-- Emission is left to the emitTrigger tool the model is offered while the agent action is being applied here.",
+			"pokeScript": "",
+			"edges": [
+				{
+					"toNodeName": "engineGate",
+					"actionFlags": [
+						"TRIGGER_GRAPH_ACTION"
+					]
+				}
+			]
+		},
+		{
+			"type": "TeleportNode",
+			"name": "engineGate",
+			"destination": {
+				"hiveName": "Engine",
+				"nodeName": "engineTrigger"
+			}
 		}
 	],
 	"strobeEmitters": [
@@ -981,7 +1014,7 @@
 	"surfaces": [
 		{
 			"type": "GraphHiveSceneSurface",
-			"name": "surface",
+			"name": "garden",
 			"sceneRootNodeName": "root",
 			"initialFocusNodeName": "body1",
 			"focusViewportFraction": 0.2,
@@ -990,7 +1023,7 @@
 	],
 	"strobeSurfaces": [
 		{
-			"surfaceName": "surface",
+			"surfaceName": "garden",
 			"periodMs": 40
 		}
 	]

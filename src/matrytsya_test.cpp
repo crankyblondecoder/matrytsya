@@ -2,10 +2,12 @@
 #include "agent/Model.hpp"
 #include "agent_bindings/ModelToolBindingsFactory.hpp"
 #include "display/DisplayException.hpp"
+#include "display/GraphHiveCollectionHttpMap.hpp"
 #include "display/GraphHiveSceneSurfaceWebglMap.hpp"
 #include "display/http/HttpServer.hpp"
 #include "util/Handle.hpp"
 #include "graph/GraphHive.hpp"
+#include "graph/GraphHiveCollection.hpp"
 #include "graph/GraphHiveSceneSurface.hpp"
 #include "graph/GraphToolBindingsFactory.hpp"
 #include "persist/HarnessBuilder.hpp"
@@ -18,6 +20,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include <signal.h>
 #include <unistd.h>
@@ -31,10 +34,14 @@ namespace
 		_running = 0;
 	}
 
-	// Run from the build directory (see build/makefile's debug_test target), so this is relative to that.
-	const char* const _HIVE_JSON_PATH = "../examples/engineHive.json";
-	//const char* const _HIVE_JSON_PATH = "../examples/flowerHive.json";
-	//const char* const _HIVE_JSON_PATH = "../examples/roseHive.json";
+	// Hives loaded into this test's collection, all served from the one server. Run from the build directory
+	// (see build/makefile's debug_test target), so these are relative to that.
+	const char* const _HIVE_JSON_PATHS[] =
+	{
+		"../examples/engineHive.json",
+		"../examples/flowerHive.json"
+		//,"../examples/roseHive.json"
+	};
 
 	const unsigned _WEBGL_POLL_INTERVAL_MS = 50;
 
@@ -50,6 +57,9 @@ namespace
 	// The capability the chat panel asks its requests at, which is a property of this map rather than of the
 	// harness, so it has to be told what the harness file above assigns the chat role at.
 	const AgenticHarness::Capability _CHAT_CAPABILITY = AgenticHarness::Capability::LOW;
+
+	/// Path the collection index is mounted at, which is what a browser arriving at the server lands on.
+	const char* const _INDEX_PATH = "/";
 
 	std::string _readFile(const std::string& path)
 	{
@@ -122,22 +132,22 @@ int main(int argc, char const *argv[])
 {
 	Model::_logToConsole = true;
 
-	JsonHiveLoader loader(_readFile(_HIVE_JSON_PATH));
+	// Declared before anything that points back at it: every hive loaded below is given this collection, and
+	// so is the index map, neither of which reference count it.
+	GraphHiveCollection collection;
 
-	GraphHive* hive = HiveBuilder::build(loader, 2);
-	Handle<GraphHive> hiveHandle(hive);
+	HttpServer httpServer(8080);
 
-	Handle<GraphHiveSceneSurface> surfaceHandle = hive -> getDefaultSceneSurface();
-	GraphHiveSceneSurface* surface = surfaceHandle.getInstance();
+	// Mounted at the root, so it is both what a browser arriving at the server lands on and what any path no
+	// surface map claims falls through to. Routing is by longest matching prefix, so the surface maps mounted
+	// below it are still reached.
+	GraphHiveCollectionHttpMap* collectionMap =
+		new GraphHiveCollectionHttpMap(httpServer, collection, _INDEX_PATH);
 
-	if(!surface)
-	{
-		std::cerr << "Could not find scene surface in hive definition file: " << _HIVE_JSON_PATH << std::endl;
-		exit(1);
-	}
+	Handle<GraphHiveCollectionHttpMap> collectionMapHandle(collectionMap);
 
-	// Built here rather than by the hive itself, as the concrete factory belongs to agent_bindings, which
-	// depends on graph.
+	// Built here rather than by the hives themselves, as the concrete factory belongs to agent_bindings, which
+	// depends on graph. It is not built against any one hive, so all of them share this one.
 	ModelToolBindingsFactory* toolBindingsFactory = new ModelToolBindingsFactory();
 
 	Handle<GraphToolBindingsFactory> toolBindingsFactoryHandle(toolBindingsFactory);
@@ -145,22 +155,68 @@ int main(int argc, char const *argv[])
 	// The handle holds the reference; release the implicit construction ref.
 	toolBindingsFactory -> decrRef();
 
-	hive -> setToolBindingsFactory(toolBindingsFactoryHandle);
+	// Held for as long as this test runs, so that neither a hive nor a map it serves is released while the
+	// server is still answering for it.
+	std::vector<Handle<GraphHive>> hiveHandles;
+	std::vector<Handle<GraphHiveSceneSurfaceWebglMap>> webglMapHandles;
 
-	// Set before the surface is served, so that the first chat request cannot arrive without a model behind
-	// it. The factory is passed in rather than read back off the hive, so the harness cannot end up with no
-	// chat tools purely because of the order these two calls are made in.
-	hive -> setAgenticHarness(_buildAgenticHarness(hiveHandle, toolBindingsFactoryHandle));
+	for(const char* const hiveJsonPath : _HIVE_JSON_PATHS)
+	{
+		JsonHiveLoader loader(_readFile(hiveJsonPath));
 
-	HttpServer httpServer(8080);
+		GraphHive* hive = HiveBuilder::build(loader, 2);
+		Handle<GraphHive> hiveHandle(hive);
 
-	GraphHiveSceneSurfaceWebglMap* webglMap = new GraphHiveSceneSurfaceWebglMap(httpServer, *surface, "/scene/");
-	Handle<GraphHiveSceneSurfaceWebglMap> webglMapHandle(webglMap);
+		hiveHandles.push_back(hiveHandle);
 
-	webglMap -> setPollInterval(_WEBGL_POLL_INTERVAL_MS);
+		// Both directions of the association are needed: the collection serves the hive up by name, and the
+		// hive reaches back through the collection to teleport an action to a node in one of the others.
+		collection.addHive(hiveHandle);
+		hive -> setHiveCollection(&collection);
 
-	// The map asks for MEDIUM by default, which the harness file assigns no model to.
-	webglMap -> setChatCapability(_CHAT_CAPABILITY);
+		hive -> setToolBindingsFactory(toolBindingsFactoryHandle);
+
+		// Set before this hive's surfaces are served, so that the first chat request cannot arrive without a
+		// model behind it. The factory is passed in rather than read back off the hive, so the harness cannot
+		// end up with no chat tools purely because of the order these two calls are made in.
+		// Built per hive, as the tool bindings it is given report on one hive, which means the servers the
+		// harness file names are contacted once for every hive loaded here.
+		hive -> setAgenticHarness(_buildAgenticHarness(hiveHandle, toolBindingsFactoryHandle));
+
+		for(std::string surfaceName : hive -> getSurfaceNames())
+		{
+			Handle<GraphHiveSceneSurface> surfaceHandle = hive -> getSceneSurface(surfaceName);
+			GraphHiveSceneSurface* surface = surfaceHandle.getInstance();
+
+			// A surface this map cannot draw, i.e. one that is not a scene surface. Left out of the index
+			// rather than fatal, as the hive is still perfectly serviceable without it being viewable.
+			if(!surface) continue;
+
+			// Nested under the hive's own page, so that the index reads as one tree rather than a listing
+			// pointing off somewhere else.
+			std::string surfacePath = _INDEX_PATH + hive -> getName() + "/" + surfaceName + "/";
+
+			GraphHiveSceneSurfaceWebglMap* webglMap =
+				new GraphHiveSceneSurfaceWebglMap(httpServer, *surface, surfacePath);
+
+			Handle<GraphHiveSceneSurfaceWebglMap> webglMapHandle(webglMap);
+
+			webglMapHandles.push_back(webglMapHandle);
+
+			webglMap -> setPollInterval(_WEBGL_POLL_INTERVAL_MS);
+
+			// The map asks for MEDIUM by default, which the harness file assigns no model to.
+			webglMap -> setChatCapability(_CHAT_CAPABILITY);
+
+			collectionMap -> addSurfaceMap(hive -> getName(), *webglMap);
+		}
+	}
+
+	if(webglMapHandles.empty())
+	{
+		std::cerr << "None of the hive definition files loaded produced a scene surface to serve." << std::endl;
+		exit(1);
+	}
 
 	try
 	{
@@ -173,28 +229,46 @@ int main(int argc, char const *argv[])
 		exit(1);
 	}
 
-	std::cout << "Listening on http://localhost:" << httpServer.getPort() << "/scene/" << std::endl;
+	std::cout << "Listening on http://localhost:" << httpServer.getPort() << _INDEX_PATH << std::endl;
 
 	signal(SIGINT, _handleSigInt);
 
 	// This wait must happen before the process can otherwise go idle, or scene population stalls; this is
-	// unrelated to strobing, which the hive has already been driving on its own scheduler thread for both the
+	// unrelated to strobing, which each hive has already been driving on its own scheduler thread for both the
 	// root node's emitter and the surface itself since the calls above registered them, and which stays a
 	// no-op until the hive's animation is switched on -- the engine's button here -- regardless of when the
 	// wait below finishes.
-	while(_running && !webglMap -> hasReceivedFirstRequest())
+	// Only one map need be waited on, since only one can be the first to be opened and whichever it is ends
+	// the wait for all of them. The first map is the one blocked on because a wait has to be made against
+	// something; the check that ends the loop is made against every map, so opening any hive's surface
+	// releases it within a poll of it landing.
+	bool receivedFirstRequest = false;
+
+	while(_running && !receivedFirstRequest)
 	{
-		webglMap -> waitForFirstRequest(_FIRST_REQUEST_WAIT_POLL_MS);
+		for(Handle<GraphHiveSceneSurfaceWebglMap>& webglMapHandle : webglMapHandles)
+		{
+			if(webglMapHandle.getInstance() -> hasReceivedFirstRequest())
+			{
+				receivedFirstRequest = true;
+				break;
+			}
+		}
+
+		if(!receivedFirstRequest)
+		{
+			webglMapHandles[0].getInstance() -> waitForFirstRequest(_FIRST_REQUEST_WAIT_POLL_MS);
+		}
 	}
 
-	// Nothing left to drive from this thread: the scheduler strobes both the root node and the surface on
-	// their own cadences, and webglMap picks up the surface's refreshed contents via the surface changed event
-	// fired by populateEnd(). Just wait for SIGINT.
+	// Nothing left to drive from this thread: each hive's scheduler strobes both its root node and its surface
+	// on their own cadences, and each map picks up its surface's refreshed contents via the surface changed
+	// event fired by populateEnd(). Just wait for SIGINT.
 	while(_running) pause();
 
 	httpServer.stop();
 
-	hive -> shutdown();
+	collection.shutdown();
 
 	return 0;
 }
