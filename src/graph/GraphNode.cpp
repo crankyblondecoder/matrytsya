@@ -343,6 +343,9 @@ Handle<GraphEdge> GraphNode::traverse(GraphAction& action)
 	// Using a handle guarantees that the edge will be availble.
 	Handle<GraphEdge> edgeToTraverse(0);
 
+	// First traversable edge found that carries no action flags. Only used if no flagged edge can be traversed.
+	Handle<GraphEdge> wildcardEdgeToTraverse(0);
+
 	std::vector<Handle<GraphEdge>> edgesToCheck;
 	unsigned numEdgesToCheck = 0;
 
@@ -371,10 +374,20 @@ Handle<GraphEdge> GraphNode::traverse(GraphAction& action)
 		if(edgeHandleToCheck.getInstance() -> canTraverse(action.getEdgeTraversalFlags()) &&
 			action.canTraverseEdge(edgeHandleToCheck))
 		{
-			edgeToTraverse = edgeHandleToCheck;
-			break;
+			// An edge that names the actions it accepts is a deliberate route for this action, so it is taken
+			// ahead of a wildcard edge that merely fails to exclude it. The wildcard is held as a fallback
+			// rather than taken now, in case a flagged edge is found further along the array.
+			if(edgeHandleToCheck.getInstance() -> hasActionFlags())
+			{
+				edgeToTraverse = edgeHandleToCheck;
+				break;
+			}
+
+			if(!wildcardEdgeToTraverse.isValid()) wildcardEdgeToTraverse = edgeHandleToCheck;
 		}
 	}
+
+	if(!edgeToTraverse.isValid()) edgeToTraverse = wildcardEdgeToTraverse;
 
 	return edgeToTraverse;
 }

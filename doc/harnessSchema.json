@@ -27,7 +27,7 @@
 		"toolBindings": {
 			"type": "array",
 			"items": { "$ref": "#/$defs/toolBindingAssignment" },
-			"description": "Tool sets made available to roles. Every entry naming the requested role and capability is used, in the order given. Tools belonging to a single node are not listed here: a node level request is given the tools of the node being visited as it is reached, on top of anything assigned here."
+			"description": "Tool sets made available to roles. Every entry naming the requested role and capability is used, in the order given. Tools belonging to a single node are not listed here: a node level request is given the tools of the node being visited as it is reached, on top of anything assigned here, and they are withdrawn again as soon as that action moves on. Which node type offers which tools is set out in modelTools.md."
 		}
 	},
 
@@ -40,7 +40,7 @@
 				"NODE",
 				"SCRIPT"
 			],
-			"description": "The part an assignment plays in the harness. CHAT: answers messages typed at the chat interface. HIVE: drives hive level work, i.e. planning against or querying the overall structure of the hive. NODE: drives node level work, i.e. querying, setting up or altering the state of a single node. SCRIPT: drives script level work, i.e. querying or building a script for a particular purpose."
+			"description": "The part an assignment plays in the harness. CHAT: answers messages typed at the chat interface, at whatever capability the interface hosting the chat asks for. HIVE: drives hive level work, i.e. planning against or querying the overall structure of the hive. NODE: drives node level work, i.e. querying, setting up or altering the state of a single node; every prompt an agent node sends is requested for this role, at the capability set on that agent node. SCRIPT: drives script level work, i.e. querying or building a script for a particular purpose. Only CHAT and NODE are requested at present; assignments naming HIVE or SCRIPT load and go unused."
 		},
 
 		"capability": {
@@ -162,7 +162,7 @@
 				"HIVE",
 				"CHAT"
 			],
-			"description": "A set of tools built against the hive the harness belongs to. HIVE: the lookups the hive exposes for planning against or querying its overall structure. CHAT: the lookups a chat message is allowed to reach. The two are named separately because what a chat message may reach and what hive level planning may reach are separate questions, even where they currently come to the same tools."
+			"description": "A set of tools built against the hive the harness belongs to. HIVE: the lookups the hive exposes for planning against or querying its overall structure. CHAT: the lookups a chat message is allowed to reach. The two are named separately because what a chat message may reach and what hive level planning may reach are separate questions, even where they currently come to the same tools. Both sets currently hold getNodeNames, which lists the names of the nodes the hive holds, and getNodeId, which turns one exactly matched node name into its id. See modelTools.md."
 		},
 
 		"toolBindingAssignment": {

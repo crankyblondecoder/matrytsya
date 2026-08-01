@@ -11,7 +11,7 @@
 			"type": "string",
 			"minLength": 1,
 			"maxLength": 128,
-			"description": "Canonical name of the hive. See GRAPH_HIVE_NAME_MAX_LEN."
+			"description": "Canonical name of the hive. Named by a teleport node's destination to reach a node in this hive from another one, so it must be unique within a collection of hives loaded together."
 		},
 		"nodes": {
 			"type": "array",
@@ -22,7 +22,7 @@
 		"strobeEmitters": {
 			"type": "array",
 			"items": { "$ref": "#/$defs/strobeEmitter" },
-			"description": "Registers a subset of this hive's nodes as periodic strobe emitters. The type of these nodes must be a StrobeEmitterNode subclass, e.g. sceneRootNode."
+			"description": "Registers a subset of this hive's nodes as periodic strobe emitters. Only a node of type SceneRootNode can be registered. A strobe emitter is what drives scripted nodes: it sends a strobe action into the graph at a fixed rate, running the coreScript of each scripted node it reaches. Registering a surface in strobeSurfaces publishes what those scripts produce; an animated scene needs both."
 		},
 		"surfaces": {
 			"type": "array",
@@ -32,7 +32,7 @@
 		"strobeSurfaces": {
 			"type": "array",
 			"items": { "$ref": "#/$defs/strobeSurface" },
-			"description": "Registers a subset of this hive's surfaces to be strobed periodically, causing each to update/regenerate at a fixed rate."
+			"description": "Registers a subset of this hive's surfaces to be strobed periodically, causing each to update/regenerate at a fixed rate. This collects and publishes what the hive currently holds; it runs no script of its own, so on its own it publishes only geometry set directly in JSON. See strobeEmitters for the other half."
 		}
 	},
 
@@ -55,7 +55,7 @@
 				"AGENT_GRAPH_ACTION",
 				"TRIGGER_GRAPH_ACTION"
 			],
-			"description": "Used to describe the type of a particular graph action. Some actions may support multiple types."
+			"description": "Used to describe the type of a particular graph action. Some actions carry more than one, and an edge naming any one of them admits that action. PING_GRAPH_ACTION: a ping action. SERIALISABLE_GRAPH_ACTION: an action that can be teleported to another hive, carried by ping and trigger actions, and the only flag a teleport node acts on. SCRIPT_GRAPH_ACTION: an action that runs a node's coreScript, carried by script actions and by the strobe action that drives them. SCENE_GRAPH_ACTION: the action a surface runs to collect geometry and transforms into itself. SCENE_STROBE_GRAPH_ACTION: the action a registered strobe emitter sends out at a fixed rate. ANIMATE_GRAPH_ACTION: the action that carries an animating mode out from the node that set it. AGENT_GRAPH_ACTION: the action an agent node emits to carry one conversation from node to node. TRIGGER_GRAPH_ACTION: the action emitted by a trigger node, by a script's trigger() call, or by a model's emitTrigger tool."
 		},
 
 		"nodeType": {
@@ -108,7 +108,7 @@
 				"actionFlags": {
 					"type": "array",
 					"items": { "$ref": "#/$defs/actionFlag" },
-					"description": "Restricts which types of action may cross this edge: an action can only traverse it if its own action type matches one of the flags listed here. If omitted or empty, this edge places no restriction and any action may traverse it."
+					"description": "Restricts which types of action may cross this edge: an action can only traverse it if its own action type matches one of the flags listed here. If omitted or empty, this edge places no restriction and any action may traverse it. Listing flags also gives an edge precedence when a node picks which single edge an action crosses: where an action could cross either, an edge naming an action type it matches is taken ahead of an unrestricted edge, whatever order the two appear in. An unrestricted edge is therefore a fallback route rather than one competing on position."
 				}
 			}
 		},
@@ -121,7 +121,7 @@
 			"properties": {
 				"nodeName": {
 					"$ref": "#/$defs/nodeName",
-					"description": "Name of the node to register as a strobe emitter. It must be a subclass of StrobeEmitterNode."
+					"description": "Name of the node to register as a strobe emitter. It must be a node of type SceneRootNode."
 				},
 				"periodMs": {
 					"type": "integer",
@@ -239,7 +239,7 @@
 		},
 
 		"nodeBase": {
-			"description": "Fields common to every GraphNode, regardless of concrete type.",
+			"description": "Fields common to every node, regardless of concrete type.",
 			"type": "object",
 			"required": ["type", "name"],
 			"properties": {
@@ -257,14 +257,15 @@
 				},
 				"edges": {
 					"type": "array",
+					"maxItems": 32,
 					"items": { "$ref": "#/$defs/edge" },
-					"description": "Edges directed from this node to other nodes in this hive."
+					"description": "Edges directed from this node to other nodes in this hive. A node carries at most 32 of them."
 				}
 			}
 		},
 
 		"scriptSource": {
-			"description": "The pair of Lua scripts that a ScriptNode-derived node runs.",
+			"description": "The pair of Lua scripts that a scripted node runs. coreScript runs when an action that runs scripts reaches the node, which in a running hive means once per strobe, so it is run repeatedly and must be written to be. pokeScript runs only when the node is poked, and only if pokeEnabled is set. See LuaNodeAPI.md.",
 			"type": "object",
 			"required": ["coreScript", "pokeScript"],
 			"properties": {
@@ -280,7 +281,7 @@
 		},
 
 		"scriptNodeBase": {
-			"description": "Fields common to ScriptNode and its subclasses. ScriptNode, StrobeScriptNode and AnimateScriptNode are all abstract and cannot be instantiated directly; this def exists purely as a mixin for concrete subclasses such as SceneGeometryScriptNode and SceneTransformScriptNode.",
+			"description": "Fields common to every node that runs Lua. Not a node type in its own right; mixed into the concrete scripted types, currently SceneGeometryScriptNode, SceneTransformScriptNode and TriggerNode.",
 			"allOf": [
 				{ "$ref": "#/$defs/nodeBase" },
 				{ "$ref": "#/$defs/scriptSource" }
@@ -301,7 +302,7 @@
 		},
 
 		"teleportNode": {
-			"description": "A node that teleports any serialisable action it receives to another node, possibly hosted by a different hive.",
+			"description": "A node that teleports any serialisable action it receives to another node, possibly hosted by a different hive. Ping and trigger actions are the serialisable ones. A trigger carrying a name or type restriction that this node does not itself match is passed over and never forwarded, so a trigger meant to leave the hive must be unrestricted or must name this node.",
 			"allOf": [
 				{ "$ref": "#/$defs/nodeBase" },
 				{
@@ -319,7 +320,7 @@
 		},
 
 		"sceneRootNode": {
-			"description": "A StrobeEmitterNode that roots a visual scene.",
+			"description": "A node that roots a visual scene, and the only node type that can be registered as a strobe emitter. It is a source of actions rather than a target of them: nothing is applied to it as an action passes through.",
 			"allOf": [
 				{ "$ref": "#/$defs/nodeBase" },
 				{
@@ -332,7 +333,7 @@
 		},
 
 		"sceneGeometryFields": {
-			"description": "Scene-geometry payload shared by SceneGeometryNode and SceneGeometryScriptNode. Mixed into both via allOf; not a node type in its own right.",
+			"description": "Scene-geometry payload shared by SceneGeometryNode and SceneGeometryScriptNode. Mixed into both; not a node type in its own right.",
 			"properties": {
 				"vertexes": {
 					"type": "array",
@@ -357,7 +358,7 @@
 		},
 
 		"sceneGeometryScriptNode": {
-			"description": "An AnimateScriptNode that represents scene geometry, with vertexes that can be populated by a Lua script.",
+			"description": "A scripted node that represents scene geometry, with vertexes that can be populated by a Lua script. Holds an animating mode, and offers a visiting model the tools to read and set it. Vertexes are appended and never cleared, so a script that builds fixed geometry must guard the build against being run again on the next strobe.",
 			"allOf": [
 				{ "$ref": "#/$defs/scriptNodeBase" },
 				{ "$ref": "#/$defs/sceneGeometryFields" },
@@ -385,7 +386,7 @@
 		},
 
 		"sceneTransformScriptNode": {
-			"description": "An AnimateScriptNode that represents a transform applied to scene geometry, which a Lua script can read and modify via getTransform()/setTransform().",
+			"description": "A scripted node that represents a transform applied to scene geometry, which a Lua script can read and modify via getTransform()/setTransform(). Holds an animating mode, and offers a visiting model the tools to read and set it.",
 			"allOf": [
 				{ "$ref": "#/$defs/scriptNodeBase" },
 				{
@@ -414,7 +415,7 @@
 				},
 				"prompt": {
 					"type": "string",
-					"description": "Prompt sent when this entry matches the node being visited."
+					"description": "Prompt sent when this entry matches the node being visited. The model answering it is given the tools of that node on top of whatever the harness assigned to the NODE role, so a prompt can ask for those tools by name. See modelTools.md for which node type offers what."
 				},
 				"terminateOnResponse": {
 					"type": "boolean",
@@ -434,7 +435,7 @@
 						"type": { "const": "AgentNode" },
 						"capability": {
 							"$ref": "#/$defs/capability",
-							"description": "How capable the model servicing this node's prompts must be."
+							"description": "How capable the model servicing this node's prompts must be. Every prompt this node sends is requested for the NODE role at this capability, so a harness must carry a model assignment naming exactly that pair for this node to run at all."
 						},
 						"prompts": {
 							"type": "array",
@@ -459,7 +460,7 @@
 		},
 
 		"triggerNode": {
-			"description": "A Lua-scripted node that exists to emit trigger actions on behalf of an AI model. An agent action reaching this node offers the model a tool that emits a trigger action from here, optionally restricted to a node name and/or a node type, so the model chooses what part of the graph fires next. The emitted action is never applied back to this node, so it cannot trigger itself. Its coreScript and pokeScript run exactly as they do on any other scripted node.",
+			"description": "A Lua-scripted node that exists to emit trigger actions on behalf of an AI model. An agent action reaching this node offers the model a tool that emits a trigger action from here, optionally restricted to a node name and/or a node type, so the model chooses what part of the graph fires next. The emitted action is never applied back to this node, so it cannot trigger itself. It takes no part in a scene, so it holds no animating mode and a strobe never reaches its coreScript: that script runs only under an action that runs scripts, and the Lua bindings it has are only NodeType and trigger().",
 			"allOf": [
 				{ "$ref": "#/$defs/scriptNodeBase" },
 				{
@@ -492,7 +493,7 @@
 		},
 
 		"surfaceBase": {
-			"description": "Fields common to every GraphHiveSurface, regardless of concrete type.",
+			"description": "Fields common to every surface, regardless of concrete type.",
 			"type": "object",
 			"required": ["type", "name"],
 			"properties": {
@@ -506,7 +507,7 @@
 				"default": {
 					"type": "boolean",
 					"default": false,
-					"description": "Whether this surface is the default surface of its kind within this hive, e.g. the default scene surface returned by GraphHive::getDefaultSceneSurface()."
+					"description": "Whether this surface is the default surface of its kind within this hive, i.e. the one handed out when a surface of that kind is asked for by no particular name."
 				}
 			}
 		},

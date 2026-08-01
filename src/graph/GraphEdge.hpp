@@ -57,6 +57,13 @@ class GraphEdge : public RefCounted
 		bool hasAnyActionFlags(unsigned long actionFlags);
 
 		/**
+		 * Determine whether this edge names the actions it accepts.
+		 * @returns True if at least one action flag is set, i.e. this edge is restricted to specific actions.
+		 *          False if this edge is a wildcard that any action may traverse.
+		 */
+		bool hasActionFlags();
+
+		/**
 		 * Determine whether this edge can be traversed based on its action flags.
 		 * @param actionFlags Action flags to check against.
 		 */

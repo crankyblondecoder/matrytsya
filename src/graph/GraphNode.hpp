@@ -120,6 +120,8 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 * Find the next node to traverse to.
 		 * @note This defines default traversal behaviour which is to traverse the next edge that the action has not
 		 *       already traversed.
+		 * @note Edges carrying action flags are preferred over unflagged wildcard edges. An unflagged edge is only
+		 *       traversed when no flagged edge is traversable.
 		 * @param action Action that is requesting to traverse.
 		 * @returns Handle to next edge to traverse.
 		 */

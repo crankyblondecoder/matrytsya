@@ -18,3 +18,7 @@ starts or stops the engine. `ollamaHarness.json` is a harness definition: the mo
 Reference `doc/hiveSchema.json` and `doc/LuaNodeAPI.md` and create a new JSON file matching the JSON schema.
 
 For a harness, reference `doc/harnessSchema.json` in the same way.
+
+For a hive with agent or trigger nodes in it, reference `doc/modelTools.md` as well: it gives the tools a
+prompt can ask a model to call at each node type, and the role and capability pair a harness must assign for
+those prompts to be answered at all.
