@@ -23,7 +23,9 @@ Every Lua state a script runs in, whether core or poke, is sandboxed identically
   that would exceed the cap fails.
 - A state's global environment persists across invocations: a global a script sets on one run is still
   visible as the starting state on the next run of that same script on that same node instance. This lets
-  a script keep state (e.g. a counter or direction flag) in an ordinary global.
+  a script keep state (e.g. a counter or direction flag) in an ordinary global. It is also what makes the
+  `init()`/`invoke()` entry points work: a function a script defines as a global on one run is still there,
+  and still callable, on the next.
 - Each node's state is its own. Nothing a script sets is visible to another node's script, and the core
   and poke states of a single node are equally isolated from each other. State crosses between nodes only
   when a script action carries it: such an action can publish globals into each node's environment just
@@ -37,14 +39,78 @@ building, animate and agent actions never run it. In practice that means a scene
 runs once per strobe of the emitter that reaches it, for as long as the hive lives. A `triggerNode` is the
 exception: a strobe never reaches it, so its `coreScript` runs only under a script action.
 
-**A `coreScript` is therefore run repeatedly and must be written to be run repeatedly.** Nothing it did on an
-earlier run is undone before the next one: appended vertexes stay appended, and a transform it set stays set.
-Work that should happen once has to guard itself, either on a global the script sets on its first run or on
-state the node already exposes — `vertexCount() == 0` is the usual guard for geometry that is built once.
-Work that should happen per frame goes outside that guard, typically under `getStrobe()`.
+**A `coreScript` is therefore run repeatedly.** Nothing it did on an earlier run is undone before the next
+one: appended vertexes stay appended, and a transform it set stays set. What actually executes on each run
+depends on whether the script defines either of two optional entry points.
 
-`pokeScript` runs on each poke, only if `pokeEnabled` is set, and never as part of traversal. Poking a node
-does not run its `coreScript`, and an action reaching a node does not run its `pokeScript`.
+`pokeScript` has no lifecycle of its own: it is run in full on every poke, and `init()`/`invoke()` mean
+nothing in the poke state. It runs on each poke, only if `pokeEnabled` is set, and never as part of
+traversal. Poking a node does not run its `coreScript`, and an action reaching a node does not run its
+`pokeScript`.
+
+### `init()` and `invoke()`
+
+A `coreScript` may define either or both of these as globals. Both are optional, neither takes arguments and
+neither returns anything.
+
+| Entry point | When it runs |
+|---|---|
+| `init()` | Once, and once only, per node instance, on the first run that reaches it. This is where one-off setup belongs: building fixed geometry, seeding globals, placing a starting transform. |
+| `invoke()` | On every run, and after `init()` on the run that calls it. This is where per-strobe work belongs, typically guarded on `getStrobe()`. |
+
+The rest of the script — everything outside either function, which is where a script's `local`s and
+`local function`s live — is run in full on every run *until either entry point exists*. That gives three
+cases:
+
+- A script defining **neither** is run top to bottom on every run, exactly as one written before either entry
+  point existed. Nothing about it changes.
+- A script defining **`invoke()`** has its top level run once, on the first run, to define the entry points
+  and build the locals they close over. From the second run onwards only `invoke()` is called; the top level
+  is not run again, and those locals are not rebuilt.
+- A script defining **`init()` alone** likewise has its top level run once, and its `init()` called once. It
+  has said it has no per-run work, so every run after that one does nothing at all.
+
+A `local function` declared at the top level and called from `init()` or `invoke()` is reached as an upvalue,
+so a helper is built once however often the node is run:
+
+```lua
+local function faceNormal(a, b, c)
+    -- Built once. Reached from init() and invoke() below as an upvalue.
+end
+
+function init()
+    -- One-off geometry build, using faceNormal.
+end
+
+function invoke()
+    if not getStrobe() then return end
+    -- Per-strobe work.
+end
+```
+
+A script whose only job is a one-off build needs nothing but an `init()`. Defining it is enough to close the
+top level down, so the build happens once and every strobe after that costs nothing:
+
+```lua
+local function faceNormal(a, b, c)
+    -- Built once, and never rebuilt: nothing runs again after init() has been called.
+end
+
+function init()
+    -- Fixed geometry, built once.
+end
+```
+
+`init()` gets exactly one attempt, whatever comes of it. If it raises an error, that run fails and `invoke()`
+is skipped for that run only; `init()` is never retried, and later runs call `invoke()` as normal. A raising
+`init()` still counts as defined, so it still closes the top level down — the node is not built a second time
+just because the first attempt failed part way. If the top level itself raises before either function is
+reached, nothing was defined, so the run fails and both the chunk and `init()`'s attempt are left for the
+next one.
+
+`init` and `invoke` are reserved names in the core environment. A script that assigns something other than a
+function to either is not entered through it at all — it falls back to being run top to bottom, as though
+neither existed — and a script action that stages a global under either name would break the lifecycle.
 
 ## Bindings on every Lua-scripted node
 
@@ -156,8 +222,11 @@ No `scriptSource`; its `vertexes` are set directly from JSON rather than by a sc
 ## `sceneGeometryScriptNode`
 
 Represents scene geometry whose vertexes are populated by `coreScript`. Vertexes are appended and never
-cleared, so a script that builds a fixed piece of geometry must guard the build — `if vertexCount() == 0 then`
-— or every strobe adds another copy of it. In addition to the bindings
+cleared, so a script that builds a fixed piece of geometry must build it exactly once: put the build in
+[`init()`](#init-and-invoke), which is the whole reason that entry point exists. A build left at the top level
+of a script that defines neither entry point adds another copy of the geometry on every strobe; guarding it
+with `if vertexCount() == 0 then` still works, and is what scripts written before `init()` existed do, but
+`init()` says the same thing without a guard to get wrong. In addition to the bindings
 [on every Lua-scripted node](#bindings-on-every-lua-scripted-node) and
 [on scene script nodes](#bindings-on-scene-script-nodes):
 
@@ -210,7 +279,8 @@ and none of the [scene script node bindings](#bindings-on-scene-script-nodes): `
 
 It also supports neither strobe flag, so a strobe never reaches its script. Its `coreScript` runs only under
 a script action, which is why a `triggerNode` whose emission is left to a model or to a poke usually has an
-empty `coreScript`.
+empty `coreScript`. That also means an `init()` on a `triggerNode` is not called at hive start but on the
+first script action that reaches the node, which may be a long way in, or may never come.
 
 What distinguishes it is that the same emission is exposed to an AI model rather than only to Lua. While an
 agent action is being applied to this node, the model servicing it is offered an `emitTrigger` tool taking
@@ -219,8 +289,9 @@ to the same set of names as the `NodeType` constants. Calling it emits a trigger
 the model decides which part of the graph fires next. As with `trigger()`, the emitted action is never
 applied back to this node. See [modelTools.md](modelTools.md) for the tool's exact arguments and return.
 
-`coreScript` and `pokeScript` run exactly as they do on any other scripted node, with the
-[poke-only context globals](#poke-only-context-globals) set as usual. On top of that, poking the node emits
+`coreScript` and `pokeScript` run exactly as they do on any other scripted node — the same
+[`init()`/`invoke()` lifecycle](#init-and-invoke) on the core side, with the
+[poke-only context globals](#poke-only-context-globals) set as usual on the poke side. On top of that, poking the node emits
 an unrestricted trigger action of its own once `pokeScript` has returned, unless `emitTriggerOnPoke` is set
 false. The script runs first either way, so anything it leaves behind is already in place before that
 trigger reaches the rest of the graph.

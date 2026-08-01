@@ -40,8 +40,8 @@ cross, and whether it is applied at all at the node it arrives on.
 | Action | Flags carried | Emitted by | Effect where applied |
 |---|---|---|---|
 | Scene | `SCENE_GRAPH_ACTION` (required) | A surface being strobed, or built for the first time | Collects geometry and transforms into the surface. Runs no script. |
-| Strobe | `SCENE_STROBE_GRAPH_ACTION` (required), `SCRIPT_GRAPH_ACTION` | A node registered in `strobeEmitters` | Marks the node as strobing, then runs its `coreScript`. |
-| Script | `SCRIPT_GRAPH_ACTION` | Internal | Runs the node's `coreScript`, without marking it as strobing. |
+| Strobe | `SCENE_STROBE_GRAPH_ACTION` (required), `SCRIPT_GRAPH_ACTION` | A node registered in `strobeEmitters` | Marks the node as strobing, then runs its `coreScript` — `invoke()` if the script defines one, the whole script if not. |
+| Script | `SCRIPT_GRAPH_ACTION` | Internal | Runs the node's `coreScript` the same way, without marking it as strobing. |
 | Animate | `ANIMATE_GRAPH_ACTION` (required) | `setAnimating()` in Lua with emission asked for, and always by the `setAnimating` model tool | Sets the node's animating mode to the one the action carries. Runs no script. |
 | Agent | `AGENT_GRAPH_ACTION` (required) | An `agentNode` that a trigger reached, unless `autoTriggerAgentAction` is false | Sends the prompt matching this node, carrying one conversation from node to node. |
 | Trigger | `TRIGGER_GRAPH_ACTION`, `SERIALISABLE_GRAPH_ACTION` | `trigger()` in Lua, the `emitTrigger` model tool, or poking a `triggerNode` unless `emitTriggerOnPoke` is false | Fires the node if it is a trigger target; teleports itself if the node is a `teleportNode`. Both obey the trigger's name and type restrictions. |
@@ -61,6 +61,13 @@ Flags each node type supports:
 
 Consequences worth authoring to:
 
+- A `coreScript` may define `init()` and/or `invoke()` as globals. `init()` runs once per node, on the first
+  run that reaches it; `invoke()` runs every run, after `init()` on that one. The script's top level runs in
+  full on every run *until either exists*, then never again — so top-level `local`s survive as their upvalues
+  rather than being rebuilt. Consequence: `init()` alone is the whole idiom for build-once geometry — the
+  node builds itself on the first run and costs nothing on every strobe after. A script defining neither runs
+  top to bottom every time, unchanged. An `init()` that raises spends its one attempt anyway, is never
+  retried, and still closes the top level down. `pokeScript` has no lifecycle: whole script, every poke.
 - A `triggerNode` supports neither strobe flag, so a strobe never runs its `coreScript`. Its script runs only
   under a script action.
 - Only a `teleportNode` supports `SERIALISABLE_GRAPH_ACTION`, so a trigger action leaves the hive only by
@@ -110,4 +117,4 @@ A scene-generation action walks the graph and, at each transform node, contribut
 - On revisit: the node is looked up by id in the existing stack and its already-computed cumulative transform (from the first visit) is re-pushed as-is. No recompute, no re-multiply.
 - A revisit is therefore a no-op for the transform's contribution — neither duplicated nor compounded — and is the only way back to an earlier frame. Authoring idiom: end each subtree with an edge back to the transform node that defines the shared frame, so that node's next edge continues into the following subtree from that frame.
 - A transform node cannot be shared between parent frames: a revisit replays its first cumulative result rather than recomposing, so each frame a transform is needed in requires its own node.
-- A revisit is a visit for every other purpose: a script node's core script runs again, so a node used as a frame-reset point should be a plain transform node, not a scripted one.
+- A revisit is a visit for every other purpose: a script node's core script is run again (`invoke()` if it defines one), so a node used as a frame-reset point should be a plain transform node, not a scripted one.

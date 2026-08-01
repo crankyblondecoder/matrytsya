@@ -1,6 +1,8 @@
 #ifndef PING_NODE_H
 #define PING_NODE_H
 
+#include <atomic>
+
 #include "../GraphSerialisedActionNode.hpp"
 #include "../actionTargets/PingActionTarget.hpp"
 
@@ -21,6 +23,8 @@ class PingNode : public GraphSerialisedActionNode, public PingActionTarget
 
 		/**
 		 * Get the number of times this node has been pinged.
+		 * @note Safe to call while actions are still in flight, though the count it returns is only a snapshot
+		 *       until they have completed.
 		 */
 		unsigned getPingCount();
 
@@ -42,7 +46,10 @@ class PingNode : public GraphSerialisedActionNode, public PingActionTarget
 
     private:
 
-		unsigned _pingCount = 0;
+		/// Number of times this node has been pinged. Two actions can be applied to the same node on different
+		/// worker threads at once, so this is incremented from several threads and must be atomic; a plain
+		/// increment loses counts when two of them interleave.
+		std::atomic<unsigned> _pingCount{0};
 };
 
 #endif

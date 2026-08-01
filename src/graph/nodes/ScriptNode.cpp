@@ -110,22 +110,48 @@ bool ScriptNode::__runCore()
 
 	__registerCoreGlobalsOnce();
 
-	bool success = luaL_loadbufferx(_coreLuaState, _coreBytecode.data(), _coreBytecode.size(), "script", "b") == LUA_OK;
-
-	// Mode "b" only accepts bytecode. _coreBytecode is compiled from _coreScript once, at construction, by
-	// this class itself rather than supplied by the script being run, so it never crosses the trust boundary
-	// that the "t"-only loading elsewhere in this module guards against.
-	if(success)
+	// The chunk is only re-run while the script has left neither entry point behind. The env starts empty, so
+	// the first run always takes this path, and a script that defines neither takes it on every run, which is
+	// what makes a script written before either existed behave exactly as it always did. Once either is
+	// defined the chunk has already done its job - it built the entry points, and the top level locals they
+	// hold as upvalues - so running it again would only throw that work away.
+	if(!__globalIsFunction(_coreLuaState, "init") && !__globalIsFunction(_coreLuaState, "invoke"))
 	{
-		success = lua_pcall(_coreLuaState, 0, 0, 0) == LUA_OK;
-	}
-	else
-	{
-		lua_pop(_coreLuaState, 1);
+		// Mode "b" only accepts bytecode. _coreBytecode is compiled from _coreScript once, at construction, by
+		// this class itself rather than supplied by the script being run, so it never crosses the trust
+		// boundary that the "t"-only loading elsewhere in this module guards against.
+		if(luaL_loadbufferx(_coreLuaState, _coreBytecode.data(), _coreBytecode.size(), "script", "b") != LUA_OK)
+		{
+			// luaL_loadbufferx leaves an error message on the stack on failure.
+			lua_pop(_coreLuaState, 1);
+			return false;
+		}
+
+		if(lua_pcall(_coreLuaState, 0, 0, 0) != LUA_OK)
+		{
+			// lua_pcall replaces the function it was given with the error object on failure, so one value is
+			// always left behind by a failed call and has to be popped or it accumulates across runs.
+			lua_pop(_coreLuaState, 1);
+
+			// A chunk that did not finish cannot be trusted to have defined either entry point, so neither is
+			// reached this run, and init()'s one attempt is not spent on a run that never got as far as it.
+			return false;
+		}
 	}
 
-	// Note: lua_pcall already pops the function and any error message off the stack on failure, unlike
-	// luaL_loadbufferx, which leaves an error message on the stack that has to be popped explicitly.
+	bool success = true;
+
+	// init() is offered exactly one run: the first that gets this far. The flag is consumed before the call
+	// rather than after it, so an init() that raises is never retried on a later run.
+	if(!_coreInitCalled)
+	{
+		_coreInitCalled = true;
+		success = __callOptionalGlobal(_coreLuaState, "init");
+	}
+
+	// A failed init() leaves whatever it was setting up half built, so invoke() is held back - for this run
+	// only. The next run finds init() already spent and goes straight on to invoke().
+	if(success) success = __callOptionalGlobal(_coreLuaState, "invoke");
 
 	// The environment the script just ran against is left live rather than replaced, so any global it set (or
 	// that the session staged ahead of this run) is still there, as the starting state, for the next session.
@@ -146,6 +172,10 @@ bool ScriptNode::__runPoke()
 	if(success)
 	{
 		success = lua_pcall(_pokeLuaState, 0, 0, 0) == LUA_OK;
+
+		// lua_pcall replaces the function it was given with the error object on failure, so one value is left
+		// behind by a failed call and has to be popped or it accumulates on this long lived state.
+		if(!success) lua_pop(_pokeLuaState, 1);
 	}
 	else
 	{
@@ -155,6 +185,32 @@ bool ScriptNode::__runPoke()
 	// The environment the poke script just ran against is left live rather than replaced, so any global it
 	// set is still there, as the starting state, the next time this node is poked.
 	return success;
+}
+
+bool ScriptNode::__globalIsFunction(lua_State* luaState, const char* name)
+{
+	bool isFunction = lua_getglobal(luaState, name) == LUA_TFUNCTION; // [value]
+
+	lua_pop(luaState, 1); // [ ]
+
+	return isFunction;
+}
+
+bool ScriptNode::__callOptionalGlobal(lua_State* luaState, const char* name)
+{
+	if(lua_getglobal(luaState, name) != LUA_TFUNCTION) // [value]
+	{
+		lua_pop(luaState, 1); // [ ]
+		return true;
+	}
+
+	if(lua_pcall(luaState, 0, 0, 0) == LUA_OK) return true; // [ ]
+
+	// lua_pcall leaves the error object where the function it called was. Nothing reports it, so it is dropped
+	// rather than left to accumulate on a state that lives as long as this node does.
+	lua_pop(luaState, 1); // [ ]
+
+	return false;
 }
 
 void ScriptNode::__releaseState(bool poke)

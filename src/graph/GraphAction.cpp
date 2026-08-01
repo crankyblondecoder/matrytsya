@@ -160,6 +160,7 @@ void GraphAction::__complete()
 	bool runDecrRef = false;
 	bool runCompleteHook = false;
 	bool runHiveInactive = false;
+	bool broadcast = false;
 
 	// This guards the stopped condition.
 	_completeCond.lockMutex();
@@ -174,20 +175,10 @@ void GraphAction::__complete()
 
 		_hiveActionRegistered = false;
 
-		// Process any threads waiting on condition.
-		// Exceptions are allowed to pass through because it is a critical situation to potentially have any
-		// threads stalled indefinitely.
-
-		_completeCond.broadcast();
+		broadcast = true;
 	}
 
 	_completeCond.unlockMutex();
-
-	// Notify the hive that this action is no longer active.
-	if(runHiveInactive && _boundHive.isValid())
-	{
-		_boundHive.getInstance() -> actionInactive(_hiveActionHandle);
-	}
 
 	if(runCompleteHook)
 	{
@@ -196,6 +187,23 @@ void GraphAction::__complete()
 
 		// Notify bound listeners.
 		__emitActionComplete();
+	}
+
+	if(broadcast)
+	{
+		// This must always happen after the subclass hook otherwise race conditions can occur elsewhere.
+
+		// Process any threads waiting on condition.
+		// Exceptions are allowed to pass through because it is a critical situation to potentially have any
+		// threads stalled indefinitely.
+
+		_completeCond.broadcast();
+	}
+
+	// Notify the hive that this action is no longer active.
+	if(runHiveInactive && _boundHive.isValid())
+	{
+		_boundHive.getInstance() -> actionInactive(_hiveActionHandle);
 	}
 
 	// This allows initial ref count to be released. Must be done last.

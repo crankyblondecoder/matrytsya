@@ -265,13 +265,13 @@
 		},
 
 		"scriptSource": {
-			"description": "The pair of Lua scripts that a scripted node runs. coreScript runs when an action that runs scripts reaches the node, which in a running hive means once per strobe, so it is run repeatedly and must be written to be. pokeScript runs only when the node is poked, and only if pokeEnabled is set. See LuaNodeAPI.md.",
+			"description": "The pair of Lua scripts that a scripted node runs. coreScript runs when an action that runs scripts reaches the node, which in a running hive means once per strobe, so it is run repeatedly. It may optionally define two entry points as globals: init(), which is called once and once only per node, on the first run that reaches it, for work that must happen exactly once, and invoke(), which is called on every run. The body of the script outside those functions is run in full on every run until either entry point exists, so a script that defines one has its top level run only once and is entered through those functions thereafter, while a script that defines neither is simply run top to bottom every time. A script defining only init() therefore builds itself once and then does nothing on any later run. pokeScript runs only when the node is poked, and only if pokeEnabled is set, and has no such entry points. See LuaNodeAPI.md.",
 			"type": "object",
 			"required": ["coreScript", "pokeScript"],
 			"properties": {
 				"coreScript": {
 					"type": "string",
-					"description": "Main Lua source code that this node runs when invoked."
+					"description": "Main Lua source code that this node runs when invoked, optionally by way of the init() and invoke() entry points described above."
 				},
 				"pokeScript": {
 					"type": "string",
@@ -358,7 +358,7 @@
 		},
 
 		"sceneGeometryScriptNode": {
-			"description": "A scripted node that represents scene geometry, with vertexes that can be populated by a Lua script. Holds an animating mode, and offers a visiting model the tools to read and set it. Vertexes are appended and never cleared, so a script that builds fixed geometry must guard the build against being run again on the next strobe.",
+			"description": "A scripted node that represents scene geometry, with vertexes that can be populated by a Lua script. Holds an animating mode, and offers a visiting model the tools to read and set it. Vertexes are appended and never cleared, so a script that builds fixed geometry must build it exactly once, either from init() or behind a guard on the vertex count.",
 			"allOf": [
 				{ "$ref": "#/$defs/scriptNodeBase" },
 				{ "$ref": "#/$defs/sceneGeometryFields" },

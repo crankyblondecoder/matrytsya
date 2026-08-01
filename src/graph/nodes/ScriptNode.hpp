@@ -24,6 +24,15 @@ struct lua_State;
  *       still visible as its own starting state on the next run of the same script on the same node, so a
  *       script can keep state (e.g. a running counter or a direction flag) in an ordinary global instead of
  *       smuggling it through some other channel.
+ * @note A core script may optionally define two entry points as globals. init(), if defined, is called once
+ *       and once only per node instance, on the first run that reaches it, for work that must happen exactly
+ *       once. invoke(), if defined, is called on every run, after init() on the run that calls it. Defining
+ *       either is also what stops the chunk itself being re-run: the compiled chunk is only loaded and called
+ *       while neither entry point has been defined yet, so a script that defines one builds its top level
+ *       locals once and reaches them as that entry point's upvalues on every run afterwards. A script
+ *       defining neither is run in full, top to bottom, on every run, exactly as one written before either
+ *       entry point existed, and a script defining only init() does nothing at all after the run that called
+ *       it. The poke script has no such lifecycle; it is run in full on every poke.
  * @note Extra globals a subclass registers via _registerCoreGlobals() (e.g. getStrobe(), addVertex()) are
  *       written into each state's permanent base table once - the first time a core session runs a script,
  *       the first time a poke happens for the poke state - and remain callable on every subsequent run
@@ -132,6 +141,33 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		 *       reached through a poke ScriptSession.
 		 */
 		bool __runPoke();
+
+		/**
+		 * Test whether a named global currently resolves to a function in the given state, without calling it.
+		 * @param luaState Lua state to read the global from.
+		 * @param name Global name to test.
+		 * @returns True if the name resolves to a function, false if it is absent or is of any other type.
+		 * @note The read goes through the live env's __index to the permanent base env, exactly as a script's
+		 *       own read of that name would, so a binding registered by _registerCoreGlobals() would count as
+		 *       one. Neither name this is used with is registered by anything, nor exists in any library the
+		 *       sandbox opens.
+		 * @note Leaves the stack as it found it.
+		 */
+		static bool __globalIsFunction(lua_State* luaState, const char* name);
+
+		/**
+		 * Call a named global as a no argument, no result function, if there is a function by that name,
+		 * treating its absence as success rather than as an error.
+		 * @param luaState Lua state to call the global in.
+		 * @param name Global name to call.
+		 * @returns True if there is no function by that name, or if there is one and it returned normally.
+		 *          False only if a function was found and it raised.
+		 * @note Any error the call raises is dropped rather than reported: a run's only outcome is the bool it
+		 *       returns, and the error object lua_pcall leaves behind is popped so that it cannot accumulate
+		 *       on a state that lives as long as this node does.
+		 * @note Leaves the stack as it found it, on every path.
+		 */
+		static bool __callOptionalGlobal(lua_State* luaState, const char* name);
 
 		/**
 		 * Release the resource lock on one of this node's states, ending the session that held it.
@@ -302,6 +338,11 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		/// __registerCoreGlobalsOnce() so subclass bindings are installed exactly once, the first time a
 		/// core session runs a script, instead of being re-registered on every run.
 		bool _coreGlobalsRegistered = false;
+
+		/// Whether the core script's optional init() entry point has already had its one attempt on this node
+		/// instance. Set before the call rather than after it, so an init() that raises is never retried; only
+		/// a run that failed before reaching init() at all leaves the attempt unspent.
+		bool _coreInitCalled = false;
 
 		/// Registry ref (in _pokeLuaState) to the clean sandboxed base env table.
 		int _pokeBaseEnvRef = 0;

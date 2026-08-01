@@ -12,6 +12,7 @@
 #include "../../../graph/nodes/ScriptNode.hpp"
 #include "../../../graph/nodes/ScriptSession.hpp"
 #include "../../../graph/nodes/StrobeScriptNode.hpp"
+#include "../../../lua/lua.hpp"
 #include "../../../thread/ThreadException.hpp"
 #include "../../../util/Handle.hpp"
 
@@ -36,6 +37,31 @@ class CountingStrobeScriptNode : public StrobeScriptNode
 		{
 			registrationCount++;
 			StrobeScriptNode::_registerCoreGlobals(luaState);
+		}
+};
+
+/**
+ * ScriptNode subclass that keeps hold of the core state handed to _registerCoreGlobals(), so tests can
+ * inspect that state directly. A node's states are private and reachable only through a session, which
+ * deliberately exposes nothing of the Lua stack, so this is the only way to assert on stack depth - the one
+ * property a session cannot report, and the one a leak shows up in.
+ */
+class StateCapturingScriptNode : public ScriptNode
+{
+	public:
+
+		StateCapturingScriptNode(const std::string& coreScript, const std::string& pokeScript)
+			: ScriptNode(coreScript, pokeScript) {}
+
+		/// The node's core state, set on the first run and left alone afterwards.
+		lua_State* capturedState = nullptr;
+
+	protected:
+
+		void _registerCoreGlobals(lua_State* luaState) override
+		{
+			capturedState = luaState;
+			ScriptNode::_registerCoreGlobals(luaState);
 		}
 };
 
@@ -180,6 +206,423 @@ TEST(ScriptNodeTest, StagedGlobalsAreVisibleToTheRunInTheSameSession)
 		int staged = 0;
 		ASSERT_TRUE(sessionHandle.getInstance() -> getGlobal("staged", staged));
 		EXPECT_EQ(staged, 21) << "A staged global should still be readable from a later session.";
+	}
+
+	node -> decrRef();
+}
+
+/**
+ * A core script that defines neither entry point is run in full, top to bottom, on every run, exactly as one
+ * written before either entry point existed. This is the baseline the whole lifecycle is layered on top of.
+ */
+TEST(ScriptNodeTest, CoreScriptWithNeitherEntryPointRunsItsWholeChunkEveryRun)
+{
+	ScriptNode* node = new ScriptNode("chunkRuns = (chunkRuns or 0) + 1", "");
+
+	{ Handle<ScriptSession> sessionHandle = node -> requestCoreSession();
+
+		ScriptSession* session = sessionHandle.getInstance();
+
+		ASSERT_TRUE(session -> run());
+		ASSERT_TRUE(session -> run());
+		ASSERT_TRUE(session -> run());
+
+		int chunkRuns = 0;
+		ASSERT_TRUE(session -> getGlobal("chunkRuns", chunkRuns));
+		EXPECT_EQ(chunkRuns, 3) << "A script defining no invoke() should have its chunk run on every run.";
+	}
+
+	node -> decrRef();
+}
+
+/**
+ * The central lifecycle contract: init() is called once and once only, invoke() is called on every run, and
+ * the presence of an invoke() stops the chunk being run again after the run that defined it.
+ */
+TEST(ScriptNodeTest, CoreScriptInitRunsOnceAndInvokeRunsEveryRun)
+{
+	ScriptNode* node = new ScriptNode(
+		"chunkRuns = (chunkRuns or 0) + 1\n"
+		"function init() initRuns = (initRuns or 0) + 1 end\n"
+		"function invoke() invokeRuns = (invokeRuns or 0) + 1 end\n", "");
+
+	{ Handle<ScriptSession> sessionHandle = node -> requestCoreSession();
+
+		ScriptSession* session = sessionHandle.getInstance();
+
+		ASSERT_TRUE(session -> run());
+		ASSERT_TRUE(session -> run());
+		ASSERT_TRUE(session -> run());
+
+		int chunkRuns = 0, initRuns = 0, invokeRuns = 0;
+
+		ASSERT_TRUE(session -> getGlobal("chunkRuns", chunkRuns));
+		EXPECT_EQ(chunkRuns, 1) << "The chunk should not be run again once an invoke() has been defined.";
+
+		ASSERT_TRUE(session -> getGlobal("initRuns", initRuns));
+		EXPECT_EQ(initRuns, 1) << "init() should be called exactly once per node instance.";
+
+		ASSERT_TRUE(session -> getGlobal("invokeRuns", invokeRuns));
+		EXPECT_EQ(invokeRuns, 3) << "invoke() should be called on every run.";
+	}
+
+	node -> decrRef();
+}
+
+/**
+ * Skipping the chunk has to be safe as well as cheap: a top level local the chunk built is held by invoke()
+ * as an upvalue, so it is still reachable on a run for which the chunk was never loaded at all.
+ */
+TEST(ScriptNodeTest, CoreScriptInvokeReachesTopLevelLocalsAsUpvalues)
+{
+	ScriptNode* node = new ScriptNode(
+		"chunkRuns = (chunkRuns or 0) + 1\n"
+		"local helper = function() return 7 end\n"
+		"function invoke() value = helper() invokeRuns = (invokeRuns or 0) + 1 end\n", "");
+
+	{ Handle<ScriptSession> sessionHandle = node -> requestCoreSession();
+
+		ScriptSession* session = sessionHandle.getInstance();
+
+		ASSERT_TRUE(session -> run());
+		ASSERT_TRUE(session -> run()) << "A run whose chunk is skipped should still reach the chunk's locals.";
+
+		int chunkRuns = 0, invokeRuns = 0, value = 0;
+
+		ASSERT_TRUE(session -> getGlobal("chunkRuns", chunkRuns));
+		EXPECT_EQ(chunkRuns, 1);
+
+		ASSERT_TRUE(session -> getGlobal("invokeRuns", invokeRuns));
+		EXPECT_EQ(invokeRuns, 2);
+
+		ASSERT_TRUE(session -> getGlobal("value", value));
+		EXPECT_EQ(value, 7) << "A top level local should still be callable as invoke()'s upvalue.";
+	}
+
+	node -> decrRef();
+}
+
+/**
+ * Defining either entry point closes the chunk down, so a script whose only work is a one-off build needs
+ * nothing but an init(): its chunk runs once to define that init(), the init() runs once, and every run
+ * after that does nothing at all rather than rebuilding the chunk's helpers for no reason.
+ */
+TEST(ScriptNodeTest, CoreScriptWithInitOnlyRunsNothingAfterTheRunThatCalledIt)
+{
+	ScriptNode* node = new ScriptNode(
+		"chunkRuns = (chunkRuns or 0) + 1\n"
+		"function init() initRuns = (initRuns or 0) + 1 end\n", "");
+
+	{ Handle<ScriptSession> sessionHandle = node -> requestCoreSession();
+
+		ScriptSession* session = sessionHandle.getInstance();
+
+		ASSERT_TRUE(session -> run());
+		ASSERT_TRUE(session -> run());
+		ASSERT_TRUE(session -> run());
+
+		int chunkRuns = 0, initRuns = 0;
+
+		ASSERT_TRUE(session -> getGlobal("chunkRuns", chunkRuns));
+		EXPECT_EQ(chunkRuns, 1) << "Defining init() alone should stop the chunk being run again.";
+
+		ASSERT_TRUE(session -> getGlobal("initRuns", initRuns));
+		EXPECT_EQ(initRuns, 1) << "init() should be called only once.";
+	}
+
+	node -> decrRef();
+}
+
+/**
+ * An init() that raises still counts as defined, so it still closes the chunk down. The run it raised on
+ * fails, and every run after it does nothing rather than re-running the chunk and building the node a second
+ * time - which is exactly what the one-shot flag exists to prevent.
+ */
+TEST(ScriptNodeTest, CoreScriptWithRaisingInitOnlyDoesNotBringTheChunkBack)
+{
+	ScriptNode* node = new ScriptNode(
+		"chunkRuns = (chunkRuns or 0) + 1\n"
+		"function init() initRuns = (initRuns or 0) + 1 error('init failed') end\n", "");
+
+	{ Handle<ScriptSession> sessionHandle = node -> requestCoreSession();
+
+		ScriptSession* session = sessionHandle.getInstance();
+
+		EXPECT_FALSE(session -> run());
+		EXPECT_TRUE(session -> run()) << "A later run has nothing left to do, so nothing left to fail.";
+		EXPECT_TRUE(session -> run());
+
+		int chunkRuns = 0, initRuns = 0;
+
+		ASSERT_TRUE(session -> getGlobal("chunkRuns", chunkRuns));
+		EXPECT_EQ(chunkRuns, 1) << "A raising init() should still close the chunk down.";
+
+		ASSERT_TRUE(session -> getGlobal("initRuns", initRuns));
+		EXPECT_EQ(initRuns, 1) << "A raising init() should never be retried.";
+	}
+
+	node -> decrRef();
+}
+
+/**
+ * The two entry points are independent: a script may define invoke() without init(), and nothing goes looking
+ * for the one it did not define.
+ */
+TEST(ScriptNodeTest, CoreScriptWithInvokeOnlyIsCalledEveryRun)
+{
+	ScriptNode* node = new ScriptNode(
+		"chunkRuns = (chunkRuns or 0) + 1\n"
+		"function invoke() invokeRuns = (invokeRuns or 0) + 1 end\n", "");
+
+	{ Handle<ScriptSession> sessionHandle = node -> requestCoreSession();
+
+		ScriptSession* session = sessionHandle.getInstance();
+
+		ASSERT_TRUE(session -> run());
+		ASSERT_TRUE(session -> run());
+		ASSERT_TRUE(session -> run());
+
+		int chunkRuns = 0, invokeRuns = 0, initRuns = 0;
+
+		ASSERT_TRUE(session -> getGlobal("chunkRuns", chunkRuns));
+		EXPECT_EQ(chunkRuns, 1);
+
+		ASSERT_TRUE(session -> getGlobal("invokeRuns", invokeRuns));
+		EXPECT_EQ(invokeRuns, 3);
+
+		EXPECT_FALSE(session -> getGlobal("initRuns", initRuns)) << "An undefined init() should simply be absent.";
+	}
+
+	node -> decrRef();
+}
+
+/**
+ * init() gets exactly one attempt whatever comes of it. An init() that raises fails the run it was called on
+ * and holds invoke() back for that run only; it is never retried, and later runs go straight on to invoke().
+ */
+TEST(ScriptNodeTest, CoreScriptRaisingInitConsumesItsOneShotAndLaterInvokesStillRun)
+{
+	ScriptNode* node = new ScriptNode(
+		"function init() initRuns = (initRuns or 0) + 1 error('init failed') end\n"
+		"function invoke() invokeRuns = (invokeRuns or 0) + 1 end\n", "");
+
+	{ Handle<ScriptSession> sessionHandle = node -> requestCoreSession();
+
+		ScriptSession* session = sessionHandle.getInstance();
+
+		EXPECT_FALSE(session -> run()) << "A run whose init() raised should report failure.";
+
+		int initRuns = 0, invokeRuns = 0;
+
+		ASSERT_TRUE(session -> getGlobal("initRuns", initRuns));
+		EXPECT_EQ(initRuns, 1);
+		EXPECT_FALSE(session -> getGlobal("invokeRuns", invokeRuns))
+			<< "invoke() should be held back on the run whose init() raised.";
+
+		EXPECT_TRUE(session -> run()) << "A later run should succeed, init() having already had its attempt.";
+
+		ASSERT_TRUE(session -> getGlobal("initRuns", initRuns));
+		EXPECT_EQ(initRuns, 1) << "A raising init() should never be retried.";
+
+		ASSERT_TRUE(session -> getGlobal("invokeRuns", invokeRuns));
+		EXPECT_EQ(invokeRuns, 1);
+
+		EXPECT_TRUE(session -> run());
+
+		ASSERT_TRUE(session -> getGlobal("invokeRuns", invokeRuns));
+		EXPECT_EQ(invokeRuns, 2);
+	}
+
+	node -> decrRef();
+}
+
+/**
+ * A run that fails in the chunk itself never reaches init(), so it must not spend init()'s one attempt on a
+ * run that never offered it.
+ */
+TEST(ScriptNodeTest, CoreScriptFailingChunkDoesNotConsumeInitsOneShot)
+{
+	ScriptNode* node = new ScriptNode(
+		"if not primed then error('not primed') end\n"
+		"function init() initRuns = (initRuns or 0) + 1 end\n"
+		"function invoke() invokeRuns = (invokeRuns or 0) + 1 end\n", "");
+
+	{ Handle<ScriptSession> sessionHandle = node -> requestCoreSession();
+
+		ScriptSession* session = sessionHandle.getInstance();
+
+		EXPECT_FALSE(session -> run()) << "A chunk that raises should report failure.";
+
+		int initRuns = 0, invokeRuns = 0;
+		EXPECT_FALSE(session -> getGlobal("initRuns", initRuns)) << "init() should not have been reached at all.";
+
+		session -> setGlobal("primed", true);
+
+		EXPECT_TRUE(session -> run());
+
+		ASSERT_TRUE(session -> getGlobal("initRuns", initRuns));
+		EXPECT_EQ(initRuns, 1) << "init()'s attempt should have survived the run that never reached it.";
+
+		ASSERT_TRUE(session -> getGlobal("invokeRuns", invokeRuns));
+		EXPECT_EQ(invokeRuns, 1);
+	}
+
+	node -> decrRef();
+}
+
+/**
+ * Only a function counts as an entry point. A global named invoke that holds something else is left alone,
+ * and the script falls back to being run in full, as though it had defined nothing.
+ */
+TEST(ScriptNodeTest, CoreScriptNonFunctionInvokeGlobalIsIgnored)
+{
+	ScriptNode* node = new ScriptNode(
+		"invoke = 42\n"
+		"chunkRuns = (chunkRuns or 0) + 1\n", "");
+
+	{ Handle<ScriptSession> sessionHandle = node -> requestCoreSession();
+
+		ScriptSession* session = sessionHandle.getInstance();
+
+		ASSERT_TRUE(session -> run());
+		ASSERT_TRUE(session -> run());
+		ASSERT_TRUE(session -> run());
+
+		int chunkRuns = 0, invoke = 0;
+
+		ASSERT_TRUE(session -> getGlobal("chunkRuns", chunkRuns));
+		EXPECT_EQ(chunkRuns, 3) << "A non-function invoke should not stop the chunk being run.";
+
+		ASSERT_TRUE(session -> getGlobal("invoke", invoke));
+		EXPECT_EQ(invoke, 42) << "A non-function invoke should be left exactly as the script set it.";
+	}
+
+	node -> decrRef();
+}
+
+/**
+ * An invoke() that raises fails its run without the chunk being run again to replace it: a failing entry
+ * point stays the entry point.
+ */
+TEST(ScriptNodeTest, CoreScriptRaisingInvokeFailsEveryRunWithoutReRunningTheChunk)
+{
+	ScriptNode* node = new ScriptNode(
+		"chunkRuns = (chunkRuns or 0) + 1\n"
+		"function invoke() invokeRuns = (invokeRuns or 0) + 1 error('boom') end\n", "");
+
+	{ Handle<ScriptSession> sessionHandle = node -> requestCoreSession();
+
+		ScriptSession* session = sessionHandle.getInstance();
+
+		EXPECT_FALSE(session -> run());
+		EXPECT_FALSE(session -> run());
+
+		int chunkRuns = 0, invokeRuns = 0;
+
+		ASSERT_TRUE(session -> getGlobal("chunkRuns", chunkRuns));
+		EXPECT_EQ(chunkRuns, 1) << "A raising invoke() should not bring the chunk back.";
+
+		ASSERT_TRUE(session -> getGlobal("invokeRuns", invokeRuns));
+		EXPECT_EQ(invokeRuns, 2) << "A raising invoke() should still be called on every run.";
+	}
+
+	node -> decrRef();
+}
+
+/**
+ * The lifecycle is the core script's alone. A poke script is run in full on every poke, and the two entry
+ * point names mean nothing in the poke state.
+ */
+TEST(ScriptNodeTest, PokeScriptHasNoInitOrInvokeLifecycle)
+{
+	ScriptNode* node = new ScriptNode("",
+		"chunkRuns = (chunkRuns or 0) + 1\n"
+		"function init() initRuns = (initRuns or 0) + 1 end\n"
+		"function invoke() invokeRuns = (invokeRuns or 0) + 1 end\n");
+
+	node -> setPokeEnabled(true);
+
+	GraphPoke::PokeData data{};
+
+	node -> poke(GraphPoke(GraphPoke::PokeType::HIT, data));
+	node -> poke(GraphPoke(GraphPoke::PokeType::HIT, data));
+	node -> poke(GraphPoke(GraphPoke::PokeType::HIT, data));
+
+	{ Handle<ScriptSession> sessionHandle = node -> requestPokeSession();
+
+		ScriptSession* session = sessionHandle.getInstance();
+
+		int chunkRuns = 0, initRuns = 0, invokeRuns = 0;
+
+		ASSERT_TRUE(session -> getGlobal("chunkRuns", chunkRuns));
+		EXPECT_EQ(chunkRuns, 3) << "A poke script should be run in full on every poke.";
+
+		EXPECT_FALSE(session -> getGlobal("initRuns", initRuns)) << "init() should never be called on a poke.";
+		EXPECT_FALSE(session -> getGlobal("invokeRuns", invokeRuns)) << "invoke() should never be called on a poke.";
+	}
+
+	node -> decrRef();
+}
+
+/**
+ * Every run must leave its state's stack exactly as it found it, whether the script succeeded or failed.
+ * A failed lua_pcall does not unwind to where it was called from: it replaces the function it was given with
+ * the error object it produced, so a failing run that does not pop leaves one value behind. These states live
+ * as long as their node does, and a broken script fails on every strobe, so an unpopped error object grows
+ * the stack without bound until the state's memory budget is exhausted and the node is dead for good.
+ *
+ * The stack depth is checked directly rather than inferred from a run failing or a later allocation being
+ * refused, since a state exhausted by leaked slots reports both of those exactly as a healthy one does.
+ */
+TEST(ScriptNodeTest, EveryCoreRunLeavesTheStackBalanced)
+{
+	StateCapturingScriptNode* node = new StateCapturingScriptNode(
+		"chunkRuns = (chunkRuns or 0) + 1\n"
+		"function init() error('init raised') end\n"
+		"function invoke() error('invoke raised') end\n", "");
+
+	{ Handle<ScriptSession> sessionHandle = node -> requestCoreSession();
+
+		ScriptSession* session = sessionHandle.getInstance();
+
+		// The first run reaches the chunk, then a raising init(); every run after it a raising invoke(). Each
+		// path leaves an error object behind that only this class pops.
+		EXPECT_FALSE(session -> run());
+
+		ASSERT_NE(node -> capturedState, nullptr) << "The core state should have been captured by now.";
+		EXPECT_EQ(lua_gettop(node -> capturedState), 0) << "A run whose init() raised should leave no value behind.";
+
+		EXPECT_FALSE(session -> run());
+		EXPECT_EQ(lua_gettop(node -> capturedState), 0) << "A run whose invoke() raised should leave no value behind.";
+
+		EXPECT_FALSE(session -> run());
+		EXPECT_EQ(lua_gettop(node -> capturedState), 0) << "Failed runs should not accumulate on the stack.";
+	}
+
+	node -> decrRef();
+}
+
+/**
+ * A run that fails to load its chunk at all, and a run that succeeds outright, must balance the stack too -
+ * the failed load and the clean run being the two paths the failing-entry-point test above does not take.
+ */
+TEST(ScriptNodeTest, SucceedingCoreRunLeavesTheStackBalanced)
+{
+	StateCapturingScriptNode* node = new StateCapturingScriptNode(
+		"chunkRuns = (chunkRuns or 0) + 1\n"
+		"function invoke() invokeRuns = (invokeRuns or 0) + 1 end\n", "");
+
+	{ Handle<ScriptSession> sessionHandle = node -> requestCoreSession();
+
+		ScriptSession* session = sessionHandle.getInstance();
+
+		ASSERT_TRUE(session -> run());
+
+		ASSERT_NE(node -> capturedState, nullptr);
+		EXPECT_EQ(lua_gettop(node -> capturedState), 0) << "The run that loaded the chunk should balance the stack.";
+
+		ASSERT_TRUE(session -> run());
+		EXPECT_EQ(lua_gettop(node -> capturedState), 0) << "A run entered through invoke() should balance the stack.";
 	}
 
 	node -> decrRef();

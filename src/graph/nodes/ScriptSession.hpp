@@ -31,6 +31,8 @@ class ScriptSession : public RefCounted
 		 * against its state, with whatever globals have been staged so far already visible to it.
 		 * @returns True if the script ran successfully. False if it failed at runtime, or if it never
 		 *          compiled at all when the node was constructed.
+		 * @note A core script may define init() and invoke() entry points, which changes what a run actually
+		 *       executes; see ScriptNode's class documentation. A poke script is always run in full.
 		 */
 		bool run();
 
