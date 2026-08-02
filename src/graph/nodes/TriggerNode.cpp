@@ -28,16 +28,29 @@ GraphNode::Type TriggerNode::getType()
 std::vector<Handle<ModelToolBindings>> TriggerNode::getModelToolBindings(AgenticHarness::Capability capability,
 	unsigned serial)
 {
-	// Only what the hive's factory holds for this class; no script defined tool bindings are supported yet.
+	std::vector<Handle<ModelToolBindings>> tools;
+
+	// What the hive's factory holds for this class, which is what every trigger node offers alike.
 	Handle<GraphHive> hive = getHive();
 
-	if(!hive.isValid()) return std::vector<Handle<ModelToolBindings>>();
+	if(hive.isValid())
+	{
+		Handle<GraphToolBindingsFactory> factory = hive.getInstance() -> getToolBindingsFactory();
 
-	Handle<GraphToolBindingsFactory> factory = hive.getInstance() -> getToolBindingsFactory();
+		if(factory.isValid())
+		{
+			tools = factory.getInstance() -> getGraphNodeToolBindings(capability, Handle<GraphNode>(this));
+		}
+	}
 
-	if(!factory.isValid()) return std::vector<Handle<ModelToolBindings>>();
+	// On top of those, whatever this node's own core script declared. A hive with no factory set still
+	// reaches this, so a script defined tool does not depend on one being there.
+	for(Handle<ModelToolBindings>& scriptTool : _getScriptToolBindings(capability, serial))
+	{
+		tools.push_back(scriptTool);
+	}
 
-	return factory.getInstance() -> getGraphNodeToolBindings(capability, Handle<GraphNode>(this));
+	return tools;
 }
 
 AgentActionTarget* TriggerNode::getAgentActionTarget()

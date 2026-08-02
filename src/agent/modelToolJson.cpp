@@ -5,6 +5,7 @@
 #include "ModelToolCallParameterValue.hpp"
 #include "ModelToolDefinition.hpp"
 #include "ModelToolDefinitionParameter.hpp"
+#include "../log/log.hpp"
 #include "../rapidjson/document.h"
 
 #include <math.h>
@@ -297,6 +298,61 @@ namespace
 
 		return true;
 	}
+
+	/**
+	 * Service a single tool call, leaving what it is reported as to the caller.
+	 * @param tools Tool bindings the request makes available.
+	 * @param name Name of the tool the model called.
+	 * @param argumentsValue Arguments the model supplied. May be null when it supplied none.
+	 * @returns The content of the message to send back.
+	 */
+	std::string __processToolCall(std::vector<Handle<ModelToolBindings>>& tools, const std::string& name,
+		const rapidjson::Value* argumentsValue)
+	{
+		for(Handle<ModelToolBindings>& toolHandle : tools)
+		{
+			ModelToolBindings* bindings = toolHandle.getInstance();
+
+			if(!bindings || !bindings -> hasBinding(name)) continue;
+
+			std::vector<ModelToolDefinition> definitions = bindings -> getModelToolDefinitions();
+
+			for(ModelToolDefinition& definition : definitions)
+			{
+				if(definition.getName() != name) continue;
+
+				std::vector<ModelToolCallParameterValue> parameterValues;
+
+				std::string error;
+
+				if(!__buildParameterValues(definition, argumentsValue, parameterValues, error))
+				{
+					return jsonToolErrorContent(error);
+				}
+
+				// A binding that fails is reported to the model rather than abandoning the request, so that
+				// it can correct itself.
+				try
+				{
+					return __resultContent(bindings -> processBinding(name, parameterValues));
+				}
+				catch(AgentException& exception)
+				{
+					return jsonToolErrorContent(exception.getDescription());
+				}
+				catch(Exception& exception)
+				{
+					return jsonToolErrorContent("The tool call failed.");
+				}
+			}
+
+			// The binding claims the name but publishes no definition for it, so there is no way to know
+			// what the arguments should have been.
+			return jsonToolErrorContent("The tool '" + name + "' cannot be called.");
+		}
+
+		return jsonToolErrorContent("There is no tool named '" + name + "'.");
+	}
 }
 
 void writeJsonString(ModelJsonWriter& writer, const std::string& value)
@@ -425,47 +481,14 @@ std::string jsonToolErrorContent(const std::string& message)
 std::string processJsonToolCall(std::vector<Handle<ModelToolBindings>>& tools, const std::string& name,
 	const rapidjson::Value* argumentsValue)
 {
-	for(Handle<ModelToolBindings>& toolHandle : tools)
-	{
-		ModelToolBindings* bindings = toolHandle.getInstance();
+	std::string content = __processToolCall(tools, name, argumentsValue);
 
-		if(!bindings || !bindings -> hasBinding(name)) continue;
+	// Reported here rather than by each provider, as this is the one place every tool call a model asks for
+	// is serviced. Nothing else shows what a binding handed back: a call that fails is only ever described
+	// to the model, and one that succeeds is folded into a conversation that no one is watching.
+	LOG(Logger::LogLevel::DEBUG, "Tool call '" + name + "' with arguments "
+		+ (argumentsValue ? serialiseJsonValue(*argumentsValue) : std::string("{}")) + " returned "
+		+ content + ".")
 
-		std::vector<ModelToolDefinition> definitions = bindings -> getModelToolDefinitions();
-
-		for(ModelToolDefinition& definition : definitions)
-		{
-			if(definition.getName() != name) continue;
-
-			std::vector<ModelToolCallParameterValue> parameterValues;
-
-			std::string error;
-
-			if(!__buildParameterValues(definition, argumentsValue, parameterValues, error))
-			{
-				return jsonToolErrorContent(error);
-			}
-
-			// A binding that fails is reported to the model rather than abandoning the request, so that
-			// it can correct itself.
-			try
-			{
-				return __resultContent(bindings -> processBinding(name, parameterValues));
-			}
-			catch(AgentException& exception)
-			{
-				return jsonToolErrorContent(exception.getDescription());
-			}
-			catch(Exception& exception)
-			{
-				return jsonToolErrorContent("The tool call failed.");
-			}
-		}
-
-		// The binding claims the name but publishes no definition for it, so there is no way to know
-		// what the arguments should have been.
-		return jsonToolErrorContent("The tool '" + name + "' cannot be called.");
-	}
-
-	return jsonToolErrorContent("There is no tool named '" + name + "'.");
+	return content;
 }

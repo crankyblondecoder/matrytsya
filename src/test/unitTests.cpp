@@ -9,6 +9,7 @@
 #include "./graph/actions/ScriptActionUnitTest.hpp"
 #include "./graph/nodes/AnimateScriptNodeUnitTest.hpp"
 #include "./graph/nodes/ScriptNodeUnitTest.hpp"
+#include "./graph/nodes/ScriptToolBindingsUnitTest.hpp"
 #include "./graph/nodes/TriggerNodeUnitTest.hpp"
 #include "./persist/HiveBuilderUnitTest.hpp"
 #include "./persist/json/JsonHiveLoaderUnitTest.hpp"

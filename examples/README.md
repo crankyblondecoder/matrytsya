@@ -6,8 +6,11 @@ Example hive and agentic harness definitions in JSON. These are reference materi
 piston engine -- crankshaft, connecting rod and piston -- animated as one assembly: each of the three
 transforms works its own pose out from the same crank angle, and a 3D button to the left of the engine, level
 with the crankshaft, toggles the animate mode across the whole of it. The same button can be worked by a
-model instead of a pointer: a trigger node feeds an agent node, whose one prompt has the model read the
-button's animate mode and set the opposite, so a trigger starts or stops the engine. That trigger is what
+model instead of a pointer: a trigger node feeds an agent node, whose one prompt has the model call a
+`toggleEngine` tool that the button's own `coreScript` declares through `getToolCallBindings()`, so a trigger
+starts or stops the engine. The tool set varies by the capability of the model asking: a `LOW` model, which is
+what the agent node asks for, is given that one no-argument call, while anything more capable is given a
+`getEngineRunning`/`setEngineRunning` pair instead. That trigger is what
 `flowerHive.json` reaches across to: its agent conversation now ends on a trigger node, where the model calls
 an `emitTrigger` tool, and a teleport node forwards the emitted action into the engine hive. The two are
 loaded into one collection by the test harness, so poking flower 3 walks the flower conversation and then

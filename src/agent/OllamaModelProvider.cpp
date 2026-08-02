@@ -86,12 +86,17 @@ namespace
 
 	void __writeToolDefinition(ModelJsonWriter& writer, ModelToolDefinition& definition)
 	{
-		ModelToolDefinitionParameter returnType = definition.getReturnType();
+		std::string description = definition.getDescription();
 
-		// Ollama's schema has nowhere to declare a return type, so fold it into the description rather
-		// than dropping what the tool says it hands back.
-		std::string description = definition.getDescription() + " Returns " + returnType.getName() + ": "
-			+ returnType.getDescription();
+		// No provider's tool schema has anywhere to declare a return type, so fold it into the description
+		// rather than dropping what the tool says it hands back. A tool that reports nothing has nothing to
+		// fold in, and saying otherwise would describe a result to the model that the tool never offered.
+		if(definition.hasReturnType())
+		{
+			ModelToolDefinitionParameter returnType = definition.getReturnType();
+
+			description += " Returns " + returnType.getName() + ": " + returnType.getDescription();
+		}
 
 		writer.StartObject();
 			writer.Key("type");

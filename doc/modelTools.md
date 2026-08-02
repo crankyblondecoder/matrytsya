@@ -39,6 +39,22 @@ reach back to an earlier one.
 A prompt may still match a node that offers no tools; the model is then simply asked to answer, with the
 conversation carried forward as usual.
 
+### Script defined tools
+
+The three node types above are the ones an agent action can reach, and each of them may offer more than the
+fixed set listed for it. A `coreScript` that defines a `getToolCallBindings()` global declares tools of its
+own, which are added to whatever its node type already offers. These belong to the **node instance** rather
+than to the node type: two nodes of the same type running different scripts offer the model different tools,
+and a script can vary what it declares by the capability of the model asking.
+
+Defining `getToolCallBindings()` on any other node type does nothing, because no agent action reaches one.
+
+Script defined tools are withdrawn along with the rest when the action moves on, and a script implementing
+one badly costs the model nothing: a tool that cannot be called is dropped before the model is told about
+it, and one that fails while being called is reported back as a failure the model can correct for. See
+[`getToolCallBindings(capability)`](LuaNodeAPI.md#gettoolcallbindingscapability) for how a script declares
+them.
+
 ### `getAnimating`
 
 Takes no arguments. Returns `animating`, a boolean: whether the node is currently in animating mode.

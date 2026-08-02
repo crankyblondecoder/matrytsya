@@ -3,10 +3,19 @@
 
 #include <cstddef>
 #include <string>
+#include <variant>
+#include <vector>
 
 #include "../actionTargets/ScriptActionTarget.hpp"
 #include "../GraphSerialisedActionNode.hpp"
+#include "../../agent/AgenticHarness.hpp"
+#include "../../agent/ModelToolCallParameterValue.hpp"
+#include "../../agent/ModelToolDefinitionParameter.hpp"
 #include "../../thread/ThreadResourceLock.hpp"
+#include "../../util/Handle.hpp"
+
+class ModelToolBindings;
+class ModelToolDefinition;
 
 struct lua_State;
 
@@ -33,6 +42,10 @@ struct lua_State;
  *       defining neither is run in full, top to bottom, on every run, exactly as one written before either
  *       entry point existed, and a script defining only init() does nothing at all after the run that called
  *       it. The poke script has no such lifecycle; it is run in full on every poke.
+ * @note A core script may also define getToolCallBindings(), which is not an entry point: it is never called
+ *       by a run, only by _getScriptToolBindings() while an agent action is being applied to a node that
+ *       offers script defined tools, and defining it does not stop the chunk being re-run. See that method
+ *       for the shape of what it returns.
  * @note Extra globals a subclass registers via _registerCoreGlobals() (e.g. getStrobe(), addVertex()) are
  *       written into each state's permanent base table once - the first time a core session runs a script,
  *       the first time a poke happens for the poke state - and remain callable on every subsequent run
@@ -93,6 +106,41 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		virtual void _registerCoreGlobals(lua_State* luaState);
 
 		/**
+		 * Build the tool bindings this node's core script defines, by calling the optional global
+		 * getToolCallBindings() against the core state and turning what it returns into tool definitions.
+		 * Subclasses that are agent action targets append this to whatever their own
+		 * getModelToolBindings() offers, so a hive author can add model tools to one node instance by
+		 * writing Lua rather than C++.
+		 *
+		 * getToolCallBindings() is passed the capability name and returns an array of descriptor tables,
+		 * one per tool, each holding a name, a description, an array of parameter descriptors and an
+		 * optional returns descriptor. A parameter descriptor holds a name, a description, a ToolType
+		 * constant, an optional required flag defaulting to true, an optional array flag, and an optional
+		 * choices array of the strings the parameter is restricted to. The tool itself is a global function
+		 * of the same name as the descriptor, taking one table of named arguments.
+		 *
+		 * A descriptor leaving returns out declares a tool with no result of its own, whose function need
+		 * not return anything: the definition is built without a return type, anything the function does
+		 * return is ignored, and reaching the end of the call is the whole result. A descriptor that does
+		 * declare returns is held to it: a function that then returns nothing fails the call rather than
+		 * answering the model with a value the script never produced.
+		 * @param capability Capability of the model the tool bindings are being requested for, passed to
+		 *        getToolCallBindings() by name so a script can offer a weaker model a smaller tool set.
+		 * @param serial Serial number of the action driving the request, staged as the global
+		 *        TOOL_CALL_SERIAL ahead of each tool call this makes possible.
+		 * @returns A single bindings object holding every tool the script declared, or an empty vector if
+		 *          the script defines no getToolCallBindings(), if it declared no usable tool, or if the
+		 *          core state could not be reached.
+		 * @note A descriptor that is malformed, or whose name does not resolve to a global function, is
+		 *       dropped rather than failing the whole set: a tool a model cannot call is worse than a tool
+		 *       it never sees.
+		 * @note The tool definitions are read once, here, and cached, because they are asked for repeatedly
+		 *       over the life of a model request and each read costs the core state's lock.
+		 */
+		std::vector<Handle<ModelToolBindings>> _getScriptToolBindings(AgenticHarness::Capability capability,
+			unsigned serial);
+
+		/**
 		 * Read an optional array field out of the table at the given stack index into a fixed-size double
 		 * array, leaving entries at their existing values if the field is absent.
 		 * @param luaState Lua state to read from.
@@ -122,6 +170,10 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		// thing given access to them.
 		friend class ScriptSession;
 
+		// The bindings handed to a model stand in for this node's script defined tools, so they are the one
+		// thing outside this class permitted to call one.
+		friend class ScriptToolBindings;
+
         // Do not allow copying.
         ScriptNode(const ScriptNode& copyFrom);
         ScriptNode& operator= (const ScriptNode& copyFrom);
@@ -133,6 +185,44 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		 *       reached through a core ScriptSession.
 		 */
 		bool __runCore();
+
+		/**
+		 * Bring the core script's globals into existence without running invoke(), by loading and calling
+		 * the compiled chunk if neither entry point has been defined yet and then spending init()'s single
+		 * attempt if it has not already been spent. Everything a run does other than invoke() itself.
+		 * @returns True if the globals are in place. False if the script never compiled, if the chunk
+		 *          failed, or if init() raised.
+		 * @note The calling thread must already hold this node's core state lock.
+		 * @note getToolCallBindings() is deliberately not one of the entry points tested here. A script
+		 *       defining only that is still re-run in full every time, exactly as it was before it existed.
+		 */
+		bool __primeCoreScript();
+
+		/**
+		 * Call the Lua function implementing one of the tools this node's core script declared, converting
+		 * the model's argument values into a table of named arguments and the value it returns back into
+		 * the type the script declared for it.
+		 * @param name Name of the tool, which is also the name of the global function implementing it.
+		 * @param definition Definition the script declared for the tool, whose return type is what the
+		 *        value the function returns is read as. A definition with no return type of its own marks a
+		 *        tool whose function need not return anything: what it returns is not read at all, and
+		 *        reaching the end of the call is the whole result.
+		 * @param parameterValues Values the model supplied for the tool's parameters, presented to the
+		 *        function as one table keyed by parameter name. A parameter the model left out is simply
+		 *        absent from the table.
+		 * @param serial Serial number of the action driving the request, staged as the global
+		 *        TOOL_CALL_SERIAL ahead of the call.
+		 * @returns The value the function returned, named after the definition's return type, or true for a
+		 *          tool that declared no result.
+		 * @throw AgentException::SCRIPT_TOOL_FAILED If the core state could not be reached, the script's
+		 *        globals could not be primed, no global function of that name exists, the call raised, or
+		 *        what it returned could not be read as a declared return type.
+		 * @note Claims and releases a core session of its own rather than running inside one, so the core
+		 *       state is not held locked across the model request that led here. A tool function must
+		 *       therefore not do anything that runs the core script.
+		 */
+		ModelToolCallParameterValue __callScriptTool(const std::string& name, ModelToolDefinition& definition,
+			std::vector<ModelToolCallParameterValue>& parameterValues, unsigned serial);
 
 		/**
 		 * Run the poke script against the poke state.
@@ -264,6 +354,53 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		 * @param luaState Lua state to register into.
 		 */
 		void __registerTriggerBindings(lua_State* luaState);
+
+		/**
+		 * Register the ToolType constant table into luaState, naming the value types a script defined tool's
+		 * parameters and return value may be declared as.
+		 * @param luaState Lua state to register into.
+		 */
+		static void __registerToolTypeConstants(lua_State* luaState);
+
+		/**
+		 * Read one tool descriptor table and append the definition it describes.
+		 * @param luaState Lua state to read from.
+		 * @param index Absolute stack index of the descriptor table.
+		 * @param definitions Definitions to append to. Left untouched unless a usable definition was read.
+		 * @returns True if a usable definition was appended. False if the descriptor is not a table, names
+		 *          no tool, names no global function implementing it, or holds a parameter or returns
+		 *          descriptor that is present but could not be read.
+		 * @note A descriptor with no returns field at all is not a failure: it declares a tool with no
+		 *       result, appended through ModelToolDefinition's no return type constructor. Only a returns
+		 *       that is there and unreadable fails, being a mistake in the descriptor rather than an
+		 *       omission from it.
+		 * @note Appends rather than filling an out-param because ModelToolDefinition is not default
+		 *       constructible.
+		 * @note Leaves the stack as it found it, on every path.
+		 */
+		static bool __readToolDefinition(lua_State* luaState, int index,
+			std::vector<ModelToolDefinition>& definitions);
+
+		/**
+		 * Read the parts of one parameter descriptor table, applying its optional array and choices fields
+		 * to arrive at the type the parameter accepts.
+		 * @param luaState Lua state to read from.
+		 * @param index Absolute stack index of the parameter descriptor table.
+		 * @param name Set to the parameter's name.
+		 * @param description Set to the parameter's description, which is empty if the descriptor gives none.
+		 * @param type Set to the type the parameter accepts.
+		 * @param required Set to whether the model must supply the parameter, defaulting to true where the
+		 *        descriptor does not say.
+		 * @returns True if all of the above were read. False if the descriptor is not a table, names no
+		 *          parameter, or declares no valid ToolType.
+		 * @note The parts are handed back separately rather than as a ModelToolDefinitionParameter because
+		 *       that class is not default constructible.
+		 * @note Leaves the stack as it found it, on every path.
+		 */
+		static bool __readToolParameter(lua_State* luaState, int index, std::string& name,
+			std::string& description, std::variant<ModelToolDefinitionParameter::PrimitiveType,
+			ModelToolDefinitionParameter::ArrayType, ModelToolDefinitionParameter::StringChoice>& type,
+			bool& required);
 
 		/**
 		 * Lua binding: trigger([nodeName], [nodeType]). Emits a TriggerAction from this node, optionally

@@ -112,6 +112,120 @@ next one.
 function to either is not entered through it at all — it falls back to being run top to bottom, as though
 neither existed — and a script action that stages a global under either name would break the lifecycle.
 
+### `getToolCallBindings(capability)`
+
+A `coreScript` may define this global to offer an AI model tools of its own, on top of the fixed set its node
+type already offers. It is **not** an entry point: no run ever calls it, and defining it does not close the
+top level down the way `init()` or `invoke()` does. It is called only while an agent action is being applied
+to this node, and only on node types that are agent action targets — `triggerNode`,
+`sceneGeometryScriptNode` and `sceneTransformScriptNode`. Defining it on any other node type does nothing.
+
+It is passed the capability of the model asking, as one of the strings `"LOW"`, `"MEDIUM"` or `"HIGH"`, so a
+script can offer a weaker model a smaller set. It returns an array of descriptor tables, one per tool:
+
+| Field | Meaning |
+|---|---|
+| `name` | Name of the tool, as the model sees it. **Also the name of the global function implementing it.** |
+| `description` | What the tool does, written for the model to read. |
+| `parameters` | Array of parameter descriptors. May be empty or left out for a tool taking no arguments. |
+| `returns` | Optional. One parameter descriptor for the value the tool returns. Left out for a tool that does something rather than reports something — see [Tools with no result](#tools-with-no-result). |
+
+A parameter descriptor:
+
+| Field | Meaning |
+|---|---|
+| `name` | Name of the parameter. The model sends its arguments keyed by these names. |
+| `description` | What the parameter means, written for the model to read. |
+| `type` | One of the `ToolType` constants: `ToolType.STRING`, `ToolType.NUMBER`, `ToolType.INTEGER` or `ToolType.BOOL`. |
+| `required` | Optional boolean, default `true`. `false` lets the model leave the argument out. |
+| `array` | Optional boolean, default `false`. `true` makes the parameter an array of `type`. |
+| `choices` | Optional array of strings the parameter is restricted to. Only honoured for a `ToolType.STRING` that is not an array; ignored on anything else. |
+
+The tool itself is an ordinary global function of the same name as its descriptor. It takes **one table of
+named arguments** and returns **one value**:
+
+```lua
+spin = 0
+
+function setSpin(args)
+    spin = args.rate
+    return spin
+end
+
+function getToolCallBindings(capability)
+    return {
+        {
+            name = "setSpin",
+            description = "Set the spin rate of this node.",
+            parameters = {
+                {name = "rate", description = "Turns per second.", type = ToolType.NUMBER}
+            },
+            returns = {name = "rate", description = "The rate now set.", type = ToolType.NUMBER}
+        }
+    }
+end
+```
+
+An argument the model left out is simply absent from `args`. The value the function returns is read as the
+type `returns` declared, not as whatever Lua is holding: a `ToolType.INTEGER` return rounds rather than
+collapsing a non-integral number to zero, and a return that cannot be read as the declared type fails the
+call. A function returning more values than it declared keeps the first and drops the rest.
+
+#### Tools with no result
+
+Leaving `returns` out declares a tool that **does** something rather than **reports** something. Its function
+needs no `return` statement at all:
+
+```lua
+spin = 0
+
+function resetSpin(args)
+    spin = 0
+end
+
+function getToolCallBindings(capability)
+    return {
+        {
+            name = "resetSpin",
+            description = "Reset the spin rate of this node to zero.",
+            parameters = {}
+        }
+    }
+end
+```
+
+The model is still answered, with a boolean named `ok`, supplied for the tool rather than by it. It is `true`
+whenever the call reached the end of the function; a function that raises still fails the call, and the model
+is told so. Anything such a function does happen to return is ignored.
+
+This is the only way to write a tool that returns nothing. A descriptor that **does** declare `returns` is
+held to it: a function that then returns nothing fails the call rather than answering with an invented value.
+That matters most for `ToolType.BOOL`, where a missing return would otherwise reach the model as a confident
+`false` the script never said. Leaving `returns` out says "no result" once, in the descriptor, instead of
+leaving every call to guess.
+
+A `returns` that is present but malformed — naming no parameter, or declaring no valid `ToolType` — is a
+mistake rather than an omission, and drops the tool as any other bad descriptor field would.
+
+The tools are read once per agent action and served from that reading for the rest of it, so a script cannot
+change its tool set part way through one model's turn. They belong to the node instance, not the node type:
+two nodes of the same type running different scripts offer different tools, and the tools are withdrawn as
+the action moves on to the next node.
+
+A descriptor that cannot be used is **dropped on its own**, leaving the usable tools beside it standing — a
+tool the model is shown but cannot call is worse than one it never sees. A descriptor is dropped when it
+names no tool, names no global function implementing it, holds a parameter declaring no valid `ToolType`, or
+holds a `returns` that is present but unreadable.
+
+Because `getToolCallBindings()` is not an entry point, asking for the tools still has to bring the script's
+globals into existence: the top level is run if neither entry point has been defined, and `init()` gets its
+single attempt if it has not already had one. `invoke()` is never called, so a model looking at a node does
+not drive that node's per-strobe work as a side effect. A tool function must not do anything that runs the
+core script, for the same reason nothing else called from a run may.
+
+While a tool call is running, the global `TOOL_CALL_SERIAL` holds the serial number of the agent action that
+led to it, so a tool can tell one call apart from the next.
+
 ## Bindings on every Lua-scripted node
 
 Available to `sceneGeometryScriptNode`, `sceneTransformScriptNode` and `triggerNode`, in both the core and
@@ -121,6 +235,7 @@ poke states.
 |---|---|
 | `NodeType` | A global table of constants naming each concrete node type, for use as the `nodeType` argument to `trigger`. See [Triggering other nodes](#triggering-other-nodes). |
 | `trigger([nodeName], [nodeType])` | Emits a trigger action from this node, triggering nodes it reaches as it traverses the graph. See [Triggering other nodes](#triggering-other-nodes). |
+| `ToolType` | A global table of constants naming the value types a script defined tool's parameters and return value may be declared as: `STRING`, `NUMBER`, `INTEGER` and `BOOL`. Only of use in a `coreScript`, which is the only place tools can be declared. See [`getToolCallBindings(capability)`](#gettoolcallbindingscapability). |
 
 ## Bindings on scene script nodes
 

@@ -23,6 +23,9 @@ class AgentException : public Exception
 			NODE_NOT_FOUND,
 			/// A tool binding was asked to process a binding name it does not expose.
 			BINDING_NOT_FOUND,
+			/// The Lua function implementing a script defined tool was missing, raised, or returned a value
+			/// that did not match the return type the script declared for it.
+			SCRIPT_TOOL_FAILED,
 			/// A tool call was processed without a value for one of its required parameters.
 			PARAMETER_NOT_FOUND,
 			/// A model request was created without a context, or without any prompt text.
@@ -68,6 +71,9 @@ class AgentException : public Exception
 
 				case BINDING_NOT_FOUND:
 					return "That tool is not available.";
+
+				case SCRIPT_TOOL_FAILED:
+					return "The script implementing that tool failed.";
 
 				case PARAMETER_NOT_FOUND:
 					return "A required parameter was not supplied.";
