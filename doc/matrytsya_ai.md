@@ -22,7 +22,7 @@ Traversal:
 - Exclusion (default): an action never crosses the same *edge* twice; it records every crossed edge and excludes it from future selection. This bounds traversal on cyclic graphs.
 - Only the crossed edge is excluded, not its siblings — a skipped sibling stays eligible if the action later revisits the node by another path.
 - Consequence: each action's path is linear step-to-step, but over its lifetime a branch node can contribute several of its edges across separate visits.
-- Completes (no longer applied anywhere) once bound to a node with no remaining permitted edge, or once its energy runs out (see [Limits](#limits)).
+- Completes (no longer applied anywhere) once bound to a node with no remaining permitted edge, once its energy runs out (see [Limits](#limits)), or once it is applied at a node reached via an edge with `actionsCompleteAfterTraverse` set — that application is its last regardless of what edges remain there.
 
 ## Action types
 

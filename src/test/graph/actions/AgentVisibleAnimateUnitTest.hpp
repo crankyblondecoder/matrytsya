@@ -123,13 +123,13 @@ TEST(AgentVisibleAnimateTest, SpinAnimatesWithAgentVisibleAroundTheToolCall)
 
 	strobeRig(rig);
 
-	rig.body -> setAgentVisible(true);
+	rig.body -> agentAffectingStart(true);
 
 	rig.body -> setAnimating(true, 1234, true);
 
 	rig.hive -> waitOnNoActionsActive(0);
 
-	rig.body -> setAgentVisible(false);
+	rig.body -> agentAffectingEnd(true);
 
 	EXPECT_TRUE(rig.spin -> getAnimating()) << "The animate action should have reached the spin node.";
 

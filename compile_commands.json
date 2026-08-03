@@ -51,6 +51,23 @@
     "output": "ModelToolBindingsFactory.o"
   },
   {
+    "file": "../../src/agent_bindings/TriggerEmitterToolBindings.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "TriggerEmitterToolBindings.o",
+      "../../src/agent_bindings/TriggerEmitterToolBindings.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "TriggerEmitterToolBindings.o"
+  },
+  {
     "file": "../../src/persist/HarnessBuilder.cpp",
     "arguments": [
       "/usr/bin/g++",
@@ -406,6 +423,23 @@
     ],
     "directory": "/data/devel/matrytsya/build/debug",
     "output": "actions/AgentAction.o"
+  },
+  {
+    "file": "../../src/graph/actions/AgentAffectAction.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "actions/AgentAffectAction.o",
+      "../../src/graph/actions/AgentAffectAction.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "actions/AgentAffectAction.o"
   },
   {
     "file": "../../src/graph/actions/AnimateAction.cpp",
@@ -765,6 +799,23 @@
     "output": "nodes/ScriptSession.o"
   },
   {
+    "file": "../../src/graph/nodes/ScriptToolBindings.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "nodes/ScriptToolBindings.o",
+      "../../src/graph/nodes/ScriptToolBindings.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "nodes/ScriptToolBindings.o"
+  },
+  {
     "file": "../../src/graph/nodes/StrobeEmitterNode.cpp",
     "arguments": [
       "/usr/bin/g++",
@@ -814,6 +865,23 @@
     ],
     "directory": "/data/devel/matrytsya/build/debug",
     "output": "nodes/TeleportNode.o"
+  },
+  {
+    "file": "../../src/graph/nodes/TriggerNode.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "nodes/TriggerNode.o",
+      "../../src/graph/nodes/TriggerNode.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "nodes/TriggerNode.o"
   },
   {
     "file": "../../src/agent/AgenticHarness.cpp",
@@ -1241,6 +1309,23 @@
     "output": "log.o"
   },
   {
+    "file": "../../src/display/GraphHiveCollectionHttpMap.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphHiveCollectionHttpMap.o",
+      "../../src/display/GraphHiveCollectionHttpMap.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphHiveCollectionHttpMap.o"
+  },
+  {
     "file": "../../src/display/GraphHiveSceneSurfaceHtmlMap.cpp",
     "arguments": [
       "/usr/bin/g++",
@@ -1324,6 +1409,23 @@
     ],
     "directory": "/data/devel/matrytsya/build/debug",
     "output": "chatWindowTemplate.o"
+  },
+  {
+    "file": "../../src/display/hiveIndexPageTemplate.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "hiveIndexPageTemplate.o",
+      "../../src/display/hiveIndexPageTemplate.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "hiveIndexPageTemplate.o"
   },
   {
     "file": "../../src/display/webglPageTemplate.cpp",

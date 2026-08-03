@@ -19,6 +19,24 @@ struct HiveEdgeDescriptor
 	/// Names of the action flags that restrict which actions may traverse this edge, as they appear
 	/// in graphActionFlagRegister.hpp (e.g. "PING_GRAPH_ACTION"). Empty means no restriction.
 	std::vector<std::string> actionFlagNames;
+
+	/// Whether an action completes once it has traversed this edge, rather than continuing on from the
+	/// node it leads to.
+	bool actionsCompleteAfterTraverse = false;
+};
+
+/**
+ * Describes a run of consecutive vertexes of a scene geometry node that share one visibility, which is
+ * the unit visibility applies to: a vertex carries no visibility of its own.
+ */
+struct HiveVertexGroupDescriptor
+{
+	/// Vertexes making up this group, in the order they were loaded.
+	std::vector<Vertex> vertexes;
+
+	/// Name of the visibility this group has, as it appears in SceneGeometry::VertexVisibility
+	/// (e.g. "HOVERED_OVER").
+	std::string visibilityName;
 };
 
 /**
@@ -74,11 +92,12 @@ struct HiveNodeDescriptor
 	/// Destination of a TeleportNode. Only meaningful when type == TELEPORT.
 	GraphNodeLocation destination;
 
-	/// Vertexes of a SceneGeometryNode/SceneGeometryScriptNode. Only meaningful when hasVertexes is true.
-	std::vector<Vertex> vertexes;
+	/// Vertexes of a SceneGeometryNode/SceneGeometryScriptNode, gathered into groups by the visibility
+	/// they were loaded with. Only meaningful when type == SCENE_GEOMETRY or SCENE_GEOMETRY_SCRIPT.
+	std::vector<HiveVertexGroupDescriptor> vertexGroups;
 
-	/// Whether vertexes was supplied. Only meaningful when type == SCENE_GEOMETRY or SCENE_GEOMETRY_SCRIPT.
-	bool hasVertexes = false;
+	/// Whether a node emits an agent affect action when it is directly or indirectly affected by an action.
+	bool emitAgentAffectAction = false;
 
 	/// Transform of a SceneTransformNode/SceneTransformScriptNode. Only meaningful when hasTransform is true.
 	Transform transform;

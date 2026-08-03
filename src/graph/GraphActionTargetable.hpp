@@ -2,7 +2,7 @@
 #define GRAPH_ACTION_TARGETABLE_H
 
 #include "actionTargets/AgentActionTarget.hpp"
-#include "actionTargets/AgentVisibleActionTarget.hpp"
+#include "actionTargets/AgentAffectActionTarget.hpp"
 #include "actionTargets/AnimateActionTarget.hpp"
 #include "actionTargets/PingActionTarget.hpp"
 #include "actionTargets/SceneActionTarget.hpp"
@@ -69,7 +69,7 @@ class GraphActionTargetable
 		virtual TriggerActionTarget* getTriggerActionTarget();
 
 		/// Get the target for marking that an agentic action is being applied.
-		virtual AgentVisibleActionTarget* getAgentVisibleActionTarget();
+		virtual AgentAffectActionTarget* getAgentAffectActionTarget();
 
 	protected:
 

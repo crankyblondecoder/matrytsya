@@ -3,9 +3,10 @@
 
 #include <string>
 
-#include "../actionTargets/AgentVisibleActionTarget.hpp"
+#include "../actionTargets/AgentAffectActionTarget.hpp"
 #include "../actionTargets/SceneActionTarget.hpp"
 #include "../GraphFocusable.hpp"
+#include "AgentAffectingActionEmitter.hpp"
 #include "AnimateScriptNode.hpp"
 #include "SceneGeometry.hpp"
 
@@ -13,15 +14,20 @@
  * Graph node that represents scene geometry.
  */
 class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarget,
-	public AgentVisibleActionTarget, public GraphFocusable, public SceneGeometry
+	public AgentAffectActionTarget, public GraphFocusable, public SceneGeometry, public AgentAffectingActionEmitter
 {
     public:
 
 		/**
 		 * @param coreScript Lua source code that this node runs when invoked.
 		 * @param pokeScript Lua source code that this node runs when poked.
+		 * @param emitAgentAffectAction If true, this node emits an AgentAffectAction from this node if notified
+		 *        that it is being affected directly by an agent. This only ever happens through the automatic
+		 *        path (an agentic request being applied to this node); the setAgentVisible() Lua binding never
+		 *        triggers it.
 		 */
-        SceneGeometryScriptNode(const std::string& coreScript, const std::string& pokeScript);
+        SceneGeometryScriptNode(const std::string& coreScript, const std::string& pokeScript,
+			bool emitAgentAffectAction = false);
 
 		Type getType() override;
 
@@ -31,11 +37,12 @@ class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarg
 
 		SceneActionTarget* getSceneActionTarget() override;
 
-		AgentVisibleActionTarget* getAgentVisibleActionTarget() override;
+		AgentAffectActionTarget* getAgentAffectActionTarget() override;
 
-		void setAgentVisible(bool flag) override;
+		// Agent affect target API point.
+		void agentAffectingStart(bool direct) override;
 
-		bool getAgentVisible() override;
+		void agentAffectingEnd(bool direct) override;
 
 		unsigned getVersion() override;
 
@@ -45,6 +52,8 @@ class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarg
         virtual ~SceneGeometryScriptNode();
 
 		void _registerCoreGlobals(lua_State* luaState) override;
+
+		void _emitAgentAffectAction(bool agentAffecting) override;
 
     private:
 
@@ -111,7 +120,9 @@ class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarg
 
 		/**
 		 * Lua-facing `setAgentVisible(visible)`: sets whether the node bound as this closure's upvalue should
-		 * currently show its VertexVisibility.AGENT vertexes.
+		 * currently show its VertexVisibility.AGENT vertexes. Sets the flag directly on this node alone; unlike
+		 * the automatic path, this never emits an AgentAffectAction, since a script or tool call must not be
+		 * able to trigger the propagation that is reserved for the graph's own agent action machinery.
 		 * @param luaState Lua state the call is running against; argument 1 is the boolean to set and upvalue
 		 *        1 is a light userdata pointing at the target SceneGeometryScriptNode.
 		 * @returns Always 0.
@@ -134,6 +145,12 @@ class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarg
 		 * @param luaState Lua state to register the globals against.
 		 */
 		void __registerVertexBindings(lua_State* luaState);
+
+		/**
+		 * Set the agent visible flag.
+		 * @param flag Value to set the agent visible flag to.
+		 */
+		void __setAgentVisible(bool flag);
 
 		/// Metatable name used to type-check Vertex userdata passed into addVertex().
 		static constexpr const char* VERTEX_METATABLE = "SceneGeometryScriptNode.Vertex";

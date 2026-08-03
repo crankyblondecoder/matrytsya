@@ -242,10 +242,23 @@ class GraphAction : public RefCounted, public EventEmitter<GraphActionListener>
 		std::vector<unsigned> _traversedEdges;
 
 		/**
+		 * Whether the node currently bound to this action was reached via an edge flagged to end the action.
+		 * If true, once this node has had its chance to be applied to, the action completes instead of
+		 * continuing to traverse further.
+		 */
+		bool _completeAfterTraverse = false;
+
+		/**
 		 * Traverse to the next node.
 		 * @returns True if could traverse, false otherwise.
 		 */
 		bool __traverse();
+
+		/**
+		 * Get whether the node currently bound to this action was reached via an edge that ends the action,
+		 * i.e. whether this action should complete once it has had a chance to be applied to this node.
+		 */
+		bool __getCompleteAfterTraverse();
 
 		/**
 		 * Attempt to begin the next traversal pass.

@@ -53,6 +53,8 @@ class PersistException : public Exception
 			UNKNOWN_AGENT_CAPABILITY,
 			/// An agent node prompt's node type was not one of the names in GraphNode::Type.
 			UNKNOWN_AGENT_PROMPT_NODE_TYPE,
+			/// A vertex group's visibility was not one of the names in SceneGeometry::VertexVisibility.
+			UNKNOWN_VERTEX_VISIBILITY,
 
 			// -- HarnessBuilder errors --
 
@@ -107,6 +109,13 @@ class PersistException : public Exception
 			JSON_INVALID_DESTINATION,
 			/// A node's "vertexes" member was present but not an array, or a vertex object was malformed.
 			JSON_INVALID_VERTEXES,
+			/// A node's "vertexGroups" member was present but not an array, or a group object was malformed.
+			JSON_INVALID_VERTEX_GROUPS,
+			/// A node held both "vertexes" and "vertexGroups", which are alternative ways of saying the
+			/// same thing.
+			JSON_VERTEXES_AND_VERTEX_GROUPS,
+			/// A node's "emitAgentAffectAction" member was present but not a boolean.
+			JSON_INVALID_EMIT_AGENT_AFFECT_ACTION,
 			/// A node's "transform" member was present but not a 16 element numeric array.
 			JSON_INVALID_TRANSFORM,
 			/// A script node was missing required "coreScript" or "pokeScript", or either was not a string.
@@ -123,7 +132,8 @@ class PersistException : public Exception
 			JSON_INVALID_SURFACE_DEFAULT,
 			/// A surface's "initialFocusNodeName" member was present but not a string.
 			JSON_INVALID_SURFACE_INITIAL_FOCUS_NODE_NAME,
-			/// A surface's "focusViewportFraction" member was present but not a positive number.
+			/// A surface's "focusViewportFraction" member was present but not a number greater than 0 and no
+			/// greater than 1.
 			JSON_INVALID_SURFACE_FOCUS_VIEWPORT_FRACTION,
 			/// An AgentNode's "capability" member was missing or not a string.
 			JSON_INVALID_AGENT_CAPABILITY,

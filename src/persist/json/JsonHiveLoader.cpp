@@ -82,6 +82,13 @@ namespace
 				}
 			}
 
+			if(edgeValue.HasMember("actionsCompleteAfterTraverse"))
+			{
+				if(!edgeValue["actionsCompleteAfterTraverse"].IsBool()) throw PersistException(PersistException::JSON_INVALID_EDGES);
+
+				edgeDescriptor.actionsCompleteAfterTraverse = edgeValue["actionsCompleteAfterTraverse"].GetBool();
+			}
+
 			descriptor.edges.push_back(edgeDescriptor);
 		}
 	}
@@ -127,64 +134,158 @@ namespace
 		return location;
 	}
 
-	std::vector<Vertex> __parseVertexes(const rapidjson::Value& nodeValue)
+	Vertex __parseVertex(const rapidjson::Value& vertexValue, PersistException::Error onError)
 	{
-		std::vector<Vertex> vertexes;
+		if(!vertexValue.IsObject() || !vertexValue.HasMember("posn")) throw PersistException(onError);
 
-		if(!nodeValue.HasMember("vertexes")) return vertexes;
+		// Vertex is a plain POD struct with no member initialisers, so it must be zeroed before
+		// filling in whichever fields the JSON actually supplies.
+		Vertex vertex{};
 
-		const rapidjson::Value& vertexesValue = nodeValue["vertexes"];
+		__readDoubleArray(vertexValue["posn"], vertex.posn, 3, onError);
+
+		if(vertexValue.HasMember("colour"))
+		{
+			const rapidjson::Value& colourValue = vertexValue["colour"];
+
+			if(!colourValue.IsArray() || colourValue.Size() != 4) throw PersistException(onError);
+
+			for(unsigned i = 0; i < 4; i++)
+			{
+				if(!colourValue[i].IsInt()) throw PersistException(onError);
+
+				int component = colourValue[i].GetInt();
+
+				if(component < 0 || component > 255) throw PersistException(onError);
+
+				vertex.colour[i] = static_cast<std::byte>(component);
+			}
+		}
+
+		if(vertexValue.HasMember("texCoords"))
+		{
+			__readDoubleArray(vertexValue["texCoords"], vertex.texCoords, 2, onError);
+		}
+
+		if(vertexValue.HasMember("normal"))
+		{
+			__readDoubleArray(vertexValue["normal"], vertex.normal, 3, onError);
+		}
+
+		return vertex;
+	}
+
+	/**
+	 * Read the flat "vertexes" form, where visibility is written against each vertex and the groups it
+	 * describes are the runs of consecutive vertexes sharing one.
+	 */
+	std::vector<HiveVertexGroupDescriptor> __parseVertexes(const rapidjson::Value& vertexesValue)
+	{
+		std::vector<HiveVertexGroupDescriptor> vertexGroups;
 
 		if(!vertexesValue.IsArray()) throw PersistException(PersistException::JSON_INVALID_VERTEXES);
 
 		for(auto& vertexValue : vertexesValue.GetArray())
 		{
-			if(!vertexValue.IsObject() || !vertexValue.HasMember("posn"))
+			Vertex vertex = __parseVertex(vertexValue, PersistException::JSON_INVALID_VERTEXES);
+
+			// Schema default.
+			std::string visibilityName = "ALWAYS";
+
+			if(vertexValue.HasMember("visibility"))
 			{
-				throw PersistException(PersistException::JSON_INVALID_VERTEXES);
+				if(!vertexValue["visibility"].IsString()) throw PersistException(PersistException::JSON_INVALID_VERTEXES);
+
+				// Only checked for being a name here; whether it is a name that exists is HiveBuilder's concern.
+				visibilityName = vertexValue["visibility"].GetString();
 			}
 
-			// Vertex is a plain POD struct with no member initialisers, so it must be zeroed before
-			// filling in whichever fields the JSON actually supplies.
-			Vertex vertex{};
-
-			__readDoubleArray(vertexValue["posn"], vertex.posn, 3, PersistException::JSON_INVALID_VERTEXES);
-
-			if(vertexValue.HasMember("colour"))
+			// Visibility belongs to a group of vertexes rather than to a vertex, so each run of consecutive
+			// vertexes sharing one visibility becomes a single group.
+			if(vertexGroups.empty() || vertexGroups.back().visibilityName != visibilityName)
 			{
-				const rapidjson::Value& colourValue = vertexValue["colour"];
-
-				if(!colourValue.IsArray() || colourValue.Size() != 4)
-				{
-					throw PersistException(PersistException::JSON_INVALID_VERTEXES);
-				}
-
-				for(unsigned i = 0; i < 4; i++)
-				{
-					if(!colourValue[i].IsInt()) throw PersistException(PersistException::JSON_INVALID_VERTEXES);
-
-					int component = colourValue[i].GetInt();
-
-					if(component < 0 || component > 255) throw PersistException(PersistException::JSON_INVALID_VERTEXES);
-
-					vertex.colour[i] = static_cast<std::byte>(component);
-				}
+				vertexGroups.push_back(HiveVertexGroupDescriptor{.visibilityName = visibilityName});
 			}
 
-			if(vertexValue.HasMember("texCoords"))
-			{
-				__readDoubleArray(vertexValue["texCoords"], vertex.texCoords, 2, PersistException::JSON_INVALID_VERTEXES);
-			}
-
-			if(vertexValue.HasMember("normal"))
-			{
-				__readDoubleArray(vertexValue["normal"], vertex.normal, 3, PersistException::JSON_INVALID_VERTEXES);
-			}
-
-			vertexes.push_back(vertex);
+			vertexGroups.back().vertexes.push_back(vertex);
 		}
 
-		return vertexes;
+		return vertexGroups;
+	}
+
+	/**
+	 * Read the grouped "vertexGroups" form, where each group states its visibility once for all of the
+	 * vertexes it holds.
+	 */
+	std::vector<HiveVertexGroupDescriptor> __parseVertexGroups(const rapidjson::Value& vertexGroupsValue)
+	{
+		std::vector<HiveVertexGroupDescriptor> vertexGroups;
+
+		if(!vertexGroupsValue.IsArray()) throw PersistException(PersistException::JSON_INVALID_VERTEX_GROUPS);
+
+		for(auto& vertexGroupValue : vertexGroupsValue.GetArray())
+		{
+			if(!vertexGroupValue.IsObject() || !vertexGroupValue.HasMember("vertexes") ||
+				!vertexGroupValue["vertexes"].IsArray())
+			{
+				throw PersistException(PersistException::JSON_INVALID_VERTEX_GROUPS);
+			}
+
+			HiveVertexGroupDescriptor groupDescriptor;
+
+			// Schema default.
+			groupDescriptor.visibilityName = "ALWAYS";
+
+			if(vertexGroupValue.HasMember("visibility"))
+			{
+				if(!vertexGroupValue["visibility"].IsString())
+				{
+					throw PersistException(PersistException::JSON_INVALID_VERTEX_GROUPS);
+				}
+
+				// Only checked for being a name here; whether it is a name that exists is HiveBuilder's concern.
+				groupDescriptor.visibilityName = vertexGroupValue["visibility"].GetString();
+			}
+
+			for(auto& vertexValue : vertexGroupValue["vertexes"].GetArray())
+			{
+				groupDescriptor.vertexes.push_back(__parseVertex(vertexValue, PersistException::JSON_INVALID_VERTEX_GROUPS));
+			}
+
+			// A group holding nothing would only ever reach a surface as an empty chunk, so it is left out
+			// rather than carried through the build.
+			if(!groupDescriptor.vertexes.empty()) vertexGroups.push_back(groupDescriptor);
+		}
+
+		return vertexGroups;
+	}
+
+	void __parseGeometry(const rapidjson::Value& nodeValue, HiveNodeDescriptor& descriptor)
+	{
+		bool hasVertexes = nodeValue.HasMember("vertexes");
+		bool hasVertexGroups = nodeValue.HasMember("vertexGroups");
+
+		// The two are alternative spellings of one thing, so a node holding both says nothing about the
+		// order they would combine in.
+		if(hasVertexes && hasVertexGroups)
+		{
+			throw PersistException(PersistException::JSON_VERTEXES_AND_VERTEX_GROUPS);
+		}
+
+		if(hasVertexes) descriptor.vertexGroups = __parseVertexes(nodeValue["vertexes"]);
+		else if(hasVertexGroups) descriptor.vertexGroups = __parseVertexGroups(nodeValue["vertexGroups"]);
+	}
+
+	void __parseEmitAgentAffectAction(const rapidjson::Value& nodeValue, HiveNodeDescriptor& descriptor)
+	{
+		if(!nodeValue.HasMember("emitAgentAffectAction")) return;
+
+		if(!nodeValue["emitAgentAffectAction"].IsBool())
+		{
+			throw PersistException(PersistException::JSON_INVALID_EMIT_AGENT_AFFECT_ACTION);
+		}
+
+		descriptor.emitAgentAffectAction = nodeValue["emitAgentAffectAction"].GetBool();
 	}
 
 	void __parseScriptSource(const rapidjson::Value& nodeValue, std::string& coreScript, std::string& pokeScript)
@@ -323,8 +424,9 @@ namespace
 		if(descriptor.type == HiveNodeDescriptor::SCENE_GEOMETRY ||
 			descriptor.type == HiveNodeDescriptor::SCENE_GEOMETRY_SCRIPT)
 		{
-			descriptor.hasVertexes = nodeValue.HasMember("vertexes");
-			descriptor.vertexes = __parseVertexes(nodeValue);
+			__parseGeometry(nodeValue, descriptor);
+
+			__parseEmitAgentAffectAction(nodeValue, descriptor);
 		}
 
 		if(descriptor.type == HiveNodeDescriptor::SCENE_TRANSFORM ||
@@ -336,6 +438,8 @@ namespace
 			{
 				__readDoubleArray(nodeValue["transform"], descriptor.transform, 16, PersistException::JSON_INVALID_TRANSFORM);
 			}
+
+			__parseEmitAgentAffectAction(nodeValue, descriptor);
 		}
 
 		if(__isScriptType(descriptor.type))
@@ -396,12 +500,22 @@ namespace
 
 			if(surfaceValue.HasMember("focusViewportFraction"))
 			{
-				if(!surfaceValue["focusViewportFraction"].IsNumber() || surfaceValue["focusViewportFraction"].GetDouble() <= 0.0)
+				if(!surfaceValue["focusViewportFraction"].IsNumber())
 				{
 					throw PersistException(PersistException::JSON_INVALID_SURFACE_FOCUS_VIEWPORT_FRACTION);
 				}
 
-				descriptor.focusViewportFraction = surfaceValue["focusViewportFraction"].GetDouble();
+				double focusViewportFraction = surfaceValue["focusViewportFraction"].GetDouble();
+
+				// A fraction of the viewport is only meaningful up to the whole of it, which is the bound the
+				// schema states, so anything above 1 is rejected here rather than left to set up a camera that
+				// cannot frame what it was pointed at.
+				if(focusViewportFraction <= 0.0 || focusViewportFraction > 1.0)
+				{
+					throw PersistException(PersistException::JSON_INVALID_SURFACE_FOCUS_VIEWPORT_FRACTION);
+				}
+
+				descriptor.focusViewportFraction = focusViewportFraction;
 			}
 		}
 

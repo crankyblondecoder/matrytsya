@@ -1,4 +1,5 @@
 #include "SceneGeometryScriptNode.hpp"
+#include "../actions/AgentAffectAction.hpp"
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphHiveSceneSurface.hpp"
 
@@ -8,12 +9,14 @@ SceneGeometryScriptNode::~SceneGeometryScriptNode()
 {
 }
 
-SceneGeometryScriptNode::SceneGeometryScriptNode(const std::string& coreScript, const std::string& pokeScript)
-	: AnimateScriptNode(coreScript, pokeScript)
+SceneGeometryScriptNode::SceneGeometryScriptNode(const std::string& coreScript, const std::string& pokeScript,
+	bool emitAgentAffectAction)
+	: AnimateScriptNode(coreScript, pokeScript), AgentAffectingActionEmitter(emitAgentAffectAction)
 {
 	_setEnergyCost(1);
 	_addActionFlag(SCENE_GRAPH_ACTION);
 	_addActionFlag(SCENE_STROBE_GRAPH_ACTION);
+	_addActionFlag(AGENT_AFFECT_GRAPH_ACTION);
 }
 
 GraphNode::Type SceneGeometryScriptNode::getType()
@@ -42,19 +45,40 @@ SceneActionTarget* SceneGeometryScriptNode::getSceneActionTarget()
 	return this;
 }
 
-AgentVisibleActionTarget* SceneGeometryScriptNode::getAgentVisibleActionTarget()
+AgentAffectActionTarget* SceneGeometryScriptNode::getAgentAffectActionTarget()
 {
 	return this;
 }
 
-void SceneGeometryScriptNode::setAgentVisible(bool flag)
+void SceneGeometryScriptNode::agentAffectingStart(bool direct)
+{
+	__setAgentVisible(true);
+	_agentAffectingStart(direct);
+}
+
+void SceneGeometryScriptNode::agentAffectingEnd(bool direct)
+{
+	__setAgentVisible(false);
+	_agentAffectingEnd(direct);
+}
+
+void SceneGeometryScriptNode::__setAgentVisible(bool flag)
 {
 	SceneGeometry::setAgentVisible(flag);
 }
 
-bool SceneGeometryScriptNode::getAgentVisible()
+void SceneGeometryScriptNode::_emitAgentAffectAction(bool agentAffecting)
 {
-	return SceneGeometry::getAgentVisible();
+	Handle<GraphNode> handle(this);
+
+	// Action will self delete once complete.
+	AgentAffectAction* action = new AgentAffectAction(handle, agentAffecting);
+
+	action -> incrRef();
+
+	_emitAction(action);
+
+	action -> decrRef();
 }
 
 int SceneGeometryScriptNode::__luaVertexConstructor(lua_State* luaState)
@@ -147,7 +171,7 @@ int SceneGeometryScriptNode::__luaSetAgentVisible(lua_State* luaState)
 {
 	SceneGeometryScriptNode* node = static_cast<SceneGeometryScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
 
-	node -> SceneGeometry::setAgentVisible(lua_toboolean(luaState, 1));
+	node -> __setAgentVisible(lua_toboolean(luaState, 1));
 
 	return 0;
 }

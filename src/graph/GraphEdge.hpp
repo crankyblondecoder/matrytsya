@@ -81,6 +81,19 @@ class GraphEdge : public RefCounted
 		 */
 		void setDescription(std::string description);
 
+		/**
+		 * Get whether a graph action completes once it has traversed this edge.
+		 * @returns True if actions complete after traversing this edge. False otherwise.
+		 */
+		bool getActionsCompleteAfterTraverse();
+
+		/**
+		 * Set whether a graph action completes once it has traversed this edge, rather than continuing to
+		 * traverse further once applied to the node this edge leads to.
+		 * @param complete True if actions should complete after traversing this edge. False otherwise.
+		 */
+		void setActionsCompleteAfterTraverse(bool complete);
+
 	protected:
 
 		// This is a requirement of being ref counted.
@@ -102,6 +115,10 @@ class GraphEdge : public RefCounted
 
 		/// Optional description of this edge. Empty if none has been set.
 		std::string _description;
+
+		/// Whether a graph action completes once it has traversed this edge. Defaults to false; set via
+		/// setActionsCompleteAfterTraverse().
+		std::atomic<bool> _actionsCompleteAfterTraverse{false};
 };
 
 #endif

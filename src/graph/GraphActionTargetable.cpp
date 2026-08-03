@@ -81,7 +81,7 @@ TriggerActionTarget* GraphActionTargetable::getTriggerActionTarget()
 	return 0;
 }
 
-AgentVisibleActionTarget* GraphActionTargetable::getAgentVisibleActionTarget()
+AgentAffectActionTarget* GraphActionTargetable::getAgentAffectActionTarget()
 {
 	return 0;
 }

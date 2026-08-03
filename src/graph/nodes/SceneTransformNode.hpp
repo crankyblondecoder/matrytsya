@@ -3,9 +3,11 @@
 
 #include <atomic>
 
+#include "../actionTargets/AgentAffectActionTarget.hpp"
 #include "../actionTargets/SceneActionTarget.hpp"
 #include "../actionTargets/StrobeActionTarget.hpp"
 #include "../GraphNode.hpp"
+#include "AgentAffectingActionEmitter.hpp"
 #include "SceneTransform.hpp"
 
 class GraphHiveSceneSurface;
@@ -14,11 +16,16 @@ class GraphHiveSceneSurface;
  * Graph node that represents a transform applied to scene geometry, set directly through its C++ API
  * rather than a Lua script.
  */
-class SceneTransformNode : public GraphNode, public SceneActionTarget, public StrobeActionTarget, public SceneTransform
+class SceneTransformNode : public GraphNode, public SceneActionTarget, public StrobeActionTarget,
+	public AgentAffectActionTarget, public SceneTransform, public AgentAffectingActionEmitter
 {
     public:
 
-        SceneTransformNode();
+		/**
+		 * @param emitAgentAffectAction If true, this node emits an AgentAffectAction from this node if notified
+		 *        that it is being affected directly by an agent.
+		 */
+        SceneTransformNode(bool emitAgentAffectAction = false);
 
 		Type getType() override;
 
@@ -32,6 +39,13 @@ class SceneTransformNode : public GraphNode, public SceneActionTarget, public St
 
 		StrobeActionTarget* getStrobeActionTarget() override;
 
+		AgentAffectActionTarget* getAgentAffectActionTarget() override;
+
+		// Agent affect target API point.
+		void agentAffectingStart(bool direct) override;
+
+		void agentAffectingEnd(bool direct) override;
+
 		unsigned getVersion() override;
 
 	protected:
@@ -40,6 +54,8 @@ class SceneTransformNode : public GraphNode, public SceneActionTarget, public St
         virtual ~SceneTransformNode();
 
 		void _poked(GraphPoke poke) override;
+
+		void _emitAgentAffectAction(bool agentAffecting) override;
 
     private:
 

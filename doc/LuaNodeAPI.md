@@ -332,7 +332,9 @@ No `scriptSource`; this node type never runs Lua.
 
 ## `sceneGeometryNode`
 
-No `scriptSource`; its `vertexes` are set directly from JSON rather than by a script.
+No `scriptSource`; its `vertexes` are set directly from JSON rather than by a script. Like
+`sceneGeometryScriptNode`, setting its agent visible flag can also emit an `AgentAffectAction`; see
+`emitAgentAffectAction` below.
 
 ## `sceneGeometryScriptNode`
 
@@ -352,13 +354,18 @@ with `if vertexCount() == 0 then` still works, and is what scripts written befor
 | `addVertex(vertex, [visibility])` | Appends a single `Vertex` (as built by the `Vertex` constructor) to this node's vertex list. `visibility` is an optional `VertexVisibility.*` constant (default `VertexVisibility.ALWAYS`); an unrecognized value raises an error. |
 | `addVertexes(vertexes, [visibility])` | Appends every `Vertex` in the given array-style table (indexes `1..#vertexes`) to this node's vertex list in one call. `visibility` is an optional `VertexVisibility.*` constant (default `VertexVisibility.ALWAYS`); an unrecognized value raises an error. |
 | `vertexCount()` | Returns the number of vertexes currently held by this node. |
-| `setAgentVisible(visible)` | Sets whether this node's `VertexVisibility.AGENT` vertexes are currently shown. `visible` is a boolean. This is also set automatically for the duration of an agentic request made against this node, so a script only needs it to drive the same geometry for reasons of its own. |
+| `setAgentVisible(visible)` | Sets whether this node's `VertexVisibility.AGENT` vertexes are currently shown. `visible` is a boolean. This is also set automatically for the duration of an agentic request made against this node, so a script only needs it to drive the same geometry for reasons of its own. Calling it from a script emits an `AgentAffectAction` from this node exactly as the automatic path does, if the node was constructed with `emitAgentAffectAction` true. |
 | `getAgentVisible()` | Returns `true` if this node's `VertexVisibility.AGENT` vertexes are currently shown, `false` otherwise. |
 
 Vertexes are appended in the order added; each consecutive triplet defines a triangle with
 counter-clockwise winding order for the front face, matching the `vertexes` array in the JSON schema. The two
 routes differ on colour alone: the JSON array takes integers only, while the `Vertex` constructor rounds
 whatever number it is given.
+
+If `emitAgentAffectAction` is set true in JSON, the agent visible flag being set automatically for the
+duration of an agentic request also emits an `AgentAffectAction` from this node, carrying the new flag
+value onward across its edges so downstream geometry can react to it too. It defaults false, since most
+geometry has nothing downstream that needs to hear about it.
 
 `VertexVisibility.AGENT` geometry is the one visibility the server decides. Setting the flag costs a single
 node id in the data the viewer polls for; the vertexes themselves are never resent, so it is cheap enough to

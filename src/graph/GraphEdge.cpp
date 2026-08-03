@@ -86,3 +86,13 @@ void GraphEdge::setDescription(std::string description)
 	_description = description;
 }
 
+bool GraphEdge::getActionsCompleteAfterTraverse()
+{
+	return _actionsCompleteAfterTraverse;
+}
+
+void GraphEdge::setActionsCompleteAfterTraverse(bool complete)
+{
+	_actionsCompleteAfterTraverse = complete;
+}
+

@@ -3,7 +3,9 @@
 
 #include <string>
 
+#include "../actionTargets/AgentAffectActionTarget.hpp"
 #include "../actionTargets/SceneActionTarget.hpp"
+#include "AgentAffectingActionEmitter.hpp"
 #include "AnimateScriptNode.hpp"
 #include "SceneTransform.hpp"
 
@@ -15,15 +17,19 @@ struct lua_State;
  * Graph node that represents a transform applied to scene geometry.
  * Its script can read and modify the current transform via the getTransform()/setTransform() Lua globals.
  */
-class SceneTransformScriptNode : public AnimateScriptNode, public SceneActionTarget, public SceneTransform
+class SceneTransformScriptNode : public AnimateScriptNode, public SceneActionTarget,
+	public AgentAffectActionTarget, public SceneTransform, public AgentAffectingActionEmitter
 {
     public:
 
 		/**
 		 * @param script Lua source code that this node runs when invoked.
 		 * @param pokeScript Lua source code that this node runs when poked.
+		 * @param emitAgentAffectAction If true, this node emits an AgentAffectAction from this node if notified
+		 *        that it is being affected directly by an agent.
 		 */
-        SceneTransformScriptNode(const std::string& script, const std::string& pokeScript);
+        SceneTransformScriptNode(const std::string& script, const std::string& pokeScript,
+			bool emitAgentAffectAction = false);
 
 		Type getType() override;
 
@@ -33,6 +39,13 @@ class SceneTransformScriptNode : public AnimateScriptNode, public SceneActionTar
 
 		SceneActionTarget* getSceneActionTarget() override;
 
+		AgentAffectActionTarget* getAgentAffectActionTarget() override;
+
+		// Agent affect target API point.
+		void agentAffectingStart(bool direct) override;
+
+		void agentAffectingEnd(bool direct) override;
+
 		unsigned getVersion() override;
 
 	protected:
@@ -41,6 +54,8 @@ class SceneTransformScriptNode : public AnimateScriptNode, public SceneActionTar
         virtual ~SceneTransformScriptNode();
 
 		void _registerCoreGlobals(lua_State* luaState) override;
+
+		void _emitAgentAffectAction(bool agentAffecting) override;
 
     private:
 

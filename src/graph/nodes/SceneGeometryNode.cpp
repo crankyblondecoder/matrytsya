@@ -1,4 +1,5 @@
 #include "SceneGeometryNode.hpp"
+#include "../actions/AgentAffectAction.hpp"
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphHiveSceneSurface.hpp"
 #include "SceneGeometry.hpp"
@@ -7,12 +8,13 @@ SceneGeometryNode::~SceneGeometryNode()
 {
 }
 
-SceneGeometryNode::SceneGeometryNode()
-	: GraphNode()
+SceneGeometryNode::SceneGeometryNode(bool emitAgentAffectAction)
+	: GraphNode(), AgentAffectingActionEmitter(emitAgentAffectAction)
 {
 	_setEnergyCost(1);
 	_addActionFlag(SCENE_GRAPH_ACTION);
 	_addActionFlag(SCENE_STROBE_GRAPH_ACTION);
+	_addActionFlag(AGENT_AFFECT_GRAPH_ACTION);
 }
 
 GraphNode::Type SceneGeometryNode::getType()
@@ -44,23 +46,44 @@ StrobeActionTarget* SceneGeometryNode::getStrobeActionTarget()
 	return this;
 }
 
-AgentVisibleActionTarget* SceneGeometryNode::getAgentVisibleActionTarget()
+AgentAffectActionTarget* SceneGeometryNode::getAgentAffectActionTarget()
 {
 	return this;
 }
 
-void SceneGeometryNode::setAgentVisible(bool flag)
+void SceneGeometryNode::agentAffectingStart(bool direct)
+{
+	__setAgentVisible(true);
+	_agentAffectingStart(direct);
+}
+
+void SceneGeometryNode::agentAffectingEnd(bool direct)
+{
+	__setAgentVisible(false);
+	_agentAffectingEnd(direct);
+}
+
+void SceneGeometryNode::__setAgentVisible(bool flag)
 {
 	SceneGeometry::setAgentVisible(flag);
 }
 
-bool SceneGeometryNode::getAgentVisible()
-{
-	return SceneGeometry::getAgentVisible();
-}
-
 void SceneGeometryNode::_poked(GraphPoke poke)
 {
+}
+
+void SceneGeometryNode::_emitAgentAffectAction(bool agentAffecting)
+{
+	Handle<GraphNode> handle(this);
+
+	// Action will self delete once complete.
+	AgentAffectAction* action = new AgentAffectAction(handle, agentAffecting);
+
+	action -> incrRef();
+
+	_emitAction(action);
+
+	action -> decrRef();
 }
 
 unsigned SceneGeometryNode::getVersion()

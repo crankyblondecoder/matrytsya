@@ -1,5 +1,6 @@
 #include "SceneTransformScriptNode.hpp"
 
+#include "../actions/AgentAffectAction.hpp"
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphHiveSceneSurface.hpp"
 
@@ -9,12 +10,14 @@ SceneTransformScriptNode::~SceneTransformScriptNode()
 {
 }
 
-SceneTransformScriptNode::SceneTransformScriptNode(const std::string& script, const std::string& pokeScript)
-	: AnimateScriptNode(script, pokeScript)
+SceneTransformScriptNode::SceneTransformScriptNode(const std::string& script, const std::string& pokeScript,
+	bool emitAgentAffectAction)
+	: AnimateScriptNode(script, pokeScript), AgentAffectingActionEmitter(emitAgentAffectAction)
 {
 	_setEnergyCost(1);
 	_addActionFlag(SCENE_GRAPH_ACTION);
 	_addActionFlag(SCENE_STROBE_GRAPH_ACTION);
+	_addActionFlag(AGENT_AFFECT_GRAPH_ACTION);
 }
 
 GraphNode::Type SceneTransformScriptNode::getType()
@@ -41,6 +44,35 @@ void SceneTransformScriptNode::strobe()
 SceneActionTarget* SceneTransformScriptNode::getSceneActionTarget()
 {
 	return this;
+}
+
+AgentAffectActionTarget* SceneTransformScriptNode::getAgentAffectActionTarget()
+{
+	return this;
+}
+
+void SceneTransformScriptNode::agentAffectingStart(bool direct)
+{
+	_agentAffectingStart(direct);
+}
+
+void SceneTransformScriptNode::agentAffectingEnd(bool direct)
+{
+	_agentAffectingEnd(direct);
+}
+
+void SceneTransformScriptNode::_emitAgentAffectAction(bool agentAffecting)
+{
+	Handle<GraphNode> handle(this);
+
+	// Action will self delete once complete.
+	AgentAffectAction* action = new AgentAffectAction(handle, agentAffecting);
+
+	action -> incrRef();
+
+	_emitAction(action);
+
+	action -> decrRef();
 }
 
 int SceneTransformScriptNode::__luaGetTransform(lua_State* luaState)

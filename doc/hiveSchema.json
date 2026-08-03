@@ -53,9 +53,10 @@
 				"SCENE_STROBE_GRAPH_ACTION",
 				"ANIMATE_GRAPH_ACTION",
 				"AGENT_GRAPH_ACTION",
-				"TRIGGER_GRAPH_ACTION"
+				"TRIGGER_GRAPH_ACTION",
+				"AGENT_AFFECT_GRAPH_ACTION"
 			],
-			"description": "Used to describe the type of a particular graph action. Some actions carry more than one, and an edge naming any one of them admits that action. PING_GRAPH_ACTION: a ping action. SERIALISABLE_GRAPH_ACTION: an action that can be teleported to another hive, carried by ping and trigger actions, and the only flag a teleport node acts on. SCRIPT_GRAPH_ACTION: an action that runs a node's coreScript, carried by script actions and by the strobe action that drives them. SCENE_GRAPH_ACTION: the action a surface runs to collect geometry and transforms into itself. SCENE_STROBE_GRAPH_ACTION: the action a registered strobe emitter sends out at a fixed rate. ANIMATE_GRAPH_ACTION: the action that carries an animating mode out from the node that set it. AGENT_GRAPH_ACTION: the action an agent node emits to carry one conversation from node to node. TRIGGER_GRAPH_ACTION: the action emitted by a trigger node, by a script's trigger() call, or by a model's emitTrigger tool."
+			"description": "Used to describe the type of a particular graph action. Some actions carry more than one, and an edge naming any one of them admits that action. PING_GRAPH_ACTION: a ping action. SERIALISABLE_GRAPH_ACTION: an action that can be teleported to another hive, carried by ping and trigger actions, and the only flag a teleport node acts on. SCRIPT_GRAPH_ACTION: an action that runs a node's coreScript, carried by script actions and by the strobe action that drives them. SCENE_GRAPH_ACTION: the action a surface runs to collect geometry and transforms into itself. SCENE_STROBE_GRAPH_ACTION: the action a registered strobe emitter sends out at a fixed rate. ANIMATE_GRAPH_ACTION: the action that carries an animating mode out from the node that set it. AGENT_GRAPH_ACTION: the action an agent node emits to carry one conversation from node to node. TRIGGER_GRAPH_ACTION: the action emitted by a trigger node, by a script's trigger() call, or by a model's emitTrigger tool. AGENT_AFFECT_GRAPH_ACTION: the action a node sends out across its edges when an agentic request starts or stops directly affecting it, so that other nodes can react to it too. Sent only by a node whose emitAgentAffectAction is set; on scene geometry it arrives as that node's agent-visible flag being set."
 		},
 
 		"nodeType": {
@@ -108,7 +109,12 @@
 				"actionFlags": {
 					"type": "array",
 					"items": { "$ref": "#/$defs/actionFlag" },
-					"description": "Restricts which types of action may cross this edge: an action can only traverse it if its own action type matches one of the flags listed here. If omitted or empty, this edge places no restriction and any action may traverse it. Listing flags also gives an edge precedence when a node picks which single edge an action crosses: where an action could cross either, an edge naming an action type it matches is taken ahead of an unrestricted edge, whatever order the two appear in. An unrestricted edge is therefore a fallback route rather than one competing on position."
+					"description": "Restricts which types of action may cross this edge: an action can only traverse it if its own action type matches one of the flags listed here. If omitted or empty, this edge places no restriction and any action may traverse it, with one exception: an agent action requires a named match and never crosses an unrestricted edge, so a route meant to carry one must list AGENT_GRAPH_ACTION. Listing flags also gives an edge precedence when a node picks which single edge an action crosses: where an action could cross either, an edge naming an action type it matches is taken ahead of an unrestricted edge, whatever order the two appear in. An unrestricted edge is therefore a fallback route rather than one competing on position. Whatever the flags say, an action never crosses the same edge twice on one pass through the graph, so a cycle is walked round once rather than endlessly."
+				},
+				"actionsCompleteAfterTraverse": {
+					"type": "boolean",
+					"default": false,
+					"description": "Whether an action completes once it has traversed this edge. The node the edge leads to is still applied to as normal, but that application is the action's last: it never goes on to cross a further edge from there, however many remain permitted. If omitted or false, the action carries on as normal once applied to that node."
 				}
 			}
 		},
@@ -188,11 +194,10 @@
 			}
 		},
 
-		"vertex": {
-			"description": "A single vertex of a piece of scene geometry.",
+		"vertexFields": {
+			"description": "The geometry a vertex carries, shared by both ways of writing vertexes. Not a form that can be used on its own.",
 			"type": "object",
 			"required": ["posn"],
-			"additionalProperties": false,
 			"properties": {
 				"posn": {
 					"type": "array",
@@ -221,11 +226,51 @@
 					"minItems": 3,
 					"maxItems": 3,
 					"description": "Normal in right hand cartesian coordinates (must be normalised): In order X, Y, Z."
-				},
+				}
+			}
+		},
+
+		"groupedVertex": {
+			"description": "A single vertex of a piece of scene geometry, within a vertex group that states the visibility for all of them.",
+			"allOf": [
+				{ "$ref": "#/$defs/vertexFields" }
+			],
+			"unevaluatedProperties": false
+		},
+
+		"vertex": {
+			"description": "A single vertex of a piece of scene geometry, carrying the visibility of the group it belongs to.",
+			"allOf": [
+				{ "$ref": "#/$defs/vertexFields" },
+				{
+					"properties": {
+						"visibility": {
+							"$ref": "#/$defs/vertexVisibility",
+							"default": "ALWAYS",
+							"description": "When this vertex is displayed. Visibility belongs to a group of vertexes rather than to a vertex: each run of consecutive vertexes sharing one visibility forms a single group, and a run that returns to a visibility used earlier opens a new group rather than rejoining the earlier one. Each run should therefore be a whole number of triangles, since a triangle split across two groups is left incomplete in both. Omit for ALWAYS. Writing it out per vertex like this suits geometry that is mostly one visibility; use vertexGroups instead to state it once for a whole group."
+						}
+					}
+				}
+			],
+			"unevaluatedProperties": false
+		},
+
+		"vertexGroup": {
+			"description": "A group of vertexes that share one visibility, stated once for the whole group rather than repeated against every vertex.",
+			"type": "object",
+			"required": ["vertexes"],
+			"additionalProperties": false,
+			"properties": {
 				"visibility": {
 					"$ref": "#/$defs/vertexVisibility",
 					"default": "ALWAYS",
-					"description": "When this vertex is displayed. Runs of consecutive vertexes with the same visibility form a single vertex group. Omit for ALWAYS."
+					"description": "When the vertexes of this group are displayed. Omit for ALWAYS."
+				},
+				"vertexes": {
+					"type": "array",
+					"minItems": 1,
+					"items": { "$ref": "#/$defs/groupedVertex" },
+					"description": "Vertexes making up this group. Each triplet defines a triangle with counter-clockwise winding order for the front face, so a group should hold a whole number of triangles."
 				}
 			}
 		},
@@ -265,7 +310,7 @@
 		},
 
 		"scriptSource": {
-			"description": "The pair of Lua scripts that a scripted node runs. coreScript runs when an action that runs scripts reaches the node, which in a running hive means once per strobe, so it is run repeatedly. It may optionally define two entry points as globals: init(), which is called once and once only per node, on the first run that reaches it, for work that must happen exactly once, and invoke(), which is called on every run. The body of the script outside those functions is run in full on every run until either entry point exists, so a script that defines one has its top level run only once and is entered through those functions thereafter, while a script that defines neither is simply run top to bottom every time. A script defining only init() therefore builds itself once and then does nothing on any later run. pokeScript runs only when the node is poked, and only if pokeEnabled is set, and has no such entry points. See LuaNodeAPI.md.",
+			"description": "The pair of Lua scripts that a scripted node runs. coreScript runs when an action that runs scripts reaches the node, which in a running hive means once per strobe, so it is run repeatedly. It may optionally define two entry points as globals: init(), which is called once and once only per node, on the first run that reaches it, for work that must happen exactly once, and invoke(), which is called on every run. The body of the script outside those functions is run in full on every run until either entry point exists, so a script that defines one has its top level run only once and is entered through those functions thereafter, while a script that defines neither is simply run top to bottom every time. A script defining only init() therefore builds itself once and then does nothing on any later run. pokeScript runs only when the node is poked, and only if pokeEnabled is set, and has no such entry points. A coreScript may also define getToolCallBindings(capability) as a global, declaring tool calls this node offers a visiting model on top of the fixed set its node type already carries. That one is not an entry point: no run ever calls it, and defining it does not close the top level down the way init() or invoke() does. It is called only while an agentic request is being applied to this node. See LuaNodeAPI.md.",
 			"type": "object",
 			"required": ["coreScript", "pokeScript"],
 			"properties": {
@@ -333,12 +378,23 @@
 		},
 
 		"sceneGeometryFields": {
-			"description": "Scene-geometry payload shared by SceneGeometryNode and SceneGeometryScriptNode. Mixed into both; not a node type in its own right.",
+			"description": "Scene-geometry payload shared by SceneGeometryNode and SceneGeometryScriptNode. Mixed into both; not a node type in its own right. Vertexes are written either as a flat vertexes array carrying a visibility per vertex, or as a vertexGroups array stating one visibility per group. The two describe the same thing, so a node carries one or the other and never both.",
+			"not": { "required": ["vertexes", "vertexGroups"] },
 			"properties": {
 				"vertexes": {
 					"type": "array",
 					"items": { "$ref": "#/$defs/vertex" },
-					"description": "Vertexes making up the scene object this node defines. Each triplet defines a triangle with counter-clockwise winding order for the front face."
+					"description": "Vertexes making up the scene object this node defines, as one flat list. Each triplet defines a triangle with counter-clockwise winding order for the front face. Geometry that is all one visibility, or nearly so, is shortest written this way; anything carrying sizeable runs of a visibility is better written as vertexGroups, which states it once per group instead of against every vertex."
+				},
+				"vertexGroups": {
+					"type": "array",
+					"items": { "$ref": "#/$defs/vertexGroup" },
+					"description": "Vertexes making up the scene object this node defines, gathered into groups that each state their visibility once. Groups are built in the order given, and their vertexes reach a surface in that order. This is the same structure the scene itself holds, so it is the form to reach for when a node carries geometry of more than one visibility."
+				},
+				"emitAgentAffectAction": {
+					"type": "boolean",
+					"default": false,
+					"description": "Whether marking this node's agent-visible flag also sends that change onward across its edges, so downstream geometry can react to it too. If false, the flag only affects this node. Only applies to the flag being set automatically while an agentic request is applied to this node; a script-driven change to the flag never sends it onward regardless of this setting."
 				}
 			}
 		},
@@ -371,10 +427,22 @@
 			"unevaluatedProperties": false
 		},
 
+		"sceneTransformFields": {
+			"description": "Fields shared by SceneTransformNode and SceneTransformScriptNode. Not a node type in its own right.",
+			"properties": {
+				"emitAgentAffectAction": {
+					"type": "boolean",
+					"default": false,
+					"description": "Whether an agentic action directly affecting this node also sends that onward across its edges, so downstream nodes can react to it too. If false, the effect stays local to this node."
+				}
+			}
+		},
+
 		"sceneTransformNode": {
 			"description": "A node that represents a transform applied to scene geometry, set directly rather than by a Lua script.",
 			"allOf": [
 				{ "$ref": "#/$defs/nodeBase" },
+				{ "$ref": "#/$defs/sceneTransformFields" },
 				{
 					"properties": {
 						"type": { "const": "SceneTransformNode" },
@@ -389,6 +457,7 @@
 			"description": "A scripted node that represents a transform applied to scene geometry, which a Lua script can read and modify via getTransform()/setTransform(). Holds an animating mode, and offers a visiting model the tools to read and set it.",
 			"allOf": [
 				{ "$ref": "#/$defs/scriptNodeBase" },
+				{ "$ref": "#/$defs/sceneTransformFields" },
 				{
 					"properties": {
 						"type": { "const": "SceneTransformScriptNode" },
@@ -460,7 +529,7 @@
 		},
 
 		"triggerNode": {
-			"description": "A Lua-scripted node that exists to emit trigger actions on behalf of an AI model. An agent action reaching this node offers the model a tool that emits a trigger action from here, optionally restricted to a node name and/or a node type, so the model chooses what part of the graph fires next. The emitted action is never applied back to this node, so it cannot trigger itself. It takes no part in a scene, so it holds no animating mode and a strobe never reaches its coreScript: that script runs only under an action that runs scripts, and the Lua bindings it has are only NodeType and trigger().",
+			"description": "A Lua-scripted node that exists to emit trigger actions on behalf of an AI model. An agent action reaching this node offers the model a tool that emits a trigger action from here, optionally restricted to a node name and/or a node type, so the model chooses what part of the graph fires next. The emitted action is never applied back to this node, so it cannot trigger itself. It takes no part in a scene, so it holds no animating mode and a strobe never reaches its coreScript: that script runs only under an action that runs scripts. The Lua bindings it has are the ones every scripted node carries and no more: NodeType, trigger(), and the ToolType constants a coreScript declares its own tool calls through.",
 			"allOf": [
 				{ "$ref": "#/$defs/scriptNodeBase" },
 				{

@@ -3,9 +3,11 @@
 
 #include <string>
 
-// Both are needed in full because the node type and capability translation helpers return their enums.
+// All three are needed in full because the node type, capability and vertex visibility translation
+// helpers return their enums.
 #include "../agent/AgenticHarness.hpp"
 #include "../graph/GraphNode.hpp"
+#include "../graph/nodes/SceneGeometry.hpp"
 #include "../util/Handle.hpp"
 
 class GraphHive;
@@ -86,6 +88,22 @@ class HiveBuilder
 		 * @throw PersistException(UNKNOWN_AGENT_PROMPT_NODE_TYPE) If the name is not recognised.
 		 */
 		static GraphNode::Type __nodeTypeFromName(const std::string& name);
+
+		/**
+		 * Translate a vertex visibility name into its enum value.
+		 * @param name Vertex visibility name, as it appears in SceneGeometry::VertexVisibility.
+		 * @throw PersistException(UNKNOWN_VERTEX_VISIBILITY) If the name is not recognised.
+		 */
+		static SceneGeometry::VertexVisibility __vertexVisibilityFromName(const std::string& name);
+
+		/**
+		 * Append a descriptor's vertexes to the geometry of the node built from it, one group at a time so
+		 * that each keeps the visibility it was loaded with.
+		 * @param geometry Geometry of the node being built.
+		 * @param descriptor Descriptor the node is being built from.
+		 * @throw PersistException(UNKNOWN_VERTEX_VISIBILITY) If a group names a visibility that does not exist.
+		 */
+		static void __addVertexGroups(SceneGeometry* geometry, const HiveNodeDescriptor& descriptor);
 };
 
 #endif

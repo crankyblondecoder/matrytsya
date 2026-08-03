@@ -107,6 +107,8 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 				{
 					throw PersistException(PersistException::EDGE_CREATE_FAILED);
 				}
+
+				edgeHandle.getInstance() -> setActionsCompleteAfterTraverse(edgeDescriptor.actionsCompleteAfterTraverse);
 			}
 		}
 
@@ -257,9 +259,9 @@ GraphNode* HiveBuilder::__createNode(const HiveNodeDescriptor& descriptor)
 
 		case HiveNodeDescriptor::SCENE_GEOMETRY:
 		{
-			SceneGeometryNode* node = new SceneGeometryNode();
+			SceneGeometryNode* node = new SceneGeometryNode(descriptor.emitAgentAffectAction);
 
-			if(descriptor.hasVertexes) node -> addVertexes(descriptor.vertexes);
+			__addVertexGroups(node, descriptor);
 
 			return node;
 		}
@@ -267,16 +269,17 @@ GraphNode* HiveBuilder::__createNode(const HiveNodeDescriptor& descriptor)
 		case HiveNodeDescriptor::SCENE_GEOMETRY_SCRIPT:
 		{
 			SceneGeometryScriptNode* node =
-				new SceneGeometryScriptNode(descriptor.coreScript, descriptor.pokeScript);
+				new SceneGeometryScriptNode(descriptor.coreScript, descriptor.pokeScript,
+					descriptor.emitAgentAffectAction);
 
-			if(descriptor.hasVertexes) node -> addVertexes(descriptor.vertexes);
+			__addVertexGroups(node, descriptor);
 
 			return node;
 		}
 
 		case HiveNodeDescriptor::SCENE_TRANSFORM:
 		{
-			SceneTransformNode* node = new SceneTransformNode();
+			SceneTransformNode* node = new SceneTransformNode(descriptor.emitAgentAffectAction);
 
 			if(descriptor.hasTransform) node -> setTransform(descriptor.transform);
 
@@ -286,7 +289,8 @@ GraphNode* HiveBuilder::__createNode(const HiveNodeDescriptor& descriptor)
 		case HiveNodeDescriptor::SCENE_TRANSFORM_SCRIPT:
 		{
 			SceneTransformScriptNode* node =
-				new SceneTransformScriptNode(descriptor.coreScript, descriptor.pokeScript);
+				new SceneTransformScriptNode(descriptor.coreScript, descriptor.pokeScript,
+					descriptor.emitAgentAffectAction);
 
 			if(descriptor.hasTransform) node -> setTransform(descriptor.transform);
 
@@ -363,6 +367,7 @@ unsigned long HiveBuilder::__actionFlagFromName(const std::string& name)
 	if(name == "ANIMATE_GRAPH_ACTION") return ANIMATE_GRAPH_ACTION;
 	if(name == "AGENT_GRAPH_ACTION") return AGENT_GRAPH_ACTION;
 	if(name == "TRIGGER_GRAPH_ACTION") return TRIGGER_GRAPH_ACTION;
+	if(name == "AGENT_AFFECT_GRAPH_ACTION") return AGENT_AFFECT_GRAPH_ACTION;
 
 	throw PersistException(PersistException::UNKNOWN_ACTION_FLAG);
 }
@@ -385,5 +390,24 @@ GraphNode::Type HiveBuilder::__nodeTypeFromName(const std::string& name)
 	catch(GraphException&)
 	{
 		throw PersistException(PersistException::UNKNOWN_AGENT_PROMPT_NODE_TYPE);
+	}
+}
+
+SceneGeometry::VertexVisibility HiveBuilder::__vertexVisibilityFromName(const std::string& name)
+{
+	if(name == "ALWAYS") return SceneGeometry::VertexVisibility::ALWAYS;
+	if(name == "AGENT") return SceneGeometry::VertexVisibility::AGENT;
+	if(name == "GRABBED") return SceneGeometry::VertexVisibility::GRABBED;
+	if(name == "DRAGGING") return SceneGeometry::VertexVisibility::DRAGGING;
+	if(name == "HOVERED_OVER") return SceneGeometry::VertexVisibility::HOVERED_OVER;
+
+	throw PersistException(PersistException::UNKNOWN_VERTEX_VISIBILITY);
+}
+
+void HiveBuilder::__addVertexGroups(SceneGeometry* geometry, const HiveNodeDescriptor& descriptor)
+{
+	for(const HiveVertexGroupDescriptor& groupDescriptor : descriptor.vertexGroups)
+	{
+		geometry -> addVertexes(groupDescriptor.vertexes, __vertexVisibilityFromName(groupDescriptor.visibilityName));
 	}
 }

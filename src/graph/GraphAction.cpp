@@ -338,9 +338,10 @@ void GraphAction::work()
 		}
 	}
 
-	if(applyComplete)
+	if(applyComplete || __getCompleteAfterTraverse())
 	{
-		// The apply hook has determined the action is now complete, so it must not continue traversing.
+		// Either the apply hook has determined the action is now complete, or the node just applied to was
+		// reached via an edge flagged to end the action. Either way, it must not continue traversing.
 		complete = true;
 	}
 	else if(__traverse())
@@ -377,6 +378,8 @@ bool GraphAction::__traverse()
 
 	{ SYNC(_lock)
 
+		_completeAfterTraverse = false;
+
 		if(_energy > 0 && _boundNode.isValid())
 		{
 			Handle<GraphEdge> edgeToTraverse = _boundNode.getInstance() -> traverse(*this);
@@ -388,6 +391,11 @@ bool GraphAction::__traverse()
 				_boundNode = edgeToTraverse.getInstance() -> traverse();
 
 				traversed = _boundNode.isValid();
+
+				if(traversed && edgeToTraverse.getInstance() -> getActionsCompleteAfterTraverse())
+				{
+					_completeAfterTraverse = true;
+				}
 			}
 			else
 			{
@@ -397,6 +405,14 @@ bool GraphAction::__traverse()
 	}
 
 	return traversed;
+}
+
+bool GraphAction::__getCompleteAfterTraverse()
+{
+	{ SYNC(_lock)
+
+		return _completeAfterTraverse;
+	}
 }
 
 bool GraphAction::_processNextPass(unsigned currentPassNum)

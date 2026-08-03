@@ -3,7 +3,7 @@
 #include "../../agent/ModelContext.hpp"
 #include "../../agent/ModelToolBindings.hpp"
 #include "../actionTargets/AgentActionTarget.hpp"
-#include "../actionTargets/AgentVisibleActionTarget.hpp"
+#include "../actionTargets/AgentAffectActionTarget.hpp"
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphHive.hpp"
 #include "../GraphNode.hpp"
@@ -48,9 +48,9 @@ bool AgentAction::_apply(GraphNode* target)
 		// The request below blocks for as long as the model takes to answer, which is long enough for the
 		// surface to be repopulated several times over, so anything the node only shows while it is being
 		// worked on is revealed for exactly that window.
-		AgentVisibleActionTarget* agentVisibleTarget = target -> getAgentVisibleActionTarget();
+		AgentAffectActionTarget* agentAffectTarget = target -> getAgentAffectActionTarget();
 
-		if(agentVisibleTarget) agentVisibleTarget -> setAgentVisible(true);
+		if(agentAffectTarget) agentAffectTarget -> agentAffectingStart(true);
 
 		LOG(Logger::LogLevel::DEBUG, "Processing node agentic request.")
 
@@ -62,12 +62,12 @@ bool AgentAction::_apply(GraphNode* target)
 		{
 			// A failed request still has to put the node back, otherwise it would be left looking like it is
 			// being worked on for the rest of the hive's life.
-			if(agentVisibleTarget) agentVisibleTarget -> setAgentVisible(false);
+			if(agentAffectTarget) agentAffectTarget -> agentAffectingEnd(true);
 
 			throw;
 		}
 
-		if(agentVisibleTarget) agentVisibleTarget -> setAgentVisible(false);
+		if(agentAffectTarget) agentAffectTarget -> agentAffectingEnd(true);
 
 		// Bindings only apply to the node the request was made for, so they must not linger for whatever
 		// comes next in this context.

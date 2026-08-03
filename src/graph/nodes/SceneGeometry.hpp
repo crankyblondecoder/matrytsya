@@ -26,7 +26,7 @@ class SceneGeometry : public GraphVersioned
 		virtual ~SceneGeometry();
 
 		/**
-		 * Defines when a vertex should be made visible.
+		 * Defines when a group of vertexes should be made visible.
 		 * Typically used by surface maps to let a client side decide when to display the geometry rather than
 		 * relying on round trips back to the server to update visual state (which is slow and expensive).
 		 */

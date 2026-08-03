@@ -571,7 +571,7 @@ TEST(ScriptActionTest, SceneGeometryAgentVisibleFlagReachesSurfaceWithoutTouchin
 	unsigned vertexVersionBefore = geometryNode -> GraphVersioned::getVersion();
 	unsigned sceneVersionBefore = geometryNode -> getSceneVersion();
 
-	geometryNode -> setAgentVisible(true);
+	geometryNode -> agentAffectingStart(true);
 
 	EXPECT_EQ(geometryNode -> GraphVersioned::getVersion(), vertexVersionBefore)
 		<< "Setting the agent visible flag must not bump the vertex version, or every chunk would look new.";
@@ -651,7 +651,7 @@ TEST(ScriptActionTest, SceneGeometryUnchangedAgentVisibleFlagLeavesTheSceneAlone
 
 	// Setting the flag to the value it already holds is not a change, so the second action below should find
 	// the scene version exactly as it left it and skip populating the surface altogether.
-	geometryNode -> setAgentVisible(false);
+	geometryNode -> agentAffectingEnd(true);
 
 	SceneAction* secondSceneAction = new SceneAction(sourceHandle, Handle<GraphHiveSceneSurface>(surface));
 
