@@ -16,6 +16,7 @@
 #include "GraphNodeLocation.hpp"
 #include "GraphPoke.hpp"
 #include "GraphToolBindingsFactory.hpp"
+#include "GraphVersioned.hpp"
 #include "nodes/StrobeEmitterNode.hpp"
 
 class GraphNode;
@@ -28,7 +29,7 @@ class ModelContext;
  * A "Hive" is a container for nodes.
  * Nodes can refer to the hive when they want access to specific services, like persistence for example.
  */
-class GraphHive : public RefCounted, public GraphNamed
+class GraphHive : public RefCounted, public GraphNamed, public GraphVersioned
 {
     public:
 

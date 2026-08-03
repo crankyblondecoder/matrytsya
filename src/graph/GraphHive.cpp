@@ -603,6 +603,8 @@ void GraphHive::addNode(GraphNode* node)
 
 				addedIndex = _nodes.size() - 1;
 			}
+
+			_bumpVersion();
 		}
 		else
 		{
@@ -627,6 +629,8 @@ void GraphHive::addNode(GraphNode* node)
 				{
 					_nodes[addedIndex] = 0;
 					removeInitRef = true;
+
+					_bumpVersion();
 				}
 			}
 
@@ -657,6 +661,9 @@ void GraphHive::removeNode(Handle<GraphNode> nodeHandle)
 			{
 				decouple = true;
 				_nodes[index] = 0;
+
+				_bumpVersion();
+
 				break;
 			}
 		}
@@ -742,6 +749,8 @@ void GraphHive::addSurface(GraphHiveSurface* surface)
 
 				added = true;
 			}
+
+			_bumpVersion();
 		}
 	}
 
@@ -776,6 +785,9 @@ void GraphHive::removeSurface(Handle<GraphHiveSurface> surfaceHandle)
 			{
 				removed = true;
 				_surfaces[index] = 0;
+
+				_bumpVersion();
+
 				break;
 			}
 		}
