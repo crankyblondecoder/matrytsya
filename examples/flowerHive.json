@@ -37,13 +37,13 @@
 			"pokeScript": "if POKE_TYPE == \"HIT\" then setAnimating(not getAnimating(), true) end",
 			"edges": [
 				{
-					"toNodeName": "body2",
+					"toNodeName": "hub1"
+				},
+				{
+					"toNodeName": "tilt1_0",
 					"actionFlags": [
 						"AGENT_GRAPH_ACTION"
 					]
-				},
-				{
-					"toNodeName": "hub1"
 				}
 			]
 		},
@@ -78,12 +78,25 @@
 		{
 			"type": "SceneTransformScriptNode",
 			"name": "tilt1_0",
-			"coreScript": "function invoke() if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); local step = 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end end",
+			"coreScript": "function invoke() if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); step = step or 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end end function tripleSpeed(args) step = (step or 0.0056) * 3 end function getToolCallBindings(capability) return { { name = \"tripleSpeed\", description = \"Triples this petal's tilt animation speed.\", parameters = {} } } end",
 			"pokeScript": "",
 			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal0"
+				},
+				{
+					"toNodeName": "petal0",
+					"actionFlags": [
+						"AGENT_AFFECT_GRAPH_ACTION"
+					],
+					"actionsCompleteAfterTraverse": true
+				},
+				{
+					"toNodeName": "tilt1_1",
+					"actionFlags": [
+						"AGENT_GRAPH_ACTION"
+					]
 				}
 			]
 		},
@@ -112,12 +125,25 @@
 		{
 			"type": "SceneTransformScriptNode",
 			"name": "tilt1_1",
-			"coreScript": "function invoke() if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); local step = 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end end",
+			"coreScript": "function invoke() if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); step = step or 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end end function tripleSpeed(args) step = (step or 0.0056) * 3 end function getToolCallBindings(capability) return { { name = \"tripleSpeed\", description = \"Triples this petal's tilt animation speed.\", parameters = {} } } end",
 			"pokeScript": "",
 			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal1"
+				},
+				{
+					"toNodeName": "petal1",
+					"actionFlags": [
+						"AGENT_AFFECT_GRAPH_ACTION"
+					],
+					"actionsCompleteAfterTraverse": true
+				},
+				{
+					"toNodeName": "tilt1_2",
+					"actionFlags": [
+						"AGENT_GRAPH_ACTION"
+					]
 				}
 			]
 		},
@@ -146,12 +172,25 @@
 		{
 			"type": "SceneTransformScriptNode",
 			"name": "tilt1_2",
-			"coreScript": "function invoke() if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); local step = 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end end",
+			"coreScript": "function invoke() if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); step = step or 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end end function tripleSpeed(args) step = (step or 0.0056) * 3 end function getToolCallBindings(capability) return { { name = \"tripleSpeed\", description = \"Triples this petal's tilt animation speed.\", parameters = {} } } end",
 			"pokeScript": "",
 			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal2"
+				},
+				{
+					"toNodeName": "petal2",
+					"actionFlags": [
+						"AGENT_AFFECT_GRAPH_ACTION"
+					],
+					"actionsCompleteAfterTraverse": true
+				},
+				{
+					"toNodeName": "tilt1_3",
+					"actionFlags": [
+						"AGENT_GRAPH_ACTION"
+					]
 				}
 			]
 		},
@@ -180,12 +219,25 @@
 		{
 			"type": "SceneTransformScriptNode",
 			"name": "tilt1_3",
-			"coreScript": "function invoke() if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); local step = 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end end",
+			"coreScript": "function invoke() if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); step = step or 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end end function tripleSpeed(args) step = (step or 0.0056) * 3 end function getToolCallBindings(capability) return { { name = \"tripleSpeed\", description = \"Triples this petal's tilt animation speed.\", parameters = {} } } end",
 			"pokeScript": "",
 			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal3"
+				},
+				{
+					"toNodeName": "petal3",
+					"actionFlags": [
+						"AGENT_AFFECT_GRAPH_ACTION"
+					],
+					"actionsCompleteAfterTraverse": true
+				},
+				{
+					"toNodeName": "tilt1_4",
+					"actionFlags": [
+						"AGENT_GRAPH_ACTION"
+					]
 				}
 			]
 		},
@@ -214,12 +266,25 @@
 		{
 			"type": "SceneTransformScriptNode",
 			"name": "tilt1_4",
-			"coreScript": "function invoke() if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); local step = 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end end",
+			"coreScript": "function invoke() if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); step = step or 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end end function tripleSpeed(args) step = (step or 0.0056) * 3 end function getToolCallBindings(capability) return { { name = \"tripleSpeed\", description = \"Triples this petal's tilt animation speed.\", parameters = {} } } end",
 			"pokeScript": "",
 			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal4"
+				},
+				{
+					"toNodeName": "petal4",
+					"actionFlags": [
+						"AGENT_AFFECT_GRAPH_ACTION"
+					],
+					"actionsCompleteAfterTraverse": true
+				},
+				{
+					"toNodeName": "tilt1_5",
+					"actionFlags": [
+						"AGENT_GRAPH_ACTION"
+					]
 				}
 			]
 		},
@@ -248,12 +313,25 @@
 		{
 			"type": "SceneTransformScriptNode",
 			"name": "tilt1_5",
-			"coreScript": "function invoke() if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); local step = 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end end",
+			"coreScript": "function invoke() if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); step = step or 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end end function tripleSpeed(args) step = (step or 0.0056) * 3 end function getToolCallBindings(capability) return { { name = \"tripleSpeed\", description = \"Triples this petal's tilt animation speed.\", parameters = {} } } end",
 			"pokeScript": "",
 			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal5"
+				},
+				{
+					"toNodeName": "petal5",
+					"actionFlags": [
+						"AGENT_AFFECT_GRAPH_ACTION"
+					],
+					"actionsCompleteAfterTraverse": true
+				},
+				{
+					"toNodeName": "tilt1_6",
+					"actionFlags": [
+						"AGENT_GRAPH_ACTION"
+					]
 				}
 			]
 		},
@@ -282,12 +360,25 @@
 		{
 			"type": "SceneTransformScriptNode",
 			"name": "tilt1_6",
-			"coreScript": "function invoke() if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); local step = 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end end",
+			"coreScript": "function invoke() if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); step = step or 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end end function tripleSpeed(args) step = (step or 0.0056) * 3 end function getToolCallBindings(capability) return { { name = \"tripleSpeed\", description = \"Triples this petal's tilt animation speed.\", parameters = {} } } end",
 			"pokeScript": "",
 			"transform": [0.900447, 0.434966, 0.0, 0.0, -0.434966, 0.900447, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.9, 0.0, 0.0, 1.0],
 			"edges": [
 				{
 					"toNodeName": "petal6"
+				},
+				{
+					"toNodeName": "petal6",
+					"actionFlags": [
+						"AGENT_AFFECT_GRAPH_ACTION"
+					],
+					"actionsCompleteAfterTraverse": true
+				},
+				{
+					"toNodeName": "body2",
+					"actionFlags": [
+						"AGENT_GRAPH_ACTION"
+					]
 				}
 			]
 		},
@@ -989,7 +1080,7 @@
 			"name": "buttonCap",
 			"pokeEnabled": true,
 			"coreScript": "local function faceNormal(a, b, c) local e1x, e1y, e1z = b[1] - a[1], b[2] - a[2], b[3] - a[3] local e2x, e2y, e2z = c[1] - a[1], c[2] - a[2], c[3] - a[3] local nx = e1y * e2z - e1z * e2y local ny = e1z * e2x - e1x * e2z local nz = e1x * e2y - e1y * e2x local len = math.sqrt(nx * nx + ny * ny + nz * nz) if len < 1e-8 then return {0, 1, 0} end return {nx / len, ny / len, nz / len} end local function tri(a, b, c, colour, visibility) local n = faceNormal(a, b, c) local verts = {Vertex{posn = a, colour = colour, normal = n}, Vertex{posn = b, colour = colour, normal = n}, Vertex{posn = c, colour = colour, normal = n}} if visibility then addVertexes(verts, visibility) else addVertexes(verts) end end local function quad(a, b, c, d, colour, visibility) tri(a, b, c, colour, visibility) tri(a, c, d, colour, visibility) end local function cylinderY(cx, cz, y0, y1, radius, segments, colour, capTop, capBottom) local prevX, prevZ = cx + radius, cz for i = 1, segments do local angle = (i / segments) * 2 * math.pi local x, z = cx + radius * math.cos(angle), cz + radius * math.sin(angle) quad({prevX, y0, prevZ}, {prevX, y1, prevZ}, {x, y1, z}, {x, y0, z}, colour) if capTop then tri({cx, y1, cz}, {x, y1, z}, {prevX, y1, prevZ}, colour) end if capBottom then tri({cx, y0, cz}, {prevX, y0, prevZ}, {x, y0, z}, colour) end prevX, prevZ = x, z end end local function domeY(y, radius, height, segments, rings, colour) local function ringRadius(level) return radius * math.cos((level / rings) * (math.pi / 2)) end local function ringHeight(level) return y + height * math.sin((level / rings) * (math.pi / 2)) end for level = 0, rings - 1 do local r0, y0 = ringRadius(level), ringHeight(level) local r1, y1 = ringRadius(level + 1), ringHeight(level + 1) local prevX0, prevZ0 = r0, 0 local prevX1, prevZ1 = r1, 0 for i = 1, segments do local angle = (i / segments) * 2 * math.pi local ca, sa = math.cos(angle), math.sin(angle) local x0, z0 = r0 * ca, r0 * sa local x1, z1 = r1 * ca, r1 * sa if level == rings - 1 then tri({prevX0, y0, prevZ0}, {0, y1, 0}, {x0, y0, z0}, colour) else quad({prevX0, y0, prevZ0}, {prevX1, y1, prevZ1}, {x1, y1, z1}, {x0, y0, z0}, colour) end prevX0, prevZ0 = x0, z0 prevX1, prevZ1 = x1, z1 end end end local function ringY(y, inner, outer, segments, colour, visibility) local prevIX, prevIZ = inner, 0 local prevOX, prevOZ = outer, 0 for i = 1, segments do local angle = (i / segments) * 2 * math.pi local ca, sa = math.cos(angle), math.sin(angle) local ix, iz = inner * ca, inner * sa local ox, oz = outer * ca, outer * sa quad({prevIX, y, prevIZ}, {ix, y, iz}, {ox, y, oz}, {prevOX, y, prevOZ}, colour, visibility) prevIX, prevIZ, prevOX, prevOZ = ix, iz, ox, oz end end function init() local red = {198, 62, 48, 255} cylinderY(0, 0, 0.5, 4.5, 10, 28, red, false, true) domeY(4.5, 10, 3, 28, 4, red) ringY(7.5, 10.5, 13.5, 28, {90, 160, 220, 110}, VertexVisibility.HOVERED_OVER) ringY(7.5, 14.5, 17.5, 28, {220, 70, 60, 130}, VertexVisibility.AGENT) end local RELEASE_STROBES = 5 local pressedStrobes = 0 function invoke() if not getStrobe() then return end if getAnimating() then pressedStrobes = pressedStrobes + 1 if pressedStrobes >= RELEASE_STROBES then setAnimating(false, true) pressedStrobes = 0 end else pressedStrobes = 0 end end",
-			"pokeScript": "if POKE_TYPE == \"HIT\" then setAnimating(true, true) end",
+			"pokeScript": "if POKE_TYPE == \"HIT\" then setAnimating(true, true) trigger() end",
 			"edges": [
 				{
 					"toNodeName": "rootTransform",
@@ -1002,6 +1093,43 @@
 					"toNodeName": "buttonPlace",
 					"actionFlags": [
 						"ANIMATE_GRAPH_ACTION"
+					]
+				},
+				{
+					"toNodeName": "buttonAgent",
+					"actionFlags": [
+						"TRIGGER_GRAPH_ACTION"
+					]
+				}
+			]
+		},
+		{
+			"type": "AgentNode",
+			"name": "buttonAgent",
+			"capability": "LOW",
+			"autoTriggerAgentAction": true,
+			"prompts": [
+				{
+					"nodeIdentifier": "body1",
+					"nodeType": "SCENE_GEOMETRY_SCRIPT_NODE",
+					"prompt": "You are visiting the node named body1, the centre of flower 1. Call the getAnimating tool to check whether it is already animating. If it is not, call the setAnimating tool once with animating set to true to start it. If it is already animating, leave it as is and do not call setAnimating. Reply with nothing but a short confirmation once you are done."
+				},
+				{
+					"nodeIdentifier": "tilt1_6",
+					"nodeType": "SCENE_TRANSFORM_SCRIPT_NODE",
+					"prompt": "You are visiting the node named tilt1_6, the last petal transform in flower 1's chain. Call the tripleSpeed tool once to triple this petal's tilt animation speed. Reply with nothing but a short confirmation once the tool call has been made.",
+					"terminateOnResponse": true
+				},
+				{
+					"nodeType": "SCENE_TRANSFORM_SCRIPT_NODE",
+					"prompt": "You are visiting one of flower 1's petal transforms. Call the tripleSpeed tool once to triple this petal's tilt animation speed. Reply with nothing but a short confirmation once the tool call has been made."
+				}
+			],
+			"edges": [
+				{
+					"toNodeName": "body1",
+					"actionFlags": [
+						"AGENT_GRAPH_ACTION"
 					]
 				}
 			]
