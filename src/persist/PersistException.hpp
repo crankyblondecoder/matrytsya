@@ -51,7 +51,7 @@ class PersistException : public Exception
 			STROBE_SURFACE_NOT_FOUND,
 			/// A capability was not one of the names in AgenticHarness::Capability.
 			UNKNOWN_AGENT_CAPABILITY,
-			/// An agent node prompt's node type was not one of the names in GraphNode::Type.
+			/// An agent node prompt's node type was not one of the names in GraphNodeType.
 			UNKNOWN_AGENT_PROMPT_NODE_TYPE,
 			/// A vertex group's visibility was not one of the names in SceneGeometry::VertexVisibility.
 			UNKNOWN_VERTEX_VISIBILITY,

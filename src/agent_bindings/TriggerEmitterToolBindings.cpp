@@ -76,7 +76,7 @@ void TriggerEmitterToolBindings::__emitTrigger(std::string nodeName, std::string
 
 	// Action will self delete once complete.
 	TriggerAction* action = new TriggerAction(_node, nodeName, restrictToNodeType,
-		restrictToNodeType ? GraphNode::typeFromName(nodeType) : GraphNode::Type::GRAPH_NODE);
+		restrictToNodeType ? GraphNode::typeFromName(nodeType) : GraphNodeType::GRAPH_NODE);
 
 	action -> incrRef();
 

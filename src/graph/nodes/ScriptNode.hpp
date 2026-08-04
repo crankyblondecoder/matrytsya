@@ -66,7 +66,7 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		 */
         ScriptNode(const std::string& coreScript, const std::string& pokeScript);
 
-		Type getType() override;
+		GraphNodeType getType() override;
 
 		Handle<ScriptSession> requestCoreSession() override;
 
@@ -419,7 +419,7 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		 * @returns The node type the value names.
 		 * @throw Raises a Lua error, which does not return, if the value is not a NodeType constant.
 		 */
-		static GraphNode::Type __checkNodeType(lua_State* luaState, int index);
+		static GraphNodeType __checkNodeType(lua_State* luaState, int index);
 
 		/**
 		 * Allocator shared by both persistent Lua states this node owns, capped independently per state via

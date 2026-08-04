@@ -1,6 +1,7 @@
 srcFiles = GraphHiveCollectionHttpMap.cpp GraphHiveSceneSurfaceHtmlMap.cpp GraphHiveSceneSurfaceWebglMap.cpp \
-GraphHiveSurfaceMap.cpp GraphHiveSurfaceHttpMap.cpp chatWindowTemplate.cpp hiveIndexPageTemplate.cpp \
-webglPageTemplate.cpp \
+GraphHiveGraphViewSurfaceWebglMap.cpp \
+GraphHiveSurfaceMap.cpp GraphHiveSurfaceHttpMap.cpp GraphHiveSurfaceHtmlMap.cpp chatWindowTemplate.cpp \
+hiveIndexPageTemplate.cpp webglPageTemplate.cpp graphViewPageTemplate.cpp \
 http/HttpRequest.cpp http/HttpResponse.cpp http/HttpServerBase.cpp http/HttpServerMongoose.cpp \
 http/HttpServerMongoosePollThread.cpp
 

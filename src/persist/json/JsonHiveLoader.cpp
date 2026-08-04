@@ -34,6 +34,7 @@ namespace
 	HiveSurfaceDescriptor::Type __surfaceTypeFromString(const std::string& type)
 	{
 		if(type == "GraphHiveSceneSurface") return HiveSurfaceDescriptor::SCENE_SURFACE;
+		if(type == "GraphHiveGraphViewSurface") return HiveSurfaceDescriptor::GRAPH_VIEW_SURFACE;
 
 		throw PersistException(PersistException::UNKNOWN_SURFACE_TYPE);
 	}

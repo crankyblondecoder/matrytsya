@@ -70,6 +70,12 @@ class GraphEdge : public RefCounted
 		bool canTraverse(unsigned long actionFlags);
 
 		/**
+		 * Get the action flags bit field of this edge.
+		 * @returns The raw action flags. See graphActionFlagRegister.hpp for the individual flags.
+		 */
+		unsigned long getActionFlags();
+
+		/**
 		 * Get the description of this edge.
 		 * @returns Description, or an empty string if none has been set.
 		 */

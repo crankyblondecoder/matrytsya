@@ -29,7 +29,7 @@ class AgentAction : public GraphAction
 			std::string nodeIdentifier = "";
 
 			/// Type of node this prompt applies to. Must be satisfied for the prompt to be used.
-			GraphNode::Type nodeType = GraphNode::Type::GRAPH_NODE;
+			GraphNodeType nodeType = GraphNodeType::GRAPH_NODE;
 
 			/// Prompt sent as part of this action's agentic request when this entry matches the node
 			/// being applied to.

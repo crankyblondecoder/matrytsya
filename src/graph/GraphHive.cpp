@@ -4,8 +4,10 @@
 #include "../agent/ModelContext.hpp"
 #include "../thread/ThreadException.hpp"
 #include "../thread/ThreadPool.hpp"
+#include "GraphEdge.hpp"
 #include "GraphException.hpp"
 #include "GraphHive.hpp"
+#include "GraphHiveGraphViewSurface.hpp"
 #include "GraphHiveSceneSurface.hpp"
 #include "GraphHiveStrobeScheduler.hpp"
 #include "GraphHiveSurface.hpp"
@@ -644,6 +646,11 @@ void GraphHive::addNode(GraphNode* node)
 	node -> decrRef();
 }
 
+void GraphHive::nodeEdgesChanged()
+{
+	_bumpVersion();
+}
+
 void GraphHive::removeNode(Handle<GraphNode> nodeHandle)
 {
 	if(!nodeHandle.isValid()) return;
@@ -719,6 +726,42 @@ std::vector<std::string> GraphHive::getNodeNames()
 	}
 
 	return names;
+}
+
+std::vector<GraphHive::NodeCatalogueEntry> GraphHive::catalogueNodes()
+{
+	std::vector<NodeCatalogueEntry> catalogue;
+
+	{ SYNC(_lock)
+
+		if(_active)
+		{
+			for(GraphNode* node : _nodes)
+			{
+				if(!node) continue;
+
+				NodeCatalogueEntry entry;
+				entry.id = node -> getId();
+				entry.name = node -> getName();
+				entry.type = node -> getType();
+
+				for(Handle<GraphEdge> edge : node -> getEdges())
+				{
+					Handle<GraphNode> toNode = edge.getInstance() -> traverse();
+
+					if(toNode.isValid())
+					{
+						entry.edges.push_back(EdgeCatalogueEntry{toNode.getInstance() -> getId(),
+							edge.getInstance() -> getActionFlags()});
+					}
+				}
+
+				catalogue.push_back(entry);
+			}
+		}
+	}
+
+	return catalogue;
 }
 
 void GraphHive::addSurface(GraphHiveSurface* surface)
@@ -853,6 +896,18 @@ Handle<GraphHiveSceneSurface> GraphHive::getSceneSurface(std::string surfaceName
 	}
 
 	return Handle<GraphHiveSceneSurface>(0);
+}
+
+Handle<GraphHiveGraphViewSurface> GraphHive::getGraphViewSurface(std::string surfaceName)
+{
+	Handle<GraphHiveSurface> surface = getSurface(surfaceName);
+
+	if(surface.isValid() && surface.getInstance() -> getType() == GraphHiveSurface::Type::GRAPH_VIEW_SURFACE)
+	{
+		return Handle<GraphHiveGraphViewSurface>(static_cast<GraphHiveGraphViewSurface*>(surface.getInstance()));
+	}
+
+	return Handle<GraphHiveGraphViewSurface>(0);
 }
 
 Handle<GraphHiveSceneSurface> GraphHive::getDefaultSceneSurface()

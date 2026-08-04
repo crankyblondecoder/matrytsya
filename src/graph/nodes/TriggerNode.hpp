@@ -28,7 +28,7 @@ class TriggerNode : public ScriptNode, public AgentActionTarget
 		 */
         TriggerNode(const std::string& coreScript, const std::string& pokeScript, bool emitTriggerOnPoke = true);
 
-		Type getType() override;
+		GraphNodeType getType() override;
 
 		/**
 		 * Get whether poking this node emits a trigger action of its own.

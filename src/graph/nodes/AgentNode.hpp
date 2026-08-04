@@ -29,7 +29,7 @@ class AgentNode : public GraphSerialisedActionNode, public TriggerActionTarget
         AgentNode(AgenticHarness::Capability capability, std::vector<AgentAction::NodePrompt> prompts,
 			bool autoTriggerAgentAction = true, bool serialiseEmittedActions = true);
 
-		Type getType() override;
+		GraphNodeType getType() override;
 
 		/**
 		 * Emit an agent action carrying this node's prompts from this node.

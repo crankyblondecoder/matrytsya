@@ -30,25 +30,25 @@ namespace
 		const char* name;
 
 		/// Type that name stands for.
-		GraphNode::Type type;
+		GraphNodeType type;
 	};
 
-	// Every GraphNode::Type, mapped to the name it's exposed under. A type absent from here cannot be
+	// Every GraphNodeType, mapped to the name it's exposed under. A type absent from here cannot be
 	// round-tripped through GraphNode::typeName()/typeFromName(), so this must be extended whenever
-	// GraphNode::Type is.
+	// GraphNodeType is.
 	const TypeName TYPE_NAMES[] =
 	{
-		{"GRAPH_NODE", GraphNode::Type::GRAPH_NODE},
-		{"PING_NODE", GraphNode::Type::PING_NODE},
-		{"SCENE_GEOMETRY_NODE", GraphNode::Type::SCENE_GEOMETRY_NODE},
-		{"SCENE_TRANSFORM_NODE", GraphNode::Type::SCENE_TRANSFORM_NODE},
-		{"SCRIPT_NODE", GraphNode::Type::SCRIPT_NODE},
-		{"SCENE_GEOMETRY_SCRIPT_NODE", GraphNode::Type::SCENE_GEOMETRY_SCRIPT_NODE},
-		{"SCENE_TRANSFORM_SCRIPT_NODE", GraphNode::Type::SCENE_TRANSFORM_SCRIPT_NODE},
-		{"SCENE_ROOT_NODE", GraphNode::Type::SCENE_ROOT_NODE},
-		{"TELEPORT_NODE", GraphNode::Type::TELEPORT_NODE},
-		{"AGENT_NODE", GraphNode::Type::AGENT_NODE},
-		{"TRIGGER_NODE", GraphNode::Type::TRIGGER_NODE}
+		{"GRAPH_NODE", GraphNodeType::GRAPH_NODE},
+		{"PING_NODE", GraphNodeType::PING_NODE},
+		{"SCENE_GEOMETRY_NODE", GraphNodeType::SCENE_GEOMETRY_NODE},
+		{"SCENE_TRANSFORM_NODE", GraphNodeType::SCENE_TRANSFORM_NODE},
+		{"SCRIPT_NODE", GraphNodeType::SCRIPT_NODE},
+		{"SCENE_GEOMETRY_SCRIPT_NODE", GraphNodeType::SCENE_GEOMETRY_SCRIPT_NODE},
+		{"SCENE_TRANSFORM_SCRIPT_NODE", GraphNodeType::SCENE_TRANSFORM_SCRIPT_NODE},
+		{"SCENE_ROOT_NODE", GraphNodeType::SCENE_ROOT_NODE},
+		{"TELEPORT_NODE", GraphNodeType::TELEPORT_NODE},
+		{"AGENT_NODE", GraphNodeType::AGENT_NODE},
+		{"TRIGGER_NODE", GraphNodeType::TRIGGER_NODE}
 	};
 }
 
@@ -72,23 +72,23 @@ GraphNode::GraphNode()
 {
 }
 
-GraphNode::Type GraphNode::getType()
+GraphNodeType GraphNode::getType()
 {
-	return Type::GRAPH_NODE;
+	return GraphNodeType::GRAPH_NODE;
 }
 
-std::string GraphNode::typeName(Type type)
+std::string GraphNode::typeName(GraphNodeType type)
 {
 	for(const TypeName& entry : TYPE_NAMES)
 	{
 		if(entry.type == type) return entry.name;
 	}
 
-	// Unreachable so long as TYPE_NAMES covers every Type member.
+	// Unreachable so long as TYPE_NAMES covers every GraphNodeType member.
 	return TYPE_NAMES[0].name;
 }
 
-GraphNode::Type GraphNode::typeFromName(const std::string& name)
+GraphNodeType GraphNode::typeFromName(const std::string& name)
 {
 	for(const TypeName& entry : TYPE_NAMES)
 	{
@@ -286,6 +286,10 @@ Handle<GraphEdge> GraphNode::createEdge(Handle<GraphNode>& connectTo, std::vecto
 
 			retHandle = _edges[retIndex];
 		}
+
+		Handle<GraphHive> hive = getHive();
+
+		if(hive.isValid()) hive.getInstance() -> nodeEdgesChanged();
 	}
 
 	return retHandle;
@@ -311,7 +315,14 @@ void GraphNode::removeEdge(Handle<GraphEdge> edgeHandle)
 		if(foundIndex >= 0) edgeToDelete = __removeEdge(foundIndex);
 	}
 
-	if(edgeToDelete) edgeToDelete -> decrRef();
+	if(edgeToDelete)
+	{
+		edgeToDelete -> decrRef();
+
+		Handle<GraphHive> hive = getHive();
+
+		if(hive.isValid()) hive.getInstance() -> nodeEdgesChanged();
+	}
 }
 
 GraphEdge* GraphNode::__removeEdge(int edgeHandle)
@@ -390,6 +401,24 @@ Handle<GraphEdge> GraphNode::traverse(GraphAction& action)
 	if(!edgeToTraverse.isValid()) edgeToTraverse = wildcardEdgeToTraverse;
 
 	return edgeToTraverse;
+}
+
+std::vector<Handle<GraphEdge>> GraphNode::getEdges()
+{
+	std::vector<Handle<GraphEdge>> edges;
+
+	{ SYNC(_lock)
+
+		if(!_decoupled)
+		{
+			for(int index = 0; index < EDGE_ARRAY_SIZE; index++)
+			{
+				if(_edges[index] != 0) edges.push_back(Handle<GraphEdge>(_edges[index]));
+			}
+		}
+	}
+
+	return edges;
 }
 
 void GraphNode::poke(GraphPoke pokeToProcess)

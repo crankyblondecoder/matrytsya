@@ -777,6 +777,39 @@ TEST(JsonHiveLoaderTest, SurfacesAndStrobeSurfacesParsed)
 }
 
 /**
+ * A GraphHiveGraphViewSurface parses without naming a node to be bound to, since it presents the hive
+ * itself rather than anything within it.
+ */
+TEST(JsonHiveLoaderTest, GraphViewSurfaceParsed)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [ { "type": "PingNode", "name": "a" } ],
+		"surfaces": [ { "type": "GraphHiveGraphViewSurface", "name": "structure", "default": true } ],
+		"strobeSurfaces": [ { "surfaceName": "structure", "periodMs": 250 } ]
+	})";
+
+	JsonHiveLoader loader(json);
+
+	ASSERT_EQ(loader.getSurfaceCount(), 1u);
+
+	HiveSurfaceDescriptor surface1 = loader.getSurface(0);
+	EXPECT_EQ(surface1.type, HiveSurfaceDescriptor::GRAPH_VIEW_SURFACE);
+	EXPECT_EQ(surface1.name, "structure");
+	EXPECT_TRUE(surface1.isDefault);
+	EXPECT_EQ(surface1.sceneRootNodeName, "");
+
+	ASSERT_EQ(loader.getStrobeSurfaceCount(), 1u);
+
+	std::string strobeSurfaceName;
+	unsigned strobePeriodMs;
+	loader.getStrobeSurface(0, strobeSurfaceName, strobePeriodMs);
+
+	EXPECT_EQ(strobeSurfaceName, "structure");
+	EXPECT_EQ(strobePeriodMs, 250u);
+}
+
+/**
  * A surface object missing the required "type" member is rejected.
  */
 TEST(JsonHiveLoaderTest, SurfaceMissingType_ThrowsJsonInvalidSurfaces)

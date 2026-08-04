@@ -276,9 +276,9 @@ ScriptNode::ScriptNode(const std::string& coreScript, const std::string& pokeScr
 	__installFreshEnv(_pokeLuaState, _pokeBaseEnvRef);
 }
 
-GraphNode::Type ScriptNode::getType()
+GraphNodeType ScriptNode::getType()
 {
-	return Type::SCRIPT_NODE;
+	return GraphNodeType::SCRIPT_NODE;
 }
 
 Handle<ScriptSession> ScriptNode::requestCoreSession()
@@ -616,7 +616,7 @@ void ScriptNode::_registerCoreGlobals(lua_State* luaState)
 
 void ScriptNode::__registerTriggerBindings(lua_State* luaState)
 {
-	// Expose GraphNode::Type as a global table of integer constants that round-trip through
+	// Expose GraphNodeType as a global table of integer constants that round-trip through
 	// __checkNodeType(); the values must match static_cast<lua_Integer> of each enum member.
 	const std::vector<std::string> nodeTypeNames = GraphNode::typeNames();
 
@@ -647,8 +647,8 @@ int ScriptNode::__luaTrigger(lua_State* luaState)
 	// to restrict by type at all has to be carried separately.
 	bool restrictToNodeType = !lua_isnoneornil(luaState, 2);
 
-	GraphNode::Type nodeType = restrictToNodeType ?
-		__checkNodeType(luaState, 2) : GraphNode::Type::GRAPH_NODE;
+	GraphNodeType nodeType = restrictToNodeType ?
+		__checkNodeType(luaState, 2) : GraphNodeType::GRAPH_NODE;
 
 	Handle<GraphNode> handle(node);
 
@@ -664,20 +664,20 @@ int ScriptNode::__luaTrigger(lua_State* luaState)
 	return 0;
 }
 
-GraphNode::Type ScriptNode::__checkNodeType(lua_State* luaState, int index)
+GraphNodeType ScriptNode::__checkNodeType(lua_State* luaState, int index)
 {
 	lua_Integer value = luaL_checkinteger(luaState, index);
 
 	for(const std::string& name : GraphNode::typeNames())
 	{
-		GraphNode::Type type = GraphNode::typeFromName(name);
+		GraphNodeType type = GraphNode::typeFromName(name);
 
 		if(static_cast<lua_Integer>(type) == value) return type;
 	}
 
 	// luaL_error does not return; the return below is only present to satisfy the compiler.
 	luaL_error(luaState, "invalid NodeType value: %d", static_cast<int>(value));
-	return GraphNode::Type::GRAPH_NODE;
+	return GraphNodeType::GRAPH_NODE;
 }
 
 const char* ScriptNode::__pokeTypeName(GraphPoke::PokeType type)

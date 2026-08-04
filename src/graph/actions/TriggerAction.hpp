@@ -24,7 +24,7 @@ class TriggerAction : public SerialisableAction
 		 * @param nodeType Node type required when restrictToNodeType is true.
 		 */
 		TriggerAction(Handle<GraphNode>& initNode, std::string nodeName = "", bool restrictToNodeType = false,
-			GraphNode::Type nodeType = GraphNode::Type::GRAPH_NODE);
+			GraphNodeType nodeType = GraphNodeType::GRAPH_NODE);
 
 		SerialisableActionType getSerialisbleType() override;
 
@@ -52,7 +52,7 @@ class TriggerAction : public SerialisableAction
 		bool _restrictToNodeType;
 
 		/// Node type required when _restrictToNodeType is true.
-		GraphNode::Type _nodeType;
+		GraphNodeType _nodeType;
 };
 
 #endif

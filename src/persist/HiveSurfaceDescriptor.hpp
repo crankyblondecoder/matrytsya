@@ -12,7 +12,8 @@ struct HiveSurfaceDescriptor
 	/// Identifies which concrete GraphHiveSurface subclass this descriptor describes.
 	enum Type
 	{
-		SCENE_SURFACE
+		SCENE_SURFACE,
+		GRAPH_VIEW_SURFACE
 	};
 
 	/// Concrete surface type this descriptor describes.

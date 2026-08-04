@@ -82,7 +82,7 @@ TEST(TriggerNodeTest, ReportsTriggerNodeType)
 {
 	TriggerNode* node = new TriggerNode("", "");
 
-	EXPECT_EQ(node -> getType(), GraphNode::Type::TRIGGER_NODE);
+	EXPECT_EQ(node -> getType(), GraphNodeType::TRIGGER_NODE);
 
 	node -> decrRef();
 }

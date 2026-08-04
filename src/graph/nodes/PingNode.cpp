@@ -15,9 +15,9 @@ PingNode::PingNode() : GraphSerialisedActionNode()
 	_addActionFlag(PING_GRAPH_ACTION);
 }
 
-GraphNode::Type PingNode::getType()
+GraphNodeType PingNode::getType()
 {
-	return Type::PING_NODE;
+	return GraphNodeType::PING_NODE;
 }
 
 bool PingNode::ping()

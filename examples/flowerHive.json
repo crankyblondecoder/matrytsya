@@ -1215,12 +1215,21 @@
 			"initialFocusNodeName": "body1",
 			"focusViewportFraction": 0.2,
 			"default": true
+		},
+		{
+			"type": "GraphHiveGraphViewSurface",
+			"name": "structure",
+			"default": true
 		}
 	],
 	"strobeSurfaces": [
 		{
 			"surfaceName": "garden",
 			"periodMs": 40
+		},
+		{
+			"surfaceName": "structure",
+			"periodMs": 250
 		}
 	]
 }

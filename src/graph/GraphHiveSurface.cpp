@@ -145,6 +145,11 @@ Handle<ModelContext> GraphHiveSurface::__findChatContext(unsigned contextId)
 	return Handle<ModelContext>(0);
 }
 
+Handle<GraphHive> GraphHiveSurface::_getHive()
+{
+	return _hive;
+}
+
 void GraphHiveSurface::_emitSurfaceChanged()
 {
 	emitEvent(GraphHiveSurfaceListener::Event::SURFACE_CHANGED);

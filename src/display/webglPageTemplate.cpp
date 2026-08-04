@@ -19,12 +19,17 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	html, body { margin: 0; padding: 0; overflow: hidden; background: #202020; }
 	canvas { display: block; width: 100vw; height: 100vh; }
 	#status { position: absolute; top: 8px; left: 8px; color: #ddd; font-family: sans-serif; font-size: 13px; }
+	#structureLink { position: absolute; right: 12px; bottom: 12px; padding: 6px 12px; color: #ddd;
+		background: #303030; border: 1px solid #4a4a4a; border-radius: 4px; font-family: sans-serif;
+		font-size: 13px; text-decoration: none; cursor: pointer; }
+	#structureLink:hover { background: #3a3a3a; }
 %CHAT_STYLE%
 </style>
 </head>
 <body>
 <div id="status">Loading...</div>
 <canvas id="glCanvas"></canvas>
+%STRUCTURE_MARKUP%
 %CHAT_MARKUP%
 <script>
 (function() {
@@ -32,6 +37,26 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 	var canvas = document.getElementById('glCanvas');
 	var status = document.getElementById('status');
+
+	// The structure link is only on the page when the server had somewhere to point it, and the chat toggle
+	// only when the page carries a chat window, so both are moved out of the way of each other here rather
+	// than in the style rules that put them in the same corner. Measured rather than assumed, so the two stay
+	// side by side however wide the chat toggle's own label makes it. Done before the WebGL check below, so a
+	// browser that cannot draw the scene can still be used to reach the rest of the hive.
+	var structureLink = document.getElementById('structureLink');
+	var chatToggle = document.getElementById('chatToggle');
+
+	if(structureLink && chatToggle) structureLink.style.right = (chatToggle.offsetWidth + 20) + 'px';
+
+	// Tell the structure page which surface it is being jumped to from, so that it can offer the way back.
+	// Added here rather than built into the link by the server, which has no way of knowing whether a page
+	// will be arrived at by pressing this or opened on its own.
+	if(structureLink)
+	{
+		structureLink.href = structureLink.getAttribute('href') + '?from=' +
+			encodeURIComponent(window.location.pathname);
+	}
+
 	var gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
 
 	if(!gl)
@@ -255,6 +280,82 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	// every subsequent load (e.g. from an in-progress animation) would fight the user's own zoom/orbit input.
 	var cameraFitted = false;
 
+	// -- Remembering where the camera was left --
+
+	// Held against this page's own path, so a surface is come back to as it was left rather than as some
+	// other surface was. For the browser session only: a hive that has since been rebuilt should not have a
+	// camera pointed for ever at where something used to be.
+	var CAMERA_STORE_KEY = 'matrytsya.camera.' + window.location.pathname;
+
+	// Whether a value is a number that can be pointed a camera by. Written out rather than asked of isFinite,
+	// so that what is checked is plain to read.
+	function usableNumber(value)
+	{
+		return typeof value === 'number' && value === value && value !== Infinity && value !== -Infinity;
+	}
+
+	function saveCamera()
+	{
+		try
+		{
+			window.sessionStorage.setItem(CAMERA_STORE_KEY, JSON.stringify({
+
+				yaw: camera.yaw,
+				pitch: camera.pitch,
+				distance: camera.distance,
+				centre: camera.centre
+			}));
+		}
+		catch(err)
+		{
+			// Storage can be switched off, or full. Not being able to remember where the camera was left is
+			// no reason to stop drawing.
+		}
+	}
+
+	// Puts the camera back where this page was last left, and says whether there was anywhere to put it.
+	// What is read back was written by this page itself, but it still comes from outside it, so it is checked
+	// rather than trusted: a camera set from nonsense shows nothing and gives no clue why.
+	function restoreCamera()
+	{
+		var saved = null;
+
+		try
+		{
+			saved = JSON.parse(window.sessionStorage.getItem(CAMERA_STORE_KEY));
+		}
+		catch(err)
+		{
+			return false;
+		}
+
+		if(!saved || !saved.centre || saved.centre.length !== 3) return false;
+
+		if(!usableNumber(saved.yaw) || !usableNumber(saved.pitch) || !usableNumber(saved.distance) ||
+			saved.distance <= 0)
+		{
+			return false;
+		}
+
+		for(var axis = 0; axis < 3; axis++) if(!usableNumber(saved.centre[axis])) return false;
+
+		camera.yaw = saved.yaw;
+		camera.pitch = saved.pitch;
+		camera.distance = saved.distance;
+		camera.centre = [saved.centre[0], saved.centre[1], saved.centre[2]];
+
+		return true;
+	}
+
+	// Both, because which of the two a browser gives on the way out of a page differs between them and
+	// between how the page is left.
+	window.addEventListener('beforeunload', saveCamera);
+	window.addEventListener('pagehide', saveCamera);
+
+	// A camera put back where it was left is already framed, so whatever this page does to frame one for the
+	// first time is left alone.
+	if(restoreCamera()) cameraFitted = true;
+
 	// Vertical field of view (radians) of the perspective camera. Shared between the initial-focus fit (which
 	// derives the camera distance that makes a focused node span a requested fraction of the viewport) and the
 	// per-frame projection, so the two always agree.
@@ -377,6 +478,14 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	// only unique within its owning node, so the owning node id is sent alongside it to identify the chunk.
 	// type is omitted for a click (HIT, the server's default) or passed as 'hoverEnter'/'hoverLeave' when the
 	// pointer moves onto or off of a pokeable chunk.
+	// Leaves for the page that draws this hive's structure, asking it to point out the node this chunk came
+	// from. The link already says where that page is and which surface it is being left from; all this adds
+	// is which node to point at.
+	function showChunkInStructure(chunkId)
+	{
+		window.location.href = structureLink.getAttribute('href') + '&node=' + chunkNodeId[chunkId];
+	}
+
 	function pokeChunk(chunkId, type)
 	{
 		var pokeUrl = window.location.pathname.replace(/\/+$/, '') + '/poke';
@@ -465,7 +574,19 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		{
 			var picked = pickChunkAt(e.clientX, e.clientY);
 
-			if(picked !== null && lastChunkPokeable[picked.chunkId])
+			if(picked === null) return;
+
+			// Held down, this asks which node in the hive put this here rather than poking it. Offered for
+			// anything that can be picked, pokeable or not: what a node is remains worth asking even where
+			// there is nothing to be done to it.
+			if(e.ctrlKey)
+			{
+				if(structureLink) showChunkInStructure(picked.chunkId);
+
+				return;
+			}
+
+			if(lastChunkPokeable[picked.chunkId])
 			{
 				console.log('Picked chunk ' + picked.chunkId);
 				pokeChunk(picked.chunkId);
@@ -854,7 +975,9 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 		rebuildGeometry();
 
-		status.textContent = vertexCount + ' vertexes across ' + data.chunks.length + ' chunk(s). Drag to orbit, scroll to zoom, right-drag to pan, right-click a chunk to centre.';
+		status.textContent = vertexCount + ' vertexes across ' + data.chunks.length +
+			' chunk(s). Drag to orbit, scroll to zoom, right-drag to pan, right-click a chunk to centre.' +
+			(structureLink ? ' Ctrl-click a chunk to find its node in the structure.' : '');
 
 		if(vertexCount > 0 && !cameraFitted)
 		{

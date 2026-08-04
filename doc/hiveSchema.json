@@ -610,10 +610,24 @@
 			"unevaluatedProperties": false
 		},
 
+		"graphHiveGraphViewSurface": {
+			"description": "A surface that enables the structure of this hive, i.e. its nodes and the edges between them, to be viewed in a read only way. It is bound to nothing within the hive and reports every node the hive holds, whether or not it can be reached from any other. Nothing offered through it reaches back into the graph, so it cannot be interacted with the way a scene can.",
+			"allOf": [
+				{ "$ref": "#/$defs/surfaceBase" },
+				{
+					"properties": {
+						"type": { "const": "GraphHiveGraphViewSurface" }
+					}
+				}
+			],
+			"unevaluatedProperties": false
+		},
+
 		"surface": {
 			"description": "Concrete surfaces that can be added directly to a hive.",
 			"oneOf": [
-				{ "$ref": "#/$defs/graphHiveSceneSurface" }
+				{ "$ref": "#/$defs/graphHiveSceneSurface" },
+				{ "$ref": "#/$defs/graphHiveGraphViewSurface" }
 			]
 		}
 	}

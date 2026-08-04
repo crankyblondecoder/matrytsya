@@ -20,9 +20,9 @@ SceneTransformScriptNode::SceneTransformScriptNode(const std::string& script, co
 	_addActionFlag(AGENT_AFFECT_GRAPH_ACTION);
 }
 
-GraphNode::Type SceneTransformScriptNode::getType()
+GraphNodeType SceneTransformScriptNode::getType()
 {
-	return Type::SCENE_TRANSFORM_SCRIPT_NODE;
+	return GraphNodeType::SCENE_TRANSFORM_SCRIPT_NODE;
 }
 
 void SceneTransformScriptNode::_registerCoreGlobals(lua_State* luaState)

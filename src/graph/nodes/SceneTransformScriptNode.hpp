@@ -31,7 +31,7 @@ class SceneTransformScriptNode : public AnimateScriptNode, public SceneActionTar
         SceneTransformScriptNode(const std::string& script, const std::string& pokeScript,
 			bool emitAgentAffectAction = false);
 
-		Type getType() override;
+		GraphNodeType getType() override;
 
 		void populateSurface(Handle<GraphHiveSceneSurface> surface) override;
 

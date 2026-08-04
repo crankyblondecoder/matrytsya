@@ -20,9 +20,9 @@ AgentNode::AgentNode(AgenticHarness::Capability capability, std::vector<AgentAct
 	_addActionFlag(TRIGGER_GRAPH_ACTION);
 }
 
-GraphNode::Type AgentNode::getType()
+GraphNodeType AgentNode::getType()
 {
-	return Type::AGENT_NODE;
+	return GraphNodeType::AGENT_NODE;
 }
 
 AgentAction* AgentNode::emitAgentAction(bool wait)

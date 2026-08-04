@@ -26,7 +26,7 @@ class SceneGeometryNode : public GraphNode, public SceneActionTarget, public Str
 		 */
         SceneGeometryNode(bool emitAgentAffectAction = false);
 
-		Type getType() override;
+		GraphNodeType getType() override;
 
 		void populateSurface(Handle<GraphHiveSceneSurface> surface) override;
 

@@ -595,6 +595,23 @@
     "output": "actions/VersionAction.o"
   },
   {
+    "file": "../../src/graph/nodes/AgentAffectingActionEmitter.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "nodes/AgentAffectingActionEmitter.o",
+      "../../src/graph/nodes/AgentAffectingActionEmitter.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "nodes/AgentAffectingActionEmitter.o"
+  },
+  {
     "file": "../../src/graph/nodes/AgentNode.cpp",
     "arguments": [
       "/usr/bin/g++",

@@ -5,6 +5,7 @@
 
 #include "../../util/Handle.hpp"
 #include "../../graph/GraphHive.hpp"
+#include "../../graph/GraphHiveGraphViewSurface.hpp"
 #include "../../graph/GraphNode.hpp"
 #include "../../graph/actions/PingAction.hpp"
 #include "../../graph/nodes/AgentNode.hpp"
@@ -111,6 +112,15 @@ namespace
 		descriptor.type = HiveSurfaceDescriptor::SCENE_SURFACE;
 		descriptor.name = name;
 		descriptor.sceneRootNodeName = sceneRootNodeName;
+
+		return descriptor;
+	}
+
+	HiveSurfaceDescriptor _makeGraphViewSurfaceDescriptor(const std::string& name)
+	{
+		HiveSurfaceDescriptor descriptor{};
+		descriptor.type = HiveSurfaceDescriptor::GRAPH_VIEW_SURFACE;
+		descriptor.name = name;
 
 		return descriptor;
 	}
@@ -300,6 +310,74 @@ TEST(HiveBuilderTest, FullValidHiveWithSurface_BuildsAndRegistersStrobeSurface)
 }
 
 /**
+ * A graph view surface builds without being bound to any node, is retrievable by name as the graph view
+ * surface it is, and is not mistaken for a scene surface.
+ */
+TEST(HiveBuilderTest, GraphViewSurface_BuildsWithoutABoundNode)
+{
+	FakeHiveLoader loader;
+	loader.hiveName = "Hive";
+	loader.nodes.push_back(_makePingDescriptor("a"));
+	loader.surfaces.push_back(_makeGraphViewSurfaceDescriptor("structure"));
+	loader.strobeSurfaces.emplace_back("structure", 5u);
+
+	GraphHive* hive = HiveBuilder::build(loader, 2);
+	Handle<GraphHive> hiveHandle(hive);
+
+	EXPECT_TRUE(hive -> getSurface("structure").isValid());
+	EXPECT_TRUE(hive -> getGraphViewSurface("structure").isValid());
+	EXPECT_FALSE(hive -> getSceneSurface("structure").isValid());
+
+	hive -> shutdown();
+}
+
+/**
+ * A graph view surface reports the hive it was added to, i.e. every node in it along with the edges each
+ * node has, once it has been strobed to catalogue it.
+ */
+TEST(HiveBuilderTest, GraphViewSurface_ReportsTheHivesNodesAndEdges)
+{
+	FakeHiveLoader loader;
+	loader.hiveName = "Hive";
+
+	HiveNodeDescriptor source = _makePingDescriptor("source");
+
+	HiveEdgeDescriptor edge;
+	edge.toNodeName = "target";
+	edge.actionFlagNames.push_back("PING_GRAPH_ACTION");
+
+	source.edges.push_back(edge);
+
+	loader.nodes.push_back(source);
+	loader.nodes.push_back(_makePingDescriptor("target"));
+	loader.surfaces.push_back(_makeGraphViewSurfaceDescriptor("structure"));
+
+	GraphHive* hive = HiveBuilder::build(loader, 2);
+	Handle<GraphHive> hiveHandle(hive);
+
+	Handle<GraphHiveGraphViewSurface> surface = hive -> getGraphViewSurface("structure");
+
+	ASSERT_TRUE(surface.isValid());
+
+	surface.getInstance() -> strobe();
+
+	GraphHiveGraphViewSurface::Graph graph = surface.getInstance() -> getGraph();
+
+	ASSERT_EQ(graph.nodes.size(), 2u);
+
+	// Catalogued in the order the nodes were added, which is the order they were declared in.
+	EXPECT_EQ(graph.nodes[0].name, "source");
+	EXPECT_EQ(graph.nodes[1].name, "target");
+
+	ASSERT_EQ(graph.nodes[0].edges.size(), 1u);
+	EXPECT_EQ(graph.nodes[0].edges[0].toNodeId, graph.nodes[1].id);
+
+	EXPECT_EQ(graph.nodes[1].edges.size(), 0u);
+
+	hive -> shutdown();
+}
+
+/**
  * An empty surface name is rejected.
  */
 TEST(HiveBuilderTest, EmptySurfaceName_ThrowsInvalidSurfaceName)
@@ -401,7 +479,7 @@ TEST(HiveBuilderTest, AgentNodeDescriptor_BuildsWithAllFields)
 	Handle<GraphNode> agentHandle = hive -> getNode("agent");
 
 	ASSERT_TRUE(agentHandle.isValid());
-	ASSERT_EQ(agentHandle.getInstance() -> getType(), GraphNode::Type::AGENT_NODE);
+	ASSERT_EQ(agentHandle.getInstance() -> getType(), GraphNodeType::AGENT_NODE);
 
 	AgentNode* agentNode = static_cast<AgentNode*>(agentHandle.getInstance());
 
@@ -410,7 +488,7 @@ TEST(HiveBuilderTest, AgentNodeDescriptor_BuildsWithAllFields)
 
 	ASSERT_EQ(agentNode -> getPrompts().size(), 1u);
 	EXPECT_EQ(agentNode -> getPrompts()[0].nodeIdentifier, "ping1");
-	EXPECT_EQ(agentNode -> getPrompts()[0].nodeType, GraphNode::Type::PING_NODE);
+	EXPECT_EQ(agentNode -> getPrompts()[0].nodeType, GraphNodeType::PING_NODE);
 	EXPECT_EQ(agentNode -> getPrompts()[0].prompt, "describe this node");
 	EXPECT_TRUE(agentNode -> getPrompts()[0].terminateOnResponse);
 
@@ -437,7 +515,7 @@ TEST(HiveBuilderTest, TriggerNodeDescriptor_BuildsWithAllFields)
 	Handle<GraphNode> triggerHandle = hive -> getNode("trigger");
 
 	ASSERT_TRUE(triggerHandle.isValid());
-	ASSERT_EQ(triggerHandle.getInstance() -> getType(), GraphNode::Type::TRIGGER_NODE);
+	ASSERT_EQ(triggerHandle.getInstance() -> getType(), GraphNodeType::TRIGGER_NODE);
 
 	TriggerNode* triggerNode = static_cast<TriggerNode*>(triggerHandle.getInstance());
 

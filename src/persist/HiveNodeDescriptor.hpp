@@ -47,7 +47,7 @@ struct HiveAgentPromptDescriptor
 	/// Name of the node this prompt applies to. Empty means match on node type alone.
 	std::string nodeIdentifier;
 
-	/// Name of the node type this prompt applies to, as it appears in GraphNode::Type (e.g. "PING_NODE").
+	/// Name of the node type this prompt applies to, as it appears in GraphNodeType (e.g. "PING_NODE").
 	std::string nodeTypeName;
 
 	/// Prompt sent when this entry matches the node being visited.

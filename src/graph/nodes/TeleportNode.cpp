@@ -17,9 +17,9 @@ TeleportNode::TeleportNode(GraphNodeLocation destination) : GraphNode(), _destin
 	_addActionFlag(SERIALISABLE_GRAPH_ACTION);
 }
 
-GraphNode::Type TeleportNode::getType()
+GraphNodeType TeleportNode::getType()
 {
-	return Type::TELEPORT_NODE;
+	return GraphNodeType::TELEPORT_NODE;
 }
 
 bool TeleportNode::send(SerialisableActionPayload& payload)

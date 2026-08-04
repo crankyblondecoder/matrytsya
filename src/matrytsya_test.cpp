@@ -3,11 +3,14 @@
 #include "agent_bindings/ModelToolBindingsFactory.hpp"
 #include "display/DisplayException.hpp"
 #include "display/GraphHiveCollectionHttpMap.hpp"
+#include "display/GraphHiveGraphViewSurfaceWebglMap.hpp"
 #include "display/GraphHiveSceneSurfaceWebglMap.hpp"
+#include "display/GraphHiveSurfaceHtmlMap.hpp"
 #include "display/http/HttpServer.hpp"
 #include "util/Handle.hpp"
 #include "graph/GraphHive.hpp"
 #include "graph/GraphHiveCollection.hpp"
+#include "graph/GraphHiveGraphViewSurface.hpp"
 #include "graph/GraphHiveSceneSurface.hpp"
 #include "graph/GraphToolBindingsFactory.hpp"
 #include "persist/HarnessBuilder.hpp"
@@ -158,7 +161,11 @@ int main(int argc, char const *argv[])
 	// Held for as long as this test runs, so that neither a hive nor a map it serves is released while the
 	// server is still answering for it.
 	std::vector<Handle<GraphHive>> hiveHandles;
-	std::vector<Handle<GraphHiveSceneSurfaceWebglMap>> webglMapHandles;
+
+	// Held as the HTML maps they are rather than as what each draws, since what is done with them from here on
+	// -- setting them up, mounting them on the index and waiting on a first request -- is the same whichever
+	// kind of surface is behind them.
+	std::vector<Handle<GraphHiveSurfaceHtmlMap>> surfaceMapHandles;
 
 	for(const char* const hiveJsonPath : _HIVE_JSON_PATHS)
 	{
@@ -183,38 +190,67 @@ int main(int argc, char const *argv[])
 		// harness file names are contacted once for every hive loaded here.
 		hive -> setAgenticHarness(_buildAgenticHarness(hiveHandle, toolBindingsFactoryHandle));
 
+		// Worked out before any map is built, since a scene surface has to be told where this hive's structure
+		// is when its map is made, and the surface holding it may well be listed after it. Empty when the hive
+		// mounts no graph view surface, which is what leaves a scene page offering no such link.
+		std::string structurePath;
+
 		for(std::string surfaceName : hive -> getSurfaceNames())
 		{
-			Handle<GraphHiveSceneSurface> surfaceHandle = hive -> getSceneSurface(surfaceName);
-			GraphHiveSceneSurface* surface = surfaceHandle.getInstance();
+			if(!hive -> getGraphViewSurface(surfaceName).isValid()) continue;
 
-			// A surface this map cannot draw, i.e. one that is not a scene surface. Left out of the index
-			// rather than fatal, as the hive is still perfectly serviceable without it being viewable.
-			if(!surface) continue;
+			structurePath = _INDEX_PATH + hive -> getName() + "/" + surfaceName + "/";
 
+			break;
+		}
+
+		for(std::string surfaceName : hive -> getSurfaceNames())
+		{
 			// Nested under the hive's own page, so that the index reads as one tree rather than a listing
 			// pointing off somewhere else.
 			std::string surfacePath = _INDEX_PATH + hive -> getName() + "/" + surfaceName + "/";
 
-			GraphHiveSceneSurfaceWebglMap* webglMap =
-				new GraphHiveSceneSurfaceWebglMap(httpServer, *surface, surfacePath);
+			Handle<GraphHiveSceneSurface> sceneSurfaceHandle = hive -> getSceneSurface(surfaceName);
+			Handle<GraphHiveGraphViewSurface> graphViewSurfaceHandle = hive -> getGraphViewSurface(surfaceName);
 
-			Handle<GraphHiveSceneSurfaceWebglMap> webglMapHandle(webglMap);
+			GraphHiveSurfaceHtmlMap* surfaceMap = 0;
 
-			webglMapHandles.push_back(webglMapHandle);
+			if(sceneSurfaceHandle.isValid())
+			{
+				surfaceMap = new GraphHiveSceneSurfaceWebglMap(httpServer, *sceneSurfaceHandle.getInstance(),
+					surfacePath);
 
-			webglMap -> setPollInterval(_WEBGL_POLL_INTERVAL_MS);
+				// Only a scene page is offered the link. The structure page is the one it would lead to.
+				surfaceMap -> setStructurePath(structurePath);
+			}
+			else if(graphViewSurfaceHandle.isValid())
+			{
+				surfaceMap = new GraphHiveGraphViewSurfaceWebglMap(httpServer,
+					*graphViewSurfaceHandle.getInstance(), surfacePath);
+			}
+			else
+			{
+				// A surface of a kind nothing here knows how to draw. Left out of the index rather than
+				// fatal, as the hive is still perfectly serviceable without it being viewable.
+				continue;
+			}
+
+			Handle<GraphHiveSurfaceHtmlMap> surfaceMapHandle(surfaceMap);
+
+			surfaceMapHandles.push_back(surfaceMapHandle);
+
+			surfaceMap -> setPollInterval(_WEBGL_POLL_INTERVAL_MS);
 
 			// The map asks for MEDIUM by default, which the harness file assigns no model to.
-			webglMap -> setChatCapability(_CHAT_CAPABILITY);
+			surfaceMap -> setChatCapability(_CHAT_CAPABILITY);
 
-			collectionMap -> addSurfaceMap(hive -> getName(), *webglMap);
+			collectionMap -> addSurfaceMap(hive -> getName(), *surfaceMap);
 		}
 	}
 
-	if(webglMapHandles.empty())
+	if(surfaceMapHandles.empty())
 	{
-		std::cerr << "None of the hive definition files loaded produced a scene surface to serve." << std::endl;
+		std::cerr << "None of the hive definition files loaded produced a surface to serve." << std::endl;
 		exit(1);
 	}
 
@@ -246,9 +282,9 @@ int main(int argc, char const *argv[])
 
 	while(_running && !receivedFirstRequest)
 	{
-		for(Handle<GraphHiveSceneSurfaceWebglMap>& webglMapHandle : webglMapHandles)
+		for(Handle<GraphHiveSurfaceHtmlMap>& surfaceMapHandle : surfaceMapHandles)
 		{
-			if(webglMapHandle.getInstance() -> hasReceivedFirstRequest())
+			if(surfaceMapHandle.getInstance() -> hasReceivedFirstRequest())
 			{
 				receivedFirstRequest = true;
 				break;
@@ -257,7 +293,7 @@ int main(int argc, char const *argv[])
 
 		if(!receivedFirstRequest)
 		{
-			webglMapHandles[0].getInstance() -> waitForFirstRequest(_FIRST_REQUEST_WAIT_POLL_MS);
+			surfaceMapHandles[0].getInstance() -> waitForFirstRequest(_FIRST_REQUEST_WAIT_POLL_MS);
 		}
 	}
 

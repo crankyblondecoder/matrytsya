@@ -17,9 +17,9 @@ SceneGeometryNode::SceneGeometryNode(bool emitAgentAffectAction)
 	_addActionFlag(AGENT_AFFECT_GRAPH_ACTION);
 }
 
-GraphNode::Type SceneGeometryNode::getType()
+GraphNodeType SceneGeometryNode::getType()
 {
-	return Type::SCENE_GEOMETRY_NODE;
+	return GraphNodeType::SCENE_GEOMETRY_NODE;
 }
 
 void SceneGeometryNode::populateSurface(Handle<GraphHiveSceneSurface> surface)

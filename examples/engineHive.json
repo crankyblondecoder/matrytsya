@@ -194,12 +194,21 @@
 			"name": "simulation",
 			"sceneRootNodeName": "root",
 			"default": true
+		},
+		{
+			"type": "GraphHiveGraphViewSurface",
+			"name": "structure",
+			"default": true
 		}
 	],
 	"strobeSurfaces": [
 		{
 			"surfaceName": "simulation",
 			"periodMs": 33
+		},
+		{
+			"surfaceName": "structure",
+			"periodMs": 250
 		}
 	]
 }

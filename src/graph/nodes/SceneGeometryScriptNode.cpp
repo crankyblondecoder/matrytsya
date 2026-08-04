@@ -19,9 +19,9 @@ SceneGeometryScriptNode::SceneGeometryScriptNode(const std::string& coreScript, 
 	_addActionFlag(AGENT_AFFECT_GRAPH_ACTION);
 }
 
-GraphNode::Type SceneGeometryScriptNode::getType()
+GraphNodeType SceneGeometryScriptNode::getType()
 {
-	return Type::SCENE_GEOMETRY_SCRIPT_NODE;
+	return GraphNodeType::SCENE_GEOMETRY_SCRIPT_NODE;
 }
 
 void SceneGeometryScriptNode::_registerCoreGlobals(lua_State* luaState)

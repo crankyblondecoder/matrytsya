@@ -29,7 +29,7 @@ class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarg
         SceneGeometryScriptNode(const std::string& coreScript, const std::string& pokeScript,
 			bool emitAgentAffectAction = false);
 
-		Type getType() override;
+		GraphNodeType getType() override;
 
 		void populateSurface(Handle<GraphHiveSceneSurface> surface) override;
 

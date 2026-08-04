@@ -17,9 +17,9 @@ SceneTransformNode::SceneTransformNode(bool emitAgentAffectAction)
 	_addActionFlag(AGENT_AFFECT_GRAPH_ACTION);
 }
 
-GraphNode::Type SceneTransformNode::getType()
+GraphNodeType SceneTransformNode::getType()
 {
-	return Type::SCENE_TRANSFORM_NODE;
+	return GraphNodeType::SCENE_TRANSFORM_NODE;
 }
 
 void SceneTransformNode::populateSurface(Handle<GraphHiveSceneSurface> surface)

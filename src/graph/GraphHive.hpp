@@ -14,6 +14,7 @@
 #include "GraphHiveCollection.hpp"
 #include "GraphNamed.hpp"
 #include "GraphNodeLocation.hpp"
+#include "GraphNodeType.hpp"
 #include "GraphPoke.hpp"
 #include "GraphToolBindingsFactory.hpp"
 #include "GraphVersioned.hpp"
@@ -21,6 +22,7 @@
 
 class GraphNode;
 class GraphHiveStrobeScheduler;
+class GraphHiveGraphViewSurface;
 class GraphHiveSceneSurface;
 class GraphHiveSurface;
 class ModelContext;
@@ -41,6 +43,36 @@ class GraphHive : public RefCounted, public GraphNamed, public GraphVersioned
 		GraphHive(unsigned numThreads);
 
 		/**
+		 * Describes a single edge as reported by catalogueNodes().
+		 */
+		struct EdgeCatalogueEntry
+		{
+			/// Id of the node this edge is directed to.
+			unsigned toNodeId;
+
+			/// Action flags bit field of this edge. See graphActionFlagRegister.hpp for the individual flags.
+			unsigned long actionFlags;
+		};
+
+		/**
+		 * Describes a single node, and the edges it has, as reported by catalogueNodes().
+		 */
+		struct NodeCatalogueEntry
+		{
+			/// Unique id of the node.
+			unsigned id;
+
+			/// Name of the node.
+			std::string name;
+
+			/// Concrete type of the node.
+			GraphNodeType type;
+
+			/// One entry per edge directed from this node.
+			std::vector<EdgeCatalogueEntry> edges;
+		};
+
+		/**
 		 * Shutdown this hive.
 		 * This will dismantle the hive's graph.
 		 */
@@ -51,6 +83,13 @@ class GraphHive : public RefCounted, public GraphNamed, public GraphVersioned
 		 * @note Expects to manage the initial reference count of this node regardless of whether it could be added.
 		 */
 		void addNode(GraphNode* node);
+
+		/**
+		 * Notify this hive that one of its nodes has had an edge added or removed.
+		 * @note Bumps this hive's version, so that anything tracking the version can detect the topology
+		 *       change.
+		 */
+		void nodeEdgesChanged();
 
 		/**
 		 * Remove node from hive.
@@ -68,6 +107,13 @@ class GraphHive : public RefCounted, public GraphNamed, public GraphVersioned
 		 * Get the names of all the nodes in this hive.
 		 */
 		std::vector<std::string> getNodeNames();
+
+		/**
+		 * Catalogue every node in this hive.
+		 * @returns One entry per node currently in the hive, each naming the node's id, name and type,
+		 *          along with an entry for every edge the node has.
+		 */
+		std::vector<NodeCatalogueEntry> catalogueNodes();
 
 		/**
 		 * Poke this hive.
@@ -107,6 +153,14 @@ class GraphHive : public RefCounted, public GraphNamed, public GraphVersioned
 		 *          hive, or it exists but is not a GraphHiveSceneSurface.
 		 */
 		Handle<GraphHiveSceneSurface> getSceneSurface(std::string surfaceName);
+
+		/**
+		 * Find a graph view surface in this hive by name.
+		 * @param surfaceName Name of surface to find.
+		 * @returns Handle to the surface. Invalid handle if no surface with that name exists in this
+		 *          hive, or it exists but is not a GraphHiveGraphViewSurface.
+		 */
+		Handle<GraphHiveGraphViewSurface> getGraphViewSurface(std::string surfaceName);
 
 		/**
 		 * Get the default scene surface in this hive.

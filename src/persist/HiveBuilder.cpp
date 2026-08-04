@@ -7,6 +7,7 @@
 #include "../graph/GraphEdge.hpp"
 #include "../util/Handle.hpp"
 #include "../graph/GraphHive.hpp"
+#include "../graph/GraphHiveGraphViewSurface.hpp"
 #include "../graph/GraphHiveSceneSurface.hpp"
 #include "../graph/GraphHiveSurface.hpp"
 #include "../graph/GraphException.hpp"
@@ -350,6 +351,13 @@ GraphHiveSurface* HiveBuilder::__createSurface(const HiveSurfaceDescriptor& desc
 			return sceneSurface;
 		}
 
+		case HiveSurfaceDescriptor::GRAPH_VIEW_SURFACE:
+		{
+			// Bound to nothing within the hive: it presents the hive's own structure, which it asks the hive
+			// it is added to for.
+			return new GraphHiveGraphViewSurface();
+		}
+
 		default:
 		{
 			throw PersistException(PersistException::UNKNOWN_SURFACE_TYPE);
@@ -381,7 +389,7 @@ AgenticHarness::Capability HiveBuilder::__capabilityFromName(const std::string& 
 	throw PersistException(PersistException::UNKNOWN_AGENT_CAPABILITY);
 }
 
-GraphNode::Type HiveBuilder::__nodeTypeFromName(const std::string& name)
+GraphNodeType HiveBuilder::__nodeTypeFromName(const std::string& name)
 {
 	try
 	{

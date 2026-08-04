@@ -62,12 +62,21 @@
       "name": "RoseView",
       "sceneRootNodeName": "Root",
       "default": true
+    },
+    {
+      "type": "GraphHiveGraphViewSurface",
+      "name": "RoseStructure",
+      "default": true
     }
   ],
   "strobeSurfaces": [
     {
       "surfaceName": "RoseView",
       "periodMs": 33
+    },
+    {
+      "surfaceName": "RoseStructure",
+      "periodMs": 250
     }
   ]
 }

@@ -13,6 +13,7 @@ class GraphHive;
 #include "GraphActionTargetable.hpp"
 #include "../util/Handle.hpp"
 #include "GraphNamed.hpp"
+#include "GraphNodeType.hpp"
 #include "GraphPoke.hpp"
 
 // The number of edges a node can have is fixed.
@@ -26,43 +27,6 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 {
     public:
 
-		/// Identifies the concrete subclass of a node, so callers can find a specific kind without an RTTI cast.
-		enum class Type
-		{
-			/// A plain GraphNode. Reported by any node that doesn't identify a more specific type of its own.
-			GRAPH_NODE,
-
-			/// A PingNode.
-			PING_NODE,
-
-			/// A SceneGeometryNode.
-			SCENE_GEOMETRY_NODE,
-
-			/// A SceneTransformNode.
-			SCENE_TRANSFORM_NODE,
-
-			/// A ScriptNode.
-			SCRIPT_NODE,
-
-			/// A SceneGeometryScriptNode.
-			SCENE_GEOMETRY_SCRIPT_NODE,
-
-			/// A SceneTransformScriptNode.
-			SCENE_TRANSFORM_SCRIPT_NODE,
-
-			/// A SceneRootNode.
-			SCENE_ROOT_NODE,
-
-			/// A TeleportNode.
-			TELEPORT_NODE,
-
-			/// An AgentNode.
-			AGENT_NODE,
-
-			/// A TriggerNode.
-			TRIGGER_NODE
-		};
-
 		/**
 		 * Create new graph node.
 		 * @note Because this is ref-counted it will require the automatic initial reference increase to be released
@@ -72,17 +36,17 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 
 		/**
 		 * Get the concrete type of this node.
-		 * @note Default implementation reports Type::GRAPH_NODE. Subclasses that need to be identified as a
-		 *       specific kind of node override this to report their own type.
+		 * @note Default implementation reports GraphNodeType::GRAPH_NODE. Subclasses that need to be identified
+		 *       as a specific kind of node override this to report their own type.
 		 */
-		virtual Type getType();
+		virtual GraphNodeType getType();
 
 		/**
 		 * Get the name a node type is exposed under.
 		 * @param type Type to get the name of.
 		 * @returns The type's name.
 		 */
-		static std::string typeName(Type type);
+		static std::string typeName(GraphNodeType type);
 
 		/**
 		 * Get the node type a name stands for.
@@ -90,12 +54,12 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 * @returns The type the name stands for.
 		 * @throw GraphException With error UNKNOWN_NODE_TYPE_NAME if the name is not recognised.
 		 */
-		static Type typeFromName(const std::string& name);
+		static GraphNodeType typeFromName(const std::string& name);
 
 		/**
 		 * Get the name of every node type, in enum declaration order.
 		 * @note A type absent from this list cannot be round-tripped through typeName()/typeFromName(), so
-		 *       this must be extended whenever Type is.
+		 *       this must be extended whenever GraphNodeType is.
 		 */
 		static std::vector<std::string> typeNames();
 
@@ -126,6 +90,12 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 * @returns Handle to next edge to traverse.
 		 */
 		virtual Handle<GraphEdge> traverse(GraphAction& action);
+
+		/**
+		 * Get a snapshot of all edges directed from this node.
+		 * @returns A handle to each edge currently on this node.
+		 */
+		std::vector<Handle<GraphEdge>> getEdges();
 
 		/**
 		 * Get the energy cost of an action being applied to this node.

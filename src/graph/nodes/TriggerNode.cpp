@@ -20,9 +20,9 @@ TriggerNode::TriggerNode(const std::string& coreScript, const std::string& pokeS
 	_addActionFlag(AGENT_GRAPH_ACTION);
 }
 
-GraphNode::Type TriggerNode::getType()
+GraphNodeType TriggerNode::getType()
 {
-	return Type::TRIGGER_NODE;
+	return GraphNodeType::TRIGGER_NODE;
 }
 
 std::vector<Handle<ModelToolBindings>> TriggerNode::getModelToolBindings(AgenticHarness::Capability capability,

@@ -12,7 +12,7 @@ TriggerAction::~TriggerAction()
 }
 
 TriggerAction::TriggerAction(Handle<GraphNode>& initNode, std::string nodeName, bool restrictToNodeType,
-	GraphNode::Type nodeType)
+	GraphNodeType nodeType)
 	: SerialisableAction(initNode, _startingEnergy), _nodeName(nodeName), _restrictToNodeType(restrictToNodeType),
 	  _nodeType(nodeType)
 {
@@ -64,7 +64,7 @@ void TriggerAction::_deserialise(SerialisableActionPayload& data)
 {
 	uint32_t nodeType;
 	data.deserialiseValue(nodeType);
-	_nodeType = static_cast<GraphNode::Type>(nodeType);
+	_nodeType = static_cast<GraphNodeType>(nodeType);
 
 	uint8_t restrictToNodeType;
 	data.deserialiseValue(restrictToNodeType);

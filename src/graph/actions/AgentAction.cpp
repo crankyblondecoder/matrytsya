@@ -96,7 +96,7 @@ Handle<ModelContext> AgentAction::getModelContext()
 const AgentAction::NodePrompt* AgentAction::__findPrompt(GraphNode* target)
 {
 	std::string name = target -> getName();
-	GraphNode::Type type = target -> getType();
+	GraphNodeType type = target -> getType();
 
 	for(const NodePrompt& entry : _prompts)
 	{

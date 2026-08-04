@@ -29,7 +29,10 @@ class GraphHiveSurface : public RefCounted, public GraphNamed, public EventEmitt
 		enum class Type
 		{
 			/// A GraphHiveSceneSurface.
-			SCENE_SURFACE
+			SCENE_SURFACE,
+
+			/// A GraphHiveGraphViewSurface.
+			GRAPH_VIEW_SURFACE
 		};
 
 		/**
@@ -192,6 +195,14 @@ class GraphHiveSurface : public RefCounted, public GraphNamed, public EventEmitt
 		 * Emit the surface changed event.
 		 */
 		void _emitSurfaceChanged();
+
+		/**
+		 * Get the hive this surface is bound to.
+		 * @note A surface is bound when it is added to a hive, so a subclass built but not yet added has
+		 *       nothing to ask of.
+		 * @returns Handle to the hive. Invalid handle if this surface is not bound to one.
+		 */
+		Handle<GraphHive> _getHive();
 
 	private:
 

@@ -13,9 +13,9 @@ SceneRootNode::SceneRootNode() : StrobeEmitterNode(true)
 	_setEnergyCost(1);
 }
 
-GraphNode::Type SceneRootNode::getType()
+GraphNodeType SceneRootNode::getType()
 {
-	return Type::SCENE_ROOT_NODE;
+	return GraphNodeType::SCENE_ROOT_NODE;
 }
 
 void SceneRootNode::populateSceneSurface(Handle<GraphHiveSceneSurface> sceneSurface)

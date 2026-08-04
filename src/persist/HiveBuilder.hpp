@@ -84,10 +84,10 @@ class HiveBuilder
 
 		/**
 		 * Translate a node type name into its enum value.
-		 * @param name Node type name, as it appears in GraphNode::Type.
+		 * @param name Node type name, as it appears in GraphNodeType.
 		 * @throw PersistException(UNKNOWN_AGENT_PROMPT_NODE_TYPE) If the name is not recognised.
 		 */
-		static GraphNode::Type __nodeTypeFromName(const std::string& name);
+		static GraphNodeType __nodeTypeFromName(const std::string& name);
 
 		/**
 		 * Translate a vertex visibility name into its enum value.
