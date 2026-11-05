@@ -194,7 +194,7 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 				throw PersistException(PersistException::STROBE_EMITTER_NOT_FOUND);
 			}
 
-			StrobeEmitterNode* strobeNode = dynamic_cast<StrobeEmitterNode*>(targetIt -> second.getInstance());
+			StrobeEmitterNode* strobeNode = targetIt -> second.getInstance() -> asStrobeEmitter();
 
 			if(!strobeNode)
 			{
@@ -337,7 +337,7 @@ GraphHiveSurface* HiveBuilder::__createSurface(const HiveSurfaceDescriptor& desc
 	{
 		case HiveSurfaceDescriptor::SCENE_SURFACE:
 		{
-			SceneRootNode* sceneRootNode = dynamic_cast<SceneRootNode*>(referencedNode.getInstance());
+			SceneRootNode* sceneRootNode = referencedNode.getInstance() -> asSceneRoot();
 
 			if(!sceneRootNode)
 			{

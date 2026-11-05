@@ -16,6 +16,8 @@ class SceneRootNode : public StrobeEmitterNode
 
 		GraphNodeType getType() override;
 
+		SceneRootNode* asSceneRoot() override;
+
 		/**
 		 * Populate the given scene surface.
 		 */

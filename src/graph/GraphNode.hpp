@@ -8,6 +8,8 @@
 class GraphAction;
 class GraphEdge;
 class GraphHive;
+class SceneRootNode;
+class StrobeEmitterNode;
 
 #include "../util/RefCounted.hpp"
 #include "GraphActionTargetable.hpp"
@@ -40,6 +42,21 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 *       as a specific kind of node override this to report their own type.
 		 */
 		virtual GraphNodeType getType();
+
+		/**
+		 * Get this node as a StrobeEmitterNode.
+		 * @note Default implementation reports that the node is not one. StrobeEmitterNode overrides this, so
+		 *       every subclass of it is reported as one too.
+		 * @returns This node as a StrobeEmitterNode, or 0 if it is not one.
+		 */
+		virtual StrobeEmitterNode* asStrobeEmitter();
+
+		/**
+		 * Get this node as a SceneRootNode.
+		 * @note Default implementation reports that the node is not one. SceneRootNode overrides this.
+		 * @returns This node as a SceneRootNode, or 0 if it is not one.
+		 */
+		virtual SceneRootNode* asSceneRoot();
 
 		/**
 		 * Get the name a node type is exposed under.

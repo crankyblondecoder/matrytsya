@@ -18,6 +18,11 @@ GraphNodeType SceneRootNode::getType()
 	return GraphNodeType::SCENE_ROOT_NODE;
 }
 
+SceneRootNode* SceneRootNode::asSceneRoot()
+{
+	return this;
+}
+
 void SceneRootNode::populateSceneSurface(Handle<GraphHiveSceneSurface> sceneSurface)
 {
 	Handle<GraphNode> handle(this);

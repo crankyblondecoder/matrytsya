@@ -77,6 +77,16 @@ GraphNodeType GraphNode::getType()
 	return GraphNodeType::GRAPH_NODE;
 }
 
+StrobeEmitterNode* GraphNode::asStrobeEmitter()
+{
+	return 0;
+}
+
+SceneRootNode* GraphNode::asSceneRoot()
+{
+	return 0;
+}
+
 std::string GraphNode::typeName(GraphNodeType type)
 {
 	for(const TypeName& entry : TYPE_NAMES)

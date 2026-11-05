@@ -128,7 +128,7 @@ Reference-counted heap objects inherit from `RefCounted`. Rules:
 
 ## Casting
 
-`dynamic_cast` may never be used. Design types so the correct concrete type is known statically (virtual methods, visitor pattern, explicit type tags/enums) instead of discovering it at runtime via RTTI.
+`dynamic_cast` may never be used. Design types so the correct concrete type is known statically (virtual methods, visitor pattern, explicit type tags/enums) instead of discovering it at runtime via RTTI. Exception: unit tests (under `src/test/`) may use `dynamic_cast` to inspect concrete types; production code may not.
 
 ## Error Handling
 

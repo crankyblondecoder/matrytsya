@@ -11,6 +11,11 @@ StrobeEmitterNode::StrobeEmitterNode(bool serialiseActions) : GraphSerialisedAct
 {
 }
 
+StrobeEmitterNode* StrobeEmitterNode::asStrobeEmitter()
+{
+	return this;
+}
+
 void StrobeEmitterNode::emitStrobe()
 {
 	Handle<GraphNode> handle(this);

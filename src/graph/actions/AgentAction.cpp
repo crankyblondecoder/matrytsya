@@ -45,7 +45,7 @@ bool AgentAction::_apply(GraphNode* target)
 			_context.getInstance() -> addTemporaryToolBindings(agentTarget -> getModelToolBindings(_capability, getId()));
 		}
 
-		// The request below blocks for as long as the model takes to answer, which is long enough for the
+		// The request below block for as long as the model takes to answer, which is long enough for the
 		// surface to be repopulated several times over, so anything the node only shows while it is being
 		// worked on is revealed for exactly that window.
 		AgentAffectActionTarget* agentAffectTarget = target -> getAgentAffectActionTarget();

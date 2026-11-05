@@ -679,9 +679,9 @@ void GraphHive::removeNode(Handle<GraphNode> nodeHandle)
 	if(decouple)
 	{
 		// A node that is removed from the hive must also stop being a strobe emitter. Only nodes that
-		// are actually StrobeEmitterNodes can ever be registered, so a failed cast here just means
+		// are actually StrobeEmitterNodes can ever be registered, so a null accessor result just means
 		// the node was never an emitter.
-		if(_strobeScheduler) _strobeScheduler -> removeEmitter(Handle<StrobeEmitterNode>(dynamic_cast<StrobeEmitterNode*>(nodeToFind)));
+		if(_strobeScheduler) _strobeScheduler -> removeEmitter(Handle<StrobeEmitterNode>(nodeToFind -> asStrobeEmitter()));
 
 		nodeToFind -> decouple();
 		nodeToFind -> decrRef();

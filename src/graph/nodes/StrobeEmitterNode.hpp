@@ -16,6 +16,8 @@ class StrobeEmitterNode : public GraphSerialisedActionNode
 		 */
         StrobeEmitterNode(bool serialiseActions = false);
 
+		StrobeEmitterNode* asStrobeEmitter() override;
+
 		/**
 		 * Emit a single strobe action from this node immediately.
 		 */
