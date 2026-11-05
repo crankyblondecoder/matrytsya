@@ -3,6 +3,8 @@
 
 #include "../util/Exception.hpp"
 
+#include <string>
+
 /**
  * Exception thrown by the persist module, covering the builders' structural validation of loaded hive
  * and harness data and the JSON loaders' parsing/validation of that data as JSON. JSON-specific errors
@@ -170,13 +172,35 @@ class PersistException : public Exception
 
         virtual ~PersistException(){}
 
-        PersistException(Error error) : Exception(Exception::PERSIST), _error{error} {}
+        /**
+         * @param error What went wrong.
+         * @param detail What it went wrong against, e.g. the provider and URL that could not be reached. Empty
+         *        when the error alone says all that is known.
+         */
+        PersistException(Error error, std::string detail = "") : Exception(Exception::PERSIST), _error{error},
+            _detail{detail} {}
 
         Error getError() {return _error;}
+
+        /**
+         * Get what the error went wrong against.
+         * @returns The detail given when the exception was raised, or empty if none was.
+         */
+        const std::string& getDetail() {return _detail;}
+
+        /**
+         * Describe an error in plain language, for reporting to whoever wrote the data being loaded.
+         * @param error Error to describe.
+         * @returns Description of the error, never null.
+         */
+        static const char* getErrorDescription(Error error);
 
     private:
 
         Error _error;
+
+        /// What the error went wrong against. Empty when the error alone says all that is known.
+        std::string _detail;
 };
 
 #endif

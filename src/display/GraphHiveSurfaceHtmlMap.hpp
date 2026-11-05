@@ -71,6 +71,14 @@ class GraphHiveSurfaceHtmlMap : public GraphHiveSurfaceHttpMap, private EventLis
          */
         void setChatCapability(AgenticHarness::Capability capability);
 
+        /**
+         * Set whether this map's page carries a chat window at all.
+         * @note When disabled the chat endpoints are refused as well as the window being left off the page, so
+         *       a request made by hand cannot reach the model or start the chat thread either.
+         * @param enabled True to carry the chat window. Defaults to true.
+         */
+        void setChatEnabled(bool enabled);
+
     protected:
 
         // Required by ref counting.
@@ -262,6 +270,9 @@ class GraphHiveSurfaceHtmlMap : public GraphHiveSurfaceHttpMap, private EventLis
         /// Capability required of the model that answers chats made through this map's page.
         AgenticHarness::Capability _chatCapability = AgenticHarness::Capability::MEDIUM;
 
+        /// Whether this map's page carries a chat window and answers its endpoints.
+        bool _chatEnabled = true;
+
         /// Page this map's page links to for viewing the structure of the same hive. Empty when there is no
         /// such page, which is what leaves the link off rather than offering one that leads nowhere.
         std::string _structurePath;
@@ -275,7 +286,7 @@ class GraphHiveSurfaceHtmlMap : public GraphHiveSurfaceHttpMap, private EventLis
         /// destructor as though it were running.
         bool _chatThreadRunning = false;
 
-        /// Guards _revision, _pollIntervalMs, _chatCapability, _chatThreadStarted and _chatThreadRunning, all of
+        /// Guards _revision, _pollIntervalMs, _chatCapability, _chatEnabled, _chatThreadStarted and _chatThreadRunning, all of
         /// which are written and read across the thread serving HTTP requests, the chat thread and the surface's
         /// own threads.
         ThreadMutex _lock;

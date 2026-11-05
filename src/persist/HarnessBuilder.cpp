@@ -67,7 +67,8 @@ AgenticHarness* HarnessBuilder::build(HarnessLoader& loader, Handle<GraphHive> h
 
 			if(providerIt == providersByName.end())
 			{
-				throw PersistException(PersistException::MODEL_PROVIDER_NOT_FOUND);
+				throw PersistException(PersistException::MODEL_PROVIDER_NOT_FOUND,
+					"provider '" + descriptor.providerName + "'");
 			}
 
 			Handle<Model> modelHandle(0);
@@ -83,7 +84,8 @@ AgenticHarness* HarnessBuilder::build(HarnessLoader& loader, Handle<GraphHive> h
 
 			if(!modelHandle.isValid())
 			{
-				throw PersistException(PersistException::MODEL_NOT_FOUND);
+				throw PersistException(PersistException::MODEL_NOT_FOUND, "model '" + descriptor.modelName +
+					"' on provider '" + descriptor.providerName + "'");
 			}
 
 			AgenticHarness::RoleCapability roleCapability{
@@ -197,11 +199,16 @@ Handle<ModelProvider> HarnessBuilder::__createProvider(const HarnessProviderDesc
 
 				return providerHandle;
 			}
-			catch(AgentException&)
+			catch(AgentException& exception)
 			{
 				// Covers both the server being unreachable and it answering with a model list that could
-				// not be read; either way there is no provider to assign models from.
-				throw PersistException(PersistException::PROVIDER_CONNECTION_FAILED);
+				// not be read; either way there is no provider to assign models from. Which of the two it was
+				// goes in the detail, as they are put right in quite different places.
+				std::string reason = exception.getError() == AgentException::CONNECTION_FAILED ?
+					"could not connect" : "connected, but the list of models it returned could not be read";
+
+				throw PersistException(PersistException::PROVIDER_CONNECTION_FAILED, "provider '" +
+					descriptor.name + "' at " + descriptor.url + ": " + reason);
 			}
 		}
 	}

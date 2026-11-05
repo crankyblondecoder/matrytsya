@@ -1,5 +1,6 @@
 srcFiles = HarnessBuilder.cpp \
 HiveBuilder.cpp \
+PersistException.cpp \
 json/JsonHarnessLoader.cpp \
 json/JsonHiveLoader.cpp
 

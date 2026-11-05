@@ -184,6 +184,14 @@ void GraphHiveSurfaceHtmlMap::setChatCapability(AgenticHarness::Capability capab
 	}
 }
 
+void GraphHiveSurfaceHtmlMap::setChatEnabled(bool enabled)
+{
+	{ SYNC(_lock)
+
+		_chatEnabled = enabled;
+	}
+}
+
 std::string GraphHiveSurfaceHtmlMap::_getBasePath()
 {
 	std::string base = getPath();
@@ -200,11 +208,13 @@ void GraphHiveSurfaceHtmlMap::_renderPageTemplate(const std::string& pageTemplat
 	std::string title = _getSurface().getName();
 	unsigned pollIntervalMs;
 	std::string structurePath;
+	bool chatEnabled;
 
 	{ SYNC(_lock)
 
 		pollIntervalMs = _pollIntervalMs;
 		structurePath = _structurePath;
+		chatEnabled = _chatEnabled;
 	}
 
 	if(title.empty()) title = "Graph Hive Surface";
@@ -221,9 +231,11 @@ void GraphHiveSurfaceHtmlMap::_renderPageTemplate(const std::string& pageTemplat
 
 	// Put the chat window in before anything else, so that a placeholder appearing within it is filled in too
 	// rather than being left in the page as it stands.
-	replacePlaceholder(page, "%CHAT_STYLE%", chatWindowStyle);
-	replacePlaceholder(page, "%CHAT_MARKUP%", chatWindowMarkup);
-	replacePlaceholder(page, "%CHAT_SCRIPT%", chatWindowScript);
+	// Emptied rather than left in when disabled, which is all it takes for the page to go without a chat window:
+	// the templates only lay their other controls out around the chat toggle when it is there.
+	replacePlaceholder(page, "%CHAT_STYLE%", chatEnabled ? chatWindowStyle : "");
+	replacePlaceholder(page, "%CHAT_MARKUP%", chatEnabled ? chatWindowMarkup : "");
+	replacePlaceholder(page, "%CHAT_SCRIPT%", chatEnabled ? chatWindowScript : "");
 
 	replacePlaceholder(page, "%STRUCTURE_MARKUP%", structureMarkup);
 
@@ -250,6 +262,25 @@ void GraphHiveSurfaceHtmlMap::_serveData(HttpRequest& request, HttpResponse& res
 		__servePoke(request, response);
 
 		return;
+	}
+
+	if(request.getPath() == base + "/chat" || request.getPath().rfind(base + "/chat/", 0) == 0)
+	{
+		bool chatEnabled;
+
+		{ SYNC(_lock)
+
+			chatEnabled = _chatEnabled;
+		}
+
+		if(!chatEnabled)
+		{
+			response.setStatus(404);
+			response.setContentType("application/json");
+			response.setBody("{\"error\":\"chat is disabled\"}");
+
+			return;
+		}
 	}
 
 	if(request.getPath() == base + "/chat")

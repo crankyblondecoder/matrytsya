@@ -4,6 +4,9 @@
 #include "../../graph/GraphNodeLocation.hpp"
 #include "../../graph/graphSceneElements.hpp"
 #include "../../rapidjson/document.h"
+#include "../../rapidjson/error/en.h"
+
+#include <algorithm>
 
 namespace
 {
@@ -537,7 +540,17 @@ JsonHiveLoader::JsonHiveLoader(const std::string& json)
 
 	document.Parse(json.c_str());
 
-	if(document.HasParseError()) throw PersistException(PersistException::JSON_PARSE_ERROR);
+	if(document.HasParseError())
+	{
+		// Given as a line and column rather than the byte offset reported, as that is what an editor shows.
+		size_t offset = document.GetErrorOffset();
+		size_t line = 1 + std::count(json.begin(), json.begin() + offset, '\n');
+		size_t lineStart = offset == 0 ? std::string::npos : json.rfind('\n', offset - 1);
+		size_t column = 1 + offset - (lineStart == std::string::npos ? 0 : lineStart + 1);
+
+		throw PersistException(PersistException::JSON_PARSE_ERROR, "line " + std::to_string(line) +
+			", column " + std::to_string(column) + ": " + rapidjson::GetParseError_En(document.GetParseError()));
+	}
 
 	if(!document.IsObject()) throw PersistException(PersistException::JSON_ROOT_NOT_OBJECT);
 
