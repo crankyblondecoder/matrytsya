@@ -8,11 +8,11 @@ The whole thing is based on a multi-threaded cyclic graph, if you want to know t
 
 For humans:  [doc/matrytsya_human.md](doc/matrytsya_human.md)
 
-Or if you just want to point your AI model or agentic tools at a document and get started building a hive give it the following.
+Or if you just want to point your AI model or agentic tools at a document and get started with building a hive, give it the following, and describe your scene as a JSON file which can be passed to the matrytsya server (executable you build from the source).
 
 For agents: [doc/matrytsya_ai.md](doc/matrytsya_ai.md)
 
-The following example shows an agent action traversing two hives and manipulating the graph as it goes.
+The following example shows two hives and an agent action traversing and manipulating the hives as it goes from node to node.
 
 Note: The red halo shows which visual node the agent action is working on.
 
