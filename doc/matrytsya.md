@@ -45,12 +45,24 @@ At least one is required, and any number may be given.
 | `-c`  | `--chat-capability`       | `LEVEL`  | `LOW`   | Capability the chat window asks for: `LOW`, `MEDIUM` or `HIGH`. Case sensitive. See [Chat window](#chat-window). |
 | `-n`  | `--no-chat`               | none     | off     | Disable the chat window. See [Chat window](#chat-window). |
 | `-t`  | `--threads`               | `COUNT`  | `2`     | Number of threads in each hive's thread pool. 1 to 1024. Every hive gets its own pool of this size. |
-| `-v`  | `--verbose`               | none     | off     | Log model requests and responses to the console. |
+| `-v`  | `--verbose`               | none     | off     | Raise the console logging level by one. Can be repeated. See [Verbosity](#verbosity). |
 | `-h`  | `--help`                  | none     |         | Print a usage summary to standard output and exit with status 0. |
 
 Long options take their argument either as the next word (`--port 9000`) or after `=` (`--port=9000`).
 Options and hive files can come in any order. Use `--` to end the options if a hive file's name starts
 with `-`.
+
+## Verbosity
+
+Each `-v` raises the logging level by one. Each level logs everything the level below it logs, plus more:
+
+| Level | Given as            | Logs to the console |
+|-------|---------------------|---------------------|
+| 0     | no `-v`             | Startup and error messages only. |
+| 1     | `-v`                | Adds model requests and responses. |
+| 2     | `-vv` or `-v -v`    | Adds every poke a node accepts, eg `Node with id:2 was poked with a HIT poke.` |
+
+Levels above 2 log the same as level 2.
 
 ## Agentic harness
 
@@ -100,6 +112,8 @@ Listening on http://localhost:PORT/
 | `/`                          | Index of every hive loaded, with links to each hive's surfaces. Paths no surface claims also land here. |
 | `/HIVE/SURFACE/`             | The page for one surface of one hive, where `HIVE` is the hive's name and `SURFACE` is the surface's name. |
 
+- If only one hive is given, `/` sends the browser on to that hive's first scene surface, or to its only
+  surface if it has no scene surface, or to its page listing the surfaces otherwise.
 - Scene surfaces are drawn as an interactive WebGL scene. Clicking or hovering over an object pokes the node
   that drew it.
 - Graph view surfaces are drawn as the hive's node and edge structure.

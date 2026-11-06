@@ -57,6 +57,13 @@ class GraphHiveCollectionHttpMap : public RefCounted, public HttpRequestHandler
          */
         void addSurfaceMap(std::string hiveName, GraphHiveSurfaceMap& surfaceMap);
 
+        /**
+         * Send a browser arriving at the top page on to another page instead of showing the hive listing.
+         * @param path Path to send it to. Empty to show the listing again, which is how it starts out.
+         * @note Only the top page is affected; a hive's page is still reachable at its own path.
+         */
+        void setLandingPath(std::string path);
+
         void handleRequest(HttpRequest& request, HttpResponse& response) final;
 
     protected:
@@ -129,7 +136,10 @@ class GraphHiveCollectionHttpMap : public RefCounted, public HttpRequestHandler
         /// mounted them while the pages listing them are served from the HTTP server's own thread.
         std::vector<HiveEntry> _hives;
 
-        /// Guards _hives.
+        /// Path the top page sends a browser on to. Empty when it shows the listing. Guarded by _lock.
+        std::string _landingPath;
+
+        /// Guards _hives and _landingPath.
         ThreadMutex _lock;
 };
 

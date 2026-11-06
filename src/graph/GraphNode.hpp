@@ -143,6 +143,9 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 */
 		bool setHive(Handle<GraphHive> hive);
 
+		/// When true, every poke accepted by a node is reported on standard output.
+		static bool _logToConsole;
+
 		/**
 		 * Poke this node.
 		 */

@@ -18,6 +18,8 @@ starts or stops the engine. `ollamaHarness.json` is a harness definition: the mo
 
 ## How to create more examples
 
+Start with `doc/matrytsya_ai.md`, the entry point for generating and manipulating a hive: it explains the model and links the schema and Lua API below.
+
 Reference `doc/hiveSchema.json` and `doc/LuaNodeAPI.md` and create a new JSON file matching the JSON schema.
 
 For a harness, reference `doc/harnessSchema.json` in the same way.

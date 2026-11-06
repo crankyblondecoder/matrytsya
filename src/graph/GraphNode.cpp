@@ -54,6 +54,8 @@ namespace
 
 std::atomic<unsigned> GraphNode::_nextId{0};
 
+bool GraphNode::_logToConsole = false;
+
 GraphNode::~GraphNode()
 {
 	// Remove all edges.
@@ -433,9 +435,6 @@ std::vector<Handle<GraphEdge>> GraphNode::getEdges()
 
 void GraphNode::poke(GraphPoke pokeToProcess)
 {
-	if(_pokeEnabled) std::cout << "Node with id:" << getId() << " was poked with a " <<
-		pokeTypeName(pokeToProcess.getType()) << " poke." << std::endl;
-
 	bool pokeEnabled;
 
 	{ SYNC(_lock)
@@ -444,7 +443,12 @@ void GraphNode::poke(GraphPoke pokeToProcess)
 	}
 
 	// Silently discard the poke if poking isn't enabled.
-	if(pokeEnabled) _poked(pokeToProcess);
+	if(!pokeEnabled) return;
+
+	if(_logToConsole) std::cout << "Node with id:" << getId() << " was poked with a " <<
+		pokeTypeName(pokeToProcess.getType()) << " poke." << std::endl;
+
+	_poked(pokeToProcess);
 }
 
 bool GraphNode::getPokeEnabled()

@@ -13,6 +13,7 @@
 #include "graph/GraphHiveCollection.hpp"
 #include "graph/GraphHiveGraphViewSurface.hpp"
 #include "graph/GraphHiveSceneSurface.hpp"
+#include "graph/GraphNode.hpp"
 #include "graph/GraphToolBindingsFactory.hpp"
 #include "persist/HarnessBuilder.hpp"
 #include "persist/HiveBuilder.hpp"
@@ -48,6 +49,12 @@ namespace
 
 	const AgenticHarness::Capability _DEFAULT_CHAT_CAPABILITY = AgenticHarness::Capability::LOW;
 
+	/// Verbosity at which model requests and responses start being logged.
+	const unsigned _VERBOSITY_MODEL_TRAFFIC = 1;
+
+	/// Verbosity at which node pokes start being logged.
+	const unsigned _VERBOSITY_NODE_POKES = 2;
+
 	const unsigned _WEBGL_POLL_INTERVAL_MS = 50;
 
 	// Kept short rather than matched to how often a first request is actually expected, since this is also
@@ -79,7 +86,8 @@ namespace
 			"  -n, --no-chat                Do not display the chat window, and refuse chat requests.\n"
 			"  -t, --threads COUNT          Threads in each hive's thread pool (default " << _DEFAULT_NUM_THREADS
 			<< ").\n"
-			"  -v, --verbose                Log model traffic to the console.\n"
+			"  -v, --verbose                Log model traffic to the console. Repeat (-vv) to also log\n"
+			"                               node pokes.\n"
 			"  -h, --help                   Print this help and exit.\n"
 			"\n"
 			"See doc/matrytsya.md for the full reference.\n";
@@ -228,6 +236,7 @@ int main(int argc, char* argv[])
 	unsigned numThreads = _DEFAULT_NUM_THREADS;
 	AgenticHarness::Capability chatCapability = _DEFAULT_CHAT_CAPABILITY;
 	bool chatEnabled = true;
+	unsigned verbosity = 0;
 	std::string harnessPath;
 
 	const struct option longOptions[] =
@@ -294,7 +303,7 @@ int main(int argc, char* argv[])
 
 			case 'v':
 
-				Model::_logToConsole = true;
+				verbosity++;
 
 				break;
 
@@ -310,6 +319,9 @@ int main(int argc, char* argv[])
 				return 1;
 		}
 	}
+
+	Model::_logToConsole = verbosity >= _VERBOSITY_MODEL_TRAFFIC;
+	GraphNode::_logToConsole = verbosity >= _VERBOSITY_NODE_POKES;
 
 	if(optind >= argc)
 	{
@@ -351,6 +363,9 @@ int main(int argc, char* argv[])
 	// -- setting them up, mounting them on the index and waiting on a first request -- is the same whichever
 	// kind of surface is behind them.
 	std::vector<Handle<GraphHiveSurfaceHtmlMap>> surfaceMapHandles;
+
+	// Path of the first scene surface served, which is the one a lone hive is landed on.
+	std::string firstScenePath;
 
 	for(const std::string& hiveJsonPath : hiveJsonPaths)
 	{
@@ -439,6 +454,8 @@ int main(int argc, char* argv[])
 
 				// Only a scene page is offered the link. The structure page is the one it would lead to.
 				surfaceMap -> setStructurePath(structurePath);
+
+				if(firstScenePath.empty()) firstScenePath = surfacePath;
 			}
 			else if(graphViewSurfaceHandle.isValid())
 			{
@@ -471,6 +488,25 @@ int main(int argc, char* argv[])
 	{
 		std::cerr << "None of the hive definition files loaded produced a surface to serve." << std::endl;
 		exit(1);
+	}
+
+	// With only one hive there is nothing to choose between at the index, so a browser arriving there is sent
+	// straight to its view: the first scene surface, which links on to the structure page, or else its only
+	// surface, or else the page listing its surfaces.
+	if(hiveHandles.size() == 1)
+	{
+		if(!firstScenePath.empty())
+		{
+			collectionMap -> setLandingPath(firstScenePath);
+		}
+		else if(surfaceMapHandles.size() == 1)
+		{
+			collectionMap -> setLandingPath(surfaceMapHandles[0].getInstance() -> getPath());
+		}
+		else
+		{
+			collectionMap -> setLandingPath(_INDEX_PATH + hiveHandles[0].getInstance() -> getName() + "/");
+		}
 	}
 
 	try

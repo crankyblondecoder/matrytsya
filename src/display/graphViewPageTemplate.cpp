@@ -1983,7 +1983,7 @@ const char* const graphViewPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 		return nodes.length + (nodes.length === 1 ? ' node, ' : ' nodes, ') +
 			edges.length + (edges.length === 1 ? ' edge' : ' edges') +
-			'. Hover for detail, drag to orbit, scroll to zoom, right-drag to pan, right-click to centre.';
+			'. Hover for detail, drag to orbit, scroll to zoom, right-drag to pan, right-click on node to centre.';
 	}
 
 	function loadGraph(data)

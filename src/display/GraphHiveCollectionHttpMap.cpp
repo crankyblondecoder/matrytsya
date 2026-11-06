@@ -128,6 +128,14 @@ void GraphHiveCollectionHttpMap::addSurfaceMap(std::string hiveName, GraphHiveSu
 	}
 }
 
+void GraphHiveCollectionHttpMap::setLandingPath(std::string path)
+{
+	{ SYNC(_lock)
+
+		_landingPath = path;
+	}
+}
+
 void GraphHiveCollectionHttpMap::handleRequest(HttpRequest& request, HttpResponse& response)
 {
 	std::string requestPath = request.getPath();
@@ -162,6 +170,26 @@ void GraphHiveCollectionHttpMap::handleRequest(HttpRequest& request, HttpRespons
 
 void GraphHiveCollectionHttpMap::__serveHiveIndex(HttpResponse& response)
 {
+	std::string landingPath;
+
+	{ SYNC(_lock)
+
+		landingPath = _landingPath;
+	}
+
+	if(!landingPath.empty())
+	{
+		// The response has no way to set a Location header, so the redirect is made by the page itself. The
+		// link is for a browser that does not follow it.
+		std::string escapedPath = htmlEscape(landingPath);
+
+		response.setContentType("text/html");
+		response.setBody("<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\">"
+			"<meta http-equiv=\"refresh\" content=\"0; url=" + escapedPath + "\"><title>" + _INDEX_TITLE +
+			"</title></head><body><a href=\"" + escapedPath + "\">" + escapedPath + "</a></body></html>\n");
+		return;
+	}
+
 	std::string links;
 
 	for(const std::string& hiveName : _collection.getHiveNames())
