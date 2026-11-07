@@ -9,7 +9,8 @@ GraphEdge::~GraphEdge()
 	if(_toNode) delete _toNode;
 }
 
-GraphEdge::GraphEdge(Handle<GraphNode>& fromNode, std::vector<unsigned long> actionFlags) : _id { _nextId++ }
+GraphEdge::GraphEdge(Handle<GraphNode>& fromNode, std::vector<unsigned long> actionFlags, unsigned traversalKey) :
+	_id { _nextId++ }, _traversalKey { traversalKey }
 {
 	_toNode = 0;
 
@@ -79,6 +80,16 @@ bool GraphEdge::canTraverse(unsigned long actionFlags)
 unsigned long GraphEdge::getActionFlags()
 {
 	return _actionFlags;
+}
+
+unsigned GraphEdge::getTraversalKey()
+{
+	return _traversalKey;
+}
+
+bool GraphEdge::hasTraversalKey()
+{
+	return _traversalKey != 0;
 }
 
 std::string GraphEdge::getDescription()

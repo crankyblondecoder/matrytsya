@@ -23,6 +23,9 @@ struct HiveEdgeDescriptor
 	/// Whether an action completes once it has traversed this edge, rather than continuing on from the
 	/// node it leads to.
 	bool actionsCompleteAfterTraverse = false;
+
+	/// If non-zero, only an action holding this exact key may traverse this edge. Zero means no key restriction.
+	unsigned traversalKey = 0;
 };
 
 /**

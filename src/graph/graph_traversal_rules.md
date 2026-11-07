@@ -6,9 +6,15 @@
 
 - Which edge an action traverses is decided by the actions current node.
 
-- An edge carrying action flags is preferred over an unrestricted edge. Of the edges an action is permitted to
-  cross, the first flagged one is taken, whatever order the edges were added in. An unrestricted edge is only
-  crossed when no flagged edge is available to that action.
+- Of the edges an action is permitted to cross, the most specifically matched one is taken, whatever order the
+  edges were added in. From most to least specific: an edge matching both a key and an action flag, an edge
+  matching a key only, an edge matching an action flag only, and an unrestricted edge. Array order only decides
+  between edges of equal specificity, where the earliest wins. An unrestricted edge is therefore only crossed
+  when no keyed or flagged edge is available to that action.
+
+- An edge with a non-zero traversal key can only be crossed by an action holding that exact key. The key is
+  checked in addition to action flags, and is fixed when the edge is created. A key of zero means unkeyed.
+  An action is given its keys when it is constructed and cannot gain or lose them afterwards.
 
 - By default an action never crosses the same edge twice. Each action records the edges it has crossed and
   excludes them from later selection, which bounds traversal on a cyclic graph. The record belongs to the

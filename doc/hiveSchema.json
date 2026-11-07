@@ -109,12 +109,19 @@
 				"actionFlags": {
 					"type": "array",
 					"items": { "$ref": "#/$defs/actionFlag" },
-					"description": "Restricts which types of action may cross this edge: an action can only traverse it if its own action type matches one of the flags listed here. If omitted or empty, this edge places no restriction and any action may traverse it, with one exception: an agent action requires a named match and never crosses an unrestricted edge, so a route meant to carry one must list AGENT_GRAPH_ACTION. Listing flags also gives an edge precedence when a node picks which single edge an action crosses: where an action could cross either, an edge naming an action type it matches is taken ahead of an unrestricted edge, whatever order the two appear in. An unrestricted edge is therefore a fallback route rather than one competing on position. Whatever the flags say, an action never crosses the same edge twice on one pass through the graph, so a cycle is walked round once rather than endlessly."
+					"description": "Restricts which types of action may cross this edge: an action can only traverse it if its own action type matches one of the flags listed here. If omitted or empty, this edge places no restriction and any action may traverse it, with one exception: an agent action requires a named match and never crosses an unrestricted edge, so a route meant to carry one must list AGENT_GRAPH_ACTION. Listing flags also gives an edge precedence when a node picks which single edge an action crosses: an edge naming an action type it matches is taken ahead of an unrestricted edge, whatever order the two appear in, though a key-matched edge (see traversalKey) outranks both. An unrestricted edge is therefore a fallback route rather than one competing on position. Whatever the flags say, an action never crosses the same edge twice on one pass through the graph, so a cycle is walked round once rather than endlessly."
 				},
 				"actionsCompleteAfterTraverse": {
 					"type": "boolean",
 					"default": false,
 					"description": "Whether an action completes once it has traversed this edge. The node the edge leads to is still applied to as normal, but that application is the action's last: it never goes on to cross a further edge from there, however many remain permitted. If omitted or false, the action carries on as normal once applied to that node."
+				},
+				"traversalKey": {
+					"type": "integer",
+					"minimum": 0,
+					"maximum": 4294967295,
+					"default": 0,
+					"description": "Locks this edge to actions that carry a matching key. If non-zero, an action can only traverse this edge if it holds this exact numeric key; an action holding no keys, or only different ones, never crosses it. This applies in addition to actionFlags: an action must satisfy both to cross. A key match is the most specific match an edge can make, so when a node picks which single edge an action crosses, a key-matched edge is taken ahead of an edge matching only on actionFlags or an unrestricted one, whatever order they appear in; an edge matching on both key and actionFlags ranks highest of all. The key is fixed when the edge is created and cannot change afterwards. If omitted or 0, this edge has no key restriction."
 				}
 			}
 		},

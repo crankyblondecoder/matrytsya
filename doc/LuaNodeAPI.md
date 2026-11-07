@@ -36,7 +36,7 @@ Every Lua state a script runs in, whether core or poke, is sandboxed identically
 
 `coreScript` runs when a script action or a strobe action is applied to the node, and at no other time. Scene
 building, animate and agent actions never run it. In practice that means a scene script node's `coreScript`
-runs once per strobe of the emitter that reaches it, for as long as the hive lives. A `triggerNode` is the
+runs once per strobe of the emitter that reaches it, for as long as the hive lives. A `TriggerNode` is the
 exception: a strobe never reaches it, so its `coreScript` runs only under a script action.
 
 **A `coreScript` is therefore run repeatedly.** Nothing it did on an earlier run is undone before the next
@@ -117,8 +117,8 @@ neither existed — and a script action that stages a global under either name w
 A `coreScript` may define this global to offer an AI model tools of its own, on top of the fixed set its node
 type already offers. It is **not** an entry point: no run ever calls it, and defining it does not close the
 top level down the way `init()` or `invoke()` does. It is called only while an agent action is being applied
-to this node, and only on node types that are agent action targets — `triggerNode`,
-`sceneGeometryScriptNode` and `sceneTransformScriptNode`. Defining it on any other node type does nothing.
+to this node, and only on node types that are agent action targets — `TriggerNode`,
+`SceneGeometryScriptNode` and `SceneTransformScriptNode`. Defining it on any other node type does nothing.
 
 It is passed the capability of the model asking, as one of the strings `"LOW"`, `"MEDIUM"` or `"HIGH"`, so a
 script can offer a weaker model a smaller set. It returns an array of descriptor tables, one per tool:
@@ -228,7 +228,7 @@ led to it, so a tool can tell one call apart from the next.
 
 ## Bindings on every Lua-scripted node
 
-Available to `sceneGeometryScriptNode`, `sceneTransformScriptNode` and `triggerNode`, in both the core and
+Available to `SceneGeometryScriptNode`, `SceneTransformScriptNode` and `TriggerNode`, in both the core and
 poke states.
 
 | Function | Description |
@@ -239,9 +239,9 @@ poke states.
 
 ## Bindings on scene script nodes
 
-Available to `sceneGeometryScriptNode` and `sceneTransformScriptNode` only, in both the core and poke states.
-**These are not registered on `triggerNode`**, which takes no part in a scene and has neither a strobing nor
-an animating mode; calling one of them from a `triggerNode` script raises an error on a nil value.
+Available to `SceneGeometryScriptNode` and `SceneTransformScriptNode` only, in both the core and poke states.
+**These are not registered on `TriggerNode`**, which takes no part in a scene and has neither a strobing nor
+an animating mode; calling one of them from a `TriggerNode` script raises an error on a nil value.
 
 | Function | Description |
 |---|---|
@@ -294,16 +294,16 @@ it is invoked or in response to being poked.
 A trigger action does two things at the nodes it reaches, and both obey the restrictions above:
 
 - **Triggering.** A node is triggered only if it is a trigger target. Of the node types documented below,
-  only `agentNode` is one: a trigger reaching it makes it emit its prompts as an agent action, unless its
+  only `AgentNode` is one: a trigger reaching it makes it emit its prompts as an agent action, unless its
   `autoTriggerAgentAction` is set false. No other node type is triggered by one.
-- **Teleporting.** A trigger action is also a serialisable action, so a `teleportNode` it reaches forwards it
+- **Teleporting.** A trigger action is also a serialisable action, so a `TeleportNode` it reaches forwards it
   to that node's `destination`, where it carries on traversing the hive it lands in. This is how a trigger
   crosses from one hive to another.
 
-Note that `triggerNode` *emits* triggers rather than receiving them; it is not a trigger target.
+Note that `TriggerNode` *emits* triggers rather than receiving them; it is not a trigger target.
 
-A restriction suppresses both. A trigger carrying a `nodeName` or `nodeType` that a `teleportNode` does not
-match is passed over by it and never forwarded, exactly as an unmatched `agentNode` is never triggered. A
+A restriction suppresses both. A trigger carrying a `nodeName` or `nodeType` that a `TeleportNode` does not
+match is passed over by it and never forwarded, exactly as an unmatched `AgentNode` is never triggered. A
 trigger intended to leave the hive must therefore either carry no restriction at all or name the teleport node
 itself — restricting it to the agent node waiting on the far side stops it at the gate.
 
@@ -318,25 +318,25 @@ They are only meaningful (and only set) in the poke state, not the core state:
 | `HIT_DURATION` | integer | Hit duration in milliseconds. Only meaningful when `POKE_TYPE == "HIT"`. |
 | `DRAG_VECTOR` | array table of 3 numbers | Drag vector in world coordinates, `{x, y, z}`. Only meaningful when `POKE_TYPE == "DRAG"`. |
 
-## `pingNode`
+## `PingNode`
 
 No `scriptSource`; this node type never runs Lua.
 
-## `teleportNode`
+## `TeleportNode`
 
 No `scriptSource`; this node type never runs Lua.
 
-## `sceneRootNode`
+## `SceneRootNode`
 
 No `scriptSource`; this node type never runs Lua.
 
-## `sceneGeometryNode`
+## `SceneGeometryNode`
 
-No `scriptSource`; its `vertexes` are set directly from JSON rather than by a script. Like
-`sceneGeometryScriptNode`, setting its agent visible flag can also emit an `AgentAffectAction`; see
-`emitAgentAffectAction` below.
+No `scriptSource`; its `vertexes` are set directly from JSON rather than by a script. No agent action is
+ever applied to it, so its agent visible flag is set only by an `AgentAffectAction` arriving from upstream,
+and its own `emitAgentAffectAction` never sends anything on.
 
-## `sceneGeometryScriptNode`
+## `SceneGeometryScriptNode`
 
 Represents scene geometry whose vertexes are populated by `coreScript`. Vertexes are appended and never
 cleared, so a script that builds a fixed piece of geometry must build it exactly once: put the build in
@@ -354,7 +354,7 @@ with `if vertexCount() == 0 then` still works, and is what scripts written befor
 | `addVertex(vertex, [visibility])` | Appends a single `Vertex` (as built by the `Vertex` constructor) to this node's vertex list. `visibility` is an optional `VertexVisibility.*` constant (default `VertexVisibility.ALWAYS`); an unrecognized value raises an error. |
 | `addVertexes(vertexes, [visibility])` | Appends every `Vertex` in the given array-style table (indexes `1..#vertexes`) to this node's vertex list in one call. `visibility` is an optional `VertexVisibility.*` constant (default `VertexVisibility.ALWAYS`); an unrecognized value raises an error. |
 | `vertexCount()` | Returns the number of vertexes currently held by this node. |
-| `setAgentVisible(visible)` | Sets whether this node's `VertexVisibility.AGENT` vertexes are currently shown. `visible` is a boolean. This is also set automatically for the duration of an agentic request made against this node, so a script only needs it to drive the same geometry for reasons of its own. Calling it from a script emits an `AgentAffectAction` from this node exactly as the automatic path does, if the node was constructed with `emitAgentAffectAction` true. |
+| `setAgentVisible(visible)` | Sets whether this node's `VertexVisibility.AGENT` vertexes are currently shown. `visible` is a boolean. This is also set automatically for the duration of an agentic request made against this node, so a script only needs it to drive the same geometry for reasons of its own. Calling it from a script affects this node only: it never emits an `AgentAffectAction`, whatever `emitAgentAffectAction` is set to. |
 | `getAgentVisible()` | Returns `true` if this node's `VertexVisibility.AGENT` vertexes are currently shown, `false` otherwise. |
 
 Vertexes are appended in the order added; each consecutive triplet defines a triangle with
@@ -371,11 +371,11 @@ geometry has nothing downstream that needs to hear about it.
 node id in the data the viewer polls for; the vertexes themselves are never resent, so it is cheap enough to
 toggle as often as wanted.
 
-## `sceneTransformNode`
+## `SceneTransformNode`
 
 No `scriptSource`; its `transform` is set directly from JSON rather than by a script.
 
-## `sceneTransformScriptNode`
+## `SceneTransformScriptNode`
 
 Represents a transform applied to scene geometry, which `coreScript` can read and modify. In addition to the
 bindings [on every Lua-scripted node](#bindings-on-every-lua-scripted-node) and
@@ -386,13 +386,13 @@ bindings [on every Lua-scripted node](#bindings-on-every-lua-scripted-node) and
 | `getTransform()` | Returns the node's current transform as a 16-element array table, in column-major order, matching the `transform` array in the JSON schema. Translation components are in scene geometry units, which by default map one unit to one millimeter. |
 | `setTransform(transform)` | Sets the node's transform from a 16-element array table, in column-major order. Translation components are in scene geometry units, which by default map one unit to one millimeter. |
 
-## `agentNode`
+## `AgentNode`
 
 No `scriptSource`; this node type never runs Lua. It is a trigger target: a trigger reaching it emits its
 prompts as an agent action, unless its `autoTriggerAgentAction` is set false. See
 [Triggering other nodes](#triggering-other-nodes).
 
-## `triggerNode`
+## `TriggerNode`
 
 Has a `scriptSource`, but adds no Lua bindings of its own. It takes no part in a scene, so it has only the
 [bindings on every Lua-scripted node](#bindings-on-every-lua-scripted-node) — `NodeType` and `trigger()` —
@@ -400,8 +400,8 @@ and none of the [scene script node bindings](#bindings-on-scene-script-nodes): `
 `getAnimating()` and `setAnimating()` do not exist here.
 
 It also supports neither strobe flag, so a strobe never reaches its script. Its `coreScript` runs only under
-a script action, which is why a `triggerNode` whose emission is left to a model or to a poke usually has an
-empty `coreScript`. That also means an `init()` on a `triggerNode` is not called at hive start but on the
+a script action, which is why a `TriggerNode` whose emission is left to a model or to a poke usually has an
+empty `coreScript`. That also means an `init()` on a `TriggerNode` is not called at hive start but on the
 first script action that reaches the node, which may be a long way in, or may never come.
 
 What distinguishes it is that the same emission is exposed to an AI model rather than only to Lua. While an

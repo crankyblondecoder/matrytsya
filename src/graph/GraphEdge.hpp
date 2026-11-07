@@ -23,8 +23,10 @@ class GraphEdge : public RefCounted
 		 * @param toNode Node edge points to.
 		 * @param actionFlags List of action flags to add to edge. These determine if action is allowed to traverse
 		 *        this edge. Leave list empty for no traversal restriction.
+		 * @param traversalKey If non-zero, only an action holding this exact key may traverse this edge. Zero for
+		 *        no key restriction.
 		 */
-		GraphEdge(Handle<GraphNode>& toNode, std::vector<unsigned long> actionFlags);
+		GraphEdge(Handle<GraphNode>& toNode, std::vector<unsigned long> actionFlags, unsigned traversalKey = 0);
 
 		/**
 		 * Whether this edge points to a node.
@@ -76,6 +78,19 @@ class GraphEdge : public RefCounted
 		unsigned long getActionFlags();
 
 		/**
+		 * Get the traversal key of this edge.
+		 * @returns The key an action must hold to traverse this edge, or 0 if this edge is not keyed.
+		 * @note The key is fixed at construction, so it may be read from any thread without synchronisation.
+		 */
+		unsigned getTraversalKey();
+
+		/**
+		 * Determine whether this edge requires a traversal key.
+		 * @returns True if a non-zero traversal key is set. False otherwise.
+		 */
+		bool hasTraversalKey();
+
+		/**
 		 * Get the description of this edge.
 		 * @returns Description, or an empty string if none has been set.
 		 */
@@ -118,6 +133,10 @@ class GraphEdge : public RefCounted
 
 		/// Flags that determine whether an action can traverse this edge.
 		std::atomic<unsigned long> _actionFlags{0};
+
+		/// If non-zero, an action must have a matching traversal key to traverse this edge. Const and set only at
+		/// construction, which happens before the edge is published to other threads, so reads need no lock.
+		const unsigned _traversalKey;
 
 		/// Optional description of this edge. Empty if none has been set.
 		std::string _description;

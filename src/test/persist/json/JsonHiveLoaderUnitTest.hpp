@@ -167,6 +167,46 @@ TEST(JsonHiveLoaderTest, MalformedJson_ThrowsJsonParseError)
 }
 
 /**
+ * An edge's "traversalKey" defaults to 0 when omitted and is carried through when supplied.
+ */
+TEST(JsonHiveLoaderTest, EdgeTraversalKey_IsParsed)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [
+			{ "type": "PingNode", "name": "a",
+				"edges": [ { "toNodeName": "b" }, { "toNodeName": "b", "traversalKey": 4294967295 } ] },
+			{ "type": "PingNode", "name": "b" }
+		]
+	})";
+
+	JsonHiveLoader loader(json);
+
+	HiveNodeDescriptor a = loader.getNode(0);
+
+	ASSERT_EQ(a.edges.size(), 2u);
+	EXPECT_EQ(a.edges[0].traversalKey, 0u);
+	EXPECT_EQ(a.edges[1].traversalKey, 4294967295u);
+}
+
+/**
+ * An edge's "traversalKey" must be a non-negative integer that fits in 32 bits.
+ */
+TEST(JsonHiveLoaderTest, EdgeInvalidTraversalKey_ThrowsJsonInvalidEdges)
+{
+	const char* badKeys[] = { "\"7\"", "-1", "1.5", "4294967296", "true" };
+
+	for(const char* badKey : badKeys)
+	{
+		std::string json = std::string(R"({ "name": "Hive", "nodes": [
+			{ "type": "PingNode", "name": "a", "edges": [ { "toNodeName": "b", "traversalKey": )") + badKey + R"( } ] },
+			{ "type": "PingNode", "name": "b" } ] })";
+
+		EXPECT_THROW(JsonHiveLoader loader(json), PersistException) << "Accepted traversalKey " << badKey;
+	}
+}
+
+/**
  * A node object missing the required "type" member is rejected.
  */
 TEST(JsonHiveLoaderTest, NodeMissingType_ThrowsJsonInvalidNodeBase)
@@ -1008,6 +1048,62 @@ TEST(JsonHiveLoaderTest, EndToEnd_ActionsCompleteAfterTraverseEdgeStopsTraversal
 	EXPECT_EQ(midNode -> getPingCount(), 1u);
 	// ...but never carries on to traverse past it.
 	EXPECT_EQ(targetNode -> getPingCount(), 0u);
+
+	action -> decrRef();
+
+	hive -> shutdown();
+}
+
+/**
+ * End-to-end: a keyed edge built from JSON carries its key, and a ping running on the hive's worker threads
+ * (where the key check runs under the action's lock) skips it for the unkeyed sibling without deadlocking.
+ */
+TEST(JsonHiveLoaderTest, EndToEnd_KeyedEdgeSkippedByActionWithoutKey)
+{
+	std::string json = R"({
+		"name": "TestHive",
+		"nodes": [
+			{ "type": "PingNode", "name": "source",
+				"edges": [
+					{ "toNodeName": "locked", "actionFlags": ["PING_GRAPH_ACTION"], "traversalKey": 9 },
+					{ "toNodeName": "open" }
+				] },
+			{ "type": "PingNode", "name": "locked" },
+			{ "type": "PingNode", "name": "open" }
+		]
+	})";
+
+	JsonHiveLoader loader(json);
+
+	GraphHive* hive = HiveBuilder::build(loader, 2);
+	Handle<GraphHive> hiveHandle(hive);
+
+	Handle<GraphNode> sourceHandle = hive -> getNode("source");
+	Handle<GraphNode> lockedHandle = hive -> getNode("locked");
+	Handle<GraphNode> openHandle = hive -> getNode("open");
+
+	ASSERT_TRUE(sourceHandle.isValid());
+	ASSERT_TRUE(lockedHandle.isValid());
+	ASSERT_TRUE(openHandle.isValid());
+
+	std::vector<Handle<GraphEdge>> edges = sourceHandle.getInstance() -> getEdges();
+
+	ASSERT_EQ(edges.size(), 2u);
+	EXPECT_EQ(edges[0].getInstance() -> getTraversalKey(), 9u);
+	EXPECT_EQ(edges[1].getInstance() -> getTraversalKey(), 0u);
+
+	PingNode* sourceNode = dynamic_cast<PingNode*>(sourceHandle.getInstance());
+	PingNode* lockedNode = dynamic_cast<PingNode*>(lockedHandle.getInstance());
+	PingNode* openNode = dynamic_cast<PingNode*>(openHandle.getInstance());
+
+	ASSERT_NE(sourceNode, nullptr);
+	ASSERT_NE(lockedNode, nullptr);
+	ASSERT_NE(openNode, nullptr);
+
+	PingAction* action = sourceNode -> emitPing(true);
+
+	EXPECT_EQ(lockedNode -> getPingCount(), 0u);
+	EXPECT_EQ(openNode -> getPingCount(), 1u);
 
 	action -> decrRef();
 

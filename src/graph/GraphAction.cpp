@@ -9,6 +9,7 @@
 #include "../log/log.hpp"
 
 #include <string>
+#include <utility>
 
 std::atomic<unsigned> GraphAction::_nextId{1};
 
@@ -20,9 +21,9 @@ GraphAction::~GraphAction()
 }
 
 GraphAction::GraphAction(Handle<GraphNode> initNode, unsigned energy, unsigned numPasses,
-	bool edgeTraversalIsExact) : _id { _nextId++ },
+	bool edgeTraversalIsExact, std::vector<unsigned> edgeTraversalKeys) : _id { _nextId++ },
 	_initNode(initNode), _boundNode(initNode), _boundHive(0), _numPasses(numPasses < 1 ? 1 : numPasses),
-	_edgeTraversalIsExact(edgeTraversalIsExact)
+	_edgeTraversalKeys(std::move(edgeTraversalKeys)), _edgeTraversalIsExact(edgeTraversalIsExact)
 {
 	_energy = energy;
 
@@ -499,6 +500,16 @@ void GraphAction::abortWork()
 	__complete();
 }
 
+bool GraphAction::__hasEdgeTraversalKey(unsigned key)
+{
+	for(unsigned heldKey : _edgeTraversalKeys)
+	{
+		if(heldKey == key) return true;
+	}
+
+	return false;
+}
+
 bool GraphAction::canTraverseEdge(Handle<GraphEdge> handle)
 {
 	bool canTraverse = true;
@@ -513,6 +524,11 @@ bool GraphAction::canTraverseEdge(Handle<GraphEdge> handle)
 		{
 			// Action flags must match edge flags explicitly.
 			canTraverse = handle.getInstance() -> hasAnyActionFlags(getEdgeTraversalFlags());
+		}
+
+		if(canTraverse && handle.getInstance() -> hasTraversalKey())
+		{
+			canTraverse = __hasEdgeTraversalKey(handle.getInstance() -> getTraversalKey());
 		}
 
 		if(canTraverse)

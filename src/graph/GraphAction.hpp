@@ -30,9 +30,11 @@ class GraphAction : public RefCounted, public EventEmitter<GraphActionListener>
 		 * @param energy The energy that is assigned to the action.
 		 * @param numPasses How many complete traversal passes this action should take.
 		 * @param edgeTraversalIsExact Whether this action requires an exact edge traversal flag match.
+		 * @param edgeTraversalKeys Keys this action holds. An edge with a non-zero traversal key can only be
+		 *        traversed if its key is in this list. Fixed for the life of the action.
 		 */
 		GraphAction(Handle<GraphNode> initNode, unsigned energy, unsigned numPasses = 1,
-			bool edgeTraversalIsExact = false);
+			bool edgeTraversalIsExact = false, std::vector<unsigned> edgeTraversalKeys = {});
 
 		/**
 		 * Get the required flags that determine if this action is invoked on a node.
@@ -234,8 +236,21 @@ class GraphAction : public RefCounted, public EventEmitter<GraphActionListener>
 		 */
 		std::atomic<unsigned long> _optionalFlags{0};
 
-		/// Whether for this action to traverse an edge, at least one of the edges flags must match the flags
-		/// returned from getEdgeTraversalFlags(). Wildcard "anything can traverse" edges can never match.
+		/**
+		 * Edge keys this action can use to traverse keyed edges.
+		 * Essentially, this action needs to have the exact numeric key to traverse an edge with a non-zero
+		 * traversal key.
+		 * @note Const and set only at construction, before the action can be scheduled on another thread, so it
+		 *       is read without a lock. canTraverseEdge() already runs under the non-recursive _lock, so taking
+		 *       it again there would deadlock.
+		 */
+		const std::vector<unsigned> _edgeTraversalKeys;
+
+		/**
+		 * Whether for this action to traverse an edge, at least one of the edges flags must match the flags
+		 * returned from getEdgeTraversalFlags(). Wildcard "anything can traverse" edges can never match if this
+		 * flag is set.
+		 */
 		bool _edgeTraversalIsExact;
 
 		/// List of id's of edges this action has already traversed.
@@ -259,6 +274,15 @@ class GraphAction : public RefCounted, public EventEmitter<GraphActionListener>
 		 * i.e. whether this action should complete once it has had a chance to be applied to this node.
 		 */
 		bool __getCompleteAfterTraverse();
+
+		/**
+		 * Determine whether this action holds the given edge traversal key.
+		 * @param key Non-zero traversal key of an edge.
+		 * @returns True if the key is held. False otherwise.
+		 * @note Takes no lock: the keys are immutable, and the traversal path already holds the non-recursive
+		 *       _lock.
+		 */
+		bool __hasEdgeTraversalKey(unsigned key);
 
 		/**
 		 * Attempt to begin the next traversal pass.

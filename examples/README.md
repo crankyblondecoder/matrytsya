@@ -14,7 +14,7 @@ what the agent node asks for, is given that one no-argument call, while anything
 `flowerHive.json` reaches across to: its agent conversation now ends on a trigger node, where the model calls
 an `emitTrigger` tool, and a teleport node forwards the emitted action into the engine hive. The two are
 loaded into one collection by the test harness, so poking flower 3 walks the flower conversation and then
-starts or stops the engine. `ollamaHarness.json` is a harness definition: the models, system prompts and tool sets a hive is run against. It is loaded separately from the hive and serves whichever hive it is given to. It names one specific Ollama server and one model served by it, so both have to be reachable for a hive run against it to have a model behind it.
+starts or stops the engine. `gardenHive.json` is `flowerHive.json` with all of the agentic behaviour taken out: no agent, trigger or teleport nodes, no agent or trigger edges, no tool bindings, and no agent-only geometry, so it runs without a harness or a model. `ollamaHarness.json` is a harness definition: the models, system prompts and tool sets a hive is run against. It is loaded separately from the hive and serves whichever hive it is given to. It names one specific Ollama server and one model served by it, so both have to be reachable for a hive run against it to have a model behind it.
 
 ## How to create more examples
 

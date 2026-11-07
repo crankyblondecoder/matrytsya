@@ -196,7 +196,8 @@ void GraphNode::_setEnergyCost(unsigned cost)
 	}
 }
 
-Handle<GraphEdge> GraphNode::createEdge(Handle<GraphNode>& connectTo, std::vector<unsigned long> actionFlags)
+Handle<GraphEdge> GraphNode::createEdge(Handle<GraphNode>& connectTo, std::vector<unsigned long> actionFlags,
+	unsigned traversalKey)
 {
 	int retIndex = -1;
 	Handle<GraphEdge> retHandle(0);
@@ -227,7 +228,7 @@ Handle<GraphEdge> GraphNode::createEdge(Handle<GraphNode>& connectTo, std::vecto
 			try
 			{
 				// Edges are immutable and should not exist if not fully connected.
-				edge = new GraphEdge(connectTo, actionFlags);
+				edge = new GraphEdge(connectTo, actionFlags, traversalKey);
 			}
 			catch(std::bad_alloc& ex)
 			{
@@ -366,8 +367,8 @@ Handle<GraphEdge> GraphNode::traverse(GraphAction& action)
 	// Using a handle guarantees that the edge will be availble.
 	Handle<GraphEdge> edgeToTraverse(0);
 
-	// First traversable edge found that carries no action flags. Only used if no flagged edge can be traversed.
-	Handle<GraphEdge> wildcardEdgeToTraverse(0);
+	// Specificity of edgeToTraverse. -1 until a traversable edge has been found.
+	int bestSpecificity = -1;
 
 	std::vector<Handle<GraphEdge>> edgesToCheck;
 	unsigned numEdgesToCheck = 0;
@@ -397,22 +398,33 @@ Handle<GraphEdge> GraphNode::traverse(GraphAction& action)
 		if(edgeHandleToCheck.getInstance() -> canTraverse(action.getEdgeTraversalFlags()) &&
 			action.canTraverseEdge(edgeHandleToCheck))
 		{
-			// An edge that names the actions it accepts is a deliberate route for this action, so it is taken
-			// ahead of a wildcard edge that merely fails to exclude it. The wildcard is held as a fallback
-			// rather than taken now, in case a flagged edge is found further along the array.
-			if(edgeHandleToCheck.getInstance() -> hasActionFlags())
+			// The most specifically matched edge is the most deliberate route for this action, so it wins over
+			// array position. Any traversable keyed edge is a key match, which outranks an action flag match,
+			// which in turn outranks a wildcard that merely fails to exclude the action. Ties go to the earliest
+			// edge in the array, so only a strictly more specific edge replaces the current best.
+			int specificity = __getEdgeSpecificity(edgeHandleToCheck.getInstance());
+
+			if(specificity > bestSpecificity)
 			{
 				edgeToTraverse = edgeHandleToCheck;
-				break;
-			}
+				bestSpecificity = specificity;
 
-			if(!wildcardEdgeToTraverse.isValid()) wildcardEdgeToTraverse = edgeHandleToCheck;
+				if(specificity == MAX_EDGE_SPECIFICITY) break;
+			}
 		}
 	}
 
-	if(!edgeToTraverse.isValid()) edgeToTraverse = wildcardEdgeToTraverse;
-
 	return edgeToTraverse;
+}
+
+int GraphNode::__getEdgeSpecificity(GraphEdge* edge)
+{
+	int specificity = 0;
+
+	if(edge -> hasTraversalKey()) specificity += KEY_EDGE_SPECIFICITY;
+	if(edge -> hasActionFlags()) specificity += ACTION_FLAG_EDGE_SPECIFICITY;
+
+	return specificity;
 }
 
 std::vector<Handle<GraphEdge>> GraphNode::getEdges()

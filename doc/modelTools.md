@@ -12,13 +12,13 @@ authoring a harness for a hive means knowing which pair the hive will ask for.
 
 | Request | Role | Capability |
 |---|---|---|
-| Prompts an `agentNode` emits as an agent action | `NODE` | The `capability` set on that `agentNode`. |
+| Prompts an `AgentNode` emits as an agent action | `NODE` | The `capability` set on that `AgentNode`. |
 | A message typed at a surface's chat interface | `CHAT` | Chosen by whatever hosts the chat interface, not by the hive. |
 
 `HIVE` and `SCRIPT` are defined roles, but nothing requests them yet. Assignments naming them load without
 complaint and go unused.
 
-A hive containing one `agentNode` with `"capability": "LOW"` therefore needs a `NODE`/`LOW` model assignment,
+A hive containing one `AgentNode` with `"capability": "LOW"` therefore needs a `NODE`/`LOW` model assignment,
 and nothing else, to run. A pair with no model assignment fails the request when it is made; a pair with no
 system prompt entry is served with no system prompt at all.
 
@@ -31,10 +31,10 @@ reach back to an earlier one.
 
 | Node type | Tools offered |
 |---|---|
-| `sceneGeometryScriptNode` | `getAnimating`, `setAnimating` |
-| `sceneTransformScriptNode` | `getAnimating`, `setAnimating` |
-| `triggerNode` | `emitTrigger` |
-| `pingNode`, `teleportNode`, `sceneRootNode`, `sceneGeometryNode`, `sceneTransformNode`, `agentNode` | None |
+| `SceneGeometryScriptNode` | `getAnimating`, `setAnimating` |
+| `SceneTransformScriptNode` | `getAnimating`, `setAnimating` |
+| `TriggerNode` | `emitTrigger` |
+| `PingNode`, `TeleportNode`, `SceneRootNode`, `SceneGeometryNode`, `SceneTransformNode`, `AgentNode` | None |
 
 A prompt may still match a node that offers no tools; the model is then simply asked to answer, with the
 conversation carried forward as usual.
@@ -80,9 +80,9 @@ Takes two optional arguments, either of which may be left out:
 
 Returns `triggered`, a boolean: whether the action was emitted.
 
-The emitted action is never applied back to the node that emitted it, so a `triggerNode` cannot trigger
+The emitted action is never applied back to the node that emitted it, so a `TriggerNode` cannot trigger
 itself. Restrictions apply to everything the trigger action does, not just to trigger targets: a restricted
-trigger is also passed over by a `teleportNode` whose name or type does not match, and so is never forwarded
+trigger is also passed over by a `TeleportNode` whose name or type does not match, and so is never forwarded
 on. A trigger meant to leave the hive through a teleport must therefore either carry no restriction at all or
 name that teleport node. See [Triggering other nodes](LuaNodeAPI.md#triggering-other-nodes) for what a trigger
 action does where it lands.

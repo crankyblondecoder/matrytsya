@@ -8,6 +8,7 @@
 - [harnessSchema.json](harnessSchema.json) — JSON schema an agentic harness definition must satisfy: providers, and the models, system prompts and tool sets assigned to each role and capability. Separate from the hive definition: a harness is not part of a hive's structure, and a hive can run without one.
 - [LuaNodeAPI.md](LuaNodeAPI.md) — Lua bindings for a hive's `coreScript`/`pokeScript` sources, per concrete node type.
 - [modelTools.md](modelTools.md) — tools a model is given when a hive makes a request of it, and the role and capability each request is made for.
+- [nodeTypes.md](nodeTypes.md) — per concrete node type: its fields, the actions it reacts to, what it emits, and its Lua bindings, model tools and poke behaviour, gathered in one place.
 
 ## Action
 
@@ -17,8 +18,8 @@ Traversal:
 - Bound to one node at a time; never forks or branches. Bound to a starting node, optionally applied there per config.
 - Step = apply at current node, cross one outgoing edge, apply at next, repeat.
 - Edge selection at a node: exactly one edge, from those permitted by both edge and action. Other edges are skipped, not spawned/queued/deferred.
-- Selection order: flag-carrying edges outrank unrestricted ones. The first permitted edge in the edge array (insertion order) that declares `actionFlags` wins; only when no flagged edge is permitted is the first permitted unrestricted edge taken. Array order therefore only decides between edges of equal rank.
-- Consequence: an unrestricted edge acts as a fallback route rather than one competing on position. A node can carry a flagged route for a specific action type alongside an unrestricted route for everything else, and the flagged route is taken by the actions it names regardless of which edge was added first.
+- Selection order: the most specifically matched permitted edge wins. Ranks, highest first: an edge matching both `traversalKey` and `actionFlags`; an edge matching `traversalKey` only; an edge matching `actionFlags` only; an unrestricted edge. A keyed edge is only permitted to an action holding its exact key. Array order (insertion order) only decides between edges of equal rank, where the earliest wins.
+- Consequence: an unrestricted edge acts as a fallback route rather than one competing on position, and a keyed route outranks a merely flagged one. A node can carry a keyed route for actions holding a key, a flagged route for a specific action type, and an unrestricted route for everything else; each action takes the most specific route open to it regardless of which edge was added first.
 - Exclusion (default): an action never crosses the same *edge* twice; it records every crossed edge and excludes it from future selection. This bounds traversal on cyclic graphs.
 - Only the crossed edge is excluded, not its siblings — a skipped sibling stays eligible if the action later revisits the node by another path.
 - Consequence: each action's path is linear step-to-step, but over its lifetime a branch node can contribute several of its edges across separate visits.
@@ -43,21 +44,22 @@ cross, and whether it is applied at all at the node it arrives on.
 | Strobe | `SCENE_STROBE_GRAPH_ACTION` (required), `SCRIPT_GRAPH_ACTION` | A node registered in `strobeEmitters` | Marks the node as strobing, then runs its `coreScript` — `invoke()` if the script defines one, the whole script if not. |
 | Script | `SCRIPT_GRAPH_ACTION` | Internal | Runs the node's `coreScript` the same way, without marking it as strobing. |
 | Animate | `ANIMATE_GRAPH_ACTION` (required) | `setAnimating()` in Lua with emission asked for, and always by the `setAnimating` model tool | Sets the node's animating mode to the one the action carries. Runs no script. |
-| Agent | `AGENT_GRAPH_ACTION` (required) | An `agentNode` that a trigger reached, unless `autoTriggerAgentAction` is false | Sends the prompt matching this node, carrying one conversation from node to node. |
-| Trigger | `TRIGGER_GRAPH_ACTION`, `SERIALISABLE_GRAPH_ACTION` | `trigger()` in Lua, the `emitTrigger` model tool, or poking a `triggerNode` unless `emitTriggerOnPoke` is false | Fires the node if it is a trigger target; teleports itself if the node is a `teleportNode`. Both obey the trigger's name and type restrictions. |
+| Agent | `AGENT_GRAPH_ACTION` (required) | An `AgentNode` that a trigger reached, unless `autoTriggerAgentAction` is false | Sends the prompt matching this node, carrying one conversation from node to node. |
+| Trigger | `TRIGGER_GRAPH_ACTION`, `SERIALISABLE_GRAPH_ACTION` | `trigger()` in Lua, the `emitTrigger` model tool, or poking a `TriggerNode` unless `emitTriggerOnPoke` is false | Fires the node if it is a trigger target; teleports itself if the node is a `TeleportNode`. Both obey the trigger's name and type restrictions. |
 | Ping | `PING_GRAPH_ACTION`, `SERIALISABLE_GRAPH_ACTION` | Internal | Pings the node. |
+| Agent affect | `AGENT_AFFECT_GRAPH_ACTION` (required) | A scripted scene node with `emitAgentAffectAction` set, as an agent action starts and stops being applied to it | Shows or hides the node's `AGENT` visibility vertexes. No visible effect on a transform. Never sent on again from a node it reaches. |
 
 Flags each node type supports:
 
 | Node type | Supports |
 |---|---|
-| `pingNode` | `PING_GRAPH_ACTION` |
-| `teleportNode` | `SERIALISABLE_GRAPH_ACTION` |
-| `sceneRootNode` | None — it emits rather than receives |
-| `sceneGeometryNode`, `sceneTransformNode` | `SCENE_GRAPH_ACTION`, `SCENE_STROBE_GRAPH_ACTION` |
-| `sceneGeometryScriptNode`, `sceneTransformScriptNode` | `SCENE_GRAPH_ACTION`, `SCENE_STROBE_GRAPH_ACTION`, `SCRIPT_GRAPH_ACTION`, `ANIMATE_GRAPH_ACTION`, `AGENT_GRAPH_ACTION` |
-| `triggerNode` | `SCRIPT_GRAPH_ACTION`, `AGENT_GRAPH_ACTION` |
-| `agentNode` | `TRIGGER_GRAPH_ACTION` |
+| `PingNode` | `PING_GRAPH_ACTION` |
+| `TeleportNode` | `SERIALISABLE_GRAPH_ACTION` |
+| `SceneRootNode` | None — it emits rather than receives |
+| `SceneGeometryNode`, `SceneTransformNode` | `SCENE_GRAPH_ACTION`, `SCENE_STROBE_GRAPH_ACTION`, `AGENT_AFFECT_GRAPH_ACTION` |
+| `SceneGeometryScriptNode`, `SceneTransformScriptNode` | `SCENE_GRAPH_ACTION`, `SCENE_STROBE_GRAPH_ACTION`, `SCRIPT_GRAPH_ACTION`, `ANIMATE_GRAPH_ACTION`, `AGENT_GRAPH_ACTION`, `AGENT_AFFECT_GRAPH_ACTION` |
+| `TriggerNode` | `SCRIPT_GRAPH_ACTION`, `AGENT_GRAPH_ACTION` |
+| `AgentNode` | `TRIGGER_GRAPH_ACTION` |
 
 Consequences worth authoring to:
 
@@ -68,9 +70,9 @@ Consequences worth authoring to:
   node builds itself on the first run and costs nothing on every strobe after. A script defining neither runs
   top to bottom every time, unchanged. An `init()` that raises spends its one attempt anyway, is never
   retried, and still closes the top level down. `pokeScript` has no lifecycle: whole script, every poke.
-- A `triggerNode` supports neither strobe flag, so a strobe never runs its `coreScript`. Its script runs only
+- A `TriggerNode` supports neither strobe flag, so a strobe never runs its `coreScript`. Its script runs only
   under a script action.
-- Only a `teleportNode` supports `SERIALISABLE_GRAPH_ACTION`, so a trigger action leaves the hive only by
+- Only a `TeleportNode` supports `SERIALISABLE_GRAPH_ACTION`, so a trigger action leaves the hive only by
   reaching one. `SERIALISABLE_GRAPH_ACTION` on an edge admits trigger and ping actions, being the flag both
   carry.
 - Flagging an edge with the two scene flags reserves it for scene building and scene strobing, keeping animate,
@@ -82,7 +84,7 @@ Consequences worth authoring to:
 Two registrations, independent of each other, and an animated scene needs both:
 
 - `strobeEmitters` registers a node to emit a strobe action into the graph every `periodMs`. Only a
-  `sceneRootNode` can be registered. This is what advances state: it runs each scripted node's `coreScript`
+  `SceneRootNode` can be registered. This is what advances state: it runs each scripted node's `coreScript`
   as it reaches it, marking that node as strobing for the duration of the run, which is what `getStrobe()`
   reports.
 - `strobeSurfaces` registers a surface to re-run a scene action from its `sceneRootNodeName` every `periodMs`.

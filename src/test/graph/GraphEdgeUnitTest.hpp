@@ -87,4 +87,34 @@ TEST(GraphEdgeTest, RestrictedEdgeWithMultipleFlagsAllowsAnyOfThem)
 	edge -> decrRef();
 }
 
+/**
+ * An edge constructed without a traversal key is unkeyed.
+ */
+TEST(GraphEdgeTest, DefaultTraversalKeyIsZero)
+{
+	GraphEdge* edge = _makeEdge();
+
+	EXPECT_EQ(edge -> getTraversalKey(), 0u);
+	EXPECT_FALSE(edge -> hasTraversalKey());
+
+	edge -> decrRef();
+}
+
+/**
+ * A traversal key given at construction is reported back unchanged.
+ */
+TEST(GraphEdgeTest, ConstructedTraversalKeyIsReported)
+{
+	PingNode* targetNode = new PingNode();
+	Handle<GraphNode> targetHandle(targetNode);
+	targetNode -> decrRef();
+
+	GraphEdge* edge = new GraphEdge(targetHandle, {}, 42);
+
+	EXPECT_EQ(edge -> getTraversalKey(), 42u);
+	EXPECT_TRUE(edge -> hasTraversalKey());
+
+	edge -> decrRef();
+}
+
 #endif

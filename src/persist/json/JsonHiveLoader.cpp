@@ -93,6 +93,13 @@ namespace
 				edgeDescriptor.actionsCompleteAfterTraverse = edgeValue["actionsCompleteAfterTraverse"].GetBool();
 			}
 
+			if(edgeValue.HasMember("traversalKey"))
+			{
+				if(!edgeValue["traversalKey"].IsUint()) throw PersistException(PersistException::JSON_INVALID_EDGES);
+
+				edgeDescriptor.traversalKey = edgeValue["traversalKey"].GetUint();
+			}
+
 			descriptor.edges.push_back(edgeDescriptor);
 		}
 	}

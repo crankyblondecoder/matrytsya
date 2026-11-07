@@ -8,6 +8,8 @@ A hive is made of **nodes** joined together by **edges**. A node is a single sma
 
 Put enough nodes and edges together and you get a graph that can branch, loop back on itself, and reuse the same nodes for different purposes. A hive can contain several such graphs at once.
 
+Each node is one of a fixed set of types, and its type decides what it can do. [nodeTypes.md](nodeTypes.md) catalogues them all: what each type is for, what it accepts, and how it responds to actions, scripts, models and pokes.
+
 ## Actions: how things happen
 
 Nothing in a hive does anything on its own — it needs an **action** to visit it. An action is a single thread of activity that starts at one node, does whatever that node defines, then follows exactly one edge to the next node, does its thing there, and so on. It never splits into multiple simultaneous paths — think of it as one messenger with one route, not a flood spreading through the network.

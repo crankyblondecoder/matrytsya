@@ -102,7 +102,7 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 				}
 
 				Handle<GraphEdge> edgeHandle =
-					fromHandle.getInstance() -> createEdge(targetIt -> second, actionFlags);
+					fromHandle.getInstance() -> createEdge(targetIt -> second, actionFlags, edgeDescriptor.traversalKey);
 
 				if(!edgeHandle.isValid())
 				{

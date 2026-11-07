@@ -21,6 +21,12 @@ class StrobeEmitterNode;
 // The number of edges a node can have is fixed.
 #define EDGE_ARRAY_SIZE 32
 
+// Edge traversal specificity weights. A key match outranks an action flag match, so the key weight must exceed
+// the flag weight. An edge with both scores highest.
+#define ACTION_FLAG_EDGE_SPECIFICITY 1
+#define KEY_EDGE_SPECIFICITY 2
+#define MAX_EDGE_SPECIFICITY (KEY_EDGE_SPECIFICITY + ACTION_FLAG_EDGE_SPECIFICITY)
+
 /**
  * Node of a graph
  * @note Nodes self delete when no longer referenced by an edge.
@@ -87,9 +93,12 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 * @param connectTo Handle of node to form edge to.
 		 * @param actionFlags Action flags to add to edge. These will determine which actions can traverse this edge.
 		 *        Leave blank for no restriction.
+		 * @param traversalKey If non-zero, only an action holding this exact key may traverse the edge. Zero for no
+		 *        key restriction. Fixed for the life of the edge.
          * @returns Handle of created edge. Will be invalid if edge could not be created.
 		 */
-		Handle<GraphEdge> createEdge(Handle<GraphNode>& connectTo, std::vector<unsigned long> actionFlags);
+		Handle<GraphEdge> createEdge(Handle<GraphNode>& connectTo, std::vector<unsigned long> actionFlags,
+			unsigned traversalKey = 0);
 
 		/**
 		 * Remove edge from this node.
@@ -101,8 +110,9 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 * Find the next node to traverse to.
 		 * @note This defines default traversal behaviour which is to traverse the next edge that the action has not
 		 *       already traversed.
-		 * @note Edges carrying action flags are preferred over unflagged wildcard edges. An unflagged edge is only
-		 *       traversed when no flagged edge is traversable.
+		 * @note The most specifically matched traversable edge is taken: a key match outranks an action flag match,
+		 *       which outranks an unflagged wildcard edge, and an edge matching both key and flags ranks highest.
+		 *       Ties go to the earliest edge in the edge array.
 		 * @param action Action that is requesting to traverse.
 		 * @returns Handle to next edge to traverse.
 		 */
@@ -237,6 +247,15 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 * @returns Point to graph edge that needs to be deleted outside of lock.
 		 */
         GraphEdge* __removeEdge(int edgeIndex);
+
+		/**
+		 * Score how specifically a traversable edge matches the action traversing it.
+		 * @param edge An edge the action has already been permitted to traverse.
+		 * @returns 0 for a wildcard edge, up to MAX_EDGE_SPECIFICITY for an edge that is both keyed and flagged.
+		 * @note Only valid for an edge that has passed both traversal checks, since a keyed edge only passes
+		 *       when the action holds its key, and a flagged edge only when the action matches a flag.
+		 */
+		int __getEdgeSpecificity(GraphEdge* edge);
 };
 
 #endif
