@@ -221,6 +221,66 @@ TEST(ActionFactoryTest, TriggerRoundTrip)
 }
 
 /**
+ * Edge traversal keys are part of a serialisable action's payload, so an action rebuilt by ActionFactory after
+ * teleportation holds the same keys as the original: it can cross every edge the original could, and no other
+ * keyed edge. The original crossing a keyed edge to reach the capturing node shows the keys were held before
+ * serialisation too.
+ */
+TEST(ActionFactoryTest, TraversalKeysSurviveRoundTrip)
+{
+	GraphHive* hive = new GraphHive(2);
+	Handle<GraphHive> hiveHandle(hive);
+
+	TriggerCapturingNode* sourceNode = new TriggerCapturingNode();
+	TriggerCapturingNode* targetNode = new TriggerCapturingNode();
+
+	hive -> addNode(sourceNode);
+	hive -> addNode(targetNode);
+
+	Handle<GraphNode> sourceHandle(sourceNode);
+	Handle<GraphNode> targetHandle(targetNode);
+
+	sourceNode -> createEdge(targetHandle, {}, 7);
+
+	// A non-empty name exercises the variable length field the keys are serialised after. A trigger only
+	// serialises at a node it matches, so the target carries that name.
+	targetNode -> setName("named");
+
+	TriggerAction* original = new TriggerAction(sourceHandle, "named", true, GraphNodeType::GRAPH_NODE, {7, 9});
+	original -> incrRef();
+
+	original -> start();
+	original -> waitOnComplete(0);
+
+	ASSERT_NE(targetNode -> getCapturedPayload(), nullptr)
+		<< "The keyed original should have crossed the keyed edge and serialised at the target.";
+
+	SerialisableAction* recreated = ActionFactory::create(targetHandle, *targetNode -> getCapturedPayload());
+	ASSERT_NE(recreated, nullptr);
+
+	Handle<GraphEdge> edge7(new GraphEdge(targetHandle, {}, 7));
+	Handle<GraphEdge> edge9(new GraphEdge(targetHandle, {}, 9));
+	Handle<GraphEdge> edge5(new GraphEdge(targetHandle, {}, 5));
+	Handle<GraphEdge> unkeyed(new GraphEdge(targetHandle, {}));
+
+	// Each Handle took its own reference; release the construction ones.
+	edge7.getInstance() -> decrRef();
+	edge9.getInstance() -> decrRef();
+	edge5.getInstance() -> decrRef();
+	unkeyed.getInstance() -> decrRef();
+
+	EXPECT_TRUE(recreated -> canTraverseEdge(edge7)) << "Key 7 should have survived the round trip.";
+	EXPECT_TRUE(recreated -> canTraverseEdge(edge9)) << "Key 9 should have survived the round trip.";
+	EXPECT_FALSE(recreated -> canTraverseEdge(edge5)) << "A key never held should not be gained.";
+	EXPECT_TRUE(recreated -> canTraverseEdge(unkeyed)) << "An unkeyed edge should still be traversable.";
+
+	recreated -> decrRef();
+	original -> decrRef();
+
+	hive -> shutdown();
+}
+
+/**
  * Factory must throw GraphException when the payload carries an unrecognised action type.
  */
 TEST(ActionFactoryTest, ThrowsOnUnknownType)

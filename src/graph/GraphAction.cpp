@@ -500,6 +500,11 @@ void GraphAction::abortWork()
 	__complete();
 }
 
+std::vector<unsigned> GraphAction::_getEdgeTraversalKeys()
+{
+	return _edgeTraversalKeys;
+}
+
 bool GraphAction::__hasEdgeTraversalKey(unsigned key)
 {
 	for(unsigned heldKey : _edgeTraversalKeys)

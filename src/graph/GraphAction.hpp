@@ -160,6 +160,13 @@ class GraphAction : public RefCounted, public EventEmitter<GraphActionListener>
 		 */
 		unsigned _getCurrentPassNum();
 
+		/**
+		 * Get the edge traversal keys this action holds.
+		 * @returns Copy of the keys, in the order they were given at construction.
+		 * @note Takes no lock, as the keys are immutable for the life of the action.
+		 */
+		std::vector<unsigned> _getEdgeTraversalKeys();
+
 		/// Starting energy assigned to newly constructed actions that use it as their default. Overridable via
 		/// setStartingEnergy().
 		static unsigned _startingEnergy;

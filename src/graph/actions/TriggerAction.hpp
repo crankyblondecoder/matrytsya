@@ -22,9 +22,10 @@ class TriggerAction : public SerialisableAction
 		 * @param nodeName If non-empty, restricts triggering to nodes with this name.
 		 * @param restrictToNodeType If true, restricts triggering to nodes of nodeType.
 		 * @param nodeType Node type required when restrictToNodeType is true.
+		 * @param edgeTraversalKeys Keys this action holds, letting it traverse edges keyed with any of them.
 		 */
 		TriggerAction(Handle<GraphNode>& initNode, std::string nodeName = "", bool restrictToNodeType = false,
-			GraphNodeType nodeType = GraphNodeType::GRAPH_NODE);
+			GraphNodeType nodeType = GraphNodeType::GRAPH_NODE, std::vector<unsigned> edgeTraversalKeys = {});
 
 		SerialisableActionType getSerialisbleType() override;
 

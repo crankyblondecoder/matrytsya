@@ -15,8 +15,9 @@ class AnimateAction : public GraphAction
 		/**
 		 * @param initNode Initial node the new action is bound to.
 		 * @param animating Animating state this action applies to each visited node.
+		 * @param edgeTraversalKeys Keys this action holds, letting it traverse edges keyed with any of them.
 		 */
-		AnimateAction(Handle<GraphNode> initNode, bool animating);
+		AnimateAction(Handle<GraphNode> initNode, bool animating, std::vector<unsigned> edgeTraversalKeys = {});
 
 	protected:
 

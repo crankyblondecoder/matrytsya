@@ -15,7 +15,11 @@ class PingAction : public SerialisableAction
 
         virtual ~PingAction();
 
-		PingAction(Handle<GraphNode>& initNode);
+		/**
+		 * @param initNode Initial node the new action is bound to.
+		 * @param edgeTraversalKeys Keys this action holds, letting it traverse edges keyed with any of them.
+		 */
+		PingAction(Handle<GraphNode>& initNode, std::vector<unsigned> edgeTraversalKeys = {});
 
 		/**
 		 * Get the current ping count from the action.

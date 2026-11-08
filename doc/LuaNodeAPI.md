@@ -236,6 +236,8 @@ poke states.
 | `NodeType` | A global table of constants naming each concrete node type, for use as the `nodeType` argument to `trigger`. See [Triggering other nodes](#triggering-other-nodes). |
 | `trigger([nodeName], [nodeType])` | Emits a trigger action from this node, triggering nodes it reaches as it traverses the graph. See [Triggering other nodes](#triggering-other-nodes). |
 | `ToolType` | A global table of constants naming the value types a script defined tool's parameters and return value may be declared as: `STRING`, `NUMBER`, `INTEGER` and `BOOL`. Only of use in a `coreScript`, which is the only place tools can be declared. See [`getToolCallBindings(capability)`](#gettoolcallbindingscapability). |
+| `ActionType` | A global table of constants naming the action types a script can emit: `TRIGGER` and `ANIMATE`. See [Emitting actions](#emitting-actions). |
+| `emitAction(actionType, [params], [traversalKeys])` | Emits an action of the given type from this node, with its own parameters and the edge traversal keys it holds. See [Emitting actions](#emitting-actions). |
 
 ## Bindings on scene script nodes
 
@@ -306,6 +308,52 @@ A restriction suppresses both. A trigger carrying a `nodeName` or `nodeType` tha
 match is passed over by it and never forwarded, exactly as an unmatched `AgentNode` is never triggered. A
 trigger intended to leave the hive must therefore either carry no restriction at all or name the teleport node
 itself — restricting it to the agent node waiting on the far side stops it at the gate.
+
+`trigger(nodeName, nodeType)` is shorthand for `emitAction(ActionType.TRIGGER, {nodeName = nodeName, nodeType = nodeType})`.
+Use `emitAction()` when the trigger must hold traversal keys.
+
+### Emitting actions
+
+`emitAction()` emits an action of any type in the `ActionType` table from the node whose script called it.
+
+```lua
+emitAction(actionType, [params], [traversalKeys])
+```
+
+| Argument | Effect |
+|---|---|
+| `actionType` | One of the `ActionType` constants. Any other value raises an error, including the constant's name as a string. |
+| `params` | Optional table of the parameters this action type takes, by name. Omitted or `nil` means every parameter takes its default. A field the action type does not take, or a field of the wrong type, raises an error, so a misspelt name is caught rather than ignored. |
+| `traversalKeys` | Optional array of the edge traversal keys the action holds. Each must be an integer from 1 to 4294967295. Omitted, `nil` or `{}` means the action holds no keys. |
+
+Parameters each action type takes:
+
+| `ActionType` | Field | Type | Default | Effect |
+|---|---|---|---|---|
+| `TRIGGER` | `nodeName` | string | `""` (any name) | As `trigger()`'s `nodeName`. |
+| `TRIGGER` | `nodeType` | `NodeType` constant | No restriction | As `trigger()`'s `nodeType`. |
+| `ANIMATE` | `animating` | boolean | **Required** | The animating mode set on each node the action reaches that supports animation. |
+
+**Traversal keys.** An edge whose `traversalKey` is non-zero can only be crossed by an action holding that
+exact key. An unkeyed edge is crossed whatever keys an action holds. Key `0` is rejected, since every unkeyed
+edge already has it. The keys are fixed when the action is emitted. A trigger action keeps its keys when a
+`TeleportNode` forwards it to another hive.
+
+```lua
+-- Every trigger target reachable without crossing a keyed edge.
+emitAction(ActionType.TRIGGER)
+
+-- Only nodes named "leftDoor", also crossing edges keyed 3 or 7.
+emitAction(ActionType.TRIGGER, {nodeName = "leftDoor"}, {3, 7})
+
+-- Start animating everything behind the edges keyed 12, as well as everything unkeyed.
+emitAction(ActionType.ANIMATE, {animating = true}, {12})
+```
+
+Validation happens before anything is emitted. A call that raises an error emits nothing, and the script stops
+at that line, the same as any other Lua error. As with `trigger()`, the action is never applied to the
+node that emitted it, and the call returns before the action has finished traversing. `emitAction()` is
+registered into both the core and the poke state.
 
 ### Poke-only context globals
 

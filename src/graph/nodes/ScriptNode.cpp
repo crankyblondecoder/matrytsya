@@ -5,6 +5,7 @@
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphException.hpp"
 #include "../GraphPoke.hpp"
+#include "../actions/AnimateAction.hpp"
 #include "../actions/TriggerAction.hpp"
 
 #include "../../agent/AgentException.hpp"
@@ -16,12 +17,54 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <stdint.h>
+#include <string.h>
+#include <utility>
 
 namespace
 {
 	// Globals the base library opens with that reach outside the sandbox (filesystem or stdio); stripped once
 	// each state is created.
 	const char* const DISALLOWED_GLOBALS[] = {"dofile", "loadfile", "print", "warn"};
+
+	// Fields each emittable action type accepts in its emitAction() params table.
+	const char* const TRIGGER_PARAM_FIELDS[] = {"nodeName", "nodeType"};
+	const char* const ANIMATE_PARAM_FIELDS[] = {"animating"};
+
+	/**
+	 * Find the node type whose integer value is the one given.
+	 * @param value Integer value of a NodeType constant.
+	 * @param type Set to the node type, if one has that value.
+	 * @returns True if a node type has that value.
+	 * @note Returns rather than raising, so that no C++ object is alive when its caller raises a Lua error.
+	 */
+	bool __nodeTypeFromValue(lua_Integer value, GraphNodeType& type)
+	{
+		for(const std::string& name : GraphNode::typeNames())
+		{
+			GraphNodeType candidate = GraphNode::typeFromName(name);
+
+			if(static_cast<lua_Integer>(candidate) != value) continue;
+
+			type = candidate;
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Push the raw value of a named field of a table, bypassing any metamethod so that the read cannot raise.
+	 * @param luaState Lua state to read from.
+	 * @param index Absolute stack index of the table.
+	 * @param field Name of the field to read.
+	 * @returns The Lua type of the value pushed.
+	 */
+	int __rawGetField(lua_State* luaState, int index, const char* field)
+	{
+		lua_pushstring(luaState, field); // [..., field]
+		return lua_rawget(luaState, index); // [..., value]
+	}
 
 	// Every PrimitiveType, paired with the name the ToolType constant table exposes it under. Both the
 	// registration of those constants and the reading of one back walk these, so both must be extended
@@ -612,6 +655,7 @@ void ScriptNode::_registerCoreGlobals(lua_State* luaState)
 {
 	__registerTriggerBindings(luaState);
 	__registerToolTypeConstants(luaState);
+	__registerActionBindings(luaState);
 }
 
 void ScriptNode::__registerTriggerBindings(lua_State* luaState)
@@ -650,16 +694,7 @@ int ScriptNode::__luaTrigger(lua_State* luaState)
 	GraphNodeType nodeType = restrictToNodeType ?
 		__checkNodeType(luaState, 2) : GraphNodeType::GRAPH_NODE;
 
-	Handle<GraphNode> handle(node);
-
-	// Action will self delete once complete.
-	TriggerAction* action = new TriggerAction(handle, nodeName, restrictToNodeType, nodeType);
-
-	action -> incrRef();
-
-	node -> _emitAction(action);
-
-	action -> decrRef();
+	node -> __emitTriggerAction(nodeName, restrictToNodeType, nodeType, {});
 
 	return 0;
 }
@@ -678,6 +713,253 @@ GraphNodeType ScriptNode::__checkNodeType(lua_State* luaState, int index)
 	// luaL_error does not return; the return below is only present to satisfy the compiler.
 	luaL_error(luaState, "invalid NodeType value: %d", static_cast<int>(value));
 	return GraphNodeType::GRAPH_NODE;
+}
+
+// -- Lua action emission --
+
+// Note: The vendored Lua is compiled as C, so a Lua error is raised with longjmp, which skips the destructor of
+// every C++ object alive in the frames it unwinds. Everything here that can raise therefore runs before any such
+// object exists, and building and emitting the action happens only once every argument has been validated.
+
+void ScriptNode::__registerActionBindings(lua_State* luaState)
+{
+	// Exposed as a table of integer constants that round-trip through __checkActionType(); the values must
+	// match static_cast<lua_Integer> of each EmittableActionType member.
+	lua_createtable(luaState, 0, static_cast<int>(std::size(EMITTABLE_ACTION_TYPES)));
+
+	for(size_t i = 0; i < std::size(EMITTABLE_ACTION_TYPES); i++)
+	{
+		lua_pushinteger(luaState, static_cast<lua_Integer>(EMITTABLE_ACTION_TYPES[i]));
+		lua_setfield(luaState, -2, EMITTABLE_ACTION_TYPE_NAMES[i]);
+	}
+
+	lua_setglobal(luaState, "ActionType");
+
+	lua_pushlightuserdata(luaState, this);
+	lua_pushcclosure(luaState, __luaEmitAction, 1);
+	lua_setglobal(luaState, "emitAction");
+}
+
+int ScriptNode::__luaEmitAction(lua_State* luaState)
+{
+	ScriptNode* node = static_cast<ScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
+
+	EmittableActionType actionType = __checkActionType(luaState, 1);
+
+	bool hasParams = !lua_isnoneornil(luaState, 2);
+
+	if(hasParams && !lua_istable(luaState, 2))
+	{
+		luaL_error(luaState, "emitAction: params must be a table or nil");
+	}
+
+	__checkTraversalKeys(luaState, 3);
+
+	switch(actionType)
+	{
+		case EmittableActionType::TRIGGER:
+		{
+			// An empty name is what TriggerAction takes as "any name". The pointer stays valid for the rest of
+			// this call, as the params table, still on the stack, holds the string it points into.
+			const char* nodeName = "";
+			bool restrictToNodeType = false;
+			GraphNodeType nodeType = GraphNodeType::GRAPH_NODE;
+
+			if(hasParams)
+			{
+				__checkParamFields(luaState, 2, TRIGGER_PARAM_FIELDS, std::size(TRIGGER_PARAM_FIELDS));
+
+				int nameType = __rawGetField(luaState, 2, "nodeName"); // [..., nodeName]
+
+				if(nameType == LUA_TSTRING) nodeName = lua_tostring(luaState, -1);
+				else if(nameType != LUA_TNIL) luaL_error(luaState, "emitAction: params.nodeName must be a string");
+
+				lua_pop(luaState, 1); // [...]
+
+				int typeType = __rawGetField(luaState, 2, "nodeType"); // [..., nodeType]
+
+				if(typeType != LUA_TNIL)
+				{
+					// As with trigger(), GRAPH_NODE is a type in its own right, so whether to restrict at all is
+					// carried separately from the type itself.
+					restrictToNodeType = true;
+
+					if(!lua_isinteger(luaState, -1)
+						|| !__nodeTypeFromValue(lua_tointeger(luaState, -1), nodeType))
+					{
+						luaL_error(luaState, "emitAction: params.nodeType must be a NodeType constant");
+					}
+				}
+
+				lua_pop(luaState, 1); // [...]
+			}
+
+			node -> __emitTriggerAction(nodeName, restrictToNodeType, nodeType,
+				__readTraversalKeys(luaState, 3));
+
+			break;
+		}
+
+		case EmittableActionType::ANIMATE:
+		{
+			if(!hasParams) luaL_error(luaState, "emitAction: ANIMATE requires params.animating");
+
+			__checkParamFields(luaState, 2, ANIMATE_PARAM_FIELDS, std::size(ANIMATE_PARAM_FIELDS));
+
+			if(__rawGetField(luaState, 2, "animating") != LUA_TBOOLEAN) // [..., animating]
+			{
+				luaL_error(luaState, "emitAction: ANIMATE requires params.animating to be a boolean");
+			}
+
+			bool animating = lua_toboolean(luaState, -1);
+
+			lua_pop(luaState, 1); // [...]
+
+			node -> __emitAnimateAction(animating, __readTraversalKeys(luaState, 3));
+
+			break;
+		}
+	}
+
+	return 0;
+}
+
+ScriptNode::EmittableActionType ScriptNode::__checkActionType(lua_State* luaState, int index)
+{
+	// A string, or a float that merely equals a constant, is not accepted: only the constants themselves are.
+	if(lua_isinteger(luaState, index))
+	{
+		lua_Integer value = lua_tointeger(luaState, index);
+
+		for(EmittableActionType type : EMITTABLE_ACTION_TYPES)
+		{
+			if(static_cast<lua_Integer>(type) == value) return type;
+		}
+	}
+
+	// luaL_error does not return; the return below is only present to satisfy the compiler.
+	luaL_error(luaState, "emitAction: actionType must be an ActionType constant");
+	return EmittableActionType::TRIGGER;
+}
+
+void ScriptNode::__checkParamFields(lua_State* luaState, int index, const char* const* allowed, size_t count)
+{
+	lua_pushnil(luaState); // [..., nil]
+
+	while(lua_next(luaState, index) != 0) // [..., key, value]
+	{
+		// The key is only read as a string once it is known to be one: lua_tostring() on a number key would
+		// convert it in place and break the traversal.
+		bool isAllowed = false;
+
+		if(lua_type(luaState, -2) == LUA_TSTRING)
+		{
+			const char* field = lua_tostring(luaState, -2);
+
+			for(size_t i = 0; i < count; i++)
+			{
+				if(strcmp(field, allowed[i]) == 0)
+				{
+					isAllowed = true;
+					break;
+				}
+			}
+
+			if(!isAllowed) luaL_error(luaState, "emitAction: unknown params field '%s'", field);
+		}
+
+		if(!isAllowed) luaL_error(luaState, "emitAction: params fields must be named");
+
+		lua_pop(luaState, 1); // [..., key]
+	}
+
+	// lua_next() pops the last key itself once the traversal ends. // [...]
+}
+
+void ScriptNode::__checkTraversalKeys(lua_State* luaState, int index)
+{
+	if(lua_isnoneornil(luaState, index)) return;
+
+	if(!lua_istable(luaState, index)) luaL_error(luaState, "emitAction: traversalKeys must be a table or nil");
+
+	lua_Unsigned length = lua_rawlen(luaState, index);
+	lua_Unsigned count = 0;
+
+	lua_pushnil(luaState); // [..., nil]
+
+	while(lua_next(luaState, index) != 0) // [..., key, value]
+	{
+		// Anything other than a plain array would leave keys that __readTraversalKeys() never reads.
+		if(!lua_isinteger(luaState, -2) || lua_tointeger(luaState, -2) < 1
+			|| static_cast<lua_Unsigned>(lua_tointeger(luaState, -2)) > length)
+		{
+			luaL_error(luaState, "emitAction: traversalKeys must be an array");
+		}
+
+		count++;
+
+		// Key 0 marks an edge that needs no key, so holding it would mean nothing and is most likely a mistake.
+		if(!lua_isinteger(luaState, -1) || lua_tointeger(luaState, -1) < 1
+			|| lua_tointeger(luaState, -1) > static_cast<lua_Integer>(UINT32_MAX))
+		{
+			luaL_error(luaState, "emitAction: each traversal key must be an integer from 1 to 4294967295");
+		}
+
+		lua_pop(luaState, 1); // [..., key]
+	}
+
+	// lua_next() pops the last key itself once the traversal ends. // [...]
+
+	// The length of a table with holes can be any of its borders, so an array index in range is not enough on
+	// its own: only as many entries as the length guarantees there is no hole for __readTraversalKeys() to
+	// read as key 0.
+	if(count != length) luaL_error(luaState, "emitAction: traversalKeys must be an array without holes");
+}
+
+std::vector<unsigned> ScriptNode::__readTraversalKeys(lua_State* luaState, int index)
+{
+	std::vector<unsigned> keys;
+
+	if(!lua_istable(luaState, index)) return keys;
+
+	lua_Unsigned length = lua_rawlen(luaState, index);
+
+	for(lua_Unsigned i = 1; i <= length; i++)
+	{
+		lua_rawgeti(luaState, index, static_cast<lua_Integer>(i)); // [..., key]
+		keys.push_back(static_cast<unsigned>(lua_tointeger(luaState, -1)));
+		lua_pop(luaState, 1); // [...]
+	}
+
+	return keys;
+}
+
+void ScriptNode::__emitTriggerAction(const char* nodeName, bool restrictToNodeType, GraphNodeType nodeType,
+	std::vector<unsigned> edgeTraversalKeys)
+{
+	Handle<GraphNode> handle(this);
+
+	// Action will self delete once complete.
+	TriggerAction* action = new TriggerAction(handle, nodeName, restrictToNodeType, nodeType,
+		std::move(edgeTraversalKeys));
+
+	action -> incrRef();
+
+	_emitAction(action);
+
+	action -> decrRef();
+}
+
+void ScriptNode::__emitAnimateAction(bool animating, std::vector<unsigned> edgeTraversalKeys)
+{
+	// Action will self delete once complete.
+	AnimateAction* action = new AnimateAction(Handle<GraphNode>(this), animating, std::move(edgeTraversalKeys));
+
+	action -> incrRef();
+
+	_emitAction(action);
+
+	action -> decrRef();
 }
 
 const char* ScriptNode::__pokeTypeName(GraphPoke::PokeType type)

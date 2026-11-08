@@ -4,12 +4,14 @@
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphNode.hpp"
 
+#include <utility>
+
 AnimateAction::~AnimateAction()
 {
 }
 
-AnimateAction::AnimateAction(Handle<GraphNode> initNode, bool animating)
-	: GraphAction(initNode, _startingEnergy), _animating(animating)
+AnimateAction::AnimateAction(Handle<GraphNode> initNode, bool animating, std::vector<unsigned> edgeTraversalKeys)
+	: GraphAction(initNode, _startingEnergy, 1, false, std::move(edgeTraversalKeys)), _animating(animating)
 {
 	_addFlag(ANIMATE_GRAPH_ACTION, true);
 }

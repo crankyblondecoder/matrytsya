@@ -50,6 +50,9 @@ struct lua_State;
  *       written into each state's permanent base table once - the first time a core session runs a script,
  *       the first time a poke happens for the poke state - and remain callable on every subsequent run
  *       without being re-registered, the same as any other global the script has already set.
+ * @note Both states can emit actions directly through emitAction(actionType, [params], [traversalKeys]). The
+ *       action type is an ActionType constant, the action specific parameters are a table of named fields, and
+ *       the traversal keys are an array of the edge traversal keys the action holds. See __luaEmitAction().
  * @note A Lua state cannot be driven by more than one thread at a time, and actions are applied to a node
  *       simultaneously, so each state has its own resource lock. A session claims it on request and holds it
  *       for the session's whole life - staged globals, the script run itself and anything read back
@@ -99,9 +102,9 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		 * being re-registered each time.
 		 * @param luaState The Lua state (core or poke) being registered against, positioned with an empty
 		 *        stack and its live global table temporarily set to that state's permanent base env table.
-		 * @note This implementation registers the NodeType constants and trigger() binding, so an
-		 *       overriding subclass must call it, otherwise neither is callable from that subclass's
-		 *       scripts.
+		 * @note This implementation registers the NodeType, ToolType and ActionType constants and the
+		 *       trigger() and emitAction() bindings, so an overriding subclass must call it, otherwise none of
+		 *       them is callable from that subclass's scripts.
 		 */
 		virtual void _registerCoreGlobals(lua_State* luaState);
 
@@ -165,6 +168,18 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		void _poked(GraphPoke poke) override;
 
     private:
+
+		/**
+		 * Action types a script may emit through emitAction(), exposed to Lua as the ActionType constant table.
+		 * Values start at 1 so that 0 or a stray small integer is never mistaken for one.
+		 */
+		enum class EmittableActionType
+		{
+			/// TriggerAction. Params: nodeName (string), nodeType (NodeType constant). Both optional.
+			TRIGGER = 1,
+			/// AnimateAction. Params: animating (boolean). Required.
+			ANIMATE = 2
+		};
 
 		// A session is the only thing permitted to drive either of this node's states, so it is the only
 		// thing given access to them.
@@ -421,6 +436,93 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		 */
 		static GraphNodeType __checkNodeType(lua_State* luaState, int index);
 
+		// -- Lua action emission --
+
+		/**
+		 * Register the ActionType constant table and the emitAction() binding into luaState.
+		 * @param luaState Lua state to register into.
+		 */
+		void __registerActionBindings(lua_State* luaState);
+
+		/**
+		 * Lua binding: emitAction(actionType, [params], [traversalKeys]). Emits an action of the given type from
+		 * this node.
+		 *
+		 * actionType is an ActionType constant. params is an optional table of the fields the action type takes:
+		 * TRIGGER takes an optional nodeName string and an optional nodeType NodeType constant, with the same
+		 * meaning as trigger()'s arguments, and ANIMATE takes a required animating boolean. traversalKeys is an
+		 * optional array of the edge traversal keys the action holds, each an integer from 1 to 4294967295; the
+		 * action can traverse an edge with a non-zero traversal key only if it holds that key.
+		 * @note The emitted action is never applied to this node itself.
+		 * @note Every argument is validated before anything is built, so a call that raises emits nothing.
+		 * @throw Raises a Lua error if actionType is not an ActionType constant, if params or traversalKeys is
+		 *        present but not a table, if params holds a field the action type does not take or a field of
+		 *        the wrong type, if a required field is missing, or if any traversal key is not an integer in
+		 *        range.
+		 */
+		static int __luaEmitAction(lua_State* luaState);
+
+		/**
+		 * Read an ActionType constant off the Lua stack.
+		 * @param luaState Lua state to read from.
+		 * @param index Stack index of the value to read.
+		 * @returns The action type the value names.
+		 * @throw Raises a Lua error, which does not return, if the value is not an ActionType constant.
+		 */
+		static EmittableActionType __checkActionType(lua_State* luaState, int index);
+
+		/**
+		 * Check that a params table holds no field other than the given ones, so that a misspelt field
+		 * raises rather than being silently ignored.
+		 * @param luaState Lua state to read from.
+		 * @param index Absolute stack index of the params table.
+		 * @param allowed Names of the fields the action type takes.
+		 * @param count Number of names in allowed.
+		 * @throw Raises a Lua error, which does not return, on the first field not in allowed.
+		 * @note Leaves the stack as it found it, if it returns.
+		 */
+		static void __checkParamFields(lua_State* luaState, int index, const char* const* allowed, size_t count);
+
+		/**
+		 * Check that the value at the given stack index is nil, absent, or an array of valid edge traversal keys.
+		 * @param luaState Lua state to read from.
+		 * @param index Absolute stack index of the value to check.
+		 * @throw Raises a Lua error, which does not return, if the value is not a table, or if any element is not
+		 *        an integer from 1 to 4294967295.
+		 * @note Leaves the stack as it found it, if it returns.
+		 */
+		static void __checkTraversalKeys(lua_State* luaState, int index);
+
+		/**
+		 * Read an array of edge traversal keys already checked by __checkTraversalKeys().
+		 * @param luaState Lua state to read from.
+		 * @param index Absolute stack index of the keys table, or of nil/none for no keys.
+		 * @returns The keys, in array order.
+		 * @note Never raises a Lua error, so it is safe to call with C++ objects alive.
+		 * @note Leaves the stack as it found it.
+		 */
+		static std::vector<unsigned> __readTraversalKeys(lua_State* luaState, int index);
+
+		/**
+		 * Emit a TriggerAction from this node.
+		 * @param nodeName If non-empty, restricts triggering to nodes with this name.
+		 * @param restrictToNodeType If true, restricts triggering to nodes of nodeType.
+		 * @param nodeType Node type required when restrictToNodeType is true.
+		 * @param edgeTraversalKeys Keys the action holds.
+		 * @note Must only be called once every Lua argument has been validated: a Lua error raised while this
+		 *       is on the stack would skip the destructors of the objects it holds.
+		 */
+		void __emitTriggerAction(const char* nodeName, bool restrictToNodeType, GraphNodeType nodeType,
+			std::vector<unsigned> edgeTraversalKeys);
+
+		/**
+		 * Emit an AnimateAction from this node.
+		 * @param animating Animating state the action applies to each node it reaches.
+		 * @param edgeTraversalKeys Keys the action holds.
+		 * @note Must only be called once every Lua argument has been validated, as for __emitTriggerAction().
+		 */
+		void __emitAnimateAction(bool animating, std::vector<unsigned> edgeTraversalKeys);
+
 		/**
 		 * Allocator shared by both persistent Lua states this node owns, capped independently per state via
 		 * userData.
@@ -438,6 +540,15 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 
 		/// Maximum number of bytes either persistent Lua state this node owns may have allocated at once.
 		static constexpr size_t MEMORY_LIMIT = 1 * 1024 * 1024;
+
+		/// Every EmittableActionType, in the same order as EMITTABLE_ACTION_TYPE_NAMES. Both registering the
+		/// ActionType constants and reading one back walk these, so both must be extended with the enum.
+		static constexpr EmittableActionType EMITTABLE_ACTION_TYPES[] = {
+			EmittableActionType::TRIGGER,
+			EmittableActionType::ANIMATE};
+
+		/// Name each EmittableActionType is exposed under in the ActionType constant table.
+		static constexpr const char* EMITTABLE_ACTION_TYPE_NAMES[] = {"TRIGGER", "ANIMATE"};
 
 		/// Main Lua source that is run each time this node is invoked.
 		std::string _coreScript;

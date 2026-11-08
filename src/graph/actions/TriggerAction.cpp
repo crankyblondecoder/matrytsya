@@ -7,13 +7,16 @@
 #include "../GraphNode.hpp"
 #include "SerialisableActionPayload.hpp"
 
+#include <utility>
+
 TriggerAction::~TriggerAction()
 {
 }
 
 TriggerAction::TriggerAction(Handle<GraphNode>& initNode, std::string nodeName, bool restrictToNodeType,
-	GraphNodeType nodeType)
-	: SerialisableAction(initNode, _startingEnergy), _nodeName(nodeName), _restrictToNodeType(restrictToNodeType),
+	GraphNodeType nodeType, std::vector<unsigned> edgeTraversalKeys)
+	: SerialisableAction(initNode, _startingEnergy, std::move(edgeTraversalKeys)), _nodeName(nodeName),
+	  _restrictToNodeType(restrictToNodeType),
 	  _nodeType(nodeType)
 {
 	_addFlag(TRIGGER_GRAPH_ACTION, false);
@@ -48,7 +51,8 @@ SerialisableActionPayload* TriggerAction::_serialise()
 {
 	uint32_t nodeNameLength = static_cast<uint32_t>(_nodeName.size());
 
-	unsigned sizeInBytes = nodeNameLength + sizeof(nodeNameLength) + sizeof(uint8_t) + sizeof(uint32_t);
+	unsigned sizeInBytes = nodeNameLength + sizeof(nodeNameLength) + sizeof(uint8_t) + sizeof(uint32_t)
+		+ _getEdgeTraversalKeysSize();
 
 	SerialisableActionPayload* payload = new SerialisableActionPayload(SerialisableActionType::TRIGGER, sizeInBytes);
 

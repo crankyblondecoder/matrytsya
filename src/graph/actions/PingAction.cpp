@@ -7,12 +7,14 @@
 #include "../GraphNode.hpp"
 #include "SerialisableActionPayload.hpp"
 
+#include <utility>
+
 PingAction::~PingAction()
 {
 }
 
-PingAction::PingAction(Handle<GraphNode>& initNode)
-	: SerialisableAction(initNode, _startingEnergy)
+PingAction::PingAction(Handle<GraphNode>& initNode, std::vector<unsigned> edgeTraversalKeys)
+	: SerialisableAction(initNode, _startingEnergy, std::move(edgeTraversalKeys))
 {
 	_addFlag(PING_GRAPH_ACTION, false);
 }
@@ -47,7 +49,8 @@ unsigned PingAction::getPingCount()
 
 SerialisableActionPayload* PingAction::_serialise()
 {
-	SerialisableActionPayload* payload = new SerialisableActionPayload(SerialisableActionType::PING, sizeof(_pingCount));
+	SerialisableActionPayload* payload = new SerialisableActionPayload(SerialisableActionType::PING,
+		sizeof(_pingCount) + _getEdgeTraversalKeysSize());
 
 	payload -> serialiseValue(_pingCount);
 

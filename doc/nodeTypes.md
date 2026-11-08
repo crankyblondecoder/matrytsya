@@ -128,11 +128,12 @@ A piece of scene geometry whose vertexes a script adds. It takes the same geomet
   node's animating mode. Agent, which sends the matching prompt to a model, with this node's tools on offer,
   and shows this node's `AGENT` vertexes for the length of the request. Agent affect, which shows or hides
   those same vertexes.
-- **Emits:** An animate action from `setAnimating()` when asked to, and always from the `setAnimating` model
-  tool. A trigger action from `trigger()`. An agent affect action while an agent action is applied here, if
-  `emitAgentAffectAction` is set.
-- **Lua:** The bindings on every scripted node (`NodeType`, `trigger()`, `ToolType`), the scene script node
-  bindings (`getStrobe()`, `getAnimating()`, `setAnimating()`), and its own: `Vertex`, `VertexVisibility`,
+- **Emits:** An animate action from `setAnimating()` when asked to, always from the `setAnimating` model
+  tool, and from `emitAction()`. A trigger action from `trigger()` or `emitAction()`. An agent affect action
+  while an agent action is applied here, if `emitAgentAffectAction` is set.
+- **Lua:** The bindings on every scripted node (`NodeType`, `trigger()`, `ToolType`, `ActionType`,
+  `emitAction()`), the scene script node bindings (`getStrobe()`, `getAnimating()`, `setAnimating()`), and
+  its own: `Vertex`, `VertexVisibility`,
   `addVertex()`, `addVertexes()`, `vertexCount()`, `setAgentVisible()`, `getAgentVisible()`. Vertexes are only
   ever added, never cleared, so fixed geometry belongs in `init()`. See
   [LuaNodeAPI.md](LuaNodeAPI.md#scenegeometryscriptnode).
@@ -211,10 +212,12 @@ in a scene.
 - **Actions applied:** Script, which runs `coreScript`. Agent, which sends the matching prompt with
   `emitTrigger` on offer. It supports neither strobe flag, so a strobe never runs its script, and an `init()`
   runs on the first script action to reach it, not at hive start.
-- **Emits:** A trigger action from `trigger()`, from the `emitTrigger` model tool, and on a poke unless
-  `emitTriggerOnPoke` is false. The trigger is never applied back to this node.
-- **Lua:** Only the bindings on every scripted node: `NodeType`, `trigger()` and `ToolType`. None of the scene
-  script node bindings exist here. See [LuaNodeAPI.md](LuaNodeAPI.md#triggernode).
+- **Emits:** A trigger action from `trigger()` or `emitAction()`, from the `emitTrigger` model tool, and on a
+  poke unless `emitTriggerOnPoke` is false. An animate action from `emitAction()`. Neither is ever applied back
+  to this node.
+- **Lua:** Only the bindings on every scripted node: `NodeType`, `trigger()`, `ToolType`, `ActionType` and
+  `emitAction()`. None of the scene script node bindings exist here. See
+  [LuaNodeAPI.md](LuaNodeAPI.md#triggernode).
 - **Model tools:** `emitTrigger`, plus any the script declares.
 - **Poke:** Runs `pokeScript`, then emits a trigger unless `emitTriggerOnPoke` is false. It owns no geometry,
   so a scene surface never pokes it.

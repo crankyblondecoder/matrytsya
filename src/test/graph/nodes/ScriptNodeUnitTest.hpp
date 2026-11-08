@@ -5,6 +5,7 @@
 
 #include <atomic>
 
+#include "../../../graph/actionTargets/AnimateActionTarget.hpp"
 #include "../../../graph/actionTargets/TriggerActionTarget.hpp"
 #include "../../../graph/graphActionFlagRegister.hpp"
 #include "../../../graph/GraphHive.hpp"
@@ -985,6 +986,290 @@ TEST(ScriptNodeTest, TriggerWithUnrecognisedNodeTypeFails)
 	EXPECT_EQ(downstreamNode -> triggerCount.load(), 0) << "No TriggerAction should have been emitted.";
 
 	hive -> shutdown();
+}
+
+// -- emitAction() --
+
+/**
+ * ScriptNode subclass that accepts animate actions, recording the last animating state applied and how many
+ * were applied, so tests can observe an AnimateAction emitted by another node's script arriving.
+ */
+class AnimateRecordingScriptNode : public ScriptNode, public AnimateActionTarget
+{
+	public:
+
+		AnimateRecordingScriptNode() : ScriptNode("", "")
+		{
+			_addActionFlag(ANIMATE_GRAPH_ACTION);
+		}
+
+		void setAnimating(bool flag, unsigned serial) override
+		{
+			animating = flag;
+			animateCount++;
+		}
+
+		AnimateActionTarget* getAnimateActionTarget() override { return this; }
+
+		/// Written from whichever worker thread applies the action, read from the test thread.
+		std::atomic<bool> animating{false};
+
+		/// Written from whichever worker thread applies the action, read from the test thread.
+		std::atomic<int> animateCount{0};
+};
+
+/**
+ * Run a core script on a node that is connected to one trigger counting node through an edge with the given
+ * traversal key, and report how many times that node was triggered.
+ * @param script Core script to run on the emitting node.
+ * @param edgeKey Traversal key of the edge to the downstream node; 0 for an unkeyed edge.
+ * @returns Number of times the downstream node was triggered.
+ */
+static int runScriptAcrossKeyedEdge(const std::string& script, unsigned edgeKey)
+{
+	GraphHive* hive = new GraphHive(2);
+	Handle<GraphHive> hiveHandle(hive);
+
+	ScriptNode* emittingNode = new ScriptNode(script, "");
+	TriggerCountingScriptNode* downstreamNode = new TriggerCountingScriptNode();
+
+	hive -> addNode(emittingNode);
+	hive -> addNode(downstreamNode);
+
+	Handle<GraphNode> downstreamHandle(downstreamNode);
+	emittingNode -> createEdge(downstreamHandle, {}, edgeKey);
+
+	bool ran = false;
+
+	{ Handle<ScriptSession> sessionHandle = emittingNode -> requestCoreSession();
+
+		ran = sessionHandle.getInstance() -> run();
+	}
+
+	hive -> waitOnNoActionsActive(0);
+
+	EXPECT_TRUE(ran) << "Script should have run: " << script;
+
+	int triggerCount = downstreamNode -> triggerCount.load();
+
+	hive -> shutdown();
+
+	return triggerCount;
+}
+
+/**
+ * emitAction(ActionType.TRIGGER) with neither params nor keys behaves exactly as trigger() does, from the core
+ * script and from the poke script alike.
+ */
+TEST(ScriptNodeTest, EmitActionTriggerReachesConnectedNode)
+{
+	EXPECT_EQ(runScriptAcrossKeyedEdge("emitAction(ActionType.TRIGGER)", 0), 1)
+		<< "A TRIGGER emitted by the core script should have reached the connected node.";
+
+	GraphHive* hive = new GraphHive(2);
+	Handle<GraphHive> hiveHandle(hive);
+
+	ScriptNode* emittingNode = new ScriptNode("",
+		"if POKE_TYPE == 'HIT' then emitAction(ActionType.TRIGGER, {}, {}) end");
+	TriggerCountingScriptNode* downstreamNode = new TriggerCountingScriptNode();
+
+	hive -> addNode(emittingNode);
+	hive -> addNode(downstreamNode);
+
+	Handle<GraphNode> downstreamHandle(downstreamNode);
+	emittingNode -> createEdge(downstreamHandle, {});
+
+	emittingNode -> setPokeEnabled(true);
+
+	GraphPoke::PokeData data{};
+	data.hitDuration = 100;
+
+	emittingNode -> poke(GraphPoke(GraphPoke::PokeType::HIT, data));
+
+	hive -> waitOnNoActionsActive(0);
+
+	EXPECT_EQ(downstreamNode -> triggerCount.load(), 1) << "A TRIGGER emitted by the poke script should have "
+		"reached the connected node.";
+
+	hive -> shutdown();
+}
+
+/**
+ * The TRIGGER params table restricts which nodes are triggered, as trigger()'s arguments do.
+ */
+TEST(ScriptNodeTest, EmitActionTriggerParamsRestrictByNodeNameAndType)
+{
+	GraphHive* hive = new GraphHive(2);
+	Handle<GraphHive> hiveHandle(hive);
+
+	ScriptNode* emittingNode = new ScriptNode(
+		"emitAction(ActionType.TRIGGER, { nodeName = 'wanted', nodeType = NodeType.SCRIPT_NODE })", "");
+
+	TriggerCountingScriptNode* wantedNode = new TriggerCountingScriptNode();
+	TriggerCountingScriptNode* unwantedNode = new TriggerCountingScriptNode();
+
+	wantedNode -> setName("wanted");
+	unwantedNode -> setName("unwanted");
+
+	hive -> addNode(emittingNode);
+	hive -> addNode(wantedNode);
+	hive -> addNode(unwantedNode);
+
+	Handle<GraphNode> wantedHandle(wantedNode);
+	Handle<GraphNode> unwantedHandle(unwantedNode);
+
+	emittingNode -> createEdge(wantedHandle, {});
+	emittingNode -> createEdge(unwantedHandle, {});
+
+	{ Handle<ScriptSession> sessionHandle = emittingNode -> requestCoreSession();
+
+		ASSERT_TRUE(sessionHandle.getInstance() -> run());
+	}
+
+	hive -> waitOnNoActionsActive(0);
+
+	EXPECT_EQ(wantedNode -> triggerCount.load(), 1) << "The node the params named should have been triggered.";
+	EXPECT_EQ(unwantedNode -> triggerCount.load(), 0) << "A node the params did not name should not have been "
+		"triggered.";
+
+	hive -> shutdown();
+}
+
+/**
+ * The traversal keys an emitted action holds decide which keyed edges it may cross: only an edge whose key is
+ * among them. An unkeyed edge is crossed whatever keys are held.
+ */
+TEST(ScriptNodeTest, EmitActionTraversalKeysGateKeyedEdges)
+{
+	EXPECT_EQ(runScriptAcrossKeyedEdge("emitAction(ActionType.TRIGGER, nil, { 7 })", 7), 1)
+		<< "An action holding the edge's key should cross it.";
+
+	EXPECT_EQ(runScriptAcrossKeyedEdge("emitAction(ActionType.TRIGGER, nil, { 3, 7 })", 7), 1)
+		<< "An action holding the edge's key among others should cross it.";
+
+	EXPECT_EQ(runScriptAcrossKeyedEdge("emitAction(ActionType.TRIGGER, nil, { 3 })", 7), 0)
+		<< "An action holding only other keys should not cross a keyed edge.";
+
+	EXPECT_EQ(runScriptAcrossKeyedEdge("emitAction(ActionType.TRIGGER)", 7), 0)
+		<< "An action holding no keys should not cross a keyed edge.";
+
+	EXPECT_EQ(runScriptAcrossKeyedEdge("emitAction(ActionType.TRIGGER, nil, { 3 })", 0), 1)
+		<< "An action holding keys should still cross an unkeyed edge.";
+
+	EXPECT_EQ(runScriptAcrossKeyedEdge("emitAction(ActionType.TRIGGER, nil, { 4294967295 })", 4294967295u), 1)
+		<< "The largest key should be accepted and honoured.";
+}
+
+/**
+ * emitAction(ActionType.ANIMATE) emits an animate action carrying the animating state from its params, and its
+ * traversal keys gate keyed edges as for any other action.
+ */
+TEST(ScriptNodeTest, EmitActionAnimateReachesConnectedNode)
+{
+	GraphHive* hive = new GraphHive(2);
+	Handle<GraphHive> hiveHandle(hive);
+
+	ScriptNode* emittingNode = new ScriptNode(
+		"emitAction(ActionType.ANIMATE, { animating = true }, { 5 })", "");
+
+	AnimateRecordingScriptNode* keyedNode = new AnimateRecordingScriptNode();
+	AnimateRecordingScriptNode* lockedNode = new AnimateRecordingScriptNode();
+
+	hive -> addNode(emittingNode);
+	hive -> addNode(keyedNode);
+	hive -> addNode(lockedNode);
+
+	Handle<GraphNode> keyedHandle(keyedNode);
+	Handle<GraphNode> lockedHandle(lockedNode);
+
+	emittingNode -> createEdge(keyedHandle, {}, 5);
+	emittingNode -> createEdge(lockedHandle, {}, 6);
+
+	{ Handle<ScriptSession> sessionHandle = emittingNode -> requestCoreSession();
+
+		ASSERT_TRUE(sessionHandle.getInstance() -> run());
+	}
+
+	hive -> waitOnNoActionsActive(0);
+
+	EXPECT_EQ(keyedNode -> animateCount.load(), 1) << "The node behind the held key should have been animated.";
+	EXPECT_TRUE(keyedNode -> animating.load()) << "The animating state from params should have been applied.";
+	EXPECT_EQ(lockedNode -> animateCount.load(), 0) << "The node behind a key not held should not be reached.";
+
+	hive -> shutdown();
+}
+
+/**
+ * Every malformed emitAction() call raises a Lua error: the run fails, the script stops at the call, nothing is
+ * emitted, and the stack is left balanced.
+ */
+TEST(ScriptNodeTest, EmitActionRejectsMalformedCalls)
+{
+	const char* const badCalls[] = {
+		"emitAction()",
+		"emitAction(9999)",
+		"emitAction('TRIGGER')",
+		"emitAction(1.5)",
+		"emitAction(ActionType.TRIGGER, 'leftDoor')",
+		"emitAction(ActionType.TRIGGER, { nodeNmae = 'leftDoor' })",
+		"emitAction(ActionType.TRIGGER, { 'leftDoor' })",
+		"emitAction(ActionType.TRIGGER, { nodeName = 7 })",
+		"emitAction(ActionType.TRIGGER, { nodeType = 9999 })",
+		"emitAction(ActionType.TRIGGER, { nodeType = 'SCRIPT_NODE' })",
+		"emitAction(ActionType.ANIMATE)",
+		"emitAction(ActionType.ANIMATE, {})",
+		"emitAction(ActionType.ANIMATE, { animating = 1 })",
+		"emitAction(ActionType.ANIMATE, { animating = true, extra = 1 })",
+		"emitAction(ActionType.TRIGGER, nil, 7)",
+		"emitAction(ActionType.TRIGGER, nil, { 0 })",
+		"emitAction(ActionType.TRIGGER, nil, { -1 })",
+		"emitAction(ActionType.TRIGGER, nil, { 1.5 })",
+		"emitAction(ActionType.TRIGGER, nil, { '7' })",
+		"emitAction(ActionType.TRIGGER, nil, { 4294967296 })",
+		"emitAction(ActionType.TRIGGER, nil, { key = 7 })",
+		"emitAction(ActionType.TRIGGER, nil, { [1] = 7, [3] = 8 })"};
+
+	for(const char* badCall : badCalls)
+	{
+		GraphHive* hive = new GraphHive(2);
+		Handle<GraphHive> hiveHandle(hive);
+
+		StateCapturingScriptNode* emittingNode = new StateCapturingScriptNode(
+			std::string(badCall) + "\nreachedEnd = true", "");
+		TriggerCountingScriptNode* triggerNode = new TriggerCountingScriptNode();
+		AnimateRecordingScriptNode* animateNode = new AnimateRecordingScriptNode();
+
+		hive -> addNode(emittingNode);
+		hive -> addNode(triggerNode);
+		hive -> addNode(animateNode);
+
+		Handle<GraphNode> triggerHandle(triggerNode);
+		Handle<GraphNode> animateHandle(animateNode);
+
+		emittingNode -> createEdge(triggerHandle, {});
+		emittingNode -> createEdge(animateHandle, {});
+
+		{ Handle<ScriptSession> sessionHandle = emittingNode -> requestCoreSession();
+
+			ScriptSession* session = sessionHandle.getInstance();
+
+			EXPECT_FALSE(session -> run()) << "Should have raised: " << badCall;
+
+			bool reachedEnd = false;
+			EXPECT_FALSE(session -> getGlobal("reachedEnd", reachedEnd))
+				<< "The script should not have continued past: " << badCall;
+
+			ASSERT_NE(emittingNode -> capturedState, nullptr);
+			EXPECT_EQ(lua_gettop(emittingNode -> capturedState), 0) << "Stack left unbalanced by: " << badCall;
+		}
+
+		hive -> waitOnNoActionsActive(0);
+
+		EXPECT_EQ(triggerNode -> triggerCount.load(), 0) << "Nothing should have been triggered by: " << badCall;
+		EXPECT_EQ(animateNode -> animateCount.load(), 0) << "Nothing should have been animated by: " << badCall;
+
+		hive -> shutdown();
+	}
 }
 
 #endif
