@@ -2,6 +2,8 @@
 
 Matrytsya: Where AI lives.
 
+Inspired by The Matrix from William Gibson's 'Neuromancer'. Matrytsya is a fusion of human, AI and vibrantly represented data and state.
+
 Matrytsya allows you to build a visual world that provides a consistent structure that AI agents can work within. These worlds are called hives, and to make it even more interesting, hives can communicate with each other.
 
 The whole thing is based on a multi-threaded cyclic graph, if you want to know the details please read this document.
