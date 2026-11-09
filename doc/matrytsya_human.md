@@ -30,7 +30,7 @@ You can think of a surface as a window into one particular part of the hive — 
 
 A surface by itself only exists inside the running system — something still needs to deliver it to an actual viewer. That job belongs to a **map**. A map takes a surface and publishes it through some concrete external channel, in a format that channel understands.
 
-For example, a map might serve a surface as a web page: it renders an HTML page, exposes the surface's current contents so a browser can fetch them, and keeps the browser up to date as the surface changes — all without the person viewing it needing to reload the page. Different maps can expose the same kind of surface through different technologies; the surface itself doesn't need to know or care how it's being shown.
+For example, a map might serve a surface as a web page: it renders an HTML page, exposes the surface's current contents so a browser can fetch them, and keeps the browser up to date as the surface changes — all without the person viewing it needing to reload the page. Different maps can expose the same kind of surface through different technologies; the surface itself doesn't need to know or care how it's being shown. A scene surface also keeps track of how many people are looking at it at once, and its web page shows that number.
 
 So the relationship is layered: nodes and edges form the hive, actions travel the hive and do work, a surface gathers the results of that work into something viewable, and a map delivers that surface to the outside world through a particular technology.
 

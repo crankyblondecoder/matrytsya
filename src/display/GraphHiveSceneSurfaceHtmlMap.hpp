@@ -7,6 +7,7 @@
 #include "GraphHiveSurfaceHtmlMap.hpp"
 
 class GraphHiveSceneSurface;
+class HttpRequest;
 class HttpServerBase;
 
 /**
@@ -36,6 +37,16 @@ class GraphHiveSceneSurfaceHtmlMap : public GraphHiveSurfaceHtmlMap
          * Get the scene surface this map is bound to.
          */
         GraphHiveSceneSurface& _getSceneSurface();
+
+        /**
+         * Count the polling page as a viewer of the bound surface, and report back how many there are.
+         * @param request The incoming revision request. Its "viewerId" query parameter names the page polling,
+         *        which keeps it counted for a few poll intervals more (and never under a few seconds, to allow for a
+         *        browser slowing a background tab's polling); one left out is not counted at all. A
+         *        "leave" query parameter of "1" stops the page being counted straight away instead.
+         * @returns The viewer count, as ",\"viewerCount\":N".
+         */
+        virtual std::string _serveRevisionExtras(HttpRequest& request) override;
 
     private:
 

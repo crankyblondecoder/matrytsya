@@ -1,9 +1,10 @@
 #include "GraphHiveSceneSurface.hpp"
 
-#include <utility>
-
 #include "../thread/thread.hpp"
 #include "GraphHiveSurface.hpp"
+
+#include <time.h>
+#include <utility>
 
 namespace
 {
@@ -21,6 +22,21 @@ namespace
 				result[col * 4 + row] = sum;
 			}
 		}
+	}
+
+	/// Longest viewer id accepted. Generous for a UUID, while keeping what a client can make this hold small.
+	const std::size_t _MAX_VIEWER_ID_LENGTH = 64;
+
+	/// Most viewers counted at once. Far beyond any real audience, so only reached by a client inventing ids.
+	const std::size_t _MAX_TRACKED_VIEWERS = 1024;
+
+	uint64_t monotonicNowMs()
+	{
+		struct timespec now;
+
+		clock_gettime(CLOCK_MONOTONIC, &now);
+
+		return (uint64_t) now.tv_sec * 1000 + (uint64_t) now.tv_nsec / 1000000;
 	}
 
 	// Determine if two transforms are equal.
@@ -283,6 +299,58 @@ GraphHiveSceneSurface::Scene GraphHiveSceneSurface::getScene()
 	{ SYNC(_lock)
 
 		return _currentScene;
+	}
+}
+
+void GraphHiveSceneSurface::touchViewer(const std::string& viewerId, unsigned expiryMs)
+{
+	if(viewerId.empty() || viewerId.size() > _MAX_VIEWER_ID_LENGTH) return;
+
+	uint64_t nowMs = monotonicNowMs();
+
+	{ SYNC(_lock)
+
+		__pruneViewers(nowMs);
+
+		auto viewerIt = _viewerExpiries.find(viewerId);
+
+		if(viewerIt != _viewerExpiries.end())
+		{
+			viewerIt -> second = nowMs + expiryMs;
+		}
+		else if(_viewerExpiries.size() < _MAX_TRACKED_VIEWERS)
+		{
+			_viewerExpiries[viewerId] = nowMs + expiryMs;
+		}
+	}
+}
+
+void GraphHiveSceneSurface::removeViewer(const std::string& viewerId)
+{
+	{ SYNC(_lock)
+
+		_viewerExpiries.erase(viewerId);
+	}
+}
+
+unsigned GraphHiveSceneSurface::getViewerCount()
+{
+	uint64_t nowMs = monotonicNowMs();
+
+	{ SYNC(_lock)
+
+		__pruneViewers(nowMs);
+
+		return (unsigned) _viewerExpiries.size();
+	}
+}
+
+void GraphHiveSceneSurface::__pruneViewers(uint64_t nowMs)
+{
+	for(auto viewerIt = _viewerExpiries.begin(); viewerIt != _viewerExpiries.end();)
+	{
+		if(viewerIt -> second <= nowMs) viewerIt = _viewerExpiries.erase(viewerIt);
+		else ++viewerIt;
 	}
 }
 

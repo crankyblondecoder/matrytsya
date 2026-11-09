@@ -252,7 +252,7 @@ void GraphHiveSurfaceHtmlMap::_serveData(HttpRequest& request, HttpResponse& res
 
 	if(request.getPath() == base + "/revision")
 	{
-		__serveRevision(response);
+		__serveRevision(request, response);
 
 		return;
 	}
@@ -316,7 +316,20 @@ void GraphHiveSurfaceHtmlMap::_serveData(HttpRequest& request, HttpResponse& res
 	_serveMapData(request, response);
 }
 
-void GraphHiveSurfaceHtmlMap::__serveRevision(HttpResponse& response)
+std::string GraphHiveSurfaceHtmlMap::_serveRevisionExtras(HttpRequest& request)
+{
+	return "";
+}
+
+unsigned GraphHiveSurfaceHtmlMap::_getPollInterval()
+{
+	{ SYNC(_lock)
+
+		return _pollIntervalMs;
+	}
+}
+
+void GraphHiveSurfaceHtmlMap::__serveRevision(HttpRequest& request, HttpResponse& response)
 {
 	unsigned revision;
 
@@ -325,8 +338,10 @@ void GraphHiveSurfaceHtmlMap::__serveRevision(HttpResponse& response)
 		revision = _revision;
 	}
 
+	std::string extras = _serveRevisionExtras(request);
+
 	response.setContentType("application/json");
-	response.setBody("{\"revision\":" + std::to_string(revision) + "}");
+	response.setBody("{\"revision\":" + std::to_string(revision) + extras + "}");
 }
 
 void GraphHiveSurfaceHtmlMap::__servePoke(HttpRequest& request, HttpResponse& response)

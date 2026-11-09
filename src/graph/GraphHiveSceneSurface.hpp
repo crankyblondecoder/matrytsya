@@ -1,6 +1,9 @@
 #ifndef GRAPH_HIVE_SCENE_SURFACE_H
 #define GRAPH_HIVE_SCENE_SURFACE_H
 
+#include <stdint.h>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "../thread/ThreadMutex.hpp"
@@ -158,6 +161,36 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		 */
 		Scene getScene();
 
+		// -- Viewers --
+
+		/**
+		 * Record that a viewer is still looking at this surface, so that it is counted by getViewerCount() until
+		 * expiryMs from now. A viewer is whatever a map takes one to be, e.g. a single open page.
+		 * @note Expiry is given by the caller rather than held here, as only whoever maps this surface knows how
+		 *       often its viewers report in. Several maps can then share one count while reporting at different
+		 *       rates.
+		 * @note An empty or overly long id is ignored, as is a new id once a bounded number of viewers are
+		 *       already counted, so that a misbehaving client cannot grow this without limit. A viewer already
+		 *       counted can always refresh.
+		 * @param viewerId Id that names the viewer, chosen by the viewer.
+		 * @param expiryMs How long from now the viewer stays counted without reporting in again, in milliseconds.
+		 */
+		void touchViewer(const std::string& viewerId, unsigned expiryMs);
+
+		/**
+		 * Stop counting a viewer straight away, e.g. because it said it was leaving, rather than waiting for it
+		 * to expire. Does nothing if the viewer is not counted.
+		 * @param viewerId Id of the viewer, as given to touchViewer().
+		 */
+		void removeViewer(const std::string& viewerId);
+
+		/**
+		 * Get how many viewers are currently looking at this surface, i.e. those that have reported in through
+		 * touchViewer() and have neither expired nor been removed since.
+		 * @returns The number of current viewers.
+		 */
+		unsigned getViewerCount();
+
 		virtual void poke(unsigned nodeId, GraphPoke poke) override;
 
 		virtual void strobe() override;
@@ -197,6 +230,17 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 
 		/// The current scene that the surface can display. This is a kind of double buffering.
 		Scene _currentScene;
+
+		/**
+		 * Drop the viewers whose expiry has passed.
+		 * @note Must be called with _lock held.
+		 * @param nowMs Current monotonic time, in milliseconds.
+		 */
+		void __pruneViewers(uint64_t nowMs);
+
+		/// Monotonic time in milliseconds at which each current viewer stops being counted, keyed by viewer id.
+		/// Guarded by _lock.
+		std::unordered_map<std::string, uint64_t> _viewerExpiries;
 
 		/// Generic lock.
 		ThreadMutex _lock;

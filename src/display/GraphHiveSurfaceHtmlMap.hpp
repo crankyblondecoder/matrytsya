@@ -116,6 +116,22 @@ class GraphHiveSurfaceHtmlMap : public GraphHiveSurfaceHttpMap, private EventLis
 
         void _serveData(HttpRequest& request, HttpResponse& response) final;
 
+        /**
+         * Get what a subclass adds to the reply of the revision check browsers poll, which is how a subclass
+         * learns about, and reports back to, every viewer on each poll without the page making requests of its
+         * own.
+         * @param request The incoming revision request.
+         * @returns Further JSON members to put in the reply object, each one led by a ",", e.g.
+         *          ",\"viewerCount\":2". Empty, the default, to add nothing.
+         */
+        virtual std::string _serveRevisionExtras(HttpRequest& request);
+
+        /**
+         * Get how often browsers viewing this map's page poll to check for changes.
+         * @returns Poll interval in milliseconds.
+         */
+        unsigned _getPollInterval();
+
     private:
 
         /// State a chat prompt accepted from a browser is in.
@@ -164,9 +180,10 @@ class GraphHiveSurfaceHtmlMap : public GraphHiveSurfaceHttpMap, private EventLis
 
         /**
          * Serve the lightweight revision check browsers poll to detect a change to the bound surface.
+         * @param request The incoming revision request.
          * @param response Response to populate.
          */
-        void __serveRevision(HttpResponse& response);
+        void __serveRevision(HttpRequest& request, HttpResponse& response);
 
         /**
          * Serve a poke request made by the rendered page when a chunk of the surface is clicked on or hovered over.

@@ -19,6 +19,7 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	html, body { margin: 0; padding: 0; overflow: hidden; background: #202020; }
 	canvas { display: block; width: 100vw; height: 100vh; }
 	#status { position: absolute; top: 8px; left: 8px; color: #ddd; font-family: sans-serif; font-size: 13px; }
+	#viewers { position: absolute; top: 8px; right: 12px; color: #ddd; font-family: sans-serif; font-size: 13px; }
 	#structureLink { position: absolute; right: 12px; bottom: 12px; padding: 6px 12px; color: #ddd;
 		background: #303030; border: 1px solid #4a4a4a; border-radius: 4px; font-family: sans-serif;
 		font-size: 13px; text-decoration: none; cursor: pointer; }
@@ -28,6 +29,7 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 </head>
 <body>
 <div id="status">Loading...</div>
+<div id="viewers"></div>
 <canvas id="glCanvas"></canvas>
 %STRUCTURE_MARKUP%
 %CHAT_MARKUP%
@@ -1165,9 +1167,31 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	}
 
 	var dataUrl = window.location.pathname.replace(/\/+$/, '') + '/data';
-	var revisionUrl = window.location.pathname.replace(/\/+$/, '') + '/revision';
+	var viewers = document.getElementById('viewers');
+
+	// Names this page load to the server, which counts the pages polling it as the people currently viewing
+	// the scene. Made up here rather than handed out by the server, so that loading the page costs no extra
+	// round trip; a collision only undercounts by one.
+	var viewerId = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() :
+		Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+	var revisionUrl = window.location.pathname.replace(/\/+$/, '') + '/revision?viewerId=' +
+		encodeURIComponent(viewerId);
 	var lastRevision = null;
 	var pollTimer = null;
+
+	// Without this a closed page would go on being counted until the server expires it a few polls later.
+	window.addEventListener('pagehide', function()
+	{
+		if(navigator.sendBeacon) navigator.sendBeacon(revisionUrl + '&leave=1');
+	});
+
+	function showViewerCount(viewerCount)
+	{
+		if(typeof viewerCount !== 'number') return;
+
+		viewers.textContent = viewerCount + (viewerCount === 1 ? ' viewer' : ' viewers');
+	}
 
 	// A refused connection means the server has gone away; retrying on the usual interval would
 	// just spam the console with failed network requests, so stop polling until the page is reloaded.
@@ -1180,12 +1204,16 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		}
 
 		status.textContent = 'Lost connection to server: ' + err;
+		viewers.textContent = '';
 	}
 
 	function poll()
 	{
 		fetch(revisionUrl).then(function(res) { return res.json(); }).then(function(revisionData)
 		{
+			// Ahead of the unchanged revision check, as who is viewing changes independently of the scene.
+			showViewerCount(revisionData.viewerCount);
+
 			if(revisionData.revision === lastRevision) return null;
 
 			console.log('Scene revision changed: ' + lastRevision + ' -> ' + revisionData.revision);

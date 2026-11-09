@@ -17,4 +17,5 @@
 #include "./graph/actions/AgentAffectActionUnitTest.hpp"
 #include "./graph/actions/AgentVisibleAnimateUnitTest.hpp"
 #include "./scene/SceneTest.hpp"
+#include "./scene/SceneViewerCountUnitTest.hpp"
 #include "./examples/GardenHiveUnitTest.hpp"

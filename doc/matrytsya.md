@@ -118,6 +118,8 @@ Listening on http://localhost:PORT/
   that drew it.
 - Graph view surfaces are drawn as the hive's node and edge structure.
 - If a hive has a graph view surface, each of its scene pages has a **Structure** link to it.
+- Each scene page shows in its top right corner how many browser pages currently have that scene surface
+  open. A page stops being counted once it's closed, or once it has gone a few seconds without polling.
 - A surface of any other kind isn't served and doesn't appear in the index. If no hive has a surface that
   can be served, the program exits (see below).
 - Pages poll the server every 50 ms for changes to what they draw.
