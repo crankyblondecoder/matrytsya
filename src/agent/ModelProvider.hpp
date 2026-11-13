@@ -49,6 +49,26 @@ class ModelProvider : public RefCounted
 		/// Rounds of tool calls a model may request while servicing one request before it is abandoned.
 		static constexpr unsigned MAX_TOOL_CALL_ROUNDS = 16;
 
+		/// Characters of a provider's own explanation kept in an error's detail, which can otherwise run to a
+		/// whole upstream response.
+		static constexpr size_t MAX_ERROR_DETAIL_LENGTH = 500;
+
+		/**
+		 * Cut text meant for an error's detail down to MAX_ERROR_DETAIL_LENGTH characters.
+		 * @param text Text to cut.
+		 * @returns The text, marked where it was cut if it was too long.
+		 */
+		static std::string _truncateDetail(const std::string& text);
+
+		/**
+		 * Describe a response that could not be read, for an error's detail.
+		 * @param body Body of the response as it was received.
+		 * @returns The description.
+		 * @note What a body that could not be read begins with usually says where it came from, e.g. the HTML
+		 *       error page of a proxy in front of the provider.
+		 */
+		static std::string _unreadableResponseDetail(const std::string& body);
+
 		virtual ~ModelProvider();
 
 		// It makes no sense for this to be instantiable by itself.
@@ -106,6 +126,13 @@ class ModelProvider : public RefCounted
 		 *        asked to stop before the response arrives.
 		 */
 		std::string _httpPost(std::string url, std::string body);
+
+		/**
+		 * Get the headers to send with every HTTP request made to this provider, beyond those every request
+		 * carries anyway, e.g. to authenticate it.
+		 * @returns Complete header lines, each terminated by "\r\n". Empty when there are none.
+		 */
+		virtual std::string _requestHeaders();
 
 	private:
 

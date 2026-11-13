@@ -32,7 +32,7 @@ class AgentException : public Exception
 			EMPTY_MODEL_REQUEST,
 			/// A request was made in a model context that was already servicing one.
 			MODEL_CONTEXT_IN_USE,
-			/// A model provider returned a response that could not be parsed, or reported an error.
+			/// A model provider returned a response to a request that could not be parsed.
 			MODEL_REQUEST_FAILED,
 			/// A model kept requesting tool calls past the permitted number of rounds.
 			TOOL_CALL_LIMIT_EXCEEDED,
@@ -41,22 +41,58 @@ class AgentException : public Exception
 			/// A model request was given a sampling temperature outside the permitted range.
 			INVALID_TEMPERATURE,
 			/// A request was abandoned because the thread servicing it was asked to stop.
-			REQUEST_ABORTED
+			REQUEST_ABORTED,
+			/// A model provider rejected the credentials it was given.
+			AUTHENTICATION_FAILED,
+			/// A model provider, or the host serving a model behind it, turned a request away for being made
+			/// too often.
+			MODEL_RATE_LIMITED,
+			/// A model provider refused a request because the account has too little credit to pay for it.
+			INSUFFICIENT_CREDITS,
+			/// A model provider answered with an error of its own, of a kind no more specific error covers.
+			MODEL_PROVIDER_ERROR
 		};
 
 		virtual ~AgentException(){}
 
-		AgentException(Error error) : Exception(Exception::AGENT), _error{error} {}
+		/**
+		 * @param error What went wrong.
+		 * @param detail What is known beyond the error itself, e.g. the reason a provider gave for turning a
+		 *        request away. Empty when the error alone says all that is known.
+		 */
+		AgentException(Error error, std::string detail = "") : Exception(Exception::AGENT), _error{error},
+			_detail{detail} {}
 
 		Error getError() {return _error;}
 
 		/**
-		 * Get a description of the error in plain language.
+		 * Get what is known about the error beyond the error itself.
+		 * @returns The detail given when the exception was raised, or empty if none was.
+		 */
+		const std::string& getDetail() {return _detail;}
+
+		/**
+		 * Get a description of the error in plain language, followed by its detail when there is one.
 		 * @returns The description.
 		 * @note Written to be readable by a model as well as in a log, since a tool call that fails is
 		 *       reported back to the model that made it.
 		 */
 		std::string getDescription()
+		{
+			std::string description = __getErrorDescription();
+
+			if(!_detail.empty()) description += " Details: " + _detail;
+
+			return description;
+		}
+
+	private:
+
+		/**
+		 * Get a description of the error alone, in plain language.
+		 * @returns The description.
+		 */
+		std::string __getErrorDescription()
 		{
 			switch(_error)
 			{
@@ -99,6 +135,18 @@ class AgentException : public Exception
 				case REQUEST_ABORTED:
 					return "The request was abandoned because the application is shutting down.";
 
+				case AUTHENTICATION_FAILED:
+					return "The model provider rejected the API key.";
+
+				case MODEL_RATE_LIMITED:
+					return "The model is rate-limited; try again shortly.";
+
+				case INSUFFICIENT_CREDITS:
+					return "The model provider account does not have enough credit for that request.";
+
+				case MODEL_PROVIDER_ERROR:
+					return "The model provider reported an error.";
+
 				case UNKNOWN:
 					break;
 			}
@@ -106,9 +154,10 @@ class AgentException : public Exception
 			return "An unknown error occurred.";
 		}
 
-	private:
-
 		Error _error;
+
+		/// What is known about the error beyond the error itself. Empty when nothing is.
+		std::string _detail;
 };
 
 #endif

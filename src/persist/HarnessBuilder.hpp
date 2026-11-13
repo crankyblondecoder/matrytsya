@@ -59,8 +59,10 @@ class HarnessBuilder
 		 * @param descriptor Descriptor of the provider to create.
 		 * @returns Handle to the connected provider, with its models already populated.
 		 * @throw PersistException(INVALID_PROVIDER_URL) If the descriptor's URL is empty.
-		 * @throw PersistException(PROVIDER_CONNECTION_FAILED) If the server cannot be reached or will
-		 *        not report the models it serves.
+		 * @throw PersistException(MISSING_PROVIDER_API_KEY) If the provider needs an API key and the
+		 *        environment variable named for it is unset or empty.
+		 * @throw PersistException(PROVIDER_CONNECTION_FAILED) If the server cannot be reached, rejects the
+		 *        API key, or will not report the models it serves.
 		 */
 		static Handle<ModelProvider> __createProvider(const HarnessProviderDescriptor& descriptor);
 

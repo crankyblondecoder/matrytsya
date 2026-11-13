@@ -8,7 +8,6 @@
 #include "ModelSystemPrompt.hpp"
 #include "ModelToolBindings.hpp"
 #include "ModelToolDefinition.hpp"
-#include "ModelToolDefinitionParameter.hpp"
 #include "OllamaModel.hpp"
 #include "modelToolJson.hpp"
 #include "../thread/ThreadBase.hpp"
@@ -84,38 +83,6 @@ namespace
 		return std::string(buffer.GetString(), buffer.GetSize());
 	}
 
-	void __writeToolDefinition(ModelJsonWriter& writer, ModelToolDefinition& definition)
-	{
-		std::string description = definition.getDescription();
-
-		// No provider's tool schema has anywhere to declare a return type, so fold it into the description
-		// rather than dropping what the tool says it hands back. A tool that reports nothing has nothing to
-		// fold in, and saying otherwise would describe a result to the model that the tool never offered.
-		if(definition.hasReturnType())
-		{
-			ModelToolDefinitionParameter returnType = definition.getReturnType();
-
-			description += " Returns " + returnType.getName() + ": " + returnType.getDescription();
-		}
-
-		writer.StartObject();
-			writer.Key("type");
-			writer.String("function");
-
-			writer.Key("function");
-			writer.StartObject();
-				writer.Key("name");
-				writeJsonString(writer, definition.getName());
-
-				writer.Key("description");
-				writeJsonString(writer, description);
-
-				writer.Key("parameters");
-				writeJsonToolParametersSchema(writer, definition);
-			writer.EndObject();
-		writer.EndObject();
-	}
-
 	std::string __buildRequestBody(const std::string& modelName, std::vector<ChatMessage>& messages,
 		std::vector<Handle<ModelToolBindings>>& tools, double temperature)
 	{
@@ -178,7 +145,7 @@ namespace
 
 					for(ModelToolDefinition& definition : definitions)
 					{
-						__writeToolDefinition(writer, definition);
+						writeJsonToolDefinition(writer, definition);
 					}
 				}
 
@@ -220,16 +187,17 @@ void OllamaModelProvider::_populateModels()
 
 	document.Parse(body.c_str());
 
-	if(document.HasParseError() || !document.HasMember("models") || !document["models"].IsArray())
+	if(document.HasParseError() || !document.IsObject() || !document.HasMember("models")
+		|| !document["models"].IsArray())
 	{
-		throw AgentException(AgentException::MODEL_FETCH_FAILED);
+		throw AgentException(AgentException::MODEL_FETCH_FAILED, _unreadableResponseDetail(body));
 	}
 
 	for(const rapidjson::Value& modelValue : document["models"].GetArray())
 	{
 		if(!modelValue.IsObject() || !modelValue.HasMember("name") || !modelValue["name"].IsString())
 		{
-			throw AgentException(AgentException::MODEL_FETCH_FAILED);
+			throw AgentException(AgentException::MODEL_FETCH_FAILED, "A model in the list had no name.");
 		}
 
 		std::string description;
@@ -327,11 +295,21 @@ std::string OllamaModelProvider::_processRequest(Handle<Model> model, ModelReque
 
 		document.Parse(body.c_str());
 
-		// Ollama reports its own failures, e.g. an unknown model, as a top level "error".
-		if(document.HasParseError() || !document.IsObject() || document.HasMember("error")
-			|| !document.HasMember("message") || !document["message"].IsObject())
+		if(document.HasParseError() || !document.IsObject())
 		{
-			throw AgentException(AgentException::MODEL_REQUEST_FAILED);
+			throw AgentException(AgentException::MODEL_REQUEST_FAILED, _unreadableResponseDetail(body));
+		}
+
+		// Ollama reports its own failures, e.g. an unknown model, as a top level "error" string.
+		if(document.HasMember("error"))
+		{
+			throw AgentException(AgentException::MODEL_PROVIDER_ERROR, document["error"].IsString() ?
+				_truncateDetail(document["error"].GetString()) : serialiseJsonValue(document["error"]));
+		}
+
+		if(!document.HasMember("message") || !document["message"].IsObject())
+		{
+			throw AgentException(AgentException::MODEL_REQUEST_FAILED, _unreadableResponseDetail(body));
 		}
 
 		const rapidjson::Value& messageValue = document["message"];

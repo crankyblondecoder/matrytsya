@@ -8,7 +8,7 @@ model behind them.
 ## Synopsis
 
 ```
-matrytsya [-p PORT] [-H HARNESS] [-c LEVEL] [-n] [-t COUNT] [-v] HIVE [HIVE ...]
+matrytsya [-p PORT] [-a ADDRESS] [-H HARNESS] [-c LEVEL] [-n] [-t COUNT] [-v] HIVE [HIVE ...]
 matrytsya -h
 ```
 
@@ -41,6 +41,7 @@ At least one is required, and any number may be given.
 | Short | Long                      | Argument | Default | Meaning |
 |-------|---------------------------|----------|---------|---------|
 | `-p`  | `--port`                  | `PORT`   | `8080`  | Port the web interface listens on. 1 to 65535. |
+| `-a`  | `--address`               | `ADDRESS` | `127.0.0.1` | IPv4 address of the network interface the web interface listens on. The default only accepts connections from this machine. Use `0.0.0.0` to listen on every interface, or a specific interface's address to listen on just that one. See [Web interface](#web-interface). |
 | `-H`  | `--harness`               | `FILE`   | none    | Agentic harness definition to run every hive against. See [Agentic harness](#agentic-harness). |
 | `-c`  | `--chat-capability`       | `LEVEL`  | `LOW`   | Capability the chat window asks for: `LOW`, `MEDIUM` or `HIGH`. Case sensitive. See [Chat window](#chat-window). |
 | `-n`  | `--no-chat`               | none     | off     | Disable the chat window. See [Chat window](#chat-window). |
@@ -70,6 +71,10 @@ A harness is a JSON document satisfying [harnessSchema.json](harnessSchema.json)
 servers, and the models, system prompts and tool sets assigned to each role and capability. It isn't part of
 a hive's definition: one harness file serves every hive given on the command line.
 
+- Two kinds of provider can serve models. `Ollama` is a server at a given `url`. `OpenRouter` is reached over
+  HTTPS at `https://openrouter.ai/api/v1` unless `url` says otherwise. It reads its API key from the
+  environment variable named by `apiKeyEnv`, so the key never sits in the harness file. HTTPS servers are
+  verified against the system's certificate authorities in `/etc/ssl/certs/ca-certificates.crt`.
 - Without `-H`, the hives run with no model behind them. Everything else still works. The chat window
   reports that there's no model to chat with, and agent nodes can't get their requests answered.
 - A separate harness is built from the file for each hive, because the tools it gives a model report on
@@ -104,8 +109,17 @@ the surface belongs to. The model sees that hive through its chat tools.
 Once started, the server prints:
 
 ```
-Listening on http://localhost:PORT/
+Listening on http://ADDRESS:PORT/
 ```
+
+or, with `-a 0.0.0.0`:
+
+```
+Listening on every interface, port PORT, e.g. http://localhost:PORT/
+```
+
+The web interface has no authentication. Anyone who can reach it can drive the hives and, with a harness,
+the models behind them. Only listen beyond loopback on a network you trust.
 
 | Path                         | Serves |
 |------------------------------|--------|
@@ -143,13 +157,13 @@ Each error is printed to standard error. All of them happen before the server st
 
 | Message | Cause |
 |---------|-------|
-| `invalid port '...'`, `invalid chat capability '...'`, `invalid thread count '...'`, an unrecognised option, or a missing option argument | Bad command line. The usage summary follows. |
+| `invalid port '...'`, `invalid address '...'`, `invalid chat capability '...'`, `invalid thread count '...'`, an unrecognised option, or a missing option argument | Bad command line. The usage summary follows. |
 | `no hive definition files given` | No `HIVE` argument. The usage summary follows. |
 | `Could not open hive definition file: PATH` | The hive file doesn't exist or can't be read. |
 | `Could not load the hive described by PATH: DESCRIPTION` | The hive file isn't valid JSON, or doesn't describe a valid hive. `DESCRIPTION` says what's wrong, e.g. `the file is not valid JSON -- line 3, column 17: Invalid value.` or `a surface names a node that does not exist`. |
 | `The hive described by PATH is named '...', which another hive already loaded is named too.` | Two hive files share a name. |
 | `None of the hive definition files loaded produced a surface to serve.` | No hive has a scene or graph view surface. |
-| `Could not start HTTP server on port PORT (error N)` | The port is in use, or the program isn't allowed to bind it. |
+| `Could not start HTTP server on ADDRESS:PORT (error N)` | The port is in use, the program isn't allowed to bind it, or `ADDRESS` isn't an address of this machine. |
 
 Harness problems are also printed to standard error, but they aren't fatal (see
 [Agentic harness](#agentic-harness)). The message says what went wrong, followed by
@@ -160,7 +174,9 @@ Harness problems are also printed to standard error, but they aren't fatal (see
 | `Could not open harness definition file: PATH` | The harness file doesn't exist or can't be read. |
 | `Could not build the harness described by PATH: could not get the list of models from a model provider -- provider 'NAME' at URL: could not connect` | Nothing is listening at the provider's URL, or it can't be reached from this machine. Start the server, or correct the `url` in the harness file. |
 | `... provider 'NAME' at URL: connected, but the list of models it returned could not be read` | Something answered at the URL, but not with a model list. Usually the URL points at the wrong server or port. |
-| `Could not build the harness described by PATH: a model assignment names a model its provider does not serve -- model 'MODEL' on provider 'NAME'` | The provider is up but doesn't have that model. For Ollama, pull it on the server (`ollama pull MODEL`). |
+| `... provider 'NAME' at URL: connected, but the API key was rejected` | OpenRouter turned the key away. Check the key held in the environment variable named by the provider's `apiKeyEnv`. |
+| `Could not build the harness described by PATH: the environment variable a model provider reads its API key from is not set -- provider 'NAME' reads it from 'VARIABLE'` | An OpenRouter provider's `apiKeyEnv` names a variable that is unset or empty. Export the key under that name before starting. |
+| `Could not build the harness described by PATH: a model assignment names a model its provider does not serve -- model 'MODEL' on provider 'NAME'` | The provider is up but doesn't have that model. For Ollama, pull it on the server (`ollama pull MODEL`). For OpenRouter, use the model's full id as listed on openrouter.ai, e.g. `qwen/qwen3-coder`. |
 | `Could not build the harness described by PATH: DESCRIPTION` | Any other problem with the harness file, described the same way as hive file problems above. |
 
 A connection failure may be preceded by a line such as `mongoose.c:...:mg_error ... socket error`. That's
@@ -181,8 +197,21 @@ Serve the same hives on port 9000, run against the example Ollama harness, and l
 ./matrytsya -p 9000 -H ../examples/ollamaHarness.json -v ../examples/engineHive.json ../examples/flowerHive.json
 ```
 
+Serve the same hives against the example OpenRouter harness instead, which reads the API key from
+`OPENROUTER_API_KEY`:
+
+```
+OPENROUTER_API_KEY=sk-or-... ./matrytsya -H ../examples/openRouterHarness.json ../examples/engineHive.json ../examples/flowerHive.json
+```
+
 Serve one hive with the harness driving its agent nodes, but with no chat window in the browser:
 
 ```
 ./matrytsya --no-chat --harness=../examples/ollamaHarness.json ../examples/engineHive.json
+```
+
+Serve the example hives to other machines on the network, listening on every interface:
+
+```
+./matrytsya -a 0.0.0.0 ../examples/engineHive.json ../examples/flowerHive.json
 ```

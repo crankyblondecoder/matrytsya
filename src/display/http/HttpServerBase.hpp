@@ -20,10 +20,15 @@ class HttpServerBase
 
         virtual ~HttpServerBase();
 
-        HttpServerBase(unsigned port);
+        /**
+         * @param address IPv4 address of the interface to listen on, e.g. "127.0.0.1" for loopback only or
+         *        "0.0.0.0" for every interface.
+         * @param port Port to listen on.
+         */
+        HttpServerBase(std::string address, unsigned port);
 
         /**
-         * Start the server listening on its configured port.
+         * Start the server listening on its configured address and port.
          * @throw DisplayException If the server could not be started.
          */
         void start();
@@ -53,6 +58,11 @@ class HttpServerBase
          */
         unsigned getPort();
 
+        /**
+         * Get the address this server is configured to listen on.
+         */
+        std::string getAddress();
+
     protected:
 
         /**
@@ -77,6 +87,9 @@ class HttpServerBase
         // Disable copying.
         HttpServerBase(const HttpServerBase& copyFrom);
         HttpServerBase& operator= (const HttpServerBase& copyFrom);
+
+        /// IPv4 address of the interface this server listens on.
+        std::string _address;
 
         /// Port this server listens on.
         unsigned _port;

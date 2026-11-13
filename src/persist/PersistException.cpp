@@ -36,6 +36,7 @@ const char* PersistException::getErrorDescription(Error error)
 		case DUPLICATE_PROVIDER_NAME: return "two or more model providers share the same name";
 		case INVALID_PROVIDER_URL: return "a model provider has an empty URL";
 		case PROVIDER_CONNECTION_FAILED: return "could not get the list of models from a model provider";
+		case MISSING_PROVIDER_API_KEY: return "the environment variable a model provider reads its API key from is not set";
 		case NO_MODEL_ASSIGNMENTS: return "the harness has no model assignments";
 		case MODEL_PROVIDER_NOT_FOUND: return "a model assignment names a model provider that does not exist";
 		case MODEL_NOT_FOUND: return "a model assignment names a model its provider does not serve";
@@ -86,7 +87,7 @@ const char* PersistException::getErrorDescription(Error error)
 
 		case JSON_INVALID_PROVIDERS: return "\"providers\" is missing or not an array";
 		case UNKNOWN_PROVIDER_TYPE: return "a provider's \"type\" is not a known provider type";
-		case JSON_INVALID_PROVIDER: return "a provider's \"name\" or \"url\" is missing or not a string";
+		case JSON_INVALID_PROVIDER: return "a provider is missing its \"name\", or a member its type requires (\"url\" for Ollama, \"apiKeyEnv\" for OpenRouter), or one of them is not a string";
 		case JSON_INVALID_MODEL_ASSIGNMENTS: return "\"modelAssignments\" is missing or not an array";
 		case JSON_INVALID_ROLE_CAPABILITY: return "a \"roleCapability\" is missing or malformed";
 		case JSON_INVALID_MODEL_REFERENCE: return "a model assignment's \"model\" is missing or malformed";

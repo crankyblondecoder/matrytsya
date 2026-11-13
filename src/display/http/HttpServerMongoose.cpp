@@ -7,7 +7,7 @@
 
 #include "../../mongoose/mongoose.h"
 
-HttpServerMongoose::HttpServerMongoose(unsigned port) : HttpServerBase(port)
+HttpServerMongoose::HttpServerMongoose(std::string address, unsigned port) : HttpServerBase(address, port)
 {
 	// Mongoose defaults to MG_LL_DEBUG, which logs every accept/close. That is too noisy for something as
 	// frequent as data polling, so only let actual errors reach the terminal.
@@ -29,7 +29,7 @@ HttpServerMongoose::~HttpServerMongoose()
 
 void HttpServerMongoose::_start()
 {
-	std::string url = "http://127.0.0.1:" + std::to_string(getPort());
+	std::string url = "http://" + getAddress() + ":" + std::to_string(getPort());
 
 	mg_connection* connection = mg_http_listen(_mgr, url.c_str(), __eventHandler, this);
 

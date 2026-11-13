@@ -6,7 +6,7 @@
 #include "HttpRequestHandler.hpp"
 #include "HttpResponse.hpp"
 
-HttpServerBase::HttpServerBase(unsigned port) : _port{port}
+HttpServerBase::HttpServerBase(std::string address, unsigned port) : _address{address}, _port{port}
 {
 }
 
@@ -48,6 +48,11 @@ void HttpServerBase::removeHandler(std::string path)
 unsigned HttpServerBase::getPort()
 {
 	return _port;
+}
+
+std::string HttpServerBase::getAddress()
+{
+	return _address;
 }
 
 void HttpServerBase::_routeRequest(HttpRequest& request, HttpResponse& response)

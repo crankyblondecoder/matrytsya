@@ -157,6 +157,59 @@ TEST(JsonHarnessLoaderTest, ProviderMissingUrl_ThrowsJsonInvalidProvider)
 }
 
 /**
+ * An OpenRouter provider may leave out its "url", falling back on OpenRouter's own API, and carries the
+ * name of the environment variable its key is read from rather than the key.
+ */
+TEST(JsonHarnessLoaderTest, OpenRouterProviderWithoutUrl_UsesDefaultUrl)
+{
+	std::string json = R"({
+		"providers": [ { "type": "OpenRouter", "name": "router", "apiKeyEnv": "OPENROUTER_API_KEY" } ],
+		"modelAssignments": []
+	})";
+
+	JsonHarnessLoader loader(json);
+
+	ASSERT_EQ(loader.getProviderCount(), 1u);
+
+	HarnessProviderDescriptor provider = loader.getProvider(0);
+
+	EXPECT_EQ(provider.type, HarnessProviderDescriptor::OPENROUTER);
+	EXPECT_EQ(provider.name, "router");
+	EXPECT_EQ(provider.url, "https://openrouter.ai/api/v1");
+	EXPECT_EQ(provider.apiKeyEnv, "OPENROUTER_API_KEY");
+}
+
+/**
+ * An OpenRouter provider that names its "url" keeps it, e.g. to go through a proxy.
+ */
+TEST(JsonHarnessLoaderTest, OpenRouterProviderWithUrl_KeepsUrl)
+{
+	std::string json = R"({
+		"providers": [
+			{ "type": "OpenRouter", "name": "router", "url": "https://proxy.example/v1", "apiKeyEnv": "KEY" }
+		],
+		"modelAssignments": []
+	})";
+
+	JsonHarnessLoader loader(json);
+
+	EXPECT_EQ(loader.getProvider(0).url, "https://proxy.example/v1");
+}
+
+/**
+ * An OpenRouter provider with no "apiKeyEnv" is rejected, as it could authenticate no request.
+ */
+TEST(JsonHarnessLoaderTest, OpenRouterProviderMissingApiKeyEnv_ThrowsJsonInvalidProvider)
+{
+	std::string json = R"({
+		"providers": [ { "type": "OpenRouter", "name": "router" } ],
+		"modelAssignments": []
+	})";
+
+	EXPECT_THROW(JsonHarnessLoader loader(json), PersistException);
+}
+
+/**
  * The "modelAssignments" member is required, as a harness with no model behind any role can service no
  * request.
  */

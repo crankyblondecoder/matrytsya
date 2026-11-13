@@ -1,7 +1,9 @@
 #include "Model.hpp"
 
+#include "AgentException.hpp"
 #include "ModelProvider.hpp"
 #include "ModelRequest.hpp"
+#include "../log/log.hpp"
 
 #include <iostream>
 
@@ -55,7 +57,20 @@ std::string Model::_processRequest(ModelRequest& request)
 			<< request.getPrompt().getPrompt() << std::endl;
 	}
 
-	std::string response = getProvider().getInstance() -> processRequest(Handle<Model>(this), request);
+	std::string response;
+
+	try
+	{
+		response = getProvider().getInstance() -> processRequest(Handle<Model>(this), request);
+	}
+	catch(AgentException& exception)
+	{
+		// Logged here as well as reported to the caller, as an agent node's request has nowhere else to say why
+		// it failed, and a provider's own explanation is what tells a rate limit apart from a broken request.
+		LOG(Logger::LogLevel::ERROR, "Model request (" + _name + ") failed: " + exception.getDescription())
+
+		throw;
+	}
 
 	if(_logToConsole)
 	{

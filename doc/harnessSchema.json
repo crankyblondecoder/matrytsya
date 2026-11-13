@@ -91,10 +91,35 @@
 			}
 		},
 
+		"openRouterProvider": {
+			"description": "OpenRouter, a hosted service that serves models from many vendors behind one API. It is contacted while the harness is built, to confirm it can be reached, that it accepts the API key, and to read back the models it serves. Models are named by their OpenRouter id, e.g. \"qwen/qwen3-coder\".",
+			"type": "object",
+			"required": ["type", "name", "apiKeyEnv"],
+			"additionalProperties": false,
+			"properties": {
+				"type": { "const": "OpenRouter" },
+				"name": {
+					"$ref": "#/$defs/providerName"
+				},
+				"url": {
+					"type": "string",
+					"minLength": 1,
+					"default": "https://openrouter.ai/api/v1",
+					"description": "URL of the API, including scheme and version path. Only needed to reach OpenRouter through some other address, e.g. a proxy."
+				},
+				"apiKeyEnv": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Name of the environment variable holding the OpenRouter API key, e.g. \"OPENROUTER_API_KEY\". The key itself is never written in the harness file. Building the harness fails if the variable is unset or empty."
+				}
+			}
+		},
+
 		"provider": {
 			"description": "Sources that models can be drawn from.",
 			"oneOf": [
-				{ "$ref": "#/$defs/ollamaProvider" }
+				{ "$ref": "#/$defs/ollamaProvider" },
+				{ "$ref": "#/$defs/openRouterProvider" }
 			]
 		},
 

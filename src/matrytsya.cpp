@@ -27,6 +27,7 @@
 #include <string>
 #include <vector>
 
+#include <arpa/inet.h>
 #include <getopt.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -44,6 +45,13 @@ namespace
 	}
 
 	const unsigned _DEFAULT_PORT = 8080;
+
+	// Loopback only unless asked otherwise, as the web interface has no authentication: anyone who can reach
+	// it can drive the hives and, with a harness, the models behind them.
+	const char* const _DEFAULT_ADDRESS = "127.0.0.1";
+
+	/// Address that listens on every interface, which is not itself somewhere a browser can be pointed.
+	const char* const _ANY_ADDRESS = "0.0.0.0";
 
 	const unsigned _DEFAULT_NUM_THREADS = 2;
 
@@ -78,6 +86,9 @@ namespace
 			"\n"
 			"Options:\n"
 			"  -p, --port PORT              Port the web interface listens on (default " << _DEFAULT_PORT << ").\n"
+			"  -a, --address ADDRESS        IPv4 address of the interface the web interface listens on\n"
+			"                               (default " << _DEFAULT_ADDRESS << "). Use " << _ANY_ADDRESS
+			<< " for every interface.\n"
 			"  -H, --harness FILE           Agentic harness definition to run the hives against. Without one\n"
 			"                               the hives have no model behind them.\n"
 			"  -c, --chat-capability LEVEL  Capability the chat window asks for: LOW, MEDIUM or HIGH\n"
@@ -114,6 +125,18 @@ namespace
 		value = (unsigned) parsed;
 
 		return true;
+	}
+
+	/**
+	 * Test whether a command line argument is a dotted quad IPv4 address.
+	 * @param text Argument to test.
+	 * @returns True if the argument is an IPv4 address.
+	 */
+	bool _isIpv4Address(const char* text)
+	{
+		struct in_addr parsed;
+
+		return inet_pton(AF_INET, text, &parsed) == 1;
 	}
 
 	/**
@@ -233,6 +256,7 @@ namespace
 int main(int argc, char* argv[])
 {
 	unsigned port = _DEFAULT_PORT;
+	std::string address = _DEFAULT_ADDRESS;
 	unsigned numThreads = _DEFAULT_NUM_THREADS;
 	AgenticHarness::Capability chatCapability = _DEFAULT_CHAT_CAPABILITY;
 	bool chatEnabled = true;
@@ -242,6 +266,7 @@ int main(int argc, char* argv[])
 	const struct option longOptions[] =
 	{
 		{"port", required_argument, 0, 'p'},
+		{"address", required_argument, 0, 'a'},
 		{"harness", required_argument, 0, 'H'},
 		{"chat-capability", required_argument, 0, 'c'},
 		{"no-chat", no_argument, 0, 'n'},
@@ -253,7 +278,7 @@ int main(int argc, char* argv[])
 
 	int option;
 
-	while((option = getopt_long(argc, argv, "p:H:c:nt:vh", longOptions, 0)) != -1)
+	while((option = getopt_long(argc, argv, "p:a:H:c:nt:vh", longOptions, 0)) != -1)
 	{
 		switch(option)
 		{
@@ -264,6 +289,20 @@ int main(int argc, char* argv[])
 					std::cerr << argv[0] << ": invalid port '" << optarg << "', expected 1 to 65535" << std::endl;
 					return 1;
 				}
+
+				break;
+
+			case 'a':
+
+				// Checked here rather than left to the server, which would only report that it could not start.
+				if(!_isIpv4Address(optarg))
+				{
+					std::cerr << argv[0] << ": invalid address '" << optarg << "', expected an IPv4 address such as "
+						<< _ANY_ADDRESS << std::endl;
+					return 1;
+				}
+
+				address = optarg;
 
 				break;
 
@@ -336,7 +375,7 @@ int main(int argc, char* argv[])
 	// so is the index map, neither of which reference count it.
 	GraphHiveCollection collection;
 
-	HttpServer httpServer(port);
+	HttpServer httpServer(address, port);
 
 	// Mounted at the root, so it is both what a browser arriving at the server lands on and what any path no
 	// surface map claims falls through to. Routing is by longest matching prefix, so the surface maps mounted
@@ -515,12 +554,20 @@ int main(int argc, char* argv[])
 	}
 	catch(DisplayException& exception)
 	{
-		std::cerr << "Could not start HTTP server on port " << httpServer.getPort() << " (error "
-			<< exception.getError() << ")" << std::endl;
+		std::cerr << "Could not start HTTP server on " << httpServer.getAddress() << ":" << httpServer.getPort()
+			<< " (error " << exception.getError() << ")" << std::endl;
 		exit(1);
 	}
 
-	std::cout << "Listening on http://localhost:" << httpServer.getPort() << _INDEX_PATH << std::endl;
+	if(address == _ANY_ADDRESS)
+	{
+		std::cout << "Listening on every interface, port " << httpServer.getPort() << ", e.g. http://localhost:"
+			<< httpServer.getPort() << _INDEX_PATH << std::endl;
+	}
+	else
+	{
+		std::cout << "Listening on http://" << address << ":" << httpServer.getPort() << _INDEX_PATH << std::endl;
+	}
 
 	signal(SIGINT, _handleSigInt);
 	signal(SIGTERM, _handleSigInt);

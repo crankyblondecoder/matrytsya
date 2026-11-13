@@ -9,6 +9,10 @@ modules = agent_bindings persist graph agent util thread log lua display mongoos
 # The name of the static library (.a file) should be modulename.a
 export module_libs = $(foreach module, $(modules), $(module).a)
 
+# System libraries every executable links against, after the module archives that need them. OpenSSL
+# provides the TLS that Mongoose uses to reach model providers over HTTPS.
+export system_libs = -lssl -lcrypto
+
 # Module make file names.
 module_makefiles = $(foreach module, $(modules), makefile_$(module))
 
@@ -51,7 +55,7 @@ debug : subDirs
 	@ echo
 	@ echo "*** Building - Debug Executable ***"
 	@ echo
-	$(cname) $(cflags_debug) -o $(execName_debug) ../src/$(execName).cpp $(foreach module_lib, $(module_libs), debug/$(module_lib))
+	$(cname) $(cflags_debug) -o $(execName_debug) ../src/$(execName).cpp $(foreach module_lib, $(module_libs), debug/$(module_lib)) $(system_libs)
 
 .PHONY : release
 release : subDirs
@@ -62,7 +66,7 @@ release : subDirs
 	@ echo
 	@ echo "*** Building - Release Executable ***"
 	@ echo
-	$(cname) $(cflags_release) -o $(execName) ../src/$(execName).cpp $(foreach module_lib, $(module_libs), release/$(module_lib))
+	$(cname) $(cflags_release) -o $(execName) ../src/$(execName).cpp $(foreach module_lib, $(module_libs), release/$(module_lib)) $(system_libs)
 
 .PHONY : debug_test
 debug_test : subDirs
@@ -73,7 +77,7 @@ debug_test : subDirs
 	@ echo
 	@ echo "*** Building - Debug Test Executable ***"
 	@ echo
-	$(cname) $(cflags_debug) -o $(execName_test) ../src/$(execName_test).cpp $(foreach module_lib, $(module_libs), debug/$(module_lib))
+	$(cname) $(cflags_debug) -o $(execName_test) ../src/$(execName_test).cpp $(foreach module_lib, $(module_libs), debug/$(module_lib)) $(system_libs)
 
 .PHONY : lua
 lua : subDirs

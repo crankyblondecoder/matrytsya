@@ -18,7 +18,7 @@ class HttpServerMongoose : public HttpServerBase
 
         virtual ~HttpServerMongoose();
 
-        HttpServerMongoose(unsigned port);
+        HttpServerMongoose(std::string address, unsigned port);
 
     protected:
 

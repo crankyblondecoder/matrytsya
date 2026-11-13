@@ -8,6 +8,9 @@
 
 #include "../mongoose/mongoose.h"
 
+#include <fstream>
+#include <sstream>
+
 namespace
 {
 	/// Milliseconds to wait for a connection to a provider before giving up.
@@ -15,6 +18,60 @@ namespace
 
 	/// Milliseconds to wait for a provider to service a request before giving up.
 	const uint64_t REQUEST_TIMEOUT_MS = 300000;
+
+	/// Bundle of the certificate authorities trusted to vouch for a provider served over HTTPS.
+	const char* const CA_BUNDLE_PATH = "/etc/ssl/certs/ca-certificates.crt";
+
+	/**
+	 * Get the trusted certificate authority bundle, reading it on first use.
+	 * @returns The PEM text of the bundle. Empty when it could not be read.
+	 * @note Kept for the life of the process: every request to a provider over HTTPS needs it, and it is
+	 *       large enough that reading it again for each of them would be a waste.
+	 */
+	const std::string& __caBundle()
+	{
+		// Initialised once, safely, however many threads first ask for it at the same time.
+		static const std::string bundle = []()
+		{
+			std::ifstream file(CA_BUNDLE_PATH, std::ios::binary);
+
+			std::stringstream contents;
+
+			contents << file.rdbuf();
+
+			return contents.str();
+		}();
+
+		return bundle;
+	}
+
+	/**
+	 * Start TLS on a connection that has just been made, if its URL asks for it.
+	 * @param connection Connection that has just been made.
+	 * @param url URL the connection was made to.
+	 * @note Fails the connection when no certificate authorities could be read, rather than going ahead
+	 *       without verifying the server, as a request may carry credentials.
+	 */
+	void __startTlsIfRequired(mg_connection* connection, const std::string& url)
+	{
+		if(!mg_url_is_ssl(url.c_str())) return;
+
+		const std::string& bundle = __caBundle();
+
+		if(bundle.empty())
+		{
+			mg_error(connection, "no trusted certificate authorities could be read from %s", CA_BUNDLE_PATH);
+
+			return;
+		}
+
+		mg_tls_opts options = {};
+
+		options.ca = mg_str_n(bundle.data(), bundle.size());
+		options.name = mg_url_host(url.c_str());
+
+		mg_tls_init(connection, &options);
+	}
 
 	/// State tracked by __checkConnectionEventHandler while a connection check is in progress.
 	struct ConnectionCheckState
@@ -28,6 +85,9 @@ namespace
 	{
 		/// Full URL of the request, kept for building the request line on MG_EV_CONNECT.
 		std::string url;
+
+		/// Provider specific header lines, kept for writing on MG_EV_CONNECT.
+		std::string headers;
 		bool done = false;
 		bool failed = false;
 		std::string body;
@@ -38,6 +98,9 @@ namespace
 	{
 		/// Full URL of the request, kept for building the request line on MG_EV_CONNECT.
 		std::string url;
+
+		/// Provider specific header lines, kept for writing on MG_EV_CONNECT.
+		std::string headers;
 
 		/// Body to send, kept for writing on MG_EV_CONNECT.
 		std::string requestBody;
@@ -148,6 +211,25 @@ void ModelProvider::__checkConnectionEventHandler(mg_connection* connection, int
 	}
 }
 
+std::string ModelProvider::_truncateDetail(const std::string& text)
+{
+	if(text.size() <= MAX_ERROR_DETAIL_LENGTH) return text;
+
+	return text.substr(0, MAX_ERROR_DETAIL_LENGTH) + "...";
+}
+
+std::string ModelProvider::_unreadableResponseDetail(const std::string& body)
+{
+	if(body.empty()) return "The response was empty.";
+
+	return "The response began: " + _truncateDetail(body);
+}
+
+std::string ModelProvider::_requestHeaders()
+{
+	return "";
+}
+
 std::string ModelProvider::_httpGet(std::string url)
 {
 	// Mongoose defaults to MG_LL_DEBUG, which logs every connection attempt. Only let actual errors
@@ -161,6 +243,7 @@ std::string ModelProvider::_httpGet(std::string url)
 	HttpGetState state;
 
 	state.url = url;
+	state.headers = _requestHeaders();
 
 	mg_connection* connection = mg_http_connect(&mgr, state.url.c_str(), __httpGetEventHandler, &state);
 
@@ -200,7 +283,9 @@ void ModelProvider::__httpGetEventHandler(mg_connection* connection, int event, 
 	{
 		mg_str host = mg_url_host(state -> url.c_str());
 
-		mg_printf(connection, "GET %s HTTP/1.1\r\nHost: %.*s\r\nConnection: close\r\n\r\n", mg_url_uri(state -> url.c_str()), (int) host.len, host.buf);
+		__startTlsIfRequired(connection, state -> url);
+
+		mg_printf(connection, "GET %s HTTP/1.1\r\nHost: %.*s\r\n%sConnection: close\r\n\r\n", mg_url_uri(state -> url.c_str()), (int) host.len, host.buf, state -> headers.c_str());
 	}
 	else if(event == MG_EV_HTTP_MSG)
 	{
@@ -233,6 +318,7 @@ std::string ModelProvider::_httpPost(std::string url, std::string body)
 
 	state.url = url;
 	state.requestBody = body;
+	state.headers = _requestHeaders();
 
 	mg_connection* connection = mg_http_connect(&mgr, state.url.c_str(), __httpPostEventHandler, &state);
 
@@ -273,7 +359,9 @@ void ModelProvider::__httpPostEventHandler(mg_connection* connection, int event,
 	{
 		mg_str host = mg_url_host(state -> url.c_str());
 
-		mg_printf(connection, "POST %s HTTP/1.1\r\nHost: %.*s\r\nContent-Type: application/json\r\nContent-Length: %d\r\nConnection: close\r\n\r\n", mg_url_uri(state -> url.c_str()), (int) host.len, host.buf, (int) state -> requestBody.size());
+		__startTlsIfRequired(connection, state -> url);
+
+		mg_printf(connection, "POST %s HTTP/1.1\r\nHost: %.*s\r\n%sContent-Type: application/json\r\nContent-Length: %d\r\nConnection: close\r\n\r\n", mg_url_uri(state -> url.c_str()), (int) host.len, host.buf, state -> headers.c_str(), (int) state -> requestBody.size());
 
 		mg_send(connection, state -> requestBody.data(), state -> requestBody.size());
 	}

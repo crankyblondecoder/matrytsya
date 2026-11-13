@@ -70,6 +70,8 @@ class PersistException : public Exception
 			INVALID_PROVIDER_URL,
 			/// A model provider could not be reached, or would not report the models it serves.
 			PROVIDER_CONNECTION_FAILED,
+			/// A model provider's API key was to be read from an environment variable that was unset or empty.
+			MISSING_PROVIDER_API_KEY,
 			/// The harness had no model assignments; a harness must have at least one.
 			NO_MODEL_ASSIGNMENTS,
 			/// A model assignment referenced a provider name that does not exist among this harness's providers.
@@ -154,7 +156,8 @@ class PersistException : public Exception
 			JSON_INVALID_PROVIDERS,
 			/// A provider's "type" string did not match any known concrete provider type.
 			UNKNOWN_PROVIDER_TYPE,
-			/// A provider object was missing the required "name" or "url" member, or either was not a string.
+			/// A provider object was missing a member its type requires (always "name"; "url" for Ollama;
+			/// "apiKeyEnv" for OpenRouter), or one of its members was not a string.
 			JSON_INVALID_PROVIDER,
 			/// The top level "modelAssignments" member was missing or not an array.
 			JSON_INVALID_MODEL_ASSIGNMENTS,

@@ -6,7 +6,7 @@
 // Every provider that accepts tools describes them as JSON Schema and supplies the arguments of a
 // tool call as JSON, so none of the translation between those and ModelToolDefinition /
 // ModelToolCallParameterValue is tied to a particular one. What is left to a provider is only its
-// own wire format: how it wraps a tool definition, and how it lays out a request and its response.
+// own wire format: how it lays out a request and its response.
 
 #include <string>
 #include <vector>
@@ -76,6 +76,16 @@ void writeJsonToolParameterSchema(ModelJsonWriter& writer, ModelToolDefinitionPa
  * @note This is the value a provider gives its own name to, e.g. "parameters" or "input_schema".
  */
 void writeJsonToolParametersSchema(ModelJsonWriter& writer, ModelToolDefinition& definition);
+
+/**
+ * Write the definition of a tool as a function a model may call, i.e. an object of "type" "function"
+ * whose "function" holds the tool's "name", "description" and "parameters".
+ * @param writer Writer to write to.
+ * @param definition Tool to describe.
+ * @note Any return type the tool declares is folded into its description, since no provider's schema
+ *       has anywhere else to put it.
+ */
+void writeJsonToolDefinition(ModelJsonWriter& writer, ModelToolDefinition& definition);
 
 /**
  * Build the content of a message reporting that a tool call could not be serviced.

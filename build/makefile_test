@@ -10,7 +10,7 @@ VPATH = ../../src/test
 
 .PHONY : test
 test : $(objFiles)
-	$(cname) $(cflags) -o runUnitTests $(objFiles) $(module_libs) -lgtest -lgtest_main
+	$(cname) $(cflags) -o runUnitTests $(objFiles) $(module_libs) $(system_libs) -lgtest -lgtest_main
 	./runUnitTests
 
 -include ../makefile_std_dep

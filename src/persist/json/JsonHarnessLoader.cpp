@@ -1,6 +1,7 @@
 #include "JsonHarnessLoader.hpp"
 
 #include "../PersistException.hpp"
+#include "../../agent/OpenRouterModelProvider.hpp"
 #include "../../rapidjson/document.h"
 #include "../../rapidjson/error/en.h"
 
@@ -13,6 +14,7 @@ namespace
 	HarnessProviderDescriptor::Type __providerTypeFromString(const std::string& type)
 	{
 		if(type == "Ollama") return HarnessProviderDescriptor::OLLAMA;
+		if(type == "OpenRouter") return HarnessProviderDescriptor::OPENROUTER;
 
 		throw PersistException(PersistException::UNKNOWN_PROVIDER_TYPE);
 	}
@@ -29,14 +31,42 @@ namespace
 		// May throw UNKNOWN_PROVIDER_TYPE if "type" is a string but not one of the recognised values.
 		descriptor.type = __providerTypeFromString(providerValue["type"].GetString());
 
-		if(!providerValue.HasMember("name") || !providerValue["name"].IsString() ||
-			!providerValue.HasMember("url") || !providerValue["url"].IsString())
+		if(!providerValue.HasMember("name") || !providerValue["name"].IsString())
 		{
 			throw PersistException(PersistException::JSON_INVALID_PROVIDER);
 		}
 
 		descriptor.name = providerValue["name"].GetString();
-		descriptor.url = providerValue["url"].GetString();
+
+		if(providerValue.HasMember("url"))
+		{
+			if(!providerValue["url"].IsString()) throw PersistException(PersistException::JSON_INVALID_PROVIDER);
+
+			descriptor.url = providerValue["url"].GetString();
+		}
+
+		switch(descriptor.type)
+		{
+			case HarnessProviderDescriptor::OLLAMA:
+
+				// An Ollama server lives wherever it was set up, so there is no address to fall back on.
+				if(!providerValue.HasMember("url")) throw PersistException(PersistException::JSON_INVALID_PROVIDER);
+
+				break;
+
+			case HarnessProviderDescriptor::OPENROUTER:
+
+				if(!providerValue.HasMember("url")) descriptor.url = OpenRouterModelProvider::DEFAULT_URL;
+
+				if(!providerValue.HasMember("apiKeyEnv") || !providerValue["apiKeyEnv"].IsString())
+				{
+					throw PersistException(PersistException::JSON_INVALID_PROVIDER);
+				}
+
+				descriptor.apiKeyEnv = providerValue["apiKeyEnv"].GetString();
+
+				break;
+		}
 
 		return descriptor;
 	}

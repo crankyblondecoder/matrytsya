@@ -11,7 +11,7 @@
 #include "SceneGeometry.hpp"
 
 /**
- * Graph node that represents scene geometry.
+ * Scriptable graph node that represents scene geometry.
  */
 class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarget,
 	public AgentAffectActionTarget, public GraphFocusable, public SceneGeometry, public AgentAffectingActionEmitter

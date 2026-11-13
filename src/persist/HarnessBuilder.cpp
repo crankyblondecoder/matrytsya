@@ -10,10 +10,12 @@
 #include "../agent/ModelSystemPrompt.hpp"
 #include "../agent/ModelToolBindings.hpp"
 #include "../agent/OllamaModelProvider.hpp"
+#include "../agent/OpenRouterModelProvider.hpp"
 #include "../graph/GraphHive.hpp"
 #include "../graph/GraphToolBindingsFactory.hpp"
 
 #include <map>
+#include <stdlib.h>
 
 AgenticHarness* HarnessBuilder::build(HarnessLoader& loader, Handle<GraphHive> hive,
 	Handle<GraphToolBindingsFactory> toolBindingsFactory)
@@ -184,36 +186,79 @@ Handle<ModelProvider> HarnessBuilder::__createProvider(const HarnessProviderDesc
 		throw PersistException(PersistException::INVALID_PROVIDER_URL);
 	}
 
-	switch(descriptor.type)
+	ModelProvider* provider = 0;
+
+	try
 	{
-		case HarnessProviderDescriptor::OLLAMA:
+		switch(descriptor.type)
 		{
-			try
+			case HarnessProviderDescriptor::OLLAMA:
+
+				provider = new OllamaModelProvider(descriptor.url);
+
+				break;
+
+			case HarnessProviderDescriptor::OPENROUTER:
 			{
-				OllamaModelProvider* provider = new OllamaModelProvider(descriptor.url);
+				const char* apiKey = getenv(descriptor.apiKeyEnv.c_str());
 
-				Handle<ModelProvider> providerHandle(provider);
+				// Only the variable is named, never its value, as the detail ends up in logs and on screen.
+				if(descriptor.apiKeyEnv.empty() || !apiKey || !*apiKey)
+				{
+					throw PersistException(PersistException::MISSING_PROVIDER_API_KEY, "provider '" +
+						descriptor.name + "' reads it from '" + descriptor.apiKeyEnv + "'");
+				}
 
-				// The handle carries the reference out to the caller; release the implicit construction ref.
-				provider -> decrRef();
+				provider = new OpenRouterModelProvider(descriptor.url, apiKey);
 
-				return providerHandle;
-			}
-			catch(AgentException& exception)
-			{
-				// Covers both the server being unreachable and it answering with a model list that could
-				// not be read; either way there is no provider to assign models from. Which of the two it was
-				// goes in the detail, as they are put right in quite different places.
-				std::string reason = exception.getError() == AgentException::CONNECTION_FAILED ?
-					"could not connect" : "connected, but the list of models it returned could not be read";
-
-				throw PersistException(PersistException::PROVIDER_CONNECTION_FAILED, "provider '" +
-					descriptor.name + "' at " + descriptor.url + ": " + reason);
+				break;
 			}
 		}
 	}
+	catch(AgentException& exception)
+	{
+		// Covers the server being unreachable, it turning the key away, it turning the request away for some
+		// other reason, and it answering with a model list that could not be read; whichever it was, there is
+		// no provider to assign models from. Which one goes in the detail, as they are put right in quite
+		// different places, followed by whatever more is known, e.g. the reason the provider itself gave.
+		std::string reason;
 
-	throw PersistException(PersistException::UNKNOWN_PROVIDER_TYPE);
+		switch(exception.getError())
+		{
+			case AgentException::CONNECTION_FAILED:
+				reason = "could not connect";
+				break;
+
+			case AgentException::AUTHENTICATION_FAILED:
+				reason = "connected, but the API key was rejected";
+				break;
+
+			case AgentException::MODEL_FETCH_FAILED:
+				reason = "connected, but the list of models it returned could not be read";
+				break;
+
+			default:
+				reason = "connected, but it turned the request away";
+				break;
+		}
+
+		if(!exception.getDetail().empty()) reason += " (" + exception.getDetail() + ")";
+
+		throw PersistException(PersistException::PROVIDER_CONNECTION_FAILED, "provider '" +
+			descriptor.name + "' at " + descriptor.url + ": " + reason);
+	}
+
+	if(!provider)
+	{
+		throw PersistException(PersistException::UNKNOWN_PROVIDER_TYPE);
+	}
+
+	Handle<ModelProvider> providerHandle(provider);
+
+	// The handle carries the reference out to the caller; release the implicit construction ref.
+	provider -> decrRef();
+
+	return providerHandle;
 }
 
 std::vector<Handle<ModelToolBindings>> HarnessBuilder::__toolBindingsFromName(const std::string& toolSetName,

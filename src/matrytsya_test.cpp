@@ -139,7 +139,7 @@ int main(int argc, char const *argv[])
 	// so is the index map, neither of which reference count it.
 	GraphHiveCollection collection;
 
-	HttpServer httpServer(8080);
+	HttpServer httpServer("127.0.0.1", 8080);
 
 	// Mounted at the root, so it is both what a browser arriving at the server lands on and what any path no
 	// surface map claims falls through to. Routing is by longest matching prefix, so the surface maps mounted

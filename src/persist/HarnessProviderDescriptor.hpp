@@ -12,7 +12,8 @@ struct HarnessProviderDescriptor
 	/// Identifies which concrete ModelProvider subclass this descriptor describes.
 	enum Type
 	{
-		OLLAMA
+		OLLAMA,
+		OPENROUTER
 	};
 
 	/// Concrete provider type this descriptor describes.
@@ -24,6 +25,10 @@ struct HarnessProviderDescriptor
 
 	/// URL of the server, including scheme and port (e.g. "http://localhost:11434").
 	std::string url;
+
+	/// Name of the environment variable holding the API key that requests are authenticated with. Only
+	/// used by OPENROUTER, which has no use for a key kept in the harness data itself.
+	std::string apiKeyEnv;
 };
 
 #endif
