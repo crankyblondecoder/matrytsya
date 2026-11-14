@@ -45,6 +45,7 @@ At least one is required, and any number may be given.
 | `-H`  | `--harness`               | `FILE`   | none    | Agentic harness definition to run every hive against. See [Agentic harness](#agentic-harness). |
 | `-c`  | `--chat-capability`       | `LEVEL`  | `LOW`   | Capability the chat window asks for: `LOW`, `MEDIUM` or `HIGH`. Case sensitive. See [Chat window](#chat-window). |
 | `-n`  | `--no-chat`               | none     | off     | Disable the chat window. See [Chat window](#chat-window). |
+| `-s`  | `--shading`               | `MODEL`  | `BLINN_PHONG` | Lighting model the WebGL scene and structure views shade with: `BLINN_PHONG` (diffuse plus a specular highlight, worked out per pixel) or `LAMBERT` (diffuse only, worked out per vertex). Case sensitive. |
 | `-t`  | `--threads`               | `COUNT`  | `2`     | Number of threads in each hive's thread pool. 1 to 1024. Every hive gets its own pool of this size. |
 | `-v`  | `--verbose`               | none     | off     | Raise the console logging level by one. Can be repeated. See [Verbosity](#verbosity). |
 | `-h`  | `--help`                  | none     |         | Print a usage summary to standard output and exit with status 0. |

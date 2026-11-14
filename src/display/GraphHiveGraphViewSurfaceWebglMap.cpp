@@ -6,56 +6,13 @@
 #include "../graph/graphActionFlagRegister.hpp"
 #include "../graph/GraphHiveGraphViewSurface.hpp"
 #include "../graph/GraphNodeType.hpp"
+#include "displayJson.hpp"
 #include "graphViewPageTemplate.hpp"
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
 
 namespace
 {
-	// Quotes a string as a JSON string literal, escaping what JSON does not allow to appear raw within one.
-	// Needed here because a node's name is whatever the hive it came from called it, rather than the numbers
-	// the rest of this payload is made of.
-	std::string jsonString(const std::string& value)
-	{
-		std::string result = "\"";
-
-		for(char character : value)
-		{
-			switch(character)
-			{
-				case '"':  result += "\\\""; break;
-				case '\\': result += "\\\\"; break;
-				case '\b': result += "\\b"; break;
-				case '\f': result += "\\f"; break;
-				case '\n': result += "\\n"; break;
-				case '\r': result += "\\r"; break;
-				case '\t': result += "\\t"; break;
-
-				default:
-
-					// Anything else below a space has no shorthand and may not appear raw, so goes out as an
-					// escape. The cast keeps a high byte of a multi-byte UTF-8 sequence from looking negative
-					// and being escaped as though it were a control character.
-					if((unsigned char) character < 0x20)
-					{
-						char escape[7];
-
-						snprintf(escape, sizeof(escape), "\\u%04x", (unsigned char) character);
-
-						result += escape;
-					}
-					else
-					{
-						result += character;
-					}
-
-					break;
-			}
-		}
-
-		return result + "\"";
-	}
-
 	// Names the concrete type of a node, so the page can show what a node is and colour it by its kind. The
 	// names are the enum's own, which is what someone reading the hive's source would recognise it by.
 	const char* nodeTypeName(GraphNodeType type)
@@ -73,6 +30,7 @@ namespace
 			case GraphNodeType::TELEPORT_NODE: return "TELEPORT_NODE";
 			case GraphNodeType::AGENT_NODE: return "AGENT_NODE";
 			case GraphNodeType::TRIGGER_NODE: return "TRIGGER_NODE";
+			case GraphNodeType::SCENE_TEXT_SCRIPT_NODE: return "SCENE_TEXT_SCRIPT_NODE";
 		}
 
 		return "GRAPH_NODE";
@@ -101,7 +59,8 @@ namespace
 			{VERSION_GRAPH_ACTION, "VERSION_GRAPH_ACTION"},
 			{AGENT_GRAPH_ACTION, "AGENT_GRAPH_ACTION"},
 			{TRIGGER_GRAPH_ACTION, "TRIGGER_GRAPH_ACTION"},
-			{AGENT_AFFECT_GRAPH_ACTION, "AGENT_AFFECT_GRAPH_ACTION"}
+			{AGENT_AFFECT_GRAPH_ACTION, "AGENT_AFFECT_GRAPH_ACTION"},
+			{TEXT_VISIBLE_GRAPH_ACTION, "TEXT_VISIBLE_GRAPH_ACTION"}
 		};
 
 		json += "[";

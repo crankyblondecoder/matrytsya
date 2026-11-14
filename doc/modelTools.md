@@ -33,6 +33,7 @@ reach back to an earlier one.
 |---|---|
 | `SceneGeometryScriptNode` | `getAnimating`, `setAnimating` |
 | `SceneTransformScriptNode` | `getAnimating`, `setAnimating` |
+| `SceneTextScriptNode` | `getAnimating`, `setAnimating` |
 | `TriggerNode` | `emitTrigger` |
 | `PingNode`, `TeleportNode`, `SceneRootNode`, `SceneGeometryNode`, `SceneTransformNode`, `AgentNode` | None |
 

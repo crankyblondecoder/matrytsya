@@ -12,6 +12,7 @@
 #include "GraphHive.hpp"
 #include "GraphHiveSurface.hpp"
 #include "GraphPoke.hpp"
+#include "TextBackground.hpp"
 #include "graphSceneElements.hpp"
 #include "nodes/SceneRootNode.hpp"
 
@@ -79,6 +80,33 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 			SceneGeometry::VertexVisibility visibility;
 		};
 
+		/**
+		 * Defines a block of text anchored in the scene.
+		 */
+		struct Text
+		{
+			/// Id of the node that this text is associated with.
+			unsigned nodeId;
+
+			/// The text itself. May contain '\n' to break it over several lines.
+			std::string text;
+
+			/// Anchor position, in the frame of the model transform: X, Y, Z.
+			double position[3];
+
+			/// Height of a single line of the text, in the units of the frame of the model transform.
+			double height;
+
+			/// Colour: R, G, B, A.
+			std::byte colour[4];
+
+			/// Box drawn behind the text, in the same units as height.
+			TextBackground background;
+
+			/// The index of the model transform to use for this text.
+			unsigned modelTransformIndex;
+		};
+
 		struct ModelTransform
 		{
 			/// A numerical id that can be used to refer to this model transform.
@@ -95,6 +123,9 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 
 			/// The model transforms that apply to scene chunks.
 			std::vector<ModelTransform> modelTransforms;
+
+			/// Blocks of text in the scene, in the order they were collected.
+			std::vector<Text> texts;
 
 			/// Ids of the nodes currently having an agentic action applied to them, i.e. the nodes whose
 			/// VertexVisibility::AGENT chunks should be shown. Only the nodes that are, so usually empty.
@@ -125,6 +156,19 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		 */
 		void addVertexes(const std::vector<Vertex>& vertexes, unsigned chunkId, unsigned nodeId, unsigned version,
 			bool pokeable, SceneGeometry::VertexVisibility visibility);
+
+		/**
+		 * Add a block of text to this scene surface.
+		 * @note The model transform that is ultimately applied to the text is the current model transform.
+		 * @param nodeId Id of the node the text is associated with.
+		 * @param text The text itself.
+		 * @param position Anchor position, in the frame of the current model transform: X, Y, Z.
+		 * @param height Height of a single line of the text.
+		 * @param colour Colour: R, G, B, A.
+		 * @param background Box drawn behind the text, in the same units as height.
+		 */
+		void addText(unsigned nodeId, const std::string& text, const double position[3], double height,
+			const std::byte colour[4], const TextBackground& background);
 
 		/**
 		 * Mark a node as currently having an agentic action applied to it, so that its
@@ -227,6 +271,9 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 
 		/// Ids of the agent visible nodes of the surface currently being built.
 		std::vector<unsigned> _agentVisibleNodeIds;
+
+		/// Blocks of text of the surface currently being built.
+		std::vector<Text> _texts;
 
 		/// The current scene that the surface can display. This is a kind of double buffering.
 		Scene _currentScene;

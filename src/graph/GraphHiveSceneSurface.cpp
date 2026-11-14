@@ -48,6 +48,29 @@ namespace
 			a[2] == b[2] && a[6] == b[6] && a[10] == b[10] && a[14] == b[14] &&
 			a[3] == b[3] && a[7] == b[7] && a[11] == b[11] && a[15] == b[15];
 	}
+
+	// Determine if two lists of scene texts are equal.
+	bool textsEqual(const std::vector<GraphHiveSceneSurface::Text>& a, const std::vector<GraphHiveSceneSurface::Text>& b)
+	{
+		if(a.size() != b.size()) return false;
+
+		for(std::size_t index = 0; index < a.size(); index++)
+		{
+			const GraphHiveSceneSurface::Text& textA = a[index];
+			const GraphHiveSceneSurface::Text& textB = b[index];
+
+			if(textA.nodeId != textB.nodeId || textA.text != textB.text || textA.height != textB.height ||
+				textA.modelTransformIndex != textB.modelTransformIndex || textA.background != textB.background)
+			{
+				return false;
+			}
+
+			for(int axis = 0; axis < 3; axis++) if(textA.position[axis] != textB.position[axis]) return false;
+			for(int channel = 0; channel < 4; channel++) if(textA.colour[channel] != textB.colour[channel]) return false;
+		}
+
+		return true;
+	}
 }
 
 GraphHiveSceneSurface::GraphHiveSceneSurface(Handle<SceneRootNode> sceneRootNode)
@@ -97,6 +120,7 @@ void GraphHiveSceneSurface::_populateStart()
 	_unchangedChunkIndexes.clear();
 	_modelTransforms.clear();
 	_agentVisibleNodeIds.clear();
+	_texts.clear();
 
 	ModelTransform identity;
 
@@ -125,7 +149,8 @@ void GraphHiveSceneSurface::_populateEnd()
 		// comparing the lists directly is enough to spot a node being marked or unmarked.
 		sceneChanged = numTransf != _currentScene.modelTransforms.size() || _chunkUpdates.size() > 0 ||
 			_chunks.size() > 0 || _unchangedChunkIndexes.size() != _currentScene.chunks.size() ||
-			_agentVisibleNodeIds != _currentScene.agentVisibleNodeIds;
+			_agentVisibleNodeIds != _currentScene.agentVisibleNodeIds ||
+			!textsEqual(_texts, _currentScene.texts);
 
 		if(!sceneChanged && numTransf)
 		{
@@ -169,6 +194,7 @@ void GraphHiveSceneSurface::_populateEnd()
 			_currentScene.chunks = std::move(_chunks);
 			_currentScene.modelTransforms = std::move(_modelTransforms);
 			_currentScene.agentVisibleNodeIds = std::move(_agentVisibleNodeIds);
+			_currentScene.texts = std::move(_texts);
 		}
 
 		// Notify that the surface has changed.
@@ -273,6 +299,27 @@ void GraphHiveSceneSurface::addLocalTransform(const Transform& transform, unsign
 
 			_modelTransforms.push_back(modelTransform);
 		}
+	}
+}
+
+void GraphHiveSceneSurface::addText(unsigned nodeId, const std::string& text, const double position[3], double height,
+	const std::byte colour[4], const TextBackground& background)
+{
+	Text newText;
+
+	newText.nodeId = nodeId;
+	newText.text = text;
+	newText.height = height;
+	newText.background = background;
+
+	for(int axis = 0; axis < 3; axis++) newText.position[axis] = position[axis];
+	for(int channel = 0; channel < 4; channel++) newText.colour[channel] = colour[channel];
+
+	{ SYNC(_lock)
+
+		newText.modelTransformIndex = _modelTransforms.size() - 1;
+
+		_texts.push_back(std::move(newText));
 	}
 }
 

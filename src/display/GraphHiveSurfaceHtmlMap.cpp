@@ -12,6 +12,7 @@
 #include "../thread/thread.hpp"
 #include "../thread/ThreadException.hpp"
 #include "chatWindowTemplate.hpp"
+#include "displayJson.hpp"
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
 
@@ -25,50 +26,6 @@ namespace
 	/// browser normally collects a reply within a poll or two of it landing, so this only bounds what is held
 	/// for one that asked and then went away.
 	const unsigned _MAX_RETAINED_CHAT_MESSAGES = 32;
-
-	// Quotes a string as a JSON string literal, escaping what JSON does not allow to appear raw within one.
-	// Needed by the chat endpoints below, where the text is whatever a model or a browser said rather than the
-	// numbers a page draws the surface from.
-	std::string jsonString(const std::string& value)
-	{
-		std::string result = "\"";
-
-		for(char character : value)
-		{
-			switch(character)
-			{
-				case '"':  result += "\\\""; break;
-				case '\\': result += "\\\\"; break;
-				case '\b': result += "\\b"; break;
-				case '\f': result += "\\f"; break;
-				case '\n': result += "\\n"; break;
-				case '\r': result += "\\r"; break;
-				case '\t': result += "\\t"; break;
-
-				default:
-
-					// Anything else below a space has no shorthand and may not appear raw, so goes out as an
-					// escape. The cast keeps a high byte of a multi-byte UTF-8 sequence from looking negative
-					// and being escaped as though it were a control character.
-					if((unsigned char) character < 0x20)
-					{
-						char escape[7];
-
-						snprintf(escape, sizeof(escape), "\\u%04x", (unsigned char) character);
-
-						result += escape;
-					}
-					else
-					{
-						result += character;
-					}
-
-					break;
-			}
-		}
-
-		return result + "\"";
-	}
 
 	// Plain language for the failures the bound surface can report against a chat, so that the page can say why
 	// it could not be serviced rather than showing an error number. AgentException carries its own description,
@@ -160,11 +117,30 @@ GraphHiveSurfaceHtmlMap::~GraphHiveSurfaceHtmlMap()
 	if(chatThreadRunning) stop(true);
 }
 
+std::string GraphHiveSurfaceHtmlMap::getShadingModelName(ShadingModel shadingModel)
+{
+	switch(shadingModel)
+	{
+		case ShadingModel::LAMBERT: return "LAMBERT";
+		case ShadingModel::BLINN_PHONG: return "BLINN_PHONG";
+	}
+
+	return "UNKNOWN";
+}
+
 void GraphHiveSurfaceHtmlMap::setPollInterval(unsigned pollIntervalMs)
 {
 	{ SYNC(_lock)
 
 		_pollIntervalMs = pollIntervalMs;
+	}
+}
+
+void GraphHiveSurfaceHtmlMap::setShadingModel(ShadingModel shadingModel)
+{
+	{ SYNC(_lock)
+
+		_shadingModel = shadingModel;
 	}
 }
 
@@ -207,12 +183,14 @@ void GraphHiveSurfaceHtmlMap::_renderPageTemplate(const std::string& pageTemplat
 
 	std::string title = _getSurface().getName();
 	unsigned pollIntervalMs;
+	ShadingModel shadingModel;
 	std::string structurePath;
 	bool chatEnabled;
 
 	{ SYNC(_lock)
 
 		pollIntervalMs = _pollIntervalMs;
+		shadingModel = _shadingModel;
 		structurePath = _structurePath;
 		chatEnabled = _chatEnabled;
 	}
@@ -241,6 +219,7 @@ void GraphHiveSurfaceHtmlMap::_renderPageTemplate(const std::string& pageTemplat
 
 	replacePlaceholder(page, "%TITLE%", title);
 	replacePlaceholder(page, "%POLL_INTERVAL_MS%", std::to_string(pollIntervalMs));
+	replacePlaceholder(page, "%SHADING_MODEL%", getShadingModelName(shadingModel));
 
 	response.setContentType("text/html");
 	response.setBody(page);

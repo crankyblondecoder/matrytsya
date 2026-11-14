@@ -86,3 +86,7 @@ AgentAffectActionTarget* GraphActionTargetable::getAgentAffectActionTarget()
 	return 0;
 }
 
+TextVisibleActionTarget* GraphActionTargetable::getTextVisibleActionTarget()
+{
+	return 0;
+}

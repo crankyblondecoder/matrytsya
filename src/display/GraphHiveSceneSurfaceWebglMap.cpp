@@ -8,6 +8,7 @@
 
 #include "../graph/GraphHiveSceneSurface.hpp"
 #include "../rapidjson/document.h"
+#include "displayJson.hpp"
 #include "http/HttpRequest.hpp"
 #include "http/HttpResponse.hpp"
 #include "webglPageTemplate.hpp"
@@ -231,6 +232,28 @@ void GraphHiveSceneSurfaceWebglMap::_serveMapData(HttpRequest& request, HttpResp
 		}
 
 		json += "}";
+	}
+
+	// Text is small, and sent whole on every request rather than cached by the viewer the way vertexes are.
+	json += "],\"texts\":[";
+
+	for(std::size_t textIndex = 0; textIndex < scene.texts.size(); textIndex++)
+	{
+		if(textIndex > 0) json += ",";
+
+		const GraphHiveSceneSurface::Text& text = scene.texts[textIndex];
+
+		json += "{\"nodeId\":" + std::to_string(text.nodeId) +
+			",\"text\":" + jsonString(text.text) +
+			",\"position\":" + jsonVec(text.position, 3) +
+			",\"height\":" + jsonNumber(text.height) +
+			",\"colour\":" + jsonByteVec(text.colour, 4) +
+			",\"background\":{\"fillColour\":" + jsonByteVec(text.background.fillColour, 4) +
+				",\"borderColour\":" + jsonByteVec(text.background.borderColour, 4) +
+				",\"borderWidth\":" + jsonNumber(text.background.borderWidth) +
+				",\"padding\":" + jsonNumber(text.background.padding) +
+				",\"cornerRadii\":" + jsonVec(text.background.cornerRadii, TextBackground::CORNER_COUNT) + "}" +
+			",\"modelTransformIndex\":" + std::to_string(text.modelTransformIndex) + "}";
 	}
 
 	json += "]}";

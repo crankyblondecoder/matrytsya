@@ -9,6 +9,7 @@
 #include "actionTargets/StrobeActionTarget.hpp"
 #include "actionTargets/ScriptActionTarget.hpp"
 #include "actionTargets/SerialisableActionTarget.hpp"
+#include "actionTargets/TextVisibleActionTarget.hpp"
 #include "actionTargets/TriggerActionTarget.hpp"
 #include "actionTargets/VersionActionTarget.hpp"
 
@@ -70,6 +71,9 @@ class GraphActionTargetable
 
 		/// Get the target for marking that an agentic action is being applied.
 		virtual AgentAffectActionTarget* getAgentAffectActionTarget();
+
+		/// Get the target for showing and hiding text.
+		virtual TextVisibleActionTarget* getTextVisibleActionTarget();
 
 	protected:
 

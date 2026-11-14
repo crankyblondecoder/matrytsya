@@ -48,7 +48,8 @@ namespace
 		{"SCENE_ROOT_NODE", GraphNodeType::SCENE_ROOT_NODE},
 		{"TELEPORT_NODE", GraphNodeType::TELEPORT_NODE},
 		{"AGENT_NODE", GraphNodeType::AGENT_NODE},
-		{"TRIGGER_NODE", GraphNodeType::TRIGGER_NODE}
+		{"TRIGGER_NODE", GraphNodeType::TRIGGER_NODE},
+		{"SCENE_TEXT_SCRIPT_NODE", GraphNodeType::SCENE_TEXT_SCRIPT_NODE}
 	};
 }
 

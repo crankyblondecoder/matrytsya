@@ -54,9 +54,10 @@
 				"ANIMATE_GRAPH_ACTION",
 				"AGENT_GRAPH_ACTION",
 				"TRIGGER_GRAPH_ACTION",
-				"AGENT_AFFECT_GRAPH_ACTION"
+				"AGENT_AFFECT_GRAPH_ACTION",
+				"TEXT_VISIBLE_GRAPH_ACTION"
 			],
-			"description": "Used to describe the type of a particular graph action. Some actions carry more than one, and an edge naming any one of them admits that action. PING_GRAPH_ACTION: a ping action. SERIALISABLE_GRAPH_ACTION: an action that can be teleported to another hive, carried by ping and trigger actions, and the only flag a teleport node acts on. SCRIPT_GRAPH_ACTION: an action that runs a node's coreScript, carried by script actions and by the strobe action that drives them. SCENE_GRAPH_ACTION: the action a surface runs to collect geometry and transforms into itself. SCENE_STROBE_GRAPH_ACTION: the action a registered strobe emitter sends out at a fixed rate. ANIMATE_GRAPH_ACTION: the action that carries an animating mode out from the node that set it. AGENT_GRAPH_ACTION: the action an agent node emits to carry one conversation from node to node. TRIGGER_GRAPH_ACTION: the action emitted by a trigger node, by a script's trigger() call, or by a model's emitTrigger tool. AGENT_AFFECT_GRAPH_ACTION: the action a node sends out across its edges when an agentic request starts or stops directly affecting it, so that other nodes can react to it too. Sent only by a node whose emitAgentAffectAction is set; on scene geometry it arrives as that node's agent-visible flag being set."
+			"description": "Used to describe the type of a particular graph action. Some actions carry more than one, and an edge naming any one of them admits that action. PING_GRAPH_ACTION: a ping action. SERIALISABLE_GRAPH_ACTION: an action that can be teleported to another hive, carried by ping and trigger actions, and the only flag a teleport node acts on. SCRIPT_GRAPH_ACTION: an action that runs a node's coreScript, carried by script actions and by the strobe action that drives them. SCENE_GRAPH_ACTION: the action a surface runs to collect geometry and transforms into itself. SCENE_STROBE_GRAPH_ACTION: the action a registered strobe emitter sends out at a fixed rate. ANIMATE_GRAPH_ACTION: the action that carries an animating mode out from the node that set it. AGENT_GRAPH_ACTION: the action an agent node emits to carry one conversation from node to node. TRIGGER_GRAPH_ACTION: the action emitted by a trigger node, by a script's trigger() call, or by a model's emitTrigger tool. AGENT_AFFECT_GRAPH_ACTION: the action a node sends out across its edges when an agentic request starts or stops directly affecting it, so that other nodes can react to it too. Sent only by a node whose emitAgentAffectAction is set; on scene geometry it arrives as that node's agent-visible flag being set. TEXT_VISIBLE_GRAPH_ACTION: the action a script sends out to show or hide the text of the text nodes it reaches."
 		},
 
 		"nodeType": {
@@ -71,7 +72,8 @@
 				"SCENE_ROOT_NODE",
 				"TELEPORT_NODE",
 				"AGENT_NODE",
-				"TRIGGER_NODE"
+				"TRIGGER_NODE",
+				"SCENE_TEXT_SCRIPT_NODE"
 			],
 			"description": "Identifies a kind of node, so that something visiting a node can recognise what it has arrived at. GRAPH_NODE is reported by any node that does not identify a more specific kind of its own."
 		},
@@ -333,7 +335,7 @@
 		},
 
 		"scriptNodeBase": {
-			"description": "Fields common to every node that runs Lua. Not a node type in its own right; mixed into the concrete scripted types, currently SceneGeometryScriptNode, SceneTransformScriptNode and TriggerNode.",
+			"description": "Fields common to every node that runs Lua. Not a node type in its own right; mixed into the concrete scripted types, currently SceneGeometryScriptNode, SceneTransformScriptNode, SceneTextScriptNode and TriggerNode.",
 			"allOf": [
 				{ "$ref": "#/$defs/nodeBase" },
 				{ "$ref": "#/$defs/scriptSource" }
@@ -535,6 +537,99 @@
 			"unevaluatedProperties": false
 		},
 
+		"sceneTextScriptNode": {
+			"description": "A scripted node that puts a single block of text into a scene, anchored in the frame of the transforms it is collected under, so it is moved, turned and scaled along with the geometry around it. A viewer shows the text facing the camera and sized by its distance the same way geometry is; once too small to read, a viewer may show a marker in its place instead. Its Lua script can read and change the text and how it is shown. Holds an animating mode, and offers a visiting model the tools to read and set it.",
+			"allOf": [
+				{ "$ref": "#/$defs/scriptNodeBase" },
+				{
+					"properties": {
+						"type": { "const": "SceneTextScriptNode" },
+						"text": {
+							"type": "string",
+							"default": "",
+							"description": "Text to display. A newline breaks it over several lines."
+						},
+						"textPosition": {
+							"type": "array",
+							"items": { "type": "number" },
+							"minItems": 3,
+							"maxItems": 3,
+							"default": [0, 0, 0],
+							"description": "Point the text is centred on: X, Y, Z, in the frame of the transforms this node is collected under."
+						},
+						"textHeight": {
+							"type": "number",
+							"exclusiveMinimum": 0,
+							"default": 1,
+							"description": "Height of a single line of the text, in the units of the frame it is collected under."
+						},
+						"textColour": {
+							"type": "array",
+							"items": { "type": "integer", "minimum": 0, "maximum": 255 },
+							"minItems": 4,
+							"maxItems": 4,
+							"default": [255, 255, 255, 255],
+							"description": "Colour of the text: red, green, blue and alpha, each from 0 to 255."
+						},
+						"textBackground": {
+							"type": "object",
+							"description": "Box drawn behind the text. Lengths are in the same units as textHeight, so the box scales with the text. Members left out keep their default; with no fill and no border, which is the default, no box is drawn.",
+							"properties": {
+								"fillColour": {
+									"type": "array",
+									"items": { "type": "integer", "minimum": 0, "maximum": 255 },
+									"minItems": 4,
+									"maxItems": 4,
+									"default": [0, 0, 0, 0],
+									"description": "Colour filling the box: red, green, blue and alpha, each from 0 to 255."
+								},
+								"borderColour": {
+									"type": "array",
+									"items": { "type": "integer", "minimum": 0, "maximum": 255 },
+									"minItems": 4,
+									"maxItems": 4,
+									"default": [0, 0, 0, 0],
+									"description": "Colour of the box's border: red, green, blue and alpha, each from 0 to 255."
+								},
+								"borderWidth": {
+									"type": "number",
+									"minimum": 0,
+									"default": 0,
+									"description": "Width of the box's border. 0 for no border."
+								},
+								"padding": {
+									"type": "number",
+									"minimum": 0,
+									"default": 0,
+									"description": "Space between the text and the inside of the border, on every side."
+								},
+								"cornerRadius": {
+									"oneOf": [
+										{ "type": "number", "minimum": 0 },
+										{
+											"type": "array",
+											"items": { "type": "number", "minimum": 0 },
+											"minItems": 4,
+											"maxItems": 4
+										}
+									],
+									"default": 0,
+									"description": "Radius of the box's corners: one radius for every corner, or one per corner in the order top left, top right, bottom right, bottom left. 0 for a square corner."
+								}
+							},
+							"additionalProperties": false
+						},
+						"textVisible": {
+							"type": "boolean",
+							"default": true,
+							"description": "Whether the text is shown. Hidden text is left out of the scene until a script or an action reaching this node shows it."
+						}
+					}
+				}
+			],
+			"unevaluatedProperties": false
+		},
+
 		"triggerNode": {
 			"description": "A Lua-scripted node that exists to emit trigger actions on behalf of an AI model. An agent action reaching this node offers the model a tool that emits a trigger action from here, optionally restricted to a node name and/or a node type, so the model chooses what part of the graph fires next. The emitted action is never applied back to this node, so it cannot trigger itself. It takes no part in a scene, so it holds no animating mode and a strobe never reaches its coreScript: that script runs only under an action that runs scripts. The Lua bindings it has are the ones every scripted node carries and no more: NodeType, trigger(), and the ToolType constants a coreScript declares its own tool calls through.",
 			"allOf": [
@@ -564,7 +659,8 @@
 				{ "$ref": "#/$defs/sceneGeometryNode" },
 				{ "$ref": "#/$defs/sceneGeometryScriptNode" },
 				{ "$ref": "#/$defs/sceneTransformNode" },
-				{ "$ref": "#/$defs/sceneTransformScriptNode" }
+				{ "$ref": "#/$defs/sceneTransformScriptNode" },
+				{ "$ref": "#/$defs/sceneTextScriptNode" }
 			]
 		},
 

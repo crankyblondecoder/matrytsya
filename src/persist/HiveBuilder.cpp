@@ -20,6 +20,7 @@
 #include "../graph/nodes/SceneGeometryNode.hpp"
 #include "../graph/nodes/SceneGeometryScriptNode.hpp"
 #include "../graph/nodes/SceneRootNode.hpp"
+#include "../graph/nodes/SceneTextScriptNode.hpp"
 #include "../graph/nodes/SceneTransformNode.hpp"
 #include "../graph/nodes/SceneTransformScriptNode.hpp"
 #include "../graph/nodes/StrobeEmitterNode.hpp"
@@ -298,6 +299,20 @@ GraphNode* HiveBuilder::__createNode(const HiveNodeDescriptor& descriptor)
 			return node;
 		}
 
+		case HiveNodeDescriptor::SCENE_TEXT_SCRIPT:
+		{
+			SceneTextScriptNode* node = new SceneTextScriptNode(descriptor.coreScript, descriptor.pokeScript);
+
+			node -> setText(descriptor.text);
+			node -> setPosition(descriptor.textPosition);
+			node -> setHeight(descriptor.textHeight);
+			node -> setColour(descriptor.textColour);
+			node -> setBackground(descriptor.textBackground);
+			node -> setVisible(descriptor.textVisible);
+
+			return node;
+		}
+
 		case HiveNodeDescriptor::AGENT:
 		{
 			std::vector<AgentAction::NodePrompt> prompts;
@@ -376,6 +391,7 @@ unsigned long HiveBuilder::__actionFlagFromName(const std::string& name)
 	if(name == "AGENT_GRAPH_ACTION") return AGENT_GRAPH_ACTION;
 	if(name == "TRIGGER_GRAPH_ACTION") return TRIGGER_GRAPH_ACTION;
 	if(name == "AGENT_AFFECT_GRAPH_ACTION") return AGENT_AFFECT_GRAPH_ACTION;
+	if(name == "TEXT_VISIBLE_GRAPH_ACTION") return TEXT_VISIBLE_GRAPH_ACTION;
 
 	throw PersistException(PersistException::UNKNOWN_ACTION_FLAG);
 }

@@ -178,7 +178,9 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 			/// TriggerAction. Params: nodeName (string), nodeType (NodeType constant). Both optional.
 			TRIGGER = 1,
 			/// AnimateAction. Params: animating (boolean). Required.
-			ANIMATE = 2
+			ANIMATE = 2,
+			/// TextVisibleAction. Params: visible (boolean). Required.
+			TEXT_VISIBLE = 3
 		};
 
 		// A session is the only thing permitted to drive either of this node's states, so it is the only
@@ -450,7 +452,8 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		 *
 		 * actionType is an ActionType constant. params is an optional table of the fields the action type takes:
 		 * TRIGGER takes an optional nodeName string and an optional nodeType NodeType constant, with the same
-		 * meaning as trigger()'s arguments, and ANIMATE takes a required animating boolean. traversalKeys is an
+		 * meaning as trigger()'s arguments, ANIMATE takes a required animating boolean and TEXT_VISIBLE takes a
+		 * required visible boolean. traversalKeys is an
 		 * optional array of the edge traversal keys the action holds, each an integer from 1 to 4294967295; the
 		 * action can traverse an edge with a non-zero traversal key only if it holds that key.
 		 * @note The emitted action is never applied to this node itself.
@@ -524,6 +527,14 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		void __emitAnimateAction(bool animating, std::vector<unsigned> edgeTraversalKeys);
 
 		/**
+		 * Emit a TextVisibleAction from this node.
+		 * @param visible Text visibility the action applies to each node it reaches.
+		 * @param edgeTraversalKeys Keys the action holds.
+		 * @note Must only be called once every Lua argument has been validated, as for __emitTriggerAction().
+		 */
+		void __emitTextVisibleAction(bool visible, std::vector<unsigned> edgeTraversalKeys);
+
+		/**
 		 * Allocator shared by both persistent Lua states this node owns, capped independently per state via
 		 * userData.
 		 * @param userData Pointer to the size_t byte counter (either &_coreMemoryUsed or &_pokeMemoryUsed)
@@ -545,10 +556,11 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		/// ActionType constants and reading one back walk these, so both must be extended with the enum.
 		static constexpr EmittableActionType EMITTABLE_ACTION_TYPES[] = {
 			EmittableActionType::TRIGGER,
-			EmittableActionType::ANIMATE};
+			EmittableActionType::ANIMATE,
+			EmittableActionType::TEXT_VISIBLE};
 
 		/// Name each EmittableActionType is exposed under in the ActionType constant table.
-		static constexpr const char* EMITTABLE_ACTION_TYPE_NAMES[] = {"TRIGGER", "ANIMATE"};
+		static constexpr const char* EMITTABLE_ACTION_TYPE_NAMES[] = {"TRIGGER", "ANIMATE", "TEXT_VISIBLE"};
 
 		/// Main Lua source that is run each time this node is invoked.
 		std::string _coreScript;

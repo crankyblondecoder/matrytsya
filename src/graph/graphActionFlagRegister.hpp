@@ -24,7 +24,8 @@
 /// Supports setting the agent visible flag.
 #define AGENT_AFFECT_GRAPH_ACTION 0x00000200
 
-//#define _GRAPH_ACTION 0x00000400
+/// Supports showing and hiding text.
+#define TEXT_VISIBLE_GRAPH_ACTION 0x00000400
 //#define _GRAPH_ACTION 0x00000800
 
 //#define _GRAPH_ACTION 0x00001000

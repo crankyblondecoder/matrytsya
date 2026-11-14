@@ -149,6 +149,19 @@ class PersistException : public Exception
 			JSON_INVALID_AGENT_SERIALISE_ACTIONS,
 			/// A TriggerNode's "emitTriggerOnPoke" member was present but not a boolean.
 			JSON_INVALID_TRIGGER_EMIT_ON_POKE,
+			/// A SceneTextScriptNode's "text" member was present but not a string.
+			JSON_INVALID_TEXT,
+			/// A SceneTextScriptNode's "textPosition" member was present but not a 3 element numeric array.
+			JSON_INVALID_TEXT_POSITION,
+			/// A SceneTextScriptNode's "textHeight" member was present but not a number greater than 0.
+			JSON_INVALID_TEXT_HEIGHT,
+			/// A SceneTextScriptNode's "textColour" member was present but not 4 integers, each 0-255.
+			JSON_INVALID_TEXT_COLOUR,
+			/// A SceneTextScriptNode's "textBackground" member was present but not an object, or a field in it was
+			/// malformed, a colour channel was outside 0-255, or a length was negative.
+			JSON_INVALID_TEXT_BACKGROUND,
+			/// A SceneTextScriptNode's "textVisible" member was present but not a boolean.
+			JSON_INVALID_TEXT_VISIBLE,
 
 			// -- JsonHarnessLoader errors --
 

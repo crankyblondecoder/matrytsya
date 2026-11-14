@@ -35,7 +35,10 @@ enum class GraphNodeType
 	AGENT_NODE,
 
 	/// A TriggerNode.
-	TRIGGER_NODE
+	TRIGGER_NODE,
+
+	/// A SceneTextScriptNode.
+	SCENE_TEXT_SCRIPT_NODE
 };
 
 #endif

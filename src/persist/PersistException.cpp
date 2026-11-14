@@ -82,6 +82,15 @@ const char* PersistException::getErrorDescription(Error error)
 		case JSON_INVALID_AGENT_SERIALISE_ACTIONS:
 			return "an agent node's \"serialiseEmittedActions\" is not a boolean";
 		case JSON_INVALID_TRIGGER_EMIT_ON_POKE: return "a trigger node's \"emitTriggerOnPoke\" is not a boolean";
+		case JSON_INVALID_TEXT: return "a scene text node's \"text\" is not a string";
+		case JSON_INVALID_TEXT_POSITION: return "a scene text node's \"textPosition\" is not an array of 3 numbers";
+		case JSON_INVALID_TEXT_HEIGHT: return "a scene text node's \"textHeight\" is not a number greater than 0";
+		case JSON_INVALID_TEXT_COLOUR:
+			return "a scene text node's \"textColour\" is not an array of 4 integers, each from 0 to 255";
+		case JSON_INVALID_TEXT_BACKGROUND:
+			return "a scene text node's \"textBackground\" is not an object, or a colour, length or corner radius in it "
+				"is malformed or out of range";
+		case JSON_INVALID_TEXT_VISIBLE: return "a scene text node's \"textVisible\" is not a boolean";
 
 		// -- JsonHarnessLoader errors --
 

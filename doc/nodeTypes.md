@@ -24,6 +24,7 @@ own subject:
 | `SceneGeometryScriptNode` | Geometry built by a script | Yes | Scene, Strobe, Script, Animate, Agent, Agent affect | `getAnimating`, `setAnimating`, plus script defined | Runs `pokeScript` |
 | `SceneTransformNode` | Transform set in JSON | No | Scene, Strobe, Agent affect | — | No |
 | `SceneTransformScriptNode` | Transform a script reads and sets | Yes | Scene, Strobe, Script, Animate, Agent, Agent affect | `getAnimating`, `setAnimating`, plus script defined | Runs `pokeScript` |
+| `SceneTextScriptNode` | Text in a scene, which a script reads and sets | Yes | Scene, Strobe, Script, Animate, Agent | `getAnimating`, `setAnimating`, plus script defined | Runs `pokeScript` |
 | `AgentNode` | Holds prompts and emits them as an agent action | No | Trigger | — | No |
 | `TriggerNode` | Emits trigger actions for a script, a model or a poke | Yes | Script, Agent | `emitTrigger`, plus script defined | Runs `pokeScript`, then emits a trigger |
 
@@ -46,7 +47,7 @@ From `nodeBase`:
 | `pokeEnabled` | No, default `false` | Whether the node accepts pokes at all. |
 | `edges` | No | Outgoing edges, at most 32. Each names a `toNodeName`, optionally restricts the actions that may cross it with `actionFlags`, may set `actionsCompleteAfterTraverse`, and may lock the edge to actions holding a matching non-zero `traversalKey`. |
 
-Scripted types (`SceneGeometryScriptNode`, `SceneTransformScriptNode`, `TriggerNode`) also require
+Scripted types (`SceneGeometryScriptNode`, `SceneTransformScriptNode`, `SceneTextScriptNode`, `TriggerNode`) also require
 `coreScript` and `pokeScript`, from `scriptSource`. Either may be an empty string.
 
 ## Fields and support by type
@@ -129,8 +130,9 @@ A piece of scene geometry whose vertexes a script adds. It takes the same geomet
   and shows this node's `AGENT` vertexes for the length of the request. Agent affect, which shows or hides
   those same vertexes.
 - **Emits:** An animate action from `setAnimating()` when asked to, always from the `setAnimating` model
-  tool, and from `emitAction()`. A trigger action from `trigger()` or `emitAction()`. An agent affect action
-  while an agent action is applied here, if `emitAgentAffectAction` is set.
+  tool, and from `emitAction()`. A trigger action from `trigger()` or `emitAction()`. A text visible action
+  from `emitAction()`. An agent affect action while an agent action is applied here, if
+  `emitAgentAffectAction` is set.
 - **Lua:** The bindings on every scripted node (`NodeType`, `trigger()`, `ToolType`, `ActionType`,
   `emitAction()`), the scene script node bindings (`getStrobe()`, `getAnimating()`, `setAnimating()`), and
   its own: `Vertex`, `VertexVisibility`,
@@ -170,8 +172,8 @@ A transform that a script can read and set.
 
 - **Actions applied:** Scene, as on `SceneTransformNode`. Strobe, Script, Animate and Agent, as on
   `SceneGeometryScriptNode`. Agent affect, which has no visible effect on a transform.
-- **Emits:** As `SceneGeometryScriptNode`: animate, trigger, and agent affect when `emitAgentAffectAction` is
-  set.
+- **Emits:** As `SceneGeometryScriptNode`: animate, trigger, text visible, and agent affect when
+  `emitAgentAffectAction` is set.
 - **Lua:** The bindings on every scripted node, the scene script node bindings, and its own `getTransform()`
   and `setTransform()`. See [LuaNodeAPI.md](LuaNodeAPI.md#scenetransformscriptnode).
 - **Model tools:** `getAnimating` and `setAnimating`, plus any the script declares.
@@ -179,6 +181,39 @@ A transform that a script can read and set.
 
 A scripted transform runs its script again on every revisit, so a node used as a point to return to an earlier
 frame should be a `SceneTransformNode`, not this type.
+
+### `SceneTextScriptNode`
+
+A single block of text in a scene, anchored in the frame of the transforms visited before it, so it moves,
+turns and scales with the geometry around it.
+
+| Field | Required | Meaning |
+|---|---|---|
+| `coreScript`, `pokeScript` | Yes | The node's two Lua scripts. |
+| `text` | No, default `""` | Text to display. A newline breaks it over several lines. |
+| `textPosition` | No, default `[0, 0, 0]` | Point the text is centred on, in the frame of the transforms above it. |
+| `textHeight` | No, default `1` | Height of one line of the text, in the units of that frame. Must be greater than 0. |
+| `textColour` | No, default `[255, 255, 255, 255]` | Red, green, blue and alpha, each 0-255. |
+| `textBackground` | No, default no box | Box drawn behind the text: an object with `fillColour` and `borderColour` (each red, green, blue and alpha, 0-255, default `[0, 0, 0, 0]`), `borderWidth` and `padding` (default `0`), and `cornerRadius`, either one radius for every corner or `[topLeft, topRight, bottomRight, bottomLeft]` (default `0`). Lengths are in the same units as `textHeight` and may not be negative. Members left out keep their default. |
+| `textVisible` | No, default `true` | Whether the text is shown. Hidden text is left out of the scene. |
+
+- **Actions applied:** Scene, which adds the text to the scene under the current transform. Strobe, Script,
+  Animate and Agent, as on `SceneGeometryScriptNode`. Text visible, which shows or hides its text. It has no
+  agent visible geometry, so takes no agent affect action.
+- **Emits:** An animate action from `setAnimating()` when asked to, always from the `setAnimating` model
+  tool, and from `emitAction()`. A trigger action from `trigger()` or `emitAction()`. A text visible action
+  from `emitAction()`.
+- **Lua:** The bindings on every scripted node, the scene script node bindings, and its own `setText()`,
+  `getText()`, `setTextPosition()`, `getTextPosition()`, `setTextHeight()`, `getTextHeight()`,
+  `setTextColour()`, `getTextColour()`, `setTextBackground()`, `getTextBackground()`, `setTextVisible()` and
+  `getTextVisible()`. See [LuaNodeAPI.md](LuaNodeAPI.md#scenetextscriptnode).
+- **Model tools:** `getAnimating` and `setAnimating`, plus any the script declares.
+- **Poke:** Has a `pokeScript`, but owns no geometry, so a scene surface never pokes it.
+
+In the WebGL scene view the text always faces the camera and is drawn over the geometry, sized by its distance
+the same way geometry is. Once a line of it is too small to read, it is replaced by a marker in the scene: a
+signboard with the footprint of the text, thick enough to see edge on, which geometry in front of it can hide.
+Right-clicking the text or its marker brings it to the centre of the view, close enough to read.
 
 ### `AgentNode`
 
@@ -213,8 +248,8 @@ in a scene.
   `emitTrigger` on offer. It supports neither strobe flag, so a strobe never runs its script, and an `init()`
   runs on the first script action to reach it, not at hive start.
 - **Emits:** A trigger action from `trigger()` or `emitAction()`, from the `emitTrigger` model tool, and on a
-  poke unless `emitTriggerOnPoke` is false. An animate action from `emitAction()`. Neither is ever applied back
-  to this node.
+  poke unless `emitTriggerOnPoke` is false. An animate action and a text visible action from `emitAction()`.
+  None is ever applied back to this node.
 - **Lua:** Only the bindings on every scripted node: `NodeType`, `trigger()`, `ToolType`, `ActionType` and
   `emitAction()`. None of the scene script node bindings exist here. See
   [LuaNodeAPI.md](LuaNodeAPI.md#triggernode).
@@ -236,6 +271,7 @@ constants and the `nodeType` argument of `emitTrigger` all use the upper-case fo
 | `SceneGeometryScriptNode` | `SCENE_GEOMETRY_SCRIPT_NODE` |
 | `SceneTransformNode` | `SCENE_TRANSFORM_NODE` |
 | `SceneTransformScriptNode` | `SCENE_TRANSFORM_SCRIPT_NODE` |
+| `SceneTextScriptNode` | `SCENE_TEXT_SCRIPT_NODE` |
 | `AgentNode` | `AGENT_NODE` |
 | `TriggerNode` | `TRIGGER_NODE` |
 

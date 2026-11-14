@@ -11,6 +11,7 @@
 #include "../../../graph/actions/SceneAction.hpp"
 #include "../../../graph/nodes/PingNode.hpp"
 #include "../../../graph/nodes/SceneGeometry.hpp"
+#include "../../../graph/nodes/SceneTextScriptNode.hpp"
 #include "../../../persist/HiveBuilder.hpp"
 #include "../../../persist/HiveNodeDescriptor.hpp"
 #include "../../../persist/HiveSurfaceDescriptor.hpp"
@@ -759,6 +760,291 @@ TEST(JsonHiveLoaderTest, TriggerNodeNonBooleanEmitOnPoke_ThrowsJsonInvalidTrigge
 	})";
 
 	EXPECT_THROW(JsonHiveLoader loader(json), PersistException);
+}
+
+/**
+ * A SceneTextScriptNode's text fields are all carried through when supplied, alongside its scripts.
+ */
+TEST(JsonHiveLoaderTest, SceneTextScriptNodeFields_AreParsed)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [
+			{ "type": "SceneTextScriptNode", "name": "label", "coreScript": "core", "pokeScript": "poke",
+				"text": "Hello\nworld", "textPosition": [1, 2, 3], "textHeight": 0.5,
+				"textColour": [10, 20, 30, 40] }
+		]
+	})";
+
+	JsonHiveLoader loader(json);
+
+	HiveNodeDescriptor descriptor = loader.getNode(0);
+
+	EXPECT_EQ(descriptor.type, HiveNodeDescriptor::SCENE_TEXT_SCRIPT);
+	EXPECT_EQ(descriptor.coreScript, "core");
+	EXPECT_EQ(descriptor.pokeScript, "poke");
+	EXPECT_EQ(descriptor.text, "Hello\nworld");
+	EXPECT_DOUBLE_EQ(descriptor.textPosition[0], 1);
+	EXPECT_DOUBLE_EQ(descriptor.textPosition[1], 2);
+	EXPECT_DOUBLE_EQ(descriptor.textPosition[2], 3);
+	EXPECT_DOUBLE_EQ(descriptor.textHeight, 0.5);
+	EXPECT_EQ(std::to_integer<int>(descriptor.textColour[0]), 10);
+	EXPECT_EQ(std::to_integer<int>(descriptor.textColour[3]), 40);
+}
+
+/**
+ * A SceneTextScriptNode omitting its text fields gets empty white text one unit high at its origin.
+ */
+TEST(JsonHiveLoaderTest, SceneTextScriptNodeOmittingFields_UsesDefaults)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [ { "type": "SceneTextScriptNode", "name": "label", "coreScript": "", "pokeScript": "" } ]
+	})";
+
+	JsonHiveLoader loader(json);
+
+	HiveNodeDescriptor descriptor = loader.getNode(0);
+
+	EXPECT_EQ(descriptor.text, "");
+	EXPECT_DOUBLE_EQ(descriptor.textPosition[0], 0);
+	EXPECT_DOUBLE_EQ(descriptor.textHeight, 1.0);
+	EXPECT_EQ(std::to_integer<int>(descriptor.textColour[0]), 255);
+	EXPECT_TRUE(descriptor.textVisible);
+}
+
+/**
+ * A SceneTextScriptNode's "textBackground" is parsed, with a radius per corner.
+ */
+TEST(JsonHiveLoaderTest, SceneTextScriptNodeTextBackground_IsParsed)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [ { "type": "SceneTextScriptNode", "name": "label", "coreScript": "", "pokeScript": "",
+			"textBackground": { "fillColour": [1, 2, 3, 4], "borderColour": [5, 6, 7, 8], "borderWidth": 0.05,
+				"padding": 0.2, "cornerRadius": [0.1, 0.2, 0.3, 0.4] } } ]
+	})";
+
+	JsonHiveLoader loader(json);
+
+	const TextBackground& background = loader.getNode(0).textBackground;
+
+	EXPECT_EQ(std::to_integer<int>(background.fillColour[0]), 1);
+	EXPECT_EQ(std::to_integer<int>(background.fillColour[3]), 4);
+	EXPECT_EQ(std::to_integer<int>(background.borderColour[0]), 5);
+	EXPECT_EQ(std::to_integer<int>(background.borderColour[3]), 8);
+	EXPECT_DOUBLE_EQ(background.borderWidth, 0.05);
+	EXPECT_DOUBLE_EQ(background.padding, 0.2);
+	EXPECT_DOUBLE_EQ(background.cornerRadii[TextBackground::TOP_LEFT], 0.1);
+	EXPECT_DOUBLE_EQ(background.cornerRadii[TextBackground::BOTTOM_LEFT], 0.4);
+}
+
+/**
+ * A single "cornerRadius" rounds every corner alike, and what is left out keeps the default.
+ */
+TEST(JsonHiveLoaderTest, SceneTextScriptNodeTextBackgroundSingleRadius_RoundsEveryCorner)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [ { "type": "SceneTextScriptNode", "name": "label", "coreScript": "", "pokeScript": "",
+			"textBackground": { "cornerRadius": 0.3 } } ]
+	})";
+
+	JsonHiveLoader loader(json);
+
+	const TextBackground& background = loader.getNode(0).textBackground;
+
+	for(int corner = 0; corner < TextBackground::CORNER_COUNT; corner++)
+	{
+		EXPECT_DOUBLE_EQ(background.cornerRadii[corner], 0.3);
+	}
+
+	EXPECT_EQ(std::to_integer<int>(background.fillColour[3]), 0);
+	EXPECT_DOUBLE_EQ(background.borderWidth, 0.0);
+}
+
+/**
+ * A malformed or out of range "textBackground" is refused.
+ */
+TEST(JsonHiveLoaderTest, SceneTextScriptNodeInvalidTextBackground_ThrowsJsonInvalidTextBackground)
+{
+	const char* backgrounds[] =
+	{
+		"[]",
+		"{ \"fillColour\": [0, 0, 0] }",
+		"{ \"borderColour\": [0, 0, 0, 256] }",
+		"{ \"borderWidth\": -1 }",
+		"{ \"padding\": \"wide\" }",
+		"{ \"cornerRadius\": [1, 1, 1] }",
+		"{ \"cornerRadius\": -0.5 }"
+	};
+
+	for(const char* background : backgrounds)
+	{
+		std::string json = std::string(R"({
+			"name": "Hive",
+			"nodes": [ { "type": "SceneTextScriptNode", "name": "label", "coreScript": "", "pokeScript": "",
+				"textBackground": )") + background + " } ] }";
+
+		try
+		{
+			JsonHiveLoader loader(json);
+			ADD_FAILURE() << "Expected PersistException for " << background;
+		}
+		catch(PersistException& exception)
+		{
+			EXPECT_EQ(exception.getError(), PersistException::JSON_INVALID_TEXT_BACKGROUND) << background;
+		}
+	}
+}
+
+/**
+ * A SceneTextScriptNode can be loaded with its text hidden.
+ */
+TEST(JsonHiveLoaderTest, SceneTextScriptNodeTextVisible_IsParsed)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [ { "type": "SceneTextScriptNode", "name": "label", "coreScript": "", "pokeScript": "",
+			"textVisible": false } ]
+	})";
+
+	JsonHiveLoader loader(json);
+
+	EXPECT_FALSE(loader.getNode(0).textVisible);
+}
+
+/**
+ * A SceneTextScriptNode's "textVisible" must be a boolean.
+ */
+TEST(JsonHiveLoaderTest, SceneTextScriptNodeNonBooleanTextVisible_ThrowsJsonInvalidTextVisible)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [ { "type": "SceneTextScriptNode", "name": "label", "coreScript": "", "pokeScript": "",
+			"textVisible": 0 } ]
+	})";
+
+	try
+	{
+		JsonHiveLoader loader(json);
+		FAIL() << "Expected PersistException";
+	}
+	catch(PersistException& exception)
+	{
+		EXPECT_EQ(exception.getError(), PersistException::JSON_INVALID_TEXT_VISIBLE);
+	}
+}
+
+/**
+ * A SceneTextScriptNode's "textHeight" must be greater than zero.
+ */
+TEST(JsonHiveLoaderTest, SceneTextScriptNodeNonPositiveHeight_ThrowsJsonInvalidTextHeight)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [ { "type": "SceneTextScriptNode", "name": "label", "coreScript": "", "pokeScript": "",
+			"textHeight": 0 } ]
+	})";
+
+	try
+	{
+		JsonHiveLoader loader(json);
+		FAIL() << "Expected PersistException";
+	}
+	catch(PersistException& exception)
+	{
+		EXPECT_EQ(exception.getError(), PersistException::JSON_INVALID_TEXT_HEIGHT);
+	}
+}
+
+/**
+ * A SceneTextScriptNode's "textColour" channels must each be an integer from 0 to 255.
+ */
+TEST(JsonHiveLoaderTest, SceneTextScriptNodeOutOfRangeColour_ThrowsJsonInvalidTextColour)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [ { "type": "SceneTextScriptNode", "name": "label", "coreScript": "", "pokeScript": "",
+			"textColour": [256, 0, 0, 255] } ]
+	})";
+
+	try
+	{
+		JsonHiveLoader loader(json);
+		FAIL() << "Expected PersistException";
+	}
+	catch(PersistException& exception)
+	{
+		EXPECT_EQ(exception.getError(), PersistException::JSON_INVALID_TEXT_COLOUR);
+	}
+}
+
+/**
+ * A SceneTextScriptNode's "text" must be a string, and its "textPosition" three numbers.
+ */
+TEST(JsonHiveLoaderTest, SceneTextScriptNodeMalformedTextOrPosition_Throws)
+{
+	std::string badText = R"({
+		"name": "Hive",
+		"nodes": [ { "type": "SceneTextScriptNode", "name": "label", "coreScript": "", "pokeScript": "",
+			"text": 5 } ]
+	})";
+
+	std::string badPosition = R"({
+		"name": "Hive",
+		"nodes": [ { "type": "SceneTextScriptNode", "name": "label", "coreScript": "", "pokeScript": "",
+			"textPosition": [1, 2] } ]
+	})";
+
+	EXPECT_THROW(JsonHiveLoader loader(badText), PersistException);
+	EXPECT_THROW(JsonHiveLoader loader(badPosition), PersistException);
+}
+
+/**
+ * End-to-end: a SceneTextScriptNode built from JSON carries the text fields it was loaded with.
+ */
+TEST(JsonHiveLoaderTest, EndToEnd_SceneTextScriptNodeBuiltWithFields)
+{
+	std::string json = R"({
+		"name": "TestHive",
+		"nodes": [
+			{ "type": "SceneTextScriptNode", "name": "label", "coreScript": "", "pokeScript": "",
+				"text": "Sign", "textPosition": [4, 5, 6], "textHeight": 2, "textColour": [1, 2, 3, 4],
+				"textVisible": false }
+		]
+	})";
+
+	JsonHiveLoader loader(json);
+
+	GraphHive* hive = HiveBuilder::build(loader, 2);
+	Handle<GraphHive> hiveHandle(hive);
+
+	Handle<GraphNode> labelHandle = hive -> getNode("label");
+
+	ASSERT_TRUE(labelHandle.isValid());
+	ASSERT_EQ(labelHandle.getInstance() -> getType(), GraphNodeType::SCENE_TEXT_SCRIPT_NODE);
+
+	SceneTextScriptNode* labelNode = dynamic_cast<SceneTextScriptNode*>(labelHandle.getInstance());
+
+	ASSERT_NE(labelNode, nullptr);
+
+	double position[3];
+	std::byte colour[4];
+
+	labelNode -> getPosition(position);
+	labelNode -> getColour(colour);
+
+	EXPECT_EQ(labelNode -> getText(), "Sign");
+	EXPECT_DOUBLE_EQ(position[0], 4);
+	EXPECT_DOUBLE_EQ(position[1], 5);
+	EXPECT_DOUBLE_EQ(position[2], 6);
+	EXPECT_DOUBLE_EQ(labelNode -> getHeight(), 2);
+	EXPECT_EQ(std::to_integer<int>(colour[0]), 1);
+	EXPECT_EQ(std::to_integer<int>(colour[3]), 4);
+	EXPECT_FALSE(labelNode -> getVisible());
+
+	hive -> shutdown();
 }
 
 /**

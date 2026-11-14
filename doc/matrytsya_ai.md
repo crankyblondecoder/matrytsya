@@ -47,6 +47,7 @@ cross, and whether it is applied at all at the node it arrives on.
 | Agent | `AGENT_GRAPH_ACTION` (required) | An `AgentNode` that a trigger reached, unless `autoTriggerAgentAction` is false | Sends the prompt matching this node, carrying one conversation from node to node. |
 | Trigger | `TRIGGER_GRAPH_ACTION`, `SERIALISABLE_GRAPH_ACTION` | `trigger()` or `emitAction(ActionType.TRIGGER, …)` in Lua, the `emitTrigger` model tool, or poking a `TriggerNode` unless `emitTriggerOnPoke` is false | Fires the node if it is a trigger target; teleports itself if the node is a `TeleportNode`. Both obey the trigger's name and type restrictions. |
 | Ping | `PING_GRAPH_ACTION`, `SERIALISABLE_GRAPH_ACTION` | Internal | Pings the node. |
+| Text visible | `TEXT_VISIBLE_GRAPH_ACTION` (required) | `emitAction(ActionType.TEXT_VISIBLE, …)` in Lua | Shows or hides the node's text. Runs no script. |
 | Agent affect | `AGENT_AFFECT_GRAPH_ACTION` (required) | A scripted scene node with `emitAgentAffectAction` set, as an agent action starts and stops being applied to it | Shows or hides the node's `AGENT` visibility vertexes. No visible effect on a transform. Never sent on again from a node it reaches. |
 
 Flags each node type supports:
@@ -58,6 +59,7 @@ Flags each node type supports:
 | `SceneRootNode` | None — it emits rather than receives |
 | `SceneGeometryNode`, `SceneTransformNode` | `SCENE_GRAPH_ACTION`, `SCENE_STROBE_GRAPH_ACTION`, `AGENT_AFFECT_GRAPH_ACTION` |
 | `SceneGeometryScriptNode`, `SceneTransformScriptNode` | `SCENE_GRAPH_ACTION`, `SCENE_STROBE_GRAPH_ACTION`, `SCRIPT_GRAPH_ACTION`, `ANIMATE_GRAPH_ACTION`, `AGENT_GRAPH_ACTION`, `AGENT_AFFECT_GRAPH_ACTION` |
+| `SceneTextScriptNode` | `SCENE_GRAPH_ACTION`, `SCENE_STROBE_GRAPH_ACTION`, `SCRIPT_GRAPH_ACTION`, `ANIMATE_GRAPH_ACTION`, `AGENT_GRAPH_ACTION`, `TEXT_VISIBLE_GRAPH_ACTION` |
 | `TriggerNode` | `SCRIPT_GRAPH_ACTION`, `AGENT_GRAPH_ACTION` |
 | `AgentNode` | `TRIGGER_GRAPH_ACTION` |
 

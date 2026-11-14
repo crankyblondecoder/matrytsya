@@ -23,6 +23,7 @@ namespace
 		if(type == "SceneTransformScriptNode") return HiveNodeDescriptor::SCENE_TRANSFORM_SCRIPT;
 		if(type == "AgentNode") return HiveNodeDescriptor::AGENT;
 		if(type == "TriggerNode") return HiveNodeDescriptor::TRIGGER;
+		if(type == "SceneTextScriptNode") return HiveNodeDescriptor::SCENE_TEXT_SCRIPT;
 
 		throw PersistException(PersistException::UNKNOWN_NODE_TYPE);
 	}
@@ -31,7 +32,8 @@ namespace
 	{
 		return type == HiveNodeDescriptor::SCENE_GEOMETRY_SCRIPT ||
 			type == HiveNodeDescriptor::SCENE_TRANSFORM_SCRIPT ||
-			type == HiveNodeDescriptor::TRIGGER;
+			type == HiveNodeDescriptor::TRIGGER ||
+			type == HiveNodeDescriptor::SCENE_TEXT_SCRIPT;
 	}
 
 	HiveSurfaceDescriptor::Type __surfaceTypeFromString(const std::string& type)
@@ -397,6 +399,112 @@ namespace
 		}
 	}
 
+	void __readColour(const rapidjson::Value& colourValue, std::byte* out, PersistException::Error onError)
+	{
+		if(!colourValue.IsArray() || colourValue.Size() != 4) throw PersistException(onError);
+
+		for(unsigned channel = 0; channel < 4; channel++)
+		{
+			if(!colourValue[channel].IsUint() || colourValue[channel].GetUint() > 255) throw PersistException(onError);
+
+			out[channel] = static_cast<std::byte>(colourValue[channel].GetUint());
+		}
+	}
+
+	// Members left out keep the transparent, borderless, square-cornered default.
+	void __parseTextBackground(const rapidjson::Value& backgroundValue, TextBackground& background)
+	{
+		const PersistException::Error onError = PersistException::JSON_INVALID_TEXT_BACKGROUND;
+
+		if(!backgroundValue.IsObject()) throw PersistException(onError);
+
+		if(backgroundValue.HasMember("fillColour")) __readColour(backgroundValue["fillColour"], background.fillColour, onError);
+
+		if(backgroundValue.HasMember("borderColour"))
+		{
+			__readColour(backgroundValue["borderColour"], background.borderColour, onError);
+		}
+
+		if(backgroundValue.HasMember("borderWidth"))
+		{
+			if(!backgroundValue["borderWidth"].IsNumber()) throw PersistException(onError);
+
+			background.borderWidth = backgroundValue["borderWidth"].GetDouble();
+		}
+
+		if(backgroundValue.HasMember("padding"))
+		{
+			if(!backgroundValue["padding"].IsNumber()) throw PersistException(onError);
+
+			background.padding = backgroundValue["padding"].GetDouble();
+		}
+
+		if(backgroundValue.HasMember("cornerRadius"))
+		{
+			const rapidjson::Value& radiusValue = backgroundValue["cornerRadius"];
+
+			// A single radius rounds every corner alike.
+			if(radiusValue.IsNumber())
+			{
+				for(int corner = 0; corner < TextBackground::CORNER_COUNT; corner++)
+				{
+					background.cornerRadii[corner] = radiusValue.GetDouble();
+				}
+			}
+			else
+			{
+				__readDoubleArray(radiusValue, background.cornerRadii, TextBackground::CORNER_COUNT, onError);
+			}
+		}
+
+		if(!background.isValid()) throw PersistException(onError);
+	}
+
+	void __parseTextFields(const rapidjson::Value& nodeValue, HiveNodeDescriptor& descriptor)
+	{
+		if(nodeValue.HasMember("text"))
+		{
+			if(!nodeValue["text"].IsString()) throw PersistException(PersistException::JSON_INVALID_TEXT);
+
+			descriptor.text = std::string(nodeValue["text"].GetString(), nodeValue["text"].GetStringLength());
+		}
+
+		if(nodeValue.HasMember("textPosition"))
+		{
+			__readDoubleArray(nodeValue["textPosition"], descriptor.textPosition, 3,
+				PersistException::JSON_INVALID_TEXT_POSITION);
+		}
+
+		if(nodeValue.HasMember("textHeight"))
+		{
+			const rapidjson::Value& heightValue = nodeValue["textHeight"];
+
+			if(!heightValue.IsNumber() || !(heightValue.GetDouble() > 0.0))
+			{
+				throw PersistException(PersistException::JSON_INVALID_TEXT_HEIGHT);
+			}
+
+			descriptor.textHeight = heightValue.GetDouble();
+		}
+
+		if(nodeValue.HasMember("textColour"))
+		{
+			__readColour(nodeValue["textColour"], descriptor.textColour, PersistException::JSON_INVALID_TEXT_COLOUR);
+		}
+
+		if(nodeValue.HasMember("textBackground"))
+		{
+			__parseTextBackground(nodeValue["textBackground"], descriptor.textBackground);
+		}
+
+		if(nodeValue.HasMember("textVisible"))
+		{
+			if(!nodeValue["textVisible"].IsBool()) throw PersistException(PersistException::JSON_INVALID_TEXT_VISIBLE);
+
+			descriptor.textVisible = nodeValue["textVisible"].GetBool();
+		}
+	}
+
 	HiveNodeDescriptor __parseNode(const rapidjson::Value& nodeValue)
 	{
 		if(!nodeValue.IsObject() || !nodeValue.HasMember("type") || !nodeValue["type"].IsString())
@@ -466,6 +574,11 @@ namespace
 		if(descriptor.type == HiveNodeDescriptor::TRIGGER)
 		{
 			__parseTriggerFields(nodeValue, descriptor);
+		}
+
+		if(descriptor.type == HiveNodeDescriptor::SCENE_TEXT_SCRIPT)
+		{
+			__parseTextFields(nodeValue, descriptor);
 		}
 
 		return descriptor;

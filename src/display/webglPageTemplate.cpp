@@ -24,13 +24,19 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		background: #303030; border: 1px solid #4a4a4a; border-radius: 4px; font-family: sans-serif;
 		font-size: 13px; text-decoration: none; cursor: pointer; }
 	#structureLink:hover { background: #3a3a3a; }
+	#sceneTexts { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; overflow: hidden;
+		pointer-events: none; }
+	.sceneText { position: absolute; top: 0; left: 0; transform: translate(-50%, -50%); white-space: pre;
+		line-height: 1; font-family: sans-serif; text-align: center; pointer-events: none;
+		text-shadow: 0 0 0.15em #000, 0 0 0.3em #000; }
 %CHAT_STYLE%
 </style>
 </head>
 <body>
+<canvas id="glCanvas"></canvas>
+<div id="sceneTexts"></div>
 <div id="status">Loading...</div>
 <div id="viewers"></div>
-<canvas id="glCanvas"></canvas>
 %STRUCTURE_MARKUP%
 %CHAT_MARKUP%
 <script>
@@ -278,6 +284,11 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	var centreAnimStartTime = 0;
 	var CENTRE_ANIM_MS = 400;
 
+	// Tweens camera.distance alongside the centre tween, sharing its start time and duration, when a text is
+	// brought close enough to read. Null when no distance tween is in flight.
+	var distanceAnimFrom = 0;
+	var distanceAnimTo = null;
+
 	// Only auto-fit the camera to the scene once: it's driven off each load's bounding box, and re-fitting on
 	// every subsequent load (e.g. from an in-progress animation) would fight the user's own zoom/orbit input.
 	var cameraFitted = false;
@@ -403,6 +414,37 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	// visibilities that is server state rather than something the pointer decides here.
 	var agentVisibleNodes = {};
 
+	// -- Scene text --
+
+	// Text is drawn as HTML over the canvas rather than as glyphs in the scene, the same way the structure page
+	// labels its nodes. It is sized from its world height and its depth, so it grows and shrinks with distance
+	// exactly as the geometry around it does, and is always on top of that geometry. Once it is too small to
+	// read it is swapped for a marker: a billboard in the scene the shape of the text block, which unlike the
+	// text can be hidden behind other geometry.
+
+	var sceneTextLayer = document.getElementById('sceneTexts');
+
+	// Text smaller than this many pixels high is not worth reading, so is swapped for its marker.
+	var MIN_TEXT_PX = 8;
+
+	// How tall a line of text is made when it is right-clicked to be read.
+	var READABLE_TEXT_PX = 32;
+
+	// Rough width of a character as a fraction of the line height, used to give a marker the footprint of the
+	// text it stands in for. The text itself is laid out by the browser, so this only has to be about right.
+	var MARKER_CHAR_WIDTH = 0.6;
+
+	// The text from the most recent load, each entry being { nodeId, worldPos, worldHeight, el, shown, depth,
+	// marker, markerHalfWidth, markerHalfHeight, markerShape, markerShapeColors, markerPositions }. shown says the
+	// HTML text is currently on screen; marker says the text is too small and its marker is being drawn instead.
+	// markerShape is the marker's triangles as x, y pairs in the plane of the screen, and markerPositions those
+	// triangles as last drawn, as they are turned to face the camera on every draw.
+	var sceneTexts = [];
+
+	// The element showing each node's text, kept against the node id so that a load only touches what changed
+	// rather than rebuilding every element.
+	var sceneTextElements = {};
+
 	// Number of vertices at the front of the uploaded buffers that make up the opaque pass; the remainder are
 	// the currently visible translucent (non-ALWAYS) chunks, drawn as a second blended pass.
 	var opaqueVertexCount = 0;
@@ -426,11 +468,10 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	var rightDragMoved = false;
 
 	// Casts a ray through the given screen point (client coordinates) using the last drawn view/projection
-	// matrix and returns { chunkId, point } for the nearest chunk it hits (point is the world-space hit
-	// location, needed by the right-click recentre handler below), or null if nothing was hit.
-	function pickChunkAt(clientX, clientY)
+	// matrix, returning { origin, dir } in world space, or null if there is no frame to cast it through yet.
+	function rayAt(clientX, clientY)
 	{
-		if(!lastViewProj || lastTriangleChunkIds.length === 0) return null;
+		if(!lastViewProj) return null;
 
 		var inverse = invertMat4(lastViewProj);
 
@@ -446,7 +487,93 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		var origin = [nearPoint[0] / nearPoint[3], nearPoint[1] / nearPoint[3], nearPoint[2] / nearPoint[3]];
 		var far = [farPoint[0] / farPoint[3], farPoint[1] / farPoint[3], farPoint[2] / farPoint[3]];
 
-		var dir = normalize3([far[0] - origin[0], far[1] - origin[1], far[2] - origin[2]]);
+		return { origin: origin, dir: normalize3([far[0] - origin[0], far[1] - origin[1], far[2] - origin[2]]) };
+	}
+
+	// Nearest ray distance at which the ray hits any of the triangles in a flat position array, or Infinity.
+	function nearestTriangleHit(ray, positions)
+	{
+		var closestT = Infinity;
+
+		for(var base = 0; base + 8 < positions.length; base += 9)
+		{
+			var hitT = rayTriangleIntersect(ray.origin, ray.dir,
+				[positions[base], positions[base + 1], positions[base + 2]],
+				[positions[base + 3], positions[base + 4], positions[base + 5]],
+				[positions[base + 6], positions[base + 7], positions[base + 8]]);
+
+			if(hitT !== null && hitT < closestT) closestT = hitT;
+		}
+
+		return closestT;
+	}
+
+	// Returns the on-screen text under the given screen point, or null. Text is drawn over everything else, so
+	// where several overlap the nearest is the one taken to be clicked.
+	function pickTextAt(clientX, clientY)
+	{
+		var picked = null;
+
+		for(var index = 0; index < sceneTexts.length; index++)
+		{
+			var sceneText = sceneTexts[index];
+
+			if(!sceneText.shown) continue;
+
+			var bounds = sceneText.el.getBoundingClientRect();
+
+			if(clientX < bounds.left || clientX > bounds.right || clientY < bounds.top || clientY > bounds.bottom)
+			{
+				continue;
+			}
+
+			if(picked === null || sceneText.depth < picked.depth) picked = sceneText;
+		}
+
+		return picked;
+	}
+
+	// Casts a ray through the given screen point and returns { sceneText, distance } for the nearest text
+	// marker it hits, or null if it hits none.
+	function pickMarkerAt(clientX, clientY)
+	{
+		var ray = rayAt(clientX, clientY);
+
+		if(ray === null) return null;
+
+		var picked = null;
+
+		for(var index = 0; index < sceneTexts.length; index++)
+		{
+			var sceneText = sceneTexts[index];
+
+			if(!sceneText.marker) continue;
+
+			var hitT = nearestTriangleHit(ray, sceneText.markerPositions);
+
+			if(hitT < Infinity && (picked === null || hitT < picked.distance))
+			{
+				picked = { sceneText: sceneText, distance: hitT };
+			}
+		}
+
+		return picked;
+	}
+
+	// Casts a ray through the given screen point (client coordinates) using the last drawn view/projection
+	// matrix and returns { chunkId, point, distance } for the nearest chunk it hits (point is the world-space
+	// hit location, needed by the right-click recentre handler below, and distance is how far along the ray it
+	// is), or null if nothing was hit.
+	function pickChunkAt(clientX, clientY)
+	{
+		if(lastTriangleChunkIds.length === 0) return null;
+
+		var ray = rayAt(clientX, clientY);
+
+		if(ray === null) return null;
+
+		var origin = ray.origin;
+		var dir = ray.dir;
 
 		var closestT = Infinity;
 		var closestChunkId = null;
@@ -472,8 +599,27 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 		return {
 			chunkId: closestChunkId,
-			point: [origin[0] + dir[0] * closestT, origin[1] + dir[1] * closestT, origin[2] + dir[2] * closestT]
+			point: [origin[0] + dir[0] * closestT, origin[1] + dir[1] * closestT, origin[2] + dir[2] * closestT],
+			distance: closestT
 		};
+	}
+
+	// Brings a text to the centre of the view and close enough for a line of it to be READABLE_TEXT_PX high.
+	// The camera looks straight at its centre, so the text's depth once there is the camera distance itself.
+	function focusText(sceneText)
+	{
+		var rect = canvas.getBoundingClientRect();
+
+		centreAnimFrom = camera.centre.slice();
+		centreAnimTo = sceneText.worldPos.slice();
+
+		distanceAnimFrom = camera.distance;
+		distanceAnimTo = Math.max(0.01,
+			sceneText.worldHeight * rect.height / (2 * Math.tan(CAMERA_FOVY / 2) * READABLE_TEXT_PX));
+
+		centreAnimStartTime = performance.now();
+
+		scheduleDraw();
 	}
 
 	// Pokes the surface backing this map to say the chunk with the given id was interacted with. A chunk id is
@@ -545,6 +691,7 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 			panLastX = e.clientX; panLastY = e.clientY;
 			rightDownX = e.clientX; rightDownY = e.clientY;
 			centreAnimTo = null;
+			distanceAnimTo = null;
 			return;
 		}
 
@@ -670,6 +817,9 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 	canvas.addEventListener('wheel', function(e)
 	{
+		// The user's own zoom wins over one still being tweened towards a text.
+		distanceAnimTo = null;
+
 		camera.distance *= (1 + (e.deltaY > 0 ? 0.1 : -0.1));
 		camera.distance = Math.max(0.01, camera.distance);
 		e.preventDefault();
@@ -686,14 +836,34 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		// pan doesn't also snap the centre onto whatever chunk happened to be under the release point.
 		if(rightDragMoved) return;
 
+		// Text is drawn over everything, so it is what was clicked whenever the pointer is on some.
+		var pickedText = pickTextAt(e.clientX, e.clientY);
+
+		if(pickedText !== null)
+		{
+			focusText(pickedText);
+			return;
+		}
+
 		var picked = pickChunkAt(e.clientX, e.clientY);
+
+		// A marker is part of the scene, so geometry in front of it takes the click instead, pokeable or not.
+		var pickedMarker = pickMarkerAt(e.clientX, e.clientY);
+
+		if(pickedMarker !== null && (picked === null || pickedMarker.distance < picked.distance))
+		{
+			focusText(pickedMarker.sceneText);
+			return;
+		}
 
 		if(picked !== null && lastChunkPokeable[picked.chunkId])
 		{
 			// Start from wherever the centre currently is, which is the tween's midpoint if a previous
 			// recentre is still in flight, so a fast double pick doesn't stutter back to the old target.
+			// A recentre leaves the distance alone, so any zoom towards a text still in flight stops here.
 			centreAnimFrom = camera.centre.slice();
 			centreAnimTo = picked.point;
+			distanceAnimTo = null;
 			centreAnimStartTime = performance.now();
 
 			scheduleDraw();
@@ -702,7 +872,11 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 	// -- Shaders --
 
-	var vertexShaderSrc =
+	// Lighting model chosen by the server: 'BLINN_PHONG' or 'LAMBERT'.
+	var SHADING_MODEL = '%SHADING_MODEL%';
+
+	// Lambert: diffuse lighting worked out per vertex and interpolated across each triangle.
+	var lambertVertexShaderSrc =
 		'attribute vec3 aPosition;' +
 		'attribute vec4 aColor;' +
 		'attribute vec3 aNormal;' +
@@ -717,10 +891,53 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		'  gl_Position = uViewProj * vec4(aPosition, 1.0);' +
 		'}';
 
-	var fragmentShaderSrc =
+	var lambertFragmentShaderSrc =
 		'precision mediump float;' +
 		'varying vec4 vColor;' +
 		'void main() { gl_FragColor = vColor; }';
+
+	// Blinn-Phong: the same ambient/diffuse split as Lambert plus a specular highlight, worked out per fragment
+	// since a highlight interpolated from the vertexes of coarse triangles smears or vanishes. Positions and
+	// normals arrive already in world space, so they are passed straight through.
+	var blinnPhongVertexShaderSrc =
+		'attribute vec3 aPosition;' +
+		'attribute vec4 aColor;' +
+		'attribute vec3 aNormal;' +
+		'uniform mat4 uViewProj;' +
+		'varying vec4 vColor;' +
+		'varying vec3 vNormal;' +
+		'varying vec3 vWorldPos;' +
+		'void main() {' +
+		'  vColor = aColor;' +
+		'  vNormal = aNormal;' +
+		'  vWorldPos = aPosition;' +
+		'  gl_Position = uViewProj * vec4(aPosition, 1.0);' +
+		'}';
+
+	var blinnPhongFragmentShaderSrc =
+		'precision mediump float;' +
+		'uniform vec3 uLightDir;' +
+		'uniform vec3 uCameraPos;' +
+		'varying vec4 vColor;' +
+		'varying vec3 vNormal;' +
+		'varying vec3 vWorldPos;' +
+		'const float SHININESS = 32.0;' +
+		'const float SPECULAR = 0.35;' +
+		'void main() {' +
+		'  vec3 normal = normalize(vNormal);' +
+		'  vec3 lightDir = normalize(uLightDir);' +
+		'  vec3 viewDir = normalize(uCameraPos - vWorldPos);' +
+		'  vec3 halfDir = normalize(lightDir + viewDir);' +
+		'  float diffuse = max(dot(normal, lightDir), 0.0);' +
+		// No highlight on a face turned away from the light, which would otherwise catch one at grazing angles.
+		'  float specular = diffuse > 0.0 ? pow(max(dot(normal, halfDir), 0.0), SHININESS) : 0.0;' +
+		'  vec3 rgb = vColor.rgb * (0.35 + 0.65 * diffuse) + vec3(SPECULAR * specular);' +
+		'  gl_FragColor = vec4(rgb, vColor.a);' +
+		'}';
+
+	var useBlinnPhong = SHADING_MODEL === 'BLINN_PHONG';
+	var vertexShaderSrc = useBlinnPhong ? blinnPhongVertexShaderSrc : lambertVertexShaderSrc;
+	var fragmentShaderSrc = useBlinnPhong ? blinnPhongFragmentShaderSrc : lambertFragmentShaderSrc;
 
 	function compileShader(type, src)
 	{
@@ -756,6 +973,9 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	var uViewProj = gl.getUniformLocation(program, 'uViewProj');
 	var uLightDir = gl.getUniformLocation(program, 'uLightDir');
 
+	// Only the Blinn-Phong program has this, so it is null under Lambert.
+	var uCameraPos = gl.getUniformLocation(program, 'uCameraPos');
+
 	// Direction of the headlamp-style light in camera space; rotated into world space each frame
 	// below so it stays fixed relative to the camera as the user orbits.
 	var cameraLightDir = [0.5, 0.7, 1.0];
@@ -764,6 +984,251 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	var colorBuffer = gl.createBuffer();
 	var normalBuffer = gl.createBuffer();
 	var vertexCount = 0;
+
+	// Text markers are kept in buffers of their own, as they are turned to face the camera on every draw and
+	// that must never cost rebuilding the scene's geometry.
+	var markerPositionBuffer = gl.createBuffer();
+	var markerColorBuffer = gl.createBuffer();
+	var markerNormalBuffer = gl.createBuffer();
+	var markerVertexCount = 0;
+
+	function bindAttributes(positions, colors, normals)
+	{
+		gl.bindBuffer(gl.ARRAY_BUFFER, positions);
+		gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 0, 0);
+		gl.enableVertexAttribArray(aPosition);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, colors);
+		gl.vertexAttribPointer(aColor, 4, gl.FLOAT, false, 0, 0);
+		gl.enableVertexAttribArray(aColor);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, normals);
+		gl.vertexAttribPointer(aNormal, 3, gl.FLOAT, false, 0, 0);
+		gl.enableVertexAttribArray(aNormal);
+	}
+
+	function cssColour(colour)
+	{
+		return 'rgba(' + colour[0] + ',' + colour[1] + ',' + colour[2] + ',' + (colour[3] / 255) + ')';
+	}
+
+	// Styles a text's element with the box behind it. The box's lengths come in the same units as the line
+	// height, and the element's font size is the line height on screen, so they are given in em to scale with
+	// the text without being touched again as the camera moves.
+	function applyTextBackground(el, background, height)
+	{
+		function em(length) { return (length / height) + 'em'; }
+
+		el.style.backgroundColor = cssColour(background.fillColour);
+
+		// The dark halo only exists to lift text off whatever geometry is behind it, and smudges text sat on a
+		// filled box of its own.
+		el.style.textShadow = background.fillColour[3] > 0 ? 'none' : '';
+		el.style.border = background.borderWidth > 0 ?
+			em(background.borderWidth) + ' solid ' + cssColour(background.borderColour) : 'none';
+		el.style.padding = em(background.padding);
+		el.style.borderRadius = background.cornerRadii.map(em).join(' ');
+	}
+
+	// Number of straight segments each rounded corner of a marker is drawn with.
+	var MARKER_CORNER_SEGMENTS = 6;
+
+	// Outline of a rounded rectangle centred on the origin, as MARKER_CORNER_SEGMENTS + 1 points per corner
+	// running counter-clockwise from the bottom right. radii are in TextBackground's corner order (top left,
+	// top right, bottom right, bottom left), and a zero radius repeats its corner point, so that any two
+	// outlines line up point for point.
+	function roundedOutline(halfWidth, halfHeight, radii)
+	{
+		// Each corner as the TextBackground index of its radius, its signs along x and y, and the angle its arc
+		// starts from.
+		var corners = [
+			{ radius: radii[2], sx: 1, sy: -1, start: -Math.PI / 2 },
+			{ radius: radii[1], sx: 1, sy: 1, start: 0 },
+			{ radius: radii[0], sx: -1, sy: 1, start: Math.PI / 2 },
+			{ radius: radii[3], sx: -1, sy: -1, start: Math.PI }
+		];
+
+		var outline = [];
+
+		for(var c = 0; c < corners.length; c++)
+		{
+			var corner = corners[c];
+			var radius = corner.radius;
+			var cx = corner.sx * (halfWidth - radius);
+			var cy = corner.sy * (halfHeight - radius);
+
+			for(var s = 0; s <= MARKER_CORNER_SEGMENTS; s++)
+			{
+				var angle = corner.start + (Math.PI / 2) * s / MARKER_CORNER_SEGMENTS;
+
+				outline.push([cx + radius * Math.cos(angle), cy + radius * Math.sin(angle)]);
+			}
+		}
+
+		return outline;
+	}
+
+	// Works out the marker that stands in for a text once it is too small to read: a flat rounded rectangle
+	// with the footprint of the text block and its background box, centred on the text's anchor, filled and
+	// bordered the way the box is. Only its shape is built here, as triangles in the plane of the screen; it is
+	// turned to face the camera on every draw, the same way the HTML text always faces the screen, and so never
+	// shows edge on. It is scaled the same way the HTML text is, by the text's world height.
+	function buildMarker(sceneText, text, height, colour, background)
+	{
+		var lines = text.split('\n');
+		var longestLine = 1;
+
+		for(var line = 0; line < lines.length; line++) longestLine = Math.max(longestLine, lines[line].length);
+
+		var scale = height > 0 ? sceneText.worldHeight / height : 0;
+		var border = background.borderWidth * scale;
+		var boxMargin = background.padding * scale + border;
+
+		var halfWidth = longestLine * MARKER_CHAR_WIDTH * sceneText.worldHeight / 2 + boxMargin;
+		var halfHeight = lines.length * sceneText.worldHeight / 2 + boxMargin;
+
+		sceneText.markerHalfWidth = halfWidth;
+		sceneText.markerHalfHeight = halfHeight;
+
+		// Radii too big for the box are cut back to fit it; the browser shrinks them all in proportion
+		// instead, which only differs where adjacent radii overlap, too small a difference to see on a marker.
+		var maxRadius = Math.min(halfWidth, halfHeight);
+		var outerRadii = background.cornerRadii.map(function(r) { return Math.min(r * scale, maxRadius); });
+
+		// The inside edge of a border is rounded by what is left of the corner's radius past the border, the
+		// same way the browser draws it.
+		var showBorder = border > 0 && background.borderColour[3] > 0;
+		var innerBorder = showBorder ? Math.min(border, maxRadius) : 0;
+		var innerRadii = outerRadii.map(function(r) { return Math.max(r - innerBorder, 0); });
+
+		var outer = roundedOutline(halfWidth, halfHeight, outerRadii);
+		var inner = roundedOutline(halfWidth - innerBorder, halfHeight - innerBorder, innerRadii);
+
+		// From afar the text inside a box with no fill reads as a smudge of the text's colour.
+		var fill = background.fillColour[3] > 0 ? background.fillColour : colour;
+
+		var shape = [];
+		var shapeColors = [];
+
+		function addVertex(point, rgba)
+		{
+			shape.push(point[0], point[1]);
+			shapeColors.push(rgba[0] / 255, rgba[1] / 255, rgba[2] / 255, 1);
+		}
+
+		// The inside is convex, so is drawn as a fan around the anchor.
+		for(var i = 0; i < inner.length; i++)
+		{
+			var next = (i + 1) % inner.length;
+
+			addVertex([0, 0], fill);
+			addVertex(inner[i], fill);
+			addVertex(inner[next], fill);
+		}
+
+		// The border as a strip between the outlines, which line up point for point.
+		if(showBorder)
+		{
+			for(var b = 0; b < outer.length; b++)
+			{
+				var bNext = (b + 1) % outer.length;
+
+				addVertex(inner[b], background.borderColour);
+				addVertex(outer[b], background.borderColour);
+				addVertex(outer[bNext], background.borderColour);
+
+				addVertex(inner[b], background.borderColour);
+				addVertex(outer[bNext], background.borderColour);
+				addVertex(inner[bNext], background.borderColour);
+			}
+		}
+
+		sceneText.markerShape = shape;
+		sceneText.markerShapeColors = shapeColors;
+		sceneText.markerPositions = [];
+	}
+
+	// Puts each text where its anchor is on the screen at a size worked out from its depth, which is the same
+	// sizing perspective gives the geometry around it. Text too small to read is hidden and its marker drawn
+	// instead, laid out along the given world-space camera right and up axes so that it faces the camera.
+	function updateSceneTexts(viewProj, cameraRight, cameraUp, cameraBack)
+	{
+		var rect = canvas.getBoundingClientRect();
+		var tanHalfFovy = Math.tan(CAMERA_FOVY / 2);
+
+		var positions = [];
+		var colors = [];
+		var normals = [];
+
+		for(var index = 0; index < sceneTexts.length; index++)
+		{
+			var sceneText = sceneTexts[index];
+			var wp = sceneText.worldPos;
+			var clip = transformVec4(viewProj, wp[0], wp[1], wp[2], 1);
+
+			sceneText.shown = false;
+			sceneText.marker = false;
+
+			// Behind the camera, where there is no sensible place on the screen to put it or its marker.
+			if(clip[3] > 0)
+			{
+				var fontPx = sceneText.worldHeight * rect.height / (2 * clip[3] * tanHalfFovy);
+
+				if(fontPx >= MIN_TEXT_PX)
+				{
+					sceneText.shown = true;
+					sceneText.depth = clip[3];
+
+					sceneText.el.style.fontSize = fontPx + 'px';
+					sceneText.el.style.left = ((clip[0] / clip[3]) * 0.5 + 0.5) * rect.width + 'px';
+					sceneText.el.style.top = (0.5 - (clip[1] / clip[3]) * 0.5) * rect.height + 'px';
+				}
+				else
+				{
+					sceneText.marker = true;
+
+					var shape = sceneText.markerShape;
+					var shapeColors = sceneText.markerShapeColors;
+					var markerPositions = [];
+
+					for(var v = 0; v < shape.length / 2; v++)
+					{
+						var sx = shape[v * 2];
+						var sy = shape[v * 2 + 1];
+
+						markerPositions.push(
+							wp[0] + cameraRight[0] * sx + cameraUp[0] * sy,
+							wp[1] + cameraRight[1] * sx + cameraUp[1] * sy,
+							wp[2] + cameraRight[2] * sx + cameraUp[2] * sy);
+
+						colors.push(shapeColors[v * 4], shapeColors[v * 4 + 1], shapeColors[v * 4 + 2],
+							shapeColors[v * 4 + 3]);
+						normals.push(cameraBack[0], cameraBack[1], cameraBack[2]);
+					}
+
+					sceneText.markerPositions = markerPositions;
+
+					positions.push.apply(positions, markerPositions);
+				}
+			}
+
+			sceneText.el.style.display = sceneText.shown ? '' : 'none';
+		}
+
+		// Nothing to upload when there were no markers last draw and there are none now either.
+		if(positions.length === 0 && markerVertexCount === 0) return;
+
+		markerVertexCount = positions.length / 3;
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, markerPositionBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.DYNAMIC_DRAW);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, markerColorBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.DYNAMIC_DRAW);
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, markerNormalBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.DYNAMIC_DRAW);
+	}
 
 	function resize()
 	{
@@ -975,13 +1440,81 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		lastTriangleChunkIds = pickTriangleChunkIds;
 		lastChunkPokeable = chunkPokeable;
 
+		var texts = data.texts || [];
+		var newSceneTextElements = {};
+
+		sceneTexts = [];
+
+		for(var s = 0; s < texts.length; s++)
+		{
+			var text = texts[s];
+			var textTransform = data.modelTransforms[text.modelTransformIndex].transform;
+
+			// Reused across loads where the node is still there, so only what changed is touched. Filled in
+			// with textContent alone: the text is whatever a script said, and must never be taken as markup.
+			var el = sceneTextElements[text.nodeId];
+
+			if(!el)
+			{
+				el = document.createElement('div');
+				el.className = 'sceneText';
+				sceneTextLayer.appendChild(el);
+			}
+
+			if(el.textContent !== text.text) el.textContent = text.text;
+
+			el.style.color = cssColour(text.colour);
+
+			applyTextBackground(el, text.background, text.height);
+
+			newSceneTextElements[text.nodeId] = el;
+
+			var worldPos = transformPoint(textTransform, text.position[0], text.position[1], text.position[2]);
+
+			// The transform's scale along local up, so that text is scaled by a transform the same way the
+			// geometry beside it is.
+			var up = transformVec4(textTransform, 0, 1, 0, 0);
+
+			var sceneText = {
+				nodeId: text.nodeId,
+				worldPos: [worldPos[0], worldPos[1], worldPos[2]],
+				worldHeight: text.height * Math.sqrt(up[0] * up[0] + up[1] * up[1] + up[2] * up[2]),
+				el: el,
+				shown: false,
+				depth: 0,
+				marker: false
+			};
+
+			buildMarker(sceneText, text.text, text.height, text.colour, text.background);
+
+			// A text is framed by its marker, which has the text block's extent where its anchor alone has none.
+			// The marker turns to face the camera, so whichever way it is turned it stays within its half
+			// diagonal of the anchor.
+			var markerReach = Math.sqrt(sceneText.markerHalfWidth * sceneText.markerHalfWidth +
+				sceneText.markerHalfHeight * sceneText.markerHalfHeight);
+
+			minX = Math.min(minX, worldPos[0] - markerReach); maxX = Math.max(maxX, worldPos[0] + markerReach);
+			minY = Math.min(minY, worldPos[1] - markerReach); maxY = Math.max(maxY, worldPos[1] + markerReach);
+			minZ = Math.min(minZ, worldPos[2] - markerReach); maxZ = Math.max(maxZ, worldPos[2] + markerReach);
+
+			sceneTexts.push(sceneText);
+		}
+
+		for(var oldNodeId in sceneTextElements)
+		{
+			if(!newSceneTextElements[oldNodeId]) sceneTextLayer.removeChild(sceneTextElements[oldNodeId]);
+		}
+
+		sceneTextElements = newSceneTextElements;
+
 		rebuildGeometry();
 
 		status.textContent = vertexCount + ' vertexes across ' + data.chunks.length +
 			' chunk(s). Drag to orbit, scroll to zoom, right-drag to pan, right-click a chunk to centre.' +
+			(sceneTexts.length > 0 ? ' Right-click text to read it.' : '') +
 			(structureLink ? ' Ctrl-click a chunk to find its node in the structure.' : '');
 
-		if(vertexCount > 0 && !cameraFitted)
+		if((vertexCount > 0 || sceneTexts.length > 0) && !cameraFitted)
 		{
 			var radius = Math.max(0.001, Math.sqrt(
 				Math.pow(maxX - minX, 2) + Math.pow(maxY - minY, 2) + Math.pow(maxZ - minZ, 2)) / 2);
@@ -1086,27 +1619,40 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	{
 		rafPending = false;
 
-		if(centreAnimTo !== null)
+		if(centreAnimTo !== null || distanceAnimTo !== null)
 		{
 			var animT = Math.min(1, (performance.now() - centreAnimStartTime) / CENTRE_ANIM_MS);
 
 			// Smoothstep: eases in and out instead of the tween starting/stopping abruptly.
 			var eased = animT * animT * (3 - 2 * animT);
 
-			camera.centre = [
-				centreAnimFrom[0] + (centreAnimTo[0] - centreAnimFrom[0]) * eased,
-				centreAnimFrom[1] + (centreAnimTo[1] - centreAnimFrom[1]) * eased,
-				centreAnimFrom[2] + (centreAnimTo[2] - centreAnimFrom[2]) * eased
-			];
+			if(centreAnimTo !== null)
+			{
+				camera.centre = [
+					centreAnimFrom[0] + (centreAnimTo[0] - centreAnimFrom[0]) * eased,
+					centreAnimFrom[1] + (centreAnimTo[1] - centreAnimFrom[1]) * eased,
+					centreAnimFrom[2] + (centreAnimTo[2] - centreAnimFrom[2]) * eased
+				];
 
-			if(animT >= 1) centreAnimTo = null;
+				if(animT >= 1) centreAnimTo = null;
+			}
+
+			if(distanceAnimTo !== null)
+			{
+				// Interpolated by ratio rather than difference, so a zoom across several orders of magnitude
+				// moves at an even pace instead of rushing through the far end of it.
+				camera.distance = distanceAnimFrom * Math.pow(distanceAnimTo / distanceAnimFrom, eased);
+
+				if(animT >= 1) distanceAnimTo = null;
+			}
 		}
 
 		gl.clearColor(0.125, 0.125, 0.125, 1);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 		gl.enable(gl.DEPTH_TEST);
 
-		if(vertexCount > 0)
+		// A scene can hold nothing but text, which still needs a camera to be placed by.
+		if(vertexCount > 0 || sceneTexts.length > 0)
 		{
 			var view = multiply(translate(0, 0, -camera.distance),
 				multiply(rotateX(camera.pitch),
@@ -1128,28 +1674,47 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 			gl.uniform3f(uLightDir, worldLightDir[0], worldLightDir[1], worldLightDir[2]);
 
-			gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-			gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, 0, 0);
-			gl.enableVertexAttribArray(aPosition);
+			// The camera sits camera.distance back along its own +z from the centre it orbits, i.e. the
+			// inverse of the view matrix built above.
+			if(uCameraPos)
+			{
+				var cameraBack = transformNormal(invViewRot, 0, 0, 1);
 
-			gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-			gl.vertexAttribPointer(aColor, 4, gl.FLOAT, false, 0, 0);
-			gl.enableVertexAttribArray(aColor);
+				gl.uniform3f(uCameraPos,
+					camera.centre[0] + cameraBack[0] * camera.distance,
+					camera.centre[1] + cameraBack[1] * camera.distance,
+					camera.centre[2] + cameraBack[2] * camera.distance);
+			}
 
-			gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
-			gl.vertexAttribPointer(aNormal, 3, gl.FLOAT, false, 0, 0);
-			gl.enableVertexAttribArray(aNormal);
+			updateSceneTexts(viewProj,
+				transformNormal(invViewRot, 1, 0, 0),
+				transformNormal(invViewRot, 0, 1, 0),
+				transformNormal(invViewRot, 0, 0, 1));
 
 			// Opaque pass: the ALWAYS-visible geometry, written to the depth buffer as usual.
 			gl.disable(gl.BLEND);
 			gl.depthMask(true);
-			gl.drawArrays(gl.TRIANGLES, 0, opaqueVertexCount);
+
+			if(opaqueVertexCount > 0)
+			{
+				bindAttributes(positionBuffer, colorBuffer, normalBuffer);
+				gl.drawArrays(gl.TRIANGLES, 0, opaqueVertexCount);
+			}
+
+			// Text markers are part of the opaque scene, so geometry in front of one hides it.
+			if(markerVertexCount > 0)
+			{
+				bindAttributes(markerPositionBuffer, markerColorBuffer, markerNormalBuffer);
+				gl.drawArrays(gl.TRIANGLES, 0, markerVertexCount);
+			}
 
 			// Translucent pass: any hover-revealed geometry (e.g. a halo), alpha-blended over the opaque scene.
 			// Depth writes are disabled so overlapping translucent triangles don't cull one another, while the
 			// depth test stays on so opaque geometry in front still occludes it.
 			if(vertexCount > opaqueVertexCount)
 			{
+				bindAttributes(positionBuffer, colorBuffer, normalBuffer);
+
 				gl.enable(gl.BLEND);
 				gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 				gl.depthMask(false);
@@ -1163,7 +1728,7 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 		// Keep rendering every frame while the recentre tween is in flight; otherwise leave the loop idle
 		// until the next scheduleDraw() call from an input handler or state change.
-		if(centreAnimTo !== null) scheduleDraw();
+		if(centreAnimTo !== null || distanceAnimTo !== null) scheduleDraw();
 	}
 
 	var dataUrl = window.location.pathname.replace(/\/+$/, '') + '/data';

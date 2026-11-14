@@ -6,6 +6,7 @@
 #include "../GraphException.hpp"
 #include "../GraphPoke.hpp"
 #include "../actions/AnimateAction.hpp"
+#include "../actions/TextVisibleAction.hpp"
 #include "../actions/TriggerAction.hpp"
 
 #include "../../agent/AgentException.hpp"
@@ -30,6 +31,7 @@ namespace
 	// Fields each emittable action type accepts in its emitAction() params table.
 	const char* const TRIGGER_PARAM_FIELDS[] = {"nodeName", "nodeType"};
 	const char* const ANIMATE_PARAM_FIELDS[] = {"animating"};
+	const char* const TEXT_VISIBLE_PARAM_FIELDS[] = {"visible"};
 
 	/**
 	 * Find the node type whose integer value is the one given.
@@ -819,6 +821,26 @@ int ScriptNode::__luaEmitAction(lua_State* luaState)
 
 			break;
 		}
+
+		case EmittableActionType::TEXT_VISIBLE:
+		{
+			if(!hasParams) luaL_error(luaState, "emitAction: TEXT_VISIBLE requires params.visible");
+
+			__checkParamFields(luaState, 2, TEXT_VISIBLE_PARAM_FIELDS, std::size(TEXT_VISIBLE_PARAM_FIELDS));
+
+			if(__rawGetField(luaState, 2, "visible") != LUA_TBOOLEAN) // [..., visible]
+			{
+				luaL_error(luaState, "emitAction: TEXT_VISIBLE requires params.visible to be a boolean");
+			}
+
+			bool visible = lua_toboolean(luaState, -1);
+
+			lua_pop(luaState, 1); // [...]
+
+			node -> __emitTextVisibleAction(visible, __readTraversalKeys(luaState, 3));
+
+			break;
+		}
 	}
 
 	return 0;
@@ -954,6 +976,18 @@ void ScriptNode::__emitAnimateAction(bool animating, std::vector<unsigned> edgeT
 {
 	// Action will self delete once complete.
 	AnimateAction* action = new AnimateAction(Handle<GraphNode>(this), animating, std::move(edgeTraversalKeys));
+
+	action -> incrRef();
+
+	_emitAction(action);
+
+	action -> decrRef();
+}
+
+void ScriptNode::__emitTextVisibleAction(bool visible, std::vector<unsigned> edgeTraversalKeys)
+{
+	// Action will self delete once complete.
+	TextVisibleAction* action = new TextVisibleAction(Handle<GraphNode>(this), visible, std::move(edgeTraversalKeys));
 
 	action -> incrRef();
 

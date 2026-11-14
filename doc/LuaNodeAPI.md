@@ -118,7 +118,7 @@ A `coreScript` may define this global to offer an AI model tools of its own, on 
 type already offers. It is **not** an entry point: no run ever calls it, and defining it does not close the
 top level down the way `init()` or `invoke()` does. It is called only while an agent action is being applied
 to this node, and only on node types that are agent action targets — `TriggerNode`,
-`SceneGeometryScriptNode` and `SceneTransformScriptNode`. Defining it on any other node type does nothing.
+`SceneGeometryScriptNode`, `SceneTransformScriptNode` and `SceneTextScriptNode`. Defining it on any other node type does nothing.
 
 It is passed the capability of the model asking, as one of the strings `"LOW"`, `"MEDIUM"` or `"HIGH"`, so a
 script can offer a weaker model a smaller set. It returns an array of descriptor tables, one per tool:
@@ -228,20 +228,21 @@ led to it, so a tool can tell one call apart from the next.
 
 ## Bindings on every Lua-scripted node
 
-Available to `SceneGeometryScriptNode`, `SceneTransformScriptNode` and `TriggerNode`, in both the core and
-poke states.
+Available to `SceneGeometryScriptNode`, `SceneTransformScriptNode`, `SceneTextScriptNode` and `TriggerNode`, in
+both the core and poke states.
 
 | Function | Description |
 |---|---|
 | `NodeType` | A global table of constants naming each concrete node type, for use as the `nodeType` argument to `trigger`. See [Triggering other nodes](#triggering-other-nodes). |
 | `trigger([nodeName], [nodeType])` | Emits a trigger action from this node, triggering nodes it reaches as it traverses the graph. See [Triggering other nodes](#triggering-other-nodes). |
 | `ToolType` | A global table of constants naming the value types a script defined tool's parameters and return value may be declared as: `STRING`, `NUMBER`, `INTEGER` and `BOOL`. Only of use in a `coreScript`, which is the only place tools can be declared. See [`getToolCallBindings(capability)`](#gettoolcallbindingscapability). |
-| `ActionType` | A global table of constants naming the action types a script can emit: `TRIGGER` and `ANIMATE`. See [Emitting actions](#emitting-actions). |
+| `ActionType` | A global table of constants naming the action types a script can emit: `TRIGGER`, `ANIMATE` and `TEXT_VISIBLE`. See [Emitting actions](#emitting-actions). |
 | `emitAction(actionType, [params], [traversalKeys])` | Emits an action of the given type from this node, with its own parameters and the edge traversal keys it holds. See [Emitting actions](#emitting-actions). |
 
 ## Bindings on scene script nodes
 
-Available to `SceneGeometryScriptNode` and `SceneTransformScriptNode` only, in both the core and poke states.
+Available to `SceneGeometryScriptNode`, `SceneTransformScriptNode` and `SceneTextScriptNode` only, in both the
+core and poke states.
 **These are not registered on `TriggerNode`**, which takes no part in a scene and has neither a strobing nor
 an animating mode; calling one of them from a `TriggerNode` script raises an error on a nil value.
 
@@ -267,7 +268,7 @@ Both arguments are optional, and either may be `nil` to skip that restriction:
 The `NodeType` constants are `NodeType.GRAPH_NODE`, `NodeType.PING_NODE`, `NodeType.SCENE_GEOMETRY_NODE`,
 `NodeType.SCENE_TRANSFORM_NODE`, `NodeType.SCRIPT_NODE`, `NodeType.SCENE_GEOMETRY_SCRIPT_NODE`,
 `NodeType.SCENE_TRANSFORM_SCRIPT_NODE`, `NodeType.SCENE_ROOT_NODE`, `NodeType.TELEPORT_NODE`,
-`NodeType.AGENT_NODE` and `NodeType.TRIGGER_NODE`. Note that `NodeType.GRAPH_NODE` is a type in its own
+`NodeType.AGENT_NODE`, `NodeType.TRIGGER_NODE` and `NodeType.SCENE_TEXT_SCRIPT_NODE`. Note that `NodeType.GRAPH_NODE` is a type in its own
 right (reported by any node that does not identify a more specific one), not a wildcard; to place no
 restriction on type, leave the argument out.
 
@@ -333,6 +334,7 @@ Parameters each action type takes:
 | `TRIGGER` | `nodeName` | string | `""` (any name) | As `trigger()`'s `nodeName`. |
 | `TRIGGER` | `nodeType` | `NodeType` constant | No restriction | As `trigger()`'s `nodeType`. |
 | `ANIMATE` | `animating` | boolean | **Required** | The animating mode set on each node the action reaches that supports animation. |
+| `TEXT_VISIBLE` | `visible` | boolean | **Required** | Shows (`true`) or hides (`false`) the text of each `SceneTextScriptNode` the action reaches. |
 
 **Traversal keys.** An edge whose `traversalKey` is non-zero can only be crossed by an action holding that
 exact key. An unkeyed edge is crossed whatever keys an action holds. Key `0` is rejected, since every unkeyed
@@ -348,6 +350,9 @@ emitAction(ActionType.TRIGGER, {nodeName = "leftDoor"}, {3, 7})
 
 -- Start animating everything behind the edges keyed 12, as well as everything unkeyed.
 emitAction(ActionType.ANIMATE, {animating = true}, {12})
+
+-- Hide the text of every text node reachable without crossing a keyed edge.
+emitAction(ActionType.TEXT_VISIBLE, {visible = false})
 ```
 
 Validation happens before anything is emitted. A call that raises an error emits nothing, and the script stops
@@ -433,6 +438,41 @@ bindings [on every Lua-scripted node](#bindings-on-every-lua-scripted-node) and
 |---|---|
 | `getTransform()` | Returns the node's current transform as a 16-element array table, in column-major order, matching the `transform` array in the JSON schema. Translation components are in scene geometry units, which by default map one unit to one millimeter. |
 | `setTransform(transform)` | Sets the node's transform from a 16-element array table, in column-major order. Translation components are in scene geometry units, which by default map one unit to one millimeter. |
+
+## `SceneTextScriptNode`
+
+Represents a single block of text in a scene, anchored in the frame of the transforms visited before it. In
+addition to the bindings [on every Lua-scripted node](#bindings-on-every-lua-scripted-node) and
+[on scene script nodes](#bindings-on-scene-script-nodes):
+
+| Function | Description |
+|---|---|
+| `setText(text)` | Sets the text to display. A `"\n"` breaks it over several lines. |
+| `getText()` | Returns the text currently displayed. |
+| `setTextPosition({x, y, z})` | Sets the point the text is centred on, as a 3-element array of numbers, in the frame of the transforms above this node. |
+| `getTextPosition()` | Returns the point the text is centred on, as a 3-element array table. |
+| `setTextHeight(height)` | Sets the height of one line of the text, in the units of that frame. A height that is not greater than 0 raises an error. |
+| `getTextHeight()` | Returns the height of one line of the text. |
+| `setTextColour({r, g, b, a})` | Sets the colour of the text, as a 4-element array of integers, each 0-255. A channel out of that range raises an error. |
+| `getTextColour()` | Returns the colour of the text, as a 4-element array table. |
+| `setTextBackground(background)` | Sets the box drawn behind the text from a table with any of `fillColour` and `borderColour` (each `{r, g, b, a}`, 0-255), `borderWidth`, `padding`, and `cornerRadius` (one number for every corner, or `{topLeft, topRight, bottomRight, bottomLeft}`). Lengths are in the same units as the text height. Fields left out keep their current value. A malformed field, a channel out of range or a negative length raises an error. With no fill and no border, which is the default, no box is drawn. |
+| `getTextBackground()` | Returns the box drawn behind the text as a table with all five fields; `cornerRadius` is always the four element form. |
+| `setTextVisible(visible)` | Shows (`true`) or hides (`false`) the text. Hidden text is left out of the scene. Anything other than a boolean raises an error. |
+| `getTextVisible()` | Returns `true` if the text is shown, `false` if it is hidden. |
+
+Unlike vertexes, text is replaced rather than appended, and setting it to what it already is changes nothing,
+so a script may set it on every run without the scene being sent again.
+
+```lua
+local count = 0
+
+function invoke()
+	if getAnimating() then
+		count = count + 1
+		setText("Strobes: " .. count)
+	end
+end
+```
 
 ## `AgentNode`
 

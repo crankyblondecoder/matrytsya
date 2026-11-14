@@ -1,0 +1,240 @@
+{
+	"name": "Text",
+	"nodes": [
+		{
+			"type": "SceneRootNode",
+			"name": "root",
+			"edges": [
+				{
+					"toNodeName": "frame"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "frame",
+			"transform": [
+				1,
+				0,
+				0,
+				0,
+				0,
+				1,
+				0,
+				0,
+				0,
+				0,
+				1,
+				0,
+				0,
+				0,
+				0,
+				1
+			],
+			"edges": [
+				{
+					"toNodeName": "spin"
+				},
+				{
+					"toNodeName": "title"
+				},
+				{
+					"toNodeName": "smallPlace"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformScriptNode",
+			"name": "spin",
+			"transform": [
+				1,
+				0,
+				0,
+				0,
+				0,
+				1,
+				0,
+				0,
+				0,
+				0,
+				1,
+				0,
+				0,
+				0,
+				0,
+				1
+			],
+			"coreScript": "-- Turns everything below it about the vertical axis while animating. Starts animating on its own, so the\n-- scene moves as soon as it is opened.\nlocal angle = 0\nlocal STEP = 0.02\n\nfunction init()\n    setAnimating(true)\nend\n\nfunction invoke()\n    if not (getStrobe() and getAnimating()) then\n        return\n    end\n\n    angle = angle + STEP\n\n    local c, s = math.cos(angle), math.sin(angle)\n\n    setTransform({c, 0, -s, 0,  0, 1, 0, 0,  s, 0, c, 0,  0, 0, 0, 1})\nend\n",
+			"pokeScript": "-- pokeEnabled is false for this node; no poke behaviour is defined.\n",
+			"edges": [
+				{
+					"toNodeName": "bigCube"
+				}
+			]
+		},
+		{
+			"type": "SceneGeometryScriptNode",
+			"name": "bigCube",
+			"coreScript": "-- Builds a 20 unit cube once, centred on this node's origin.\nlocal SIZE = 20\nlocal COLOUR = {80, 160, 220, 255}\n\nfunction init()\n    local h = SIZE / 2\n    local vertexes = {}\n\n    local function quad(a, b, c, d, normal)\n        for _, posn in ipairs({a, b, c, a, c, d}) do\n            vertexes[#vertexes + 1] = Vertex{posn = posn, colour = COLOUR, normal = normal}\n        end\n    end\n\n    quad({-h, -h, h}, {h, -h, h}, {h, h, h}, {-h, h, h}, {0, 0, 1})\n    quad({h, -h, -h}, {-h, -h, -h}, {-h, h, -h}, {h, h, -h}, {0, 0, -1})\n    quad({h, -h, h}, {h, -h, -h}, {h, h, -h}, {h, h, h}, {1, 0, 0})\n    quad({-h, -h, -h}, {-h, -h, h}, {-h, h, h}, {-h, h, -h}, {-1, 0, 0})\n    quad({-h, h, h}, {h, h, h}, {h, h, -h}, {-h, h, -h}, {0, 1, 0})\n    quad({-h, -h, -h}, {h, -h, -h}, {h, -h, h}, {-h, -h, h}, {0, -1, 0})\n\n    addVertexes(vertexes)\nend\n",
+			"pokeScript": "-- pokeEnabled is false for this node; no poke behaviour is defined.\n",
+			"edges": [
+				{
+					"toNodeName": "bigCubeLabel"
+				}
+			]
+		},
+		{
+			"type": "SceneTextScriptNode",
+			"name": "bigCubeLabel",
+			"coreScript": "-- Counts the strobes this label has seen, rewriting its text about once a second. Setting the same text\n-- again changes nothing, so the scene is only sent again when the count shown actually moves on.\nlocal strobes = 0\nlocal STROBES_PER_UPDATE = 30\n\nfunction invoke()\n    if not getStrobe() then\n        return\n    end\n\n    strobes = strobes + 1\n\n    setText(\"Spinning cube\\n\" .. (strobes // STROBES_PER_UPDATE) .. \" s\")\nend\n",
+			"pokeScript": "-- pokeEnabled is false for this node; no poke behaviour is defined.\n",
+			"text": "Spinning cube",
+			"textPosition": [
+				0,
+				20,
+				0
+			],
+			"textHeight": 4,
+			"textColour": [
+				200,
+				230,
+				255,
+				255
+			],
+			"textBackground": {
+				"fillColour": [20, 40, 70, 200],
+				"borderColour": [200, 230, 255, 255],
+				"borderWidth": 0.3,
+				"padding": 1,
+				"cornerRadius": 1.5
+			},
+			"edges": [
+				{
+					"toNodeName": "frame"
+				}
+			]
+		},
+		{
+			"type": "SceneTextScriptNode",
+			"name": "title",
+			"coreScript": "",
+			"pokeScript": "-- pokeEnabled is false for this node; no poke behaviour is defined.\n",
+			"text": "Scene text",
+			"textPosition": [
+				30,
+				45,
+				0
+			],
+			"textHeight": 10,
+			"textColour": [
+				255,
+				220,
+				120,
+				255
+			],
+			"textBackground": {
+				"fillColour": [60, 40, 10, 220],
+				"borderColour": [255, 220, 120, 255],
+				"borderWidth": 0.5,
+				"padding": 2,
+				"cornerRadius": [5, 0, 5, 0]
+			},
+			"edges": [
+				{
+					"toNodeName": "frame"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "smallPlace",
+			"transform": [
+				1,
+				0,
+				0,
+				0,
+				0,
+				1,
+				0,
+				0,
+				0,
+				0,
+				1,
+				0,
+				60,
+				0,
+				0,
+				1
+			],
+			"edges": [
+				{
+					"toNodeName": "smallCube"
+				}
+			]
+		},
+		{
+			"type": "SceneGeometryScriptNode",
+			"name": "smallCube",
+			"coreScript": "-- Builds a 4 unit cube once, centred on this node's origin.\nlocal SIZE = 4\nlocal COLOUR = {220, 120, 90, 255}\n\nfunction init()\n    local h = SIZE / 2\n    local vertexes = {}\n\n    local function quad(a, b, c, d, normal)\n        for _, posn in ipairs({a, b, c, a, c, d}) do\n            vertexes[#vertexes + 1] = Vertex{posn = posn, colour = COLOUR, normal = normal}\n        end\n    end\n\n    quad({-h, -h, h}, {h, -h, h}, {h, h, h}, {-h, h, h}, {0, 0, 1})\n    quad({h, -h, -h}, {-h, -h, -h}, {-h, h, -h}, {h, h, -h}, {0, 0, -1})\n    quad({h, -h, h}, {h, -h, -h}, {h, h, -h}, {h, h, h}, {1, 0, 0})\n    quad({-h, -h, -h}, {-h, -h, h}, {-h, h, h}, {-h, h, -h}, {-1, 0, 0})\n    quad({-h, h, h}, {h, h, h}, {h, h, -h}, {-h, h, -h}, {0, 1, 0})\n    quad({-h, -h, -h}, {h, -h, -h}, {h, -h, h}, {-h, -h, h}, {0, -1, 0})\n\n    addVertexes(vertexes)\nend\n",
+			"pokeScript": "-- pokeEnabled is false for this node; no poke behaviour is defined.\n",
+			"edges": [
+				{
+					"toNodeName": "finePrint"
+				}
+			]
+		},
+		{
+			"type": "SceneTextScriptNode",
+			"name": "finePrint",
+			"coreScript": "",
+			"pokeScript": "-- pokeEnabled is false for this node; no poke behaviour is defined.\n",
+			"text": "Fine print, too small to read from afar.\nRight-click its marker to bring it close.",
+			"textPosition": [
+				0,
+				4,
+				0
+			],
+			"textHeight": 0.6,
+			"textColour": [
+				255,
+				255,
+				255,
+				255
+			],
+			"edges": [
+				{
+					"toNodeName": "frame"
+				}
+			]
+		}
+	],
+	"strobeEmitters": [
+		{
+			"nodeName": "root",
+			"periodMs": 33
+		}
+	],
+	"surfaces": [
+		{
+			"type": "GraphHiveSceneSurface",
+			"name": "scene",
+			"sceneRootNodeName": "root",
+			"default": true
+		},
+		{
+			"type": "GraphHiveGraphViewSurface",
+			"name": "structure",
+			"default": true
+		}
+	],
+	"strobeSurfaces": [
+		{
+			"surfaceName": "scene",
+			"periodMs": 33
+		},
+		{
+			"surfaceName": "structure",
+			"periodMs": 250
+		}
+	]
+}

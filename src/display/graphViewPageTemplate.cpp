@@ -326,7 +326,8 @@ const char* const graphViewPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		SCENE_ROOT_NODE: [0.94, 0.94, 0.94],
 		TELEPORT_NODE: [0.94, 0.44, 0.76],
 		AGENT_NODE: [0.94, 0.42, 0.38],
-		TRIGGER_NODE: [0.32, 0.84, 0.84]
+		TRIGGER_NODE: [0.32, 0.84, 0.84],
+		SCENE_TEXT_SCRIPT_NODE: [0.93, 0.88, 0.45]
 	};
 
 	/// What an edge that restricts nothing is drawn in. It lets every kind of action through rather than any
@@ -1727,7 +1728,11 @@ const char* const graphViewPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 	// -- Shaders --
 
-	var vertexShaderSrc =
+	// Lighting model chosen by the server: 'BLINN_PHONG' or 'LAMBERT'.
+	var SHADING_MODEL = '%SHADING_MODEL%';
+
+	// Lambert: diffuse lighting worked out per vertex and interpolated across each triangle.
+	var lambertVertexShaderSrc =
 		'attribute vec3 aPosition;' +
 		'attribute vec4 aColor;' +
 		'attribute vec3 aNormal;' +
@@ -1742,10 +1747,53 @@ const char* const graphViewPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		'  gl_Position = uViewProj * vec4(aPosition, 1.0);' +
 		'}';
 
-	var fragmentShaderSrc =
+	var lambertFragmentShaderSrc =
 		'precision mediump float;' +
 		'varying vec4 vColor;' +
 		'void main() { gl_FragColor = vColor; }';
+
+	// Blinn-Phong: the same ambient/diffuse split as Lambert plus a specular highlight, worked out per fragment
+	// since a highlight interpolated from the vertexes of coarse triangles smears or vanishes. Positions and
+	// normals arrive already in world space, so they are passed straight through.
+	var blinnPhongVertexShaderSrc =
+		'attribute vec3 aPosition;' +
+		'attribute vec4 aColor;' +
+		'attribute vec3 aNormal;' +
+		'uniform mat4 uViewProj;' +
+		'varying vec4 vColor;' +
+		'varying vec3 vNormal;' +
+		'varying vec3 vWorldPos;' +
+		'void main() {' +
+		'  vColor = aColor;' +
+		'  vNormal = aNormal;' +
+		'  vWorldPos = aPosition;' +
+		'  gl_Position = uViewProj * vec4(aPosition, 1.0);' +
+		'}';
+
+	var blinnPhongFragmentShaderSrc =
+		'precision mediump float;' +
+		'uniform vec3 uLightDir;' +
+		'uniform vec3 uCameraPos;' +
+		'varying vec4 vColor;' +
+		'varying vec3 vNormal;' +
+		'varying vec3 vWorldPos;' +
+		'const float SHININESS = 32.0;' +
+		'const float SPECULAR = 0.35;' +
+		'void main() {' +
+		'  vec3 normal = normalize(vNormal);' +
+		'  vec3 lightDir = normalize(uLightDir);' +
+		'  vec3 viewDir = normalize(uCameraPos - vWorldPos);' +
+		'  vec3 halfDir = normalize(lightDir + viewDir);' +
+		'  float diffuse = max(dot(normal, lightDir), 0.0);' +
+		// No highlight on a face turned away from the light, which would otherwise catch one at grazing angles.
+		'  float specular = diffuse > 0.0 ? pow(max(dot(normal, halfDir), 0.0), SHININESS) : 0.0;' +
+		'  vec3 rgb = vColor.rgb * (0.35 + 0.65 * diffuse) + vec3(SPECULAR * specular);' +
+		'  gl_FragColor = vec4(rgb, vColor.a);' +
+		'}';
+
+	var useBlinnPhong = SHADING_MODEL === 'BLINN_PHONG';
+	var vertexShaderSrc = useBlinnPhong ? blinnPhongVertexShaderSrc : lambertVertexShaderSrc;
+	var fragmentShaderSrc = useBlinnPhong ? blinnPhongFragmentShaderSrc : lambertFragmentShaderSrc;
 
 	function compileShader(type, src)
 	{
@@ -1780,6 +1828,9 @@ const char* const graphViewPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	var aNormal = gl.getAttribLocation(program, 'aNormal');
 	var uViewProj = gl.getUniformLocation(program, 'uViewProj');
 	var uLightDir = gl.getUniformLocation(program, 'uLightDir');
+
+	// Only the Blinn-Phong program has this, so it is null under Lambert.
+	var uCameraPos = gl.getUniformLocation(program, 'uCameraPos');
 
 	// Direction of the headlamp-style light in camera space; rotated into world space each frame
 	// below so it stays fixed relative to the camera as the user orbits.
@@ -2210,6 +2261,18 @@ const char* const graphViewPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 			var worldLightDir = transformNormal(invViewRot, cameraLightDir[0], cameraLightDir[1], cameraLightDir[2]);
 
 			gl.uniform3f(uLightDir, worldLightDir[0], worldLightDir[1], worldLightDir[2]);
+
+			// The camera sits camera.distance back along its own +z from the centre it orbits, i.e. the
+			// inverse of the view matrix built above.
+			if(uCameraPos)
+			{
+				var cameraBack = transformNormal(invViewRot, 0, 0, 1);
+
+				gl.uniform3f(uCameraPos,
+					camera.centre[0] + cameraBack[0] * camera.distance,
+					camera.centre[1] + cameraBack[1] * camera.distance,
+					camera.centre[2] + cameraBack[2] * camera.distance);
+			}
 
 			// The same turn taken the other way gives which way is up on the screen, which is where a panel
 			// belonging to a node has to sit.

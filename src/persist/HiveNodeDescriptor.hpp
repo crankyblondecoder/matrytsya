@@ -1,10 +1,12 @@
 #ifndef HIVE_NODE_DESCRIPTOR_H
 #define HIVE_NODE_DESCRIPTOR_H
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
 #include "../graph/GraphNodeLocation.hpp"
+#include "../graph/TextBackground.hpp"
 #include "../graph/graphSceneElements.hpp"
 
 /**
@@ -77,7 +79,8 @@ struct HiveNodeDescriptor
 		SCENE_TRANSFORM,
 		SCENE_TRANSFORM_SCRIPT,
 		AGENT,
-		TRIGGER
+		TRIGGER,
+		SCENE_TEXT_SCRIPT
 	};
 
 	/// Concrete node type this descriptor describes.
@@ -130,6 +133,24 @@ struct HiveNodeDescriptor
 
 	/// Whether poking a TriggerNode emits a trigger action of its own. Only meaningful when type == TRIGGER.
 	bool emitTriggerOnPoke = true;
+
+	/// Text a SceneTextScriptNode displays. Only meaningful when type == SCENE_TEXT_SCRIPT.
+	std::string text;
+
+	/// Anchor position of a SceneTextScriptNode's text: X, Y, Z. Only meaningful when type == SCENE_TEXT_SCRIPT.
+	double textPosition[3] = {0.0, 0.0, 0.0};
+
+	/// Line height of a SceneTextScriptNode's text. Only meaningful when type == SCENE_TEXT_SCRIPT.
+	double textHeight = 1.0;
+
+	/// Colour of a SceneTextScriptNode's text: R, G, B, A. Only meaningful when type == SCENE_TEXT_SCRIPT.
+	std::byte textColour[4] = {std::byte{255}, std::byte{255}, std::byte{255}, std::byte{255}};
+
+	/// Box drawn behind a SceneTextScriptNode's text. Only meaningful when type == SCENE_TEXT_SCRIPT.
+	TextBackground textBackground;
+
+	/// Whether a SceneTextScriptNode's text is shown. Only meaningful when type == SCENE_TEXT_SCRIPT.
+	bool textVisible = true;
 };
 
 #endif

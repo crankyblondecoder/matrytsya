@@ -65,6 +65,9 @@ namespace
 
 	const unsigned _WEBGL_POLL_INTERVAL_MS = 50;
 
+	const GraphHiveSurfaceHtmlMap::ShadingModel _DEFAULT_SHADING_MODEL =
+		GraphHiveSurfaceHtmlMap::ShadingModel::BLINN_PHONG;
+
 	// Kept short rather than matched to how often a first request is actually expected, since this is also
 	// how soon a SIGINT lands: waitForFirstRequest() runs a whole call out to completion once started, and
 	// only the loop calling it re-checks _running in between.
@@ -95,6 +98,9 @@ namespace
 			"                               (default " << AgenticHarness::getCapabilityName(_DEFAULT_CHAT_CAPABILITY)
 			<< ").\n"
 			"  -n, --no-chat                Do not display the chat window, and refuse chat requests.\n"
+			"  -s, --shading MODEL          Lighting model the WebGL views shade with: BLINN_PHONG or LAMBERT\n"
+			"                               (default " << GraphHiveSurfaceHtmlMap::getShadingModelName(
+			_DEFAULT_SHADING_MODEL) << ").\n"
 			"  -t, --threads COUNT          Threads in each hive's thread pool (default " << _DEFAULT_NUM_THREADS
 			<< ").\n"
 			"  -v, --verbose                Log model traffic to the console. Repeat (-vv) to also log\n"
@@ -155,6 +161,30 @@ namespace
 			if(AgenticHarness::getCapabilityName(candidate) == name)
 			{
 				capability = candidate;
+
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Parse a shading model from its name.
+	 * @param name Name as given on the command line.
+	 * @param shadingModel Set to the named shading model on success.
+	 * @returns True if the name is one of the shading models.
+	 */
+	bool _parseShadingModel(const std::string& name, GraphHiveSurfaceHtmlMap::ShadingModel& shadingModel)
+	{
+		// Matched against the map's own names, so the ones accepted here cannot drift from the ones the page
+		// is given.
+		for(GraphHiveSurfaceHtmlMap::ShadingModel candidate : {GraphHiveSurfaceHtmlMap::ShadingModel::BLINN_PHONG,
+			GraphHiveSurfaceHtmlMap::ShadingModel::LAMBERT})
+		{
+			if(GraphHiveSurfaceHtmlMap::getShadingModelName(candidate) == name)
+			{
+				shadingModel = candidate;
 
 				return true;
 			}
@@ -260,6 +290,7 @@ int main(int argc, char* argv[])
 	unsigned numThreads = _DEFAULT_NUM_THREADS;
 	AgenticHarness::Capability chatCapability = _DEFAULT_CHAT_CAPABILITY;
 	bool chatEnabled = true;
+	GraphHiveSurfaceHtmlMap::ShadingModel shadingModel = _DEFAULT_SHADING_MODEL;
 	unsigned verbosity = 0;
 	std::string harnessPath;
 
@@ -270,6 +301,7 @@ int main(int argc, char* argv[])
 		{"harness", required_argument, 0, 'H'},
 		{"chat-capability", required_argument, 0, 'c'},
 		{"no-chat", no_argument, 0, 'n'},
+		{"shading", required_argument, 0, 's'},
 		{"threads", required_argument, 0, 't'},
 		{"verbose", no_argument, 0, 'v'},
 		{"help", no_argument, 0, 'h'},
@@ -278,7 +310,7 @@ int main(int argc, char* argv[])
 
 	int option;
 
-	while((option = getopt_long(argc, argv, "p:a:H:c:nt:vh", longOptions, 0)) != -1)
+	while((option = getopt_long(argc, argv, "p:a:H:c:ns:t:vh", longOptions, 0)) != -1)
 	{
 		switch(option)
 		{
@@ -326,6 +358,17 @@ int main(int argc, char* argv[])
 			case 'n':
 
 				chatEnabled = false;
+
+				break;
+
+			case 's':
+
+				if(!_parseShadingModel(optarg, shadingModel))
+				{
+					std::cerr << argv[0] << ": invalid shading model '" << optarg
+						<< "', expected BLINN_PHONG or LAMBERT" << std::endl;
+					return 1;
+				}
 
 				break;
 
@@ -513,6 +556,8 @@ int main(int argc, char* argv[])
 			surfaceMapHandles.push_back(surfaceMapHandle);
 
 			surfaceMap -> setPollInterval(_WEBGL_POLL_INTERVAL_MS);
+
+			surfaceMap -> setShadingModel(shadingModel);
 
 			surfaceMap -> setChatEnabled(chatEnabled);
 

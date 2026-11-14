@@ -41,6 +41,24 @@ class GraphHiveSurfaceHtmlMap : public GraphHiveSurfaceHttpMap, private EventLis
     public:
 
         /**
+         * Lighting model the page's WebGL view shades geometry with.
+         */
+        enum class ShadingModel
+        {
+            /// Per-vertex diffuse lighting only.
+            LAMBERT,
+            /// Per-fragment diffuse lighting plus a Blinn-Phong specular highlight.
+            BLINN_PHONG
+        };
+
+        /**
+         * Get the name a shading model goes by, which is what both the page and the command line know it as.
+         * @param shadingModel Shading model to name.
+         * @returns Its name, e.g. "BLINN_PHONG".
+         */
+        static std::string getShadingModelName(ShadingModel shadingModel);
+
+        /**
          * @param httpServer Server to register this map with. Not owned by this.
          * @param surface Surface this map binds to for its whole lifetime. This map keeps its own reference to
          *        it (see Handle), released once this map is destroyed.
@@ -53,6 +71,12 @@ class GraphHiveSurfaceHtmlMap : public GraphHiveSurfaceHttpMap, private EventLis
          * @param pollIntervalMs Poll interval in milliseconds. Defaults to 1000.
          */
         void setPollInterval(unsigned pollIntervalMs);
+
+        /**
+         * Set the lighting model this map's page shades its geometry with.
+         * @param shadingModel Shading model to use. Defaults to BLINN_PHONG.
+         */
+        void setShadingModel(ShadingModel shadingModel);
 
         /**
          * Set the page that this map's page offers a link to for viewing the structure of the same hive.
@@ -93,9 +117,10 @@ class GraphHiveSurfaceHtmlMap : public GraphHiveSurfaceHttpMap, private EventLis
         /**
          * Render a page from a template, filling in the placeholders every page served by this map carries.
          * Those are %TITLE%, which becomes the bound surface's name, %POLL_INTERVAL_MS%, which becomes the
-         * interval the page is to poll this map's revision endpoint at, and %CHAT_STYLE%, %CHAT_MARKUP% and
-         * %CHAT_SCRIPT%, which become the chat window's style rules, markup and script (see chatWindowTemplate.hpp
-         * for where in a page each of the three belongs). Each may appear any number of times.
+         * interval the page is to poll this map's revision endpoint at, %SHADING_MODEL%, which becomes the name
+         * of the lighting model the page is to shade with (see getShadingModelName()), and %CHAT_STYLE%,
+         * %CHAT_MARKUP% and %CHAT_SCRIPT%, which become the chat window's style rules, markup and script (see
+         * chatWindowTemplate.hpp for where in a page each of the three belongs). Each may appear any number of times.
          * @note A template is free to leave the chat placeholders out, which is all it takes to serve a page
          *       without a chat window on it; the endpoints behind one are answered either way.
          * @note %STRUCTURE_MARKUP% becomes the link to this hive's structure page set by setStructurePath(),
@@ -284,6 +309,9 @@ class GraphHiveSurfaceHtmlMap : public GraphHiveSurfaceHttpMap, private EventLis
         /// How often browsers viewing this map's page poll to check for changes, in milliseconds.
         unsigned _pollIntervalMs = 1000;
 
+        /// Lighting model this map's page shades its geometry with.
+        ShadingModel _shadingModel = ShadingModel::BLINN_PHONG;
+
         /// Capability required of the model that answers chats made through this map's page.
         AgenticHarness::Capability _chatCapability = AgenticHarness::Capability::MEDIUM;
 
@@ -303,7 +331,7 @@ class GraphHiveSurfaceHtmlMap : public GraphHiveSurfaceHttpMap, private EventLis
         /// destructor as though it were running.
         bool _chatThreadRunning = false;
 
-        /// Guards _revision, _pollIntervalMs, _chatCapability, _chatEnabled, _chatThreadStarted and _chatThreadRunning, all of
+        /// Guards _revision, _pollIntervalMs, _shadingModel, _chatCapability, _chatEnabled, _chatThreadStarted and _chatThreadRunning, all of
         /// which are written and read across the thread serving HTTP requests, the chat thread and the surface's
         /// own threads.
         ThreadMutex _lock;

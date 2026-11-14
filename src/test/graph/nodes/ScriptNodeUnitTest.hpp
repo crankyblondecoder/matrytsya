@@ -11,6 +11,7 @@
 #include "../../../graph/GraphHive.hpp"
 #include "../../../graph/GraphPoke.hpp"
 #include "../../../graph/nodes/ScriptNode.hpp"
+#include "../../../graph/nodes/SceneTextScriptNode.hpp"
 #include "../../../graph/nodes/ScriptSession.hpp"
 #include "../../../graph/nodes/StrobeScriptNode.hpp"
 #include "../../../lua/lua.hpp"
@@ -1200,6 +1201,80 @@ TEST(ScriptNodeTest, EmitActionAnimateReachesConnectedNode)
 }
 
 /**
+ * emitAction(ActionType.TEXT_VISIBLE) shows or hides the text of the text nodes it reaches, and its traversal
+ * keys gate keyed edges as for any other action.
+ */
+TEST(ScriptNodeTest, EmitActionTextVisibleReachesConnectedTextNode)
+{
+	GraphHive* hive = new GraphHive(2);
+	Handle<GraphHive> hiveHandle(hive);
+
+	ScriptNode* emittingNode = new ScriptNode(
+		"emitAction(ActionType.TEXT_VISIBLE, { visible = false }, { 5 })", "");
+
+	SceneTextScriptNode* keyedNode = new SceneTextScriptNode("", "");
+	SceneTextScriptNode* lockedNode = new SceneTextScriptNode("", "");
+
+	hive -> addNode(emittingNode);
+	hive -> addNode(keyedNode);
+	hive -> addNode(lockedNode);
+
+	Handle<GraphNode> keyedHandle(keyedNode);
+	Handle<GraphNode> lockedHandle(lockedNode);
+
+	emittingNode -> createEdge(keyedHandle, {}, 5);
+	emittingNode -> createEdge(lockedHandle, {}, 6);
+
+	{ Handle<ScriptSession> sessionHandle = emittingNode -> requestCoreSession();
+
+		ASSERT_TRUE(sessionHandle.getInstance() -> run());
+	}
+
+	hive -> waitOnNoActionsActive(0);
+
+	EXPECT_FALSE(keyedNode -> getVisible()) << "The text node behind the held key should have been hidden.";
+	EXPECT_TRUE(lockedNode -> getVisible()) << "The text node behind a key not held should not be reached.";
+
+	hive -> shutdown();
+}
+
+/**
+ * A TEXT_VISIBLE action passes over nodes that hold no text, carrying on to the text nodes beyond them.
+ */
+TEST(ScriptNodeTest, EmitActionTextVisiblePassesThroughNonTextNodes)
+{
+	GraphHive* hive = new GraphHive(2);
+	Handle<GraphHive> hiveHandle(hive);
+
+	ScriptNode* emittingNode = new ScriptNode("emitAction(ActionType.TEXT_VISIBLE, { visible = true })", "");
+	ScriptNode* middleNode = new ScriptNode("", "");
+	SceneTextScriptNode* textNode = new SceneTextScriptNode("", "");
+
+	textNode -> setVisible(false);
+
+	hive -> addNode(emittingNode);
+	hive -> addNode(middleNode);
+	hive -> addNode(textNode);
+
+	Handle<GraphNode> middleHandle(middleNode);
+	Handle<GraphNode> textHandle(textNode);
+
+	emittingNode -> createEdge(middleHandle, {});
+	middleNode -> createEdge(textHandle, {});
+
+	{ Handle<ScriptSession> sessionHandle = emittingNode -> requestCoreSession();
+
+		ASSERT_TRUE(sessionHandle.getInstance() -> run());
+	}
+
+	hive -> waitOnNoActionsActive(0);
+
+	EXPECT_TRUE(textNode -> getVisible()) << "The text node beyond a non-text node should have been shown.";
+
+	hive -> shutdown();
+}
+
+/**
  * Every malformed emitAction() call raises a Lua error: the run fails, the script stops at the call, nothing is
  * emitted, and the stack is left balanced.
  */
@@ -1220,6 +1295,10 @@ TEST(ScriptNodeTest, EmitActionRejectsMalformedCalls)
 		"emitAction(ActionType.ANIMATE, {})",
 		"emitAction(ActionType.ANIMATE, { animating = 1 })",
 		"emitAction(ActionType.ANIMATE, { animating = true, extra = 1 })",
+		"emitAction(ActionType.TEXT_VISIBLE)",
+		"emitAction(ActionType.TEXT_VISIBLE, {})",
+		"emitAction(ActionType.TEXT_VISIBLE, { visible = 0 })",
+		"emitAction(ActionType.TEXT_VISIBLE, { visible = false, extra = 1 })",
 		"emitAction(ActionType.TRIGGER, nil, 7)",
 		"emitAction(ActionType.TRIGGER, nil, { 0 })",
 		"emitAction(ActionType.TRIGGER, nil, { -1 })",
@@ -1238,16 +1317,20 @@ TEST(ScriptNodeTest, EmitActionRejectsMalformedCalls)
 			std::string(badCall) + "\nreachedEnd = true", "");
 		TriggerCountingScriptNode* triggerNode = new TriggerCountingScriptNode();
 		AnimateRecordingScriptNode* animateNode = new AnimateRecordingScriptNode();
+		SceneTextScriptNode* textNode = new SceneTextScriptNode("", "");
 
 		hive -> addNode(emittingNode);
 		hive -> addNode(triggerNode);
 		hive -> addNode(animateNode);
+		hive -> addNode(textNode);
 
 		Handle<GraphNode> triggerHandle(triggerNode);
 		Handle<GraphNode> animateHandle(animateNode);
+		Handle<GraphNode> textHandle(textNode);
 
 		emittingNode -> createEdge(triggerHandle, {});
 		emittingNode -> createEdge(animateHandle, {});
+		emittingNode -> createEdge(textHandle, {});
 
 		{ Handle<ScriptSession> sessionHandle = emittingNode -> requestCoreSession();
 
@@ -1267,6 +1350,7 @@ TEST(ScriptNodeTest, EmitActionRejectsMalformedCalls)
 
 		EXPECT_EQ(triggerNode -> triggerCount.load(), 0) << "Nothing should have been triggered by: " << badCall;
 		EXPECT_EQ(animateNode -> animateCount.load(), 0) << "Nothing should have been animated by: " << badCall;
+		EXPECT_TRUE(textNode -> getVisible()) << "No text should have been hidden by: " << badCall;
 
 		hive -> shutdown();
 	}

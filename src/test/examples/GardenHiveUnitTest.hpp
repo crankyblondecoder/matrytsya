@@ -7,9 +7,14 @@
 #include <sstream>
 #include <string>
 
+#include "../../graph/actions/SceneAction.hpp"
+#include "../../graph/actions/StrobeAction.hpp"
 #include "../../graph/GraphHive.hpp"
+#include "../../graph/GraphHiveSceneSurface.hpp"
 #include "../../graph/GraphPoke.hpp"
 #include "../../graph/nodes/AnimateScriptNode.hpp"
+#include "../../graph/nodes/SceneRootNode.hpp"
+#include "../../graph/nodes/SceneTextScriptNode.hpp"
 #include "../../persist/HiveBuilder.hpp"
 #include "../../persist/json/JsonHiveLoader.hpp"
 #include "../../rapidjson/document.h"
@@ -76,6 +81,56 @@ namespace
 
 		return node ? node -> getAnimating() : false;
 	}
+
+	/**
+	 * Collect the garden's scene from its root, the way a scene surface being strobed does.
+	 * @param hive Hive holding the garden.
+	 * @returns The collected scene. Empty, with a test failure recorded, if the hive has no root.
+	 */
+	GraphHiveSceneSurface::Scene __collectGardenScene(GraphHive* hive)
+	{
+		Handle<GraphNode> rootHandle = hive -> getNode("root");
+
+		SceneRootNode* root = rootHandle.isValid() ? dynamic_cast<SceneRootNode*>(rootHandle.getInstance()) : nullptr;
+
+		EXPECT_NE(root, nullptr) << "No scene root named root";
+
+		if(!root) return GraphHiveSceneSurface::Scene();
+
+		GraphHiveSceneSurface* surface = new GraphHiveSceneSurface(Handle<SceneRootNode>(root));
+
+		surface -> setHive(Handle<GraphHive>(hive));
+
+		SceneAction* sceneAction = new SceneAction(rootHandle, Handle<GraphHiveSceneSurface>(surface));
+
+		sceneAction -> incrRef();
+		sceneAction -> start();
+		sceneAction -> waitOnComplete(0);
+		sceneAction -> decrRef();
+
+		GraphHiveSceneSurface::Scene scene = surface -> getScene();
+
+		surface -> close();
+
+		return scene;
+	}
+
+	/**
+	 * @returns Whether any chunk of the scene belongs to the named node.
+	 */
+	bool __sceneHasNode(GraphHive* hive, const GraphHiveSceneSurface::Scene& scene, const std::string& nodeName)
+	{
+		Handle<GraphNode> handle = hive -> getNode(nodeName);
+
+		if(!handle.isValid()) return false;
+
+		for(const GraphHiveSceneSurface::Chunk& chunk : scene.chunks)
+		{
+			if(chunk.nodeId == handle.getInstance() -> getId()) return true;
+		}
+
+		return false;
+	}
 }
 
 /**
@@ -128,6 +183,77 @@ TEST(GardenHiveTest, ButtonAnimatesEveryFlower)
 	{
 		EXPECT_FALSE(__isAnimating(hive, name)) << name << " should have stopped after the second hit.";
 	}
+
+	hive -> shutdown();
+}
+
+/**
+ * The caption explaining what the button does is left out of the scene until the button is hit, drawn while the
+ * flowers spin, and left out again once they stop.
+ *
+ * A scene action never forks, so it only collects the caption if the caption sits on the walk it takes, and it
+ * must still go on to collect everything after the caption. Checking the collected scene, rather than the
+ * caption's own flag, catches the caption being wired off that walk.
+ */
+TEST(GardenHiveTest, ButtonShowsCaptionWhileActive)
+{
+	std::string json = __loadGardenHiveWithoutStrobing();
+	ASSERT_FALSE(json.empty()) << "Could not load examples/gardenHive.json.";
+
+	JsonHiveLoader loader(json);
+
+	GraphHive* hive = HiveBuilder::build(loader, 2);
+	Handle<GraphHive> hiveHandle(hive);
+
+	Handle<GraphNode> captionHandle = hive -> getNode("buttonCaption");
+	ASSERT_TRUE(captionHandle.isValid());
+
+	SceneTextScriptNode* caption = dynamic_cast<SceneTextScriptNode*>(captionHandle.getInstance());
+	ASSERT_NE(caption, nullptr);
+
+	// The geometry nodes only build their vertexes when a strobe first runs their scripts, and with strobing
+	// stripped nothing else would, leaving no geometry to show the scene walk carried on past the caption.
+	{
+		Handle<GraphNode> rootHandle = hive -> getNode("root");
+		StrobeAction* strobeAction = new StrobeAction(rootHandle);
+
+		strobeAction -> incrRef();
+		strobeAction -> start();
+		strobeAction -> waitOnComplete(0);
+		strobeAction -> decrRef();
+	}
+
+	EXPECT_FALSE(caption -> getVisible()) << "The caption should be hidden before the button is hit.";
+	EXPECT_FALSE(caption -> getText().empty()) << "The caption should have something to say.";
+	EXPECT_TRUE(__collectGardenScene(hive).texts.empty()) << "A hidden caption should not be in the scene.";
+
+	Handle<GraphNode> button = hive -> getNode("buttonCap");
+	ASSERT_TRUE(button.isValid());
+
+	GraphPoke::PokeData data{};
+	data.hitDuration = 100;
+
+	button.getInstance() -> poke(GraphPoke(GraphPoke::PokeType::HIT, data));
+	hive -> waitOnNoActionsActive(0);
+
+	EXPECT_TRUE(caption -> getVisible()) << "The caption should be shown while the button is active.";
+
+	GraphHiveSceneSurface::Scene activeScene = __collectGardenScene(hive);
+
+	ASSERT_EQ(activeScene.texts.size(), 1u) << "The caption should be in the scene while the button is active.";
+	EXPECT_EQ(activeScene.texts[0].nodeId, caption -> getId());
+
+	// The last flower and the button are collected after the caption, so they show the walk carried on past it.
+	for(const char* name : {"body1", "body2", "body3", "petal6_3", "buttonCap"})
+	{
+		EXPECT_TRUE(__sceneHasNode(hive, activeScene, name)) << name << " should still be in the scene.";
+	}
+
+	button.getInstance() -> poke(GraphPoke(GraphPoke::PokeType::HIT, data));
+	hive -> waitOnNoActionsActive(0);
+
+	EXPECT_FALSE(caption -> getVisible()) << "The caption should be hidden again once the button is released.";
+	EXPECT_TRUE(__collectGardenScene(hive).texts.empty()) << "A released button's caption should leave the scene.";
 
 	hive -> shutdown();
 }
