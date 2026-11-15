@@ -1,0 +1,135 @@
+{
+	"name": "Seed",
+	"nodes": [
+		{
+			"type": "SceneRootNode",
+			"name": "root",
+			"edges": [
+				{
+					"toNodeName": "rootTransform"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "rootTransform",
+			"transform": [
+				1.0,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				1.0,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				1.0,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				1.0
+			],
+			"edges": [
+				{
+					"toNodeName": "cubeSpin"
+				}
+			]
+		},
+		{
+			"type": "SceneTransformScriptNode",
+			"name": "cubeSpin",
+			"transform": [
+				1.0,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				1.0,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				1.0,
+				0.0,
+				0.0,
+				0.0,
+				0.0,
+				1.0
+			],
+			"coreScript": "local ax, ay, az = 0, 0, 0\nlocal lift = 2.0\nlocal FAST = 4.0\n-- Starts fast; the poke that sows the flowers is what slows it.\nlocal speed = FAST\n\n-- Animating here means spinning fast. The cube's poke sends an animate action clearing it.\nfunction init()\n\tsetAnimating(true)\nend\n\nfunction invoke()\n\tif not getStrobe() then return end\n\tlocal target = getAnimating() and FAST or 1.0\n\t-- Eased rather than switched, so the cube winds down over a second or two instead of jolting.\n\tspeed = speed + (target - speed) * 0.04\n\tax = (ax + 0.007 * speed) % (2 * math.pi)\n\tay = (ay + 0.011 * speed) % (2 * math.pi)\n\taz = (az + 0.004 * speed) % (2 * math.pi)\n\tlocal cx, sx = math.cos(ax), math.sin(ax)\n\tlocal cy, sy = math.cos(ay), math.sin(ay)\n\tlocal cz, sz = math.cos(az), math.sin(az)\n\t-- Rz * Ry * Rx, written out column by column.\n\tsetTransform{\n\t\tcz * cy, sz * cy, -sy, 0,\n\t\tcz * sy * sx - sz * cx, sz * sy * sx + cz * cx, cy * sx, 0,\n\t\tcz * sy * cx + sz * sx, sz * sy * cx - cz * sx, cy * cx, 0,\n\t\t0, lift, 0, 1}\nend",
+			"pokeScript": "",
+			"edges": [
+				{
+					"toNodeName": "cube"
+				}
+			]
+		},
+		{
+			"type": "SceneGeometryScriptNode",
+			"name": "cube",
+			"pokeEnabled": true,
+			"coreScript": "local half = 1.2\n-- Odd, so no grid point falls on a face's centre, where the radial and angular patterns have no direction.\nlocal GRID = 11\n-- Red to violet, stopping short of the wrap back round to red.\nlocal SPAN = 5 / 6\n\n-- Each face lays the spectrum out in its own pattern, s and t running -1 to 1 across it.\nlocal faces = {\n\t{n = { 1, 0, 0}, u = {0, 1, 0}, v = {0, 0, 1}, hue = function(s, t) return (s + 1) / 2 * SPAN end},\n\t{n = {-1, 0, 0}, u = {0, 0, 1}, v = {0, 1, 0}, hue = function(s, t) return (s + t + 2) / 4 * SPAN end},\n\t{n = { 0, 1, 0}, u = {0, 0, 1}, v = {1, 0, 0}, hue = function(s, t) return math.sqrt(s * s + t * t) / math.sqrt(2) * SPAN end},\n\t{n = { 0,-1, 0}, u = {1, 0, 0}, v = {0, 0, 1}, hue = function(s, t) return math.abs(math.atan(t, s)) / math.pi * SPAN end},\n\t{n = { 0, 0, 1}, u = {1, 0, 0}, v = {0, 1, 0}, hue = function(s, t) return (1 - (math.abs(s) + math.abs(t)) / 2) * SPAN end},\n\t{n = { 0, 0,-1}, u = {0, 1, 0}, v = {1, 0, 0}, hue = function(s, t) return math.abs(t) * SPAN end}\n}\n\nlocal function hsvToRgb(h, sat, val)\n\tlocal chroma = val * sat\n\tlocal huePrime = (h % 1) * 6\n\tlocal x = chroma * (1 - math.abs((huePrime % 2) - 1))\n\tlocal m = val - chroma\n\tlocal r, g, b\n\tif huePrime < 1 then r, g, b = chroma, x, 0\n\telseif huePrime < 2 then r, g, b = x, chroma, 0\n\telseif huePrime < 3 then r, g, b = 0, chroma, x\n\telseif huePrime < 4 then r, g, b = 0, x, chroma\n\telseif huePrime < 5 then r, g, b = x, 0, chroma\n\telse r, g, b = chroma, 0, x end\n\treturn {(r + m) * 255, (g + m) * 255, (b + m) * 255, 255}\nend\n\n-- Walked so that u x v = n, which winds each face counter-clockwise seen from outside.\nlocal function corner(f, s, t)\n\tlocal p = {}\n\tfor i = 1, 3 do p[i] = half * (f.n[i] + s * f.u[i] + t * f.v[i]) end\n\treturn Vertex{posn = p, colour = hsvToRgb(f.hue(s, t), 0.9, 1.0), normal = f.n}\nend\n\nfunction init()\n\tfor _, f in ipairs(faces) do\n\t\t-- A grid rather than one quad, so the colour follows the pattern rather than blending straight across.\n\t\tfor i = 0, GRID - 1 do\n\t\t\tlocal s0, s1 = -1 + 2 * i / GRID, -1 + 2 * (i + 1) / GRID\n\t\t\tfor j = 0, GRID - 1 do\n\t\t\t\tlocal t0, t1 = -1 + 2 * j / GRID, -1 + 2 * (j + 1) / GRID\n\t\t\t\tlocal a, b, c, d = corner(f, s0, t0), corner(f, s1, t0), corner(f, s1, t1), corner(f, s0, t1)\n\t\t\t\taddVertexes({a, b, c, a, c, d})\n\t\t\tend\n\t\tend\n\tend\nend",
+			"pokeScript": "if POKE_TYPE == \"HIT\" then emitAction(ActionType.ANIMATE, {animating = false}) trigger(\"seedBuilder\") end",
+			"edges": [
+				{
+					"toNodeName": "rootTransform",
+					"actionFlags": [
+						"SCENE_GRAPH_ACTION",
+						"SCENE_STROBE_GRAPH_ACTION"
+					]
+				},
+				{
+					"toNodeName": "seedBuilder",
+					"actionFlags": [
+						"TRIGGER_GRAPH_ACTION"
+					]
+				},
+				{
+					"toNodeName": "cubeSpin",
+					"actionFlags": [
+						"ANIMATE_GRAPH_ACTION"
+					]
+				}
+			]
+		},
+		{
+			"type": "BuilderScriptNode",
+			"name": "seedBuilder",
+			"coreScript": "-- Flower 1 of gardenHive.json, script for script. Petals differ only in hue.\nlocal BODY_CORE = [==[function init() local radius = 0.900000 local latSeg = 10 local lonSeg = 20 local apexR, apexG, apexB = 255, 216.75, 51 local rimR, rimG, rimB = 76.5, 127.5, 38.25 local function ringVertex(latIndex, lonIndex, nx, ny, nz) local latFraction = latIndex / latSeg local phi = latFraction * (math.pi / 2) local y = radius * math.sin(phi) local r = radius * math.cos(phi) local cR = rimR + (apexR - rimR) * latFraction local cG = rimG + (apexG - rimG) * latFraction local cB = rimB + (apexB - rimB) * latFraction local theta = (lonIndex / lonSeg) * (2 * math.pi) local x = r * math.cos(theta) local z = r * math.sin(theta) if not nx then nx, ny, nz = x / radius, y / radius, z / radius end return Vertex{posn = {x, y, z}, colour = {cR, cG, cB, 255}, texCoords = {lonIndex / lonSeg, latFraction}, normal = {nx, ny, nz}} end local function ring(latIndex) local verts = {} for lon = 0, lonSeg do verts[lon + 1] = ringVertex(latIndex, lon) end return verts end local prevRing = ring(0) for lat = 1, latSeg do local currRing = ring(lat) for lon = 1, lonSeg do local bottomLeft, bottomRight = prevRing[lon], prevRing[lon + 1] local topLeft, topRight = currRing[lon], currRing[lon + 1] addVertex(bottomLeft); addVertex(bottomRight); addVertex(topRight) addVertex(bottomLeft); addVertex(topRight); addVertex(topLeft) end prevRing = currRing end for lon = 0, lonSeg - 1 do local centre = Vertex{posn = {0, 0, 0}, colour = {rimR, rimG, rimB, 255}, texCoords = {0.5, 0.5}, normal = {0, -1, 0}} local flatA = ringVertex(0, lon, 0, -1, 0) local flatB = ringVertex(0, lon + 1, 0, -1, 0) addVertex(centre); addVertex(flatB); addVertex(flatA) end local haloInner, haloOuter, haloSeg, haloY = 1.05, 1.65, 48, 0.05 local haloR, haloG, haloB, haloA = 18, 90, 135, 80 local function haloVertex(seg, rad) local a = (seg / haloSeg) * 2 * math.pi return Vertex{posn = {rad * math.cos(a), haloY, rad * math.sin(a)}, colour = {haloR, haloG, haloB, haloA}, texCoords = {seg / haloSeg, 0}, normal = {0, 1, 0}} end local halo = {} for seg = 0, haloSeg - 1 do local i0 = haloVertex(seg, haloInner) local i1 = haloVertex(seg + 1, haloInner) local o0 = haloVertex(seg, haloOuter) local o1 = haloVertex(seg + 1, haloOuter) halo[#halo + 1] = i0; halo[#halo + 1] = o0; halo[#halo + 1] = o1; halo[#halo + 1] = i0; halo[#halo + 1] = o1; halo[#halo + 1] = i1 end addVertexes(halo, VertexVisibility.HOVERED_OVER) end]==]\nlocal BODY_POKE = [==[if POKE_TYPE == \"HIT\" then setAnimating(not getAnimating(), true) end]==]\nlocal TILT_CORE = [==[function invoke() if getStrobe() and getAnimating() then local t = getTransform(); local angle = math.atan(t[2], t[1]); step = step or 0.0056; local maxTilt = 1.5; if opening then angle = angle - step; if angle <= 0 then angle = 0; opening = false; end else angle = angle + step; if angle >= maxTilt then angle = maxTilt; opening = true; end end local c = math.cos(angle); local s = math.sin(angle); t[1] = c; t[2] = s; t[5] = -s; t[6] = c; setTransform(t);end end]==]\nlocal PETAL_TAIL = [==[ local length, maxHalfWidth, segments = 2.2, 0.45, 10 local function hsvToRgb(h, sat, val) local chroma = val * sat local huePrime = h * 6 local x = chroma * (1 - math.abs((huePrime % 2) - 1)) local m = val - chroma local rp, gp, bp if huePrime < 1 then rp, gp, bp = chroma, x, 0 elseif huePrime < 2 then rp, gp, bp = x, chroma, 0 elseif huePrime < 3 then rp, gp, bp = 0, chroma, x elseif huePrime < 4 then rp, gp, bp = 0, x, chroma elseif huePrime < 5 then rp, gp, bp = x, 0, chroma else rp, gp, bp = chroma, 0, x end return (rp + m) * 255, (gp + m) * 255, (bp + m) * 255 end local baseR, baseG, baseB = hsvToRgb(hue, 0.85, 0.95) local tipR, tipG, tipB = hsvToRgb(hue, 0.25, 1.0) local prevLeft, prevRight for i = 0, segments do local t = i / segments local x = t * length local halfWidth = maxHalfWidth * math.sin(math.pi * t) local cR = baseR + (tipR - baseR) * t local cG = baseG + (tipG - baseG) * t local cB = baseB + (tipB - baseB) * t local left = Vertex{posn = {x, 0, halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 0}, normal = {0, 1, 0}} local right = Vertex{posn = {x, 0, -halfWidth}, colour = {cR, cG, cB, 255}, texCoords = {t, 1}, normal = {0, 1, 0}} if i > 0 then addVertex(prevLeft); addVertex(prevRight); addVertex(right) addVertex(prevLeft); addVertex(right); addVertex(left) end prevLeft, prevRight = left, right end end]==]\nlocal TILT_TRANSFORM = {0.900447, 0.434966, 0, 0, -0.434966, 0.900447, 0, 0, 0, 0, 1, 0, 0.9, 0, 0, 1}\n\nlocal FLOWER_COUNT = 6\nlocal PETAL_COUNT = 7\nlocal RING_RADIUS = 7.0\nlocal PLACE_ONLY_SCENE = {actionFlags = {ActionFlag.SCENE_GRAPH_ACTION, ActionFlag.SCENE_STROBE_GRAPH_ACTION}}\n\nlocal function must(ok, reason)\n\tif not ok then error(reason) end\nend\n\n-- A turn about Y, with local X carried to (cos a, 0, -sin a).\nlocal function yTurn(angle, tx, tz)\n\tlocal c, s = math.cos(angle), math.sin(angle)\n\treturn {c, 0, -s, 0, 0, 1, 0, 0, s, 0, c, 0, tx, 0, tz, 1}\nend\n\nlocal function buildFlower(k)\n\tlocal f = \"flower\" .. k\n\tlocal hub = f .. \"Hub\"\n\tlocal angle = (k - 1) * 2 * math.pi / FLOWER_COUNT\n\n\t-- Placed off the root frame rather than the cube's, so the flowers stay put while the cube turns.\n\tmust(createSceneTransformNode{name = f .. \"Place\",\n\t\ttransform = yTurn(angle, RING_RADIUS * math.cos(angle), -RING_RADIUS * math.sin(angle))})\n\tmust(createSceneGeometryScriptNode{name = f .. \"Body\", pokeEnabled = true,\n\t\tcoreScript = BODY_CORE, pokeScript = BODY_POKE})\n\tmust(createSceneTransformNode{name = hub, transform = yTurn(0, 0, 0)})\n\n\tmust(createEdge(\"rootTransform\", f .. \"Place\"))\n\tmust(createEdge(f .. \"Place\", f .. \"Body\"))\n\tmust(createEdge(f .. \"Body\", hub))\n\n\tfor p = 0, PETAL_COUNT - 1 do\n\t\tlocal tilt, petal = f .. \"Tilt\" .. p, f .. \"Petal\" .. p\n\t\tmust(createSceneTransformScriptNode{name = tilt, transform = TILT_TRANSFORM, coreScript = TILT_CORE})\n\t\tmust(createSceneGeometryScriptNode{name = petal,\n\t\t\tcoreScript = \"function init() local hue = \" .. string.format(\"%.6f\", p / PETAL_COUNT) .. PETAL_TAIL})\n\n\t\tif p == 0 then\n\t\t\tmust(createEdge(hub, tilt))\n\t\telse\n\t\t\tlocal spoke = f .. \"Spoke\" .. p\n\t\t\tmust(createSceneTransformNode{name = spoke, transform = yTurn(p * 2 * math.pi / PETAL_COUNT, 0, 0)})\n\t\t\tmust(createEdge(hub, spoke))\n\t\t\tmust(createEdge(spoke, tilt))\n\t\tend\n\n\t\tmust(createEdge(tilt, petal))\n\n\t\t-- The last petal returns to the root frame for the next flower, but only for scene work: an animate\n\t\t-- action sent into this flower ends here instead of running on into the next one.\n\t\tif p < PETAL_COUNT - 1 then\n\t\t\tmust(createEdge(petal, hub))\n\t\telse\n\t\t\tmust(createEdge(petal, \"rootTransform\", PLACE_ONLY_SCENE))\n\t\tend\n\tend\n\n\tmust(createEdge(getSelfName(), f .. \"Body\", {actionFlags = {ActionFlag.ANIMATE_GRAPH_ACTION}, traversalKey = k}))\nend\n\nfunction init()\n\tfor k = 1, FLOWER_COUNT do buildFlower(k) end\n\n\t-- Set each new flower opening and closing straight away, rather than waiting for it to be poked.\n\tfor k = 1, FLOWER_COUNT do emitAction(ActionType.ANIMATE, {animating = true}, {k}) end\nend",
+			"pokeScript": ""
+		}
+	],
+	"strobeEmitters": [
+		{
+			"nodeName": "root",
+			"periodMs": 40
+		}
+	],
+	"surfaces": [
+		{
+			"type": "GraphHiveSceneSurface",
+			"name": "seed",
+			"sceneRootNodeName": "root",
+			"initialFocusNodeName": "cube",
+			"focusViewportFraction": 0.12,
+			"default": true
+		},
+		{
+			"type": "GraphHiveGraphViewSurface",
+			"name": "structure",
+			"default": true
+		}
+	],
+	"strobeSurfaces": [
+		{
+			"surfaceName": "seed",
+			"periodMs": 40
+		},
+		{
+			"surfaceName": "structure",
+			"periodMs": 250
+		}
+	]
+}
