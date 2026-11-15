@@ -167,6 +167,24 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 
 		void _poked(GraphPoke poke) override;
 
+		/**
+		 * Hook called as a session on one of this node's states ends, while that session still holds the
+		 * state's lock, so no other session on the same state can have started yet.
+		 * @param poke True if the session was on the poke state, false if on the core state.
+		 * @note Called from a session's destructor, so an override must not throw.
+		 * @note Default implementation does nothing.
+		 */
+		virtual void _sessionEnding(bool poke);
+
+		/**
+		 * Get whether a Lua state, or a coroutine running within it, is this node's poke state rather than its
+		 * core state. Lets a binding registered into both states by _registerCoreGlobals() tell them apart.
+		 * @param luaState Lua state to test.
+		 * @returns True if it is, or runs within, the poke state.
+		 * @note Leaves the stack as it found it.
+		 */
+		bool _isPokeState(lua_State* luaState);
+
     private:
 
 		/**

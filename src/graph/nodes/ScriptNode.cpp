@@ -491,8 +491,27 @@ bool ScriptNode::__callOptionalGlobal(lua_State* luaState, const char* name)
 	return false;
 }
 
+void ScriptNode::_sessionEnding(bool)
+{
+}
+
+bool ScriptNode::_isPokeState(lua_State* luaState)
+{
+	// A binding called from within a coroutine is handed that coroutine's thread rather than the state it was
+	// created in, so the comparison is made against the main thread, which is the state itself.
+	lua_rawgeti(luaState, LUA_REGISTRYINDEX, LUA_RIDX_MAINTHREAD); // [..., mainThread]
+	lua_State* mainThread = lua_tothread(luaState, -1);
+	lua_pop(luaState, 1); // [...]
+
+	return mainThread == _pokeLuaState;
+}
+
 void ScriptNode::__releaseState(bool poke)
 {
+	// Called before the lock is released, so whatever the hook decides about the session that is ending is in
+	// place before another session on the same state can begin.
+	_sessionEnding(poke);
+
 	try
 	{
 		if(poke) _pokeLock.unlock();

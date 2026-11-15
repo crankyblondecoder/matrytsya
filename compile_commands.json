@@ -102,6 +102,23 @@
     "output": "HiveBuilder.o"
   },
   {
+    "file": "../../src/persist/PersistException.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "PersistException.o",
+      "../../src/persist/PersistException.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "PersistException.o"
+  },
+  {
     "file": "../../src/persist/json/JsonHarnessLoader.cpp",
     "arguments": [
       "/usr/bin/g++",
@@ -236,6 +253,23 @@
     ],
     "directory": "/data/devel/matrytsya/build/debug",
     "output": "GraphHiveCollection.o"
+  },
+  {
+    "file": "../../src/graph/GraphHiveGraphViewSurface.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphHiveGraphViewSurface.o",
+      "../../src/graph/GraphHiveGraphViewSurface.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphHiveGraphViewSurface.o"
   },
   {
     "file": "../../src/graph/GraphHiveSceneSurface.cpp",
@@ -544,6 +578,23 @@
     "output": "actions/SerialisableAction.o"
   },
   {
+    "file": "../../src/graph/actions/TextVisibleAction.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "actions/TextVisibleAction.o",
+      "../../src/graph/actions/TextVisibleAction.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "actions/TextVisibleAction.o"
+  },
+  {
     "file": "../../src/graph/actions/SerialisableActionPayload.cpp",
     "arguments": [
       "/usr/bin/g++",
@@ -627,6 +678,23 @@
     ],
     "directory": "/data/devel/matrytsya/build/debug",
     "output": "nodes/AgentNode.o"
+  },
+  {
+    "file": "../../src/graph/nodes/BuilderScriptNode.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "nodes/BuilderScriptNode.o",
+      "../../src/graph/nodes/BuilderScriptNode.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "nodes/BuilderScriptNode.o"
   },
   {
     "file": "../../src/graph/nodes/AnimateScriptNode.cpp",
@@ -729,6 +797,40 @@
     ],
     "directory": "/data/devel/matrytsya/build/debug",
     "output": "nodes/SceneRootNode.o"
+  },
+  {
+    "file": "../../src/graph/nodes/SceneText.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "nodes/SceneText.o",
+      "../../src/graph/nodes/SceneText.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "nodes/SceneText.o"
+  },
+  {
+    "file": "../../src/graph/nodes/SceneTextScriptNode.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "nodes/SceneTextScriptNode.o",
+      "../../src/graph/nodes/SceneTextScriptNode.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "nodes/SceneTextScriptNode.o"
   },
   {
     "file": "../../src/graph/nodes/SceneTransform.cpp",
@@ -1122,6 +1224,40 @@
     "output": "OllamaModelProvider.o"
   },
   {
+    "file": "../../src/agent/OpenRouterModel.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "OpenRouterModel.o",
+      "../../src/agent/OpenRouterModel.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "OpenRouterModel.o"
+  },
+  {
+    "file": "../../src/agent/OpenRouterModelProvider.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "OpenRouterModelProvider.o",
+      "../../src/agent/OpenRouterModelProvider.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "OpenRouterModelProvider.o"
+  },
+  {
     "file": "../../src/agent/modelToolJson.cpp",
     "arguments": [
       "/usr/bin/g++",
@@ -1377,6 +1513,23 @@
     "output": "GraphHiveSceneSurfaceWebglMap.o"
   },
   {
+    "file": "../../src/display/GraphHiveGraphViewSurfaceWebglMap.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphHiveGraphViewSurfaceWebglMap.o",
+      "../../src/display/GraphHiveGraphViewSurfaceWebglMap.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphHiveGraphViewSurfaceWebglMap.o"
+  },
+  {
     "file": "../../src/display/GraphHiveSurfaceMap.cpp",
     "arguments": [
       "/usr/bin/g++",
@@ -1411,6 +1564,23 @@
     "output": "GraphHiveSurfaceHttpMap.o"
   },
   {
+    "file": "../../src/display/GraphHiveSurfaceHtmlMap.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "GraphHiveSurfaceHtmlMap.o",
+      "../../src/display/GraphHiveSurfaceHtmlMap.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "GraphHiveSurfaceHtmlMap.o"
+  },
+  {
     "file": "../../src/display/chatWindowTemplate.cpp",
     "arguments": [
       "/usr/bin/g++",
@@ -1426,6 +1596,23 @@
     ],
     "directory": "/data/devel/matrytsya/build/debug",
     "output": "chatWindowTemplate.o"
+  },
+  {
+    "file": "../../src/display/displayJson.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "displayJson.o",
+      "../../src/display/displayJson.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "displayJson.o"
   },
   {
     "file": "../../src/display/hiveIndexPageTemplate.cpp",
@@ -1460,6 +1647,23 @@
     ],
     "directory": "/data/devel/matrytsya/build/debug",
     "output": "webglPageTemplate.o"
+  },
+  {
+    "file": "../../src/display/graphViewPageTemplate.cpp",
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-std=c++20",
+      "-O0",
+      "-g",
+      "-pthread",
+      "-c",
+      "-o",
+      "graphViewPageTemplate.o",
+      "../../src/display/graphViewPageTemplate.cpp"
+    ],
+    "directory": "/data/devel/matrytsya/build/debug",
+    "output": "graphViewPageTemplate.o"
   },
   {
     "file": "../../src/display/http/HttpRequest.cpp",
@@ -1554,7 +1758,7 @@
       "-O3",
       "-pthread",
       "-DMG_ARCH=MG_ARCH_UNIX",
-      "-DMG_TLS=MG_TLS_BUILTIN",
+      "-DMG_TLS=MG_TLS_OPENSSL",
       "-c",
       "-o",
       "mongoose.o",

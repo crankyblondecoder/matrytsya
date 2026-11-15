@@ -228,8 +228,8 @@ led to it, so a tool can tell one call apart from the next.
 
 ## Bindings on every Lua-scripted node
 
-Available to `SceneGeometryScriptNode`, `SceneTransformScriptNode`, `SceneTextScriptNode` and `TriggerNode`, in
-both the core and poke states.
+Available to `SceneGeometryScriptNode`, `SceneTransformScriptNode`, `SceneTextScriptNode`, `TriggerNode` and
+`BuilderScriptNode`, in both the core and poke states.
 
 | Function | Description |
 |---|---|
@@ -297,8 +297,9 @@ it is invoked or in response to being poked.
 A trigger action does two things at the nodes it reaches, and both obey the restrictions above:
 
 - **Triggering.** A node is triggered only if it is a trigger target. Of the node types documented below,
-  only `AgentNode` is one: a trigger reaching it makes it emit its prompts as an agent action, unless its
-  `autoTriggerAgentAction` is set false. No other node type is triggered by one.
+  only two are. A trigger reaching an `AgentNode` makes it emit its prompts as an agent action, unless its
+  `autoTriggerAgentAction` is set false. A trigger reaching a `BuilderScriptNode` runs its `coreScript`. No
+  other node type is triggered by one.
 - **Teleporting.** A trigger action is also a serialisable action, so a `TeleportNode` it reaches forwards it
   to that node's `destination`, where it carries on traversing the hive it lands in. This is how a trigger
   crosses from one hive to another.
@@ -505,3 +506,124 @@ applied back to this node. See [modelTools.md](modelTools.md) for the tool's exa
 an unrestricted trigger action of its own once `pokeScript` has returned, unless `emitTriggerOnPoke` is set
 false. The script runs first either way, so anything it leaves behind is already in place before that
 trigger reaches the rest of the graph.
+
+## `BuilderScriptNode`
+
+Has a `scriptSource`. It takes no part in a scene and supports neither strobe flag, so a strobe never reaches
+its script. Its `coreScript` runs in two ways:
+
+- **A trigger action reaching it.** It is a trigger target, so building can be set off by another node's
+  script calling `trigger()` or `emitAction(ActionType.TRIGGER, …)`, by poking a `TriggerNode`, by a model's
+  `emitTrigger` tool, or by a trigger arriving from another hive through a `TeleportNode`. Restrict the
+  trigger to the builder's name, or to `NodeType.BUILDER_SCRIPT_NODE`, to fire it and nothing else. Each
+  trigger runs the script in a session of its own.
+- **A script action reaching it.**
+
+An `init()` runs on the first of these to reach it, not at hive start. A poke runs `pokeScript` and nothing
+more. An agent action reaching it offers the model `emitTrigger`, plus any tools the `coreScript` declares.
+
+What it adds are the bindings below, in both the core and poke states. With them a script can grow the hive
+it is running in: create new nodes, wire them to each other and to nodes that were already there, and look
+the hive up to find those nodes.
+
+### Creating nodes
+
+There is one binding per concrete node type, each taking one table of named fields. The fields are the ones
+that type takes in a hive definition, under the same names; see [hiveSchema.json](hiveSchema.json) and
+[nodeTypes.md](nodeTypes.md). Every table takes `name`, which is required and must not already be used in
+the hive, and `pokeEnabled`, which defaults to `false`. A builder cannot create another builder, so there is
+no `createBuilderScriptNode`.
+
+| Function | Fields besides `name` and `pokeEnabled` |
+|---|---|
+| `createPingNode{...}` | None. |
+| `createTeleportNode{...}` | `destination = {hiveName, nodeName, [hostname], [port]}`, required. `hostname` defaults to `"localhost"` and `port` to `0`. |
+| `createSceneRootNode{...}` | `strobePeriodMs`, an optional positive integer. If given, the new root is registered as a strobe emitter at that period. A new root has no surface showing it, so it is mostly of use as the root of a scene another hive's surface is pointed at later. |
+| `createSceneGeometryNode{...}` | `emitAgentAffectAction`; `vertexGroups = {{[visibility], vertexes = {vertex, ...}}, ...}`, where `visibility` is a `VertexVisibility` constant (default `ALWAYS`) and each vertex is `{posn = {x, y, z}, [colour = {r, g, b, a}], [texCoords = {u, v}], [normal = {x, y, z}]}`. A group with no vertexes is dropped. |
+| `createSceneGeometryScriptNode{...}` | As `createSceneGeometryNode`, plus `coreScript` and `pokeScript`. |
+| `createSceneTransformNode{...}` | `emitAgentAffectAction`; `transform`, an array of 16 numbers. |
+| `createSceneTransformScriptNode{...}` | As `createSceneTransformNode`, plus `coreScript` and `pokeScript`. |
+| `createSceneTextScriptNode{...}` | `coreScript`, `pokeScript`, `text`, `textPosition`, `textHeight`, `textColour`, `textBackground` (the table [`setTextBackground()`](#scenetextscriptnode) takes), `textVisible`. |
+| `createAgentNode{...}` | `capability`, one of `"LOW"`, `"MEDIUM"` or `"HIGH"` and required; `prompts = {{nodeType, prompt, [nodeIdentifier], [terminateOnResponse]}, ...}`, required and not empty, where `nodeType` is a `NodeType` constant; `autoTriggerAgentAction`; `serialiseEmittedActions`. |
+| `createTriggerNode{...}` | `coreScript`, `pokeScript`, `emitTriggerOnPoke`. |
+
+`coreScript` and `pokeScript` default to an empty string here, unlike in a hive definition, where both are
+required. Every other field defaults as it does in a hive definition.
+
+A new node starts out with no edges, so nothing reaches it until it is wired in with `createEdge()`.
+
+### Creating edges
+
+`createEdge(fromName, toName, [options])` creates an edge directed from one named node to another. Either end
+may be any node in the hive: one the script just created, one that was already there, or the builder
+itself. `options` is an optional table of the same fields a hive definition's edge takes:
+
+| Field | Meaning |
+|---|---|
+| `actionFlags` | Array of `ActionFlag` constants restricting which actions may cross the edge. Leave it out for no restriction. |
+| `traversalKey` | Integer from 0 to 4294967295. If non-zero, only an action holding this key may cross. |
+| `actionsCompleteAfterTraverse` | Boolean. Whether an action completes once it has crossed. |
+
+`ActionFlag` is a global table of constants named as a hive definition names them: `PING_GRAPH_ACTION`,
+`SERIALISABLE_GRAPH_ACTION`, `SCRIPT_GRAPH_ACTION`, `SCENE_GRAPH_ACTION`, `SCENE_STROBE_GRAPH_ACTION`,
+`ANIMATE_GRAPH_ACTION`, `AGENT_GRAPH_ACTION`, `TRIGGER_GRAPH_ACTION`, `AGENT_AFFECT_GRAPH_ACTION` and
+`TEXT_VISIBLE_GRAPH_ACTION`. `VertexVisibility` is registered alongside it, with the same constants a
+`SceneGeometryScriptNode` has.
+
+### Looking up the hive
+
+| Function | Returns |
+|---|---|
+| `getHiveName()` | The name of the builder's hive, or `nil` if it is in none. |
+| `getSelfName()` | The builder's own name. |
+| `getNodeNames()` | An array of the name of every node in the hive. |
+| `nodeExists(name)` | Whether a node of that name is in the hive. |
+| `getNodeInfo(name)` | `{id, name, type, edges = {{toNodeName, toNodeId, actionFlags}, ...}}` for the named node, or `nil` if there is none. `type` is a `NodeType` constant and `actionFlags` an array of `ActionFlag` constants. |
+| `getNodesOfType(nodeType)` | An array of the name of every node of that `NodeType` in the hive. |
+
+Each call reads the hive as it is at that moment. Another script, or another builder, may change the hive
+between one call and the next.
+
+### Building once
+
+A builder's `buildOnce` field defaults to `true`, and then the node builds once only. The first script
+session to call a create binding or `createEdge()` is the build. A session is one core script run (one per trigger), one poke,
+or one call of a script defined tool. That session may go on creating nodes and edges until it ends. After
+that, every call to a create binding or to `createEdge()`, from either script, returns `false` and a reason
+instead of building the same nodes and edges again.
+
+A session that only uses the lookup bindings does not use the build up. Nor does a call that raises for a
+malformed argument. A session whose build failed partway through, for example on a name already in use,
+does use it up. With `buildOnce` set to `false`, every session may build.
+
+### Failures
+
+Every create binding and `createEdge()` returns `true` on success. A failure takes one of two forms:
+
+- **A malformed argument raises an error**, and nothing is created. This covers a field the binding does not
+  take, a missing required field, a value of the wrong type, and a value that is not one of the constants it
+  should be. A `nodeType`, a `VertexVisibility` or an `ActionFlag` must be one of those constants.
+- **Anything the hive cannot take as it stands returns `false` and a reason**, instead of raising. This
+  covers a name already in use, an edge endpoint that does not exist, a node with all 32 edge slots used, a
+  builder that is not in a hive, and a builder whose one build has been used up. These depend on the state of the hive rather than on the script, so a
+  script can check for them and react.
+
+```lua
+-- coreScript: hang a new marker under an existing transform the first time this builder runs.
+function init()
+	if nodeExists("marker") then return end
+
+	local ok, reason = createSceneGeometryNode{
+		name = "marker",
+		vertexGroups = {{ vertexes = {
+			{ posn = {0, 0, 0}, colour = {255, 0, 0, 255} },
+			{ posn = {1, 0, 0}, colour = {255, 0, 0, 255} },
+			{ posn = {0, 1, 0}, colour = {255, 0, 0, 255} } } }}
+	}
+
+	if ok then
+		ok, reason = createEdge("flowerTransform", "marker",
+			{ actionFlags = { ActionFlag.SCENE_GRAPH_ACTION, ActionFlag.SCENE_STROBE_GRAPH_ACTION } })
+	end
+end
+```

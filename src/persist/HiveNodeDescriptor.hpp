@@ -80,7 +80,8 @@ struct HiveNodeDescriptor
 		SCENE_TRANSFORM_SCRIPT,
 		AGENT,
 		TRIGGER,
-		SCENE_TEXT_SCRIPT
+		SCENE_TEXT_SCRIPT,
+		BUILDER_SCRIPT
 	};
 
 	/// Concrete node type this descriptor describes.
@@ -133,6 +134,9 @@ struct HiveNodeDescriptor
 
 	/// Whether poking a TriggerNode emits a trigger action of its own. Only meaningful when type == TRIGGER.
 	bool emitTriggerOnPoke = true;
+
+	/// Whether a BuilderScriptNode builds once only. Only meaningful when type == BUILDER_SCRIPT.
+	bool buildOnce = true;
 
 	/// Text a SceneTextScriptNode displays. Only meaningful when type == SCENE_TEXT_SCRIPT.
 	std::string text;

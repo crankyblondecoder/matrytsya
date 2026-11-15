@@ -82,6 +82,7 @@ const char* PersistException::getErrorDescription(Error error)
 		case JSON_INVALID_AGENT_SERIALISE_ACTIONS:
 			return "an agent node's \"serialiseEmittedActions\" is not a boolean";
 		case JSON_INVALID_TRIGGER_EMIT_ON_POKE: return "a trigger node's \"emitTriggerOnPoke\" is not a boolean";
+		case JSON_INVALID_BUILDER_BUILD_ONCE: return "a builder script node's \"buildOnce\" is not a boolean";
 		case JSON_INVALID_TEXT: return "a scene text node's \"text\" is not a string";
 		case JSON_INVALID_TEXT_POSITION: return "a scene text node's \"textPosition\" is not an array of 3 numbers";
 		case JSON_INVALID_TEXT_HEIGHT: return "a scene text node's \"textHeight\" is not a number greater than 0";

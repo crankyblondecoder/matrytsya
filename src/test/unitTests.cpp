@@ -12,6 +12,7 @@
 #include "./graph/nodes/ScriptToolBindingsUnitTest.hpp"
 #include "./graph/nodes/SceneTextScriptNodeUnitTest.hpp"
 #include "./graph/nodes/TriggerNodeUnitTest.hpp"
+#include "./graph/nodes/BuilderScriptNodeUnitTest.hpp"
 #include "./persist/HiveBuilderUnitTest.hpp"
 #include "./persist/json/JsonHiveLoaderUnitTest.hpp"
 #include "./persist/json/JsonHarnessLoaderUnitTest.hpp"

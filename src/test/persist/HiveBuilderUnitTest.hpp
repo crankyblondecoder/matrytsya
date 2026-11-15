@@ -9,8 +9,10 @@
 #include "../../graph/GraphNode.hpp"
 #include "../../graph/actions/PingAction.hpp"
 #include "../../graph/nodes/AgentNode.hpp"
+#include "../../graph/nodes/BuilderScriptNode.hpp"
 #include "../../graph/nodes/PingNode.hpp"
 #include "../../graph/nodes/SceneRootNode.hpp"
+#include "../../graph/nodes/ScriptSession.hpp"
 #include "../../graph/nodes/TriggerNode.hpp"
 #include "../../persist/HiveBuilder.hpp"
 #include "../../persist/HiveLoader.hpp"
@@ -520,6 +522,72 @@ TEST(HiveBuilderTest, TriggerNodeDescriptor_BuildsWithAllFields)
 	TriggerNode* triggerNode = static_cast<TriggerNode*>(triggerHandle.getInstance());
 
 	EXPECT_FALSE(triggerNode -> getEmitTriggerOnPoke());
+
+	hive -> shutdown();
+}
+
+/**
+ * A builder script node descriptor builds into a BuilderScriptNode carrying its scripts.
+ */
+TEST(HiveBuilderTest, BuilderScriptNodeDescriptor_BuildsWithScripts)
+{
+	FakeHiveLoader loader;
+	loader.hiveName = "Hive";
+
+	HiveNodeDescriptor descriptor{};
+	descriptor.type = HiveNodeDescriptor::BUILDER_SCRIPT;
+	descriptor.name = "builder";
+	descriptor.coreScript = "CORE_RAN = true";
+	descriptor.pokeScript = "";
+
+	loader.nodes.push_back(descriptor);
+
+	GraphHive* hive = HiveBuilder::build(loader, 1);
+	Handle<GraphHive> hiveHandle(hive);
+
+	Handle<GraphNode> builderHandle = hive -> getNode("builder");
+
+	ASSERT_TRUE(builderHandle.isValid());
+	ASSERT_EQ(builderHandle.getInstance() -> getType(), GraphNodeType::BUILDER_SCRIPT_NODE);
+
+	BuilderScriptNode* builder = static_cast<BuilderScriptNode*>(builderHandle.getInstance());
+
+	EXPECT_TRUE(builder -> getBuildOnce()) << "buildOnce should default to true.";
+
+	{ Handle<ScriptSession> sessionHandle = builder -> requestCoreSession();
+
+		ASSERT_TRUE(sessionHandle.getInstance() -> run());
+
+		bool coreRan = false;
+		ASSERT_TRUE(sessionHandle.getInstance() -> getGlobal("CORE_RAN", coreRan));
+		EXPECT_TRUE(coreRan);
+	}
+
+	hive -> shutdown();
+}
+
+/**
+ * A builder script node descriptor with buildOnce cleared builds into a node that builds on every run.
+ */
+TEST(HiveBuilderTest, BuilderScriptNodeDescriptorWithoutBuildOnce_IsCarriedThrough)
+{
+	FakeHiveLoader loader;
+	loader.hiveName = "Hive";
+
+	HiveNodeDescriptor descriptor{};
+	descriptor.type = HiveNodeDescriptor::BUILDER_SCRIPT;
+	descriptor.name = "builder";
+	descriptor.buildOnce = false;
+
+	loader.nodes.push_back(descriptor);
+
+	GraphHive* hive = HiveBuilder::build(loader, 1);
+	Handle<GraphHive> hiveHandle(hive);
+
+	Handle<GraphNode> builderHandle = hive -> getNode("builder");
+
+	ASSERT_TRUE(builderHandle.isValid());
+	EXPECT_FALSE(static_cast<BuilderScriptNode*>(builderHandle.getInstance()) -> getBuildOnce());
 
 	hive -> shutdown();
 }

@@ -31,6 +31,7 @@ namespace
 			case GraphNodeType::AGENT_NODE: return "AGENT_NODE";
 			case GraphNodeType::TRIGGER_NODE: return "TRIGGER_NODE";
 			case GraphNodeType::SCENE_TEXT_SCRIPT_NODE: return "SCENE_TEXT_SCRIPT_NODE";
+			case GraphNodeType::BUILDER_SCRIPT_NODE: return "BUILDER_SCRIPT_NODE";
 		}
 
 		return "GRAPH_NODE";

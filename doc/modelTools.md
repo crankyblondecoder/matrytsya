@@ -35,6 +35,7 @@ reach back to an earlier one.
 | `SceneTransformScriptNode` | `getAnimating`, `setAnimating` |
 | `SceneTextScriptNode` | `getAnimating`, `setAnimating` |
 | `TriggerNode` | `emitTrigger` |
+| `BuilderScriptNode` | `emitTrigger` |
 | `PingNode`, `TeleportNode`, `SceneRootNode`, `SceneGeometryNode`, `SceneTransformNode`, `AgentNode` | None |
 
 A prompt may still match a node that offers no tools; the model is then simply asked to answer, with the
@@ -42,7 +43,7 @@ conversation carried forward as usual.
 
 ### Script defined tools
 
-The three node types above are the ones an agent action can reach, and each of them may offer more than the
+The scripted node types above are the ones an agent action can reach, and each of them may offer more than the
 fixed set listed for it. A `coreScript` that defines a `getToolCallBindings()` global declares tools of its
 own, which are added to whatever its node type already offers. These belong to the **node instance** rather
 than to the node type: two nodes of the same type running different scripts offer the model different tools,

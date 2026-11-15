@@ -716,6 +716,69 @@ TEST(JsonHiveLoaderTest, TriggerNodeOmittingEmitOnPoke_ParsesScriptsAndDefaultsT
 }
 
 /**
+ * A BuilderScriptNode is a script type, so its scripts are parsed like any other script node's.
+ */
+TEST(JsonHiveLoaderTest, BuilderScriptNode_ParsesScripts)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [
+			{ "type": "BuilderScriptNode", "name": "b1", "coreScript": "core", "pokeScript": "poke" }
+		]
+	})";
+
+	JsonHiveLoader loader(json);
+
+	HiveNodeDescriptor descriptor = loader.getNode(0);
+
+	EXPECT_EQ(descriptor.type, HiveNodeDescriptor::BUILDER_SCRIPT);
+	EXPECT_EQ(descriptor.coreScript, "core");
+	EXPECT_EQ(descriptor.pokeScript, "poke");
+	EXPECT_TRUE(descriptor.buildOnce) << "buildOnce should default to true, per the schema.";
+}
+
+/**
+ * A BuilderScriptNode's "buildOnce" is carried through when supplied, and must be a boolean.
+ */
+TEST(JsonHiveLoaderTest, BuilderScriptNodeBuildOnce_IsParsedAndChecked)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [
+			{ "type": "BuilderScriptNode", "name": "b1", "coreScript": "", "pokeScript": "", "buildOnce": false }
+		]
+	})";
+
+	JsonHiveLoader loader(json);
+
+	EXPECT_FALSE(loader.getNode(0).buildOnce);
+
+	std::string badJson = R"({
+		"name": "Hive",
+		"nodes": [
+			{ "type": "BuilderScriptNode", "name": "b1", "coreScript": "", "pokeScript": "", "buildOnce": "no" }
+		]
+	})";
+
+	EXPECT_THROW(JsonHiveLoader badLoader(badJson), PersistException);
+}
+
+/**
+ * A BuilderScriptNode missing its required "pokeScript" is rejected, the same as any other script node.
+ */
+TEST(JsonHiveLoaderTest, BuilderScriptNodeMissingPokeScript_ThrowsJsonInvalidScriptSource)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [
+			{ "type": "BuilderScriptNode", "name": "b1", "coreScript": "" }
+		]
+	})";
+
+	EXPECT_THROW(JsonHiveLoader loader(json), PersistException);
+}
+
+/**
  * A TriggerNode's "emitTriggerOnPoke" is carried through when supplied.
  */
 TEST(JsonHiveLoaderTest, TriggerNodeEmitOnPokeFalse_IsParsed)

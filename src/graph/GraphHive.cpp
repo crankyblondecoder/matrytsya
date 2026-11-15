@@ -646,6 +646,93 @@ void GraphHive::addNode(GraphNode* node)
 	node -> decrRef();
 }
 
+bool GraphHive::addUniquelyNamedNode(GraphNode* node)
+{
+	// Increment the ref to the node so that shutdown can't delete it pre-maturely.
+	if(!node -> incrRef()) return false;
+
+	std::string name = node -> getName();
+
+	int addedIndex = -1;
+
+	if(!name.empty())
+	{
+		{ SYNC(_lock)
+
+			if(_active)
+			{
+				bool nameTaken = false;
+				int freeIndex = -1;
+
+				for(unsigned index = 0; index < _nodes.size(); index++)
+				{
+					if(!_nodes[index])
+					{
+						if(freeIndex == -1) freeIndex = index;
+					}
+					else if(_nodes[index] -> getName() == name)
+					{
+						nameTaken = true;
+						break;
+					}
+				}
+
+				if(!nameTaken)
+				{
+					if(freeIndex == -1)
+					{
+						// No spare slot available.
+						_nodes.push_back(node);
+
+						freeIndex = _nodes.size() - 1;
+					}
+					else
+					{
+						_nodes[freeIndex] = node;
+					}
+
+					addedIndex = freeIndex;
+
+					_bumpVersion();
+				}
+			}
+		}
+	}
+
+	bool removeInitRef = addedIndex == -1;
+
+	// Note: It is possible for shutdown to be invoked here on another thread.
+
+	if(addedIndex != -1)
+	{
+		// As in addNode(), a node that has been decoupled refuses to join.
+		bool accepted = node -> setHive(Handle<GraphHive>(this));
+
+		if(!accepted)
+		{
+			{ SYNC(_lock)
+
+				if(_active)
+				{
+					_nodes[addedIndex] = 0;
+					removeInitRef = true;
+
+					_bumpVersion();
+				}
+			}
+
+			addedIndex = -1;
+		}
+	}
+
+	if(removeInitRef) node -> decrRef();
+
+	// Remove the ref added at the beginning of this function.
+	node -> decrRef();
+
+	return addedIndex != -1;
+}
+
 void GraphHive::nodeEdgesChanged()
 {
 	_bumpVersion();

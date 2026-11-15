@@ -327,7 +327,8 @@ const char* const graphViewPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		TELEPORT_NODE: [0.94, 0.44, 0.76],
 		AGENT_NODE: [0.94, 0.42, 0.38],
 		TRIGGER_NODE: [0.32, 0.84, 0.84],
-		SCENE_TEXT_SCRIPT_NODE: [0.93, 0.88, 0.45]
+		SCENE_TEXT_SCRIPT_NODE: [0.93, 0.88, 0.45],
+		BUILDER_SCRIPT_NODE: [0.58, 0.44, 0.92]
 	};
 
 	/// What an edge that restricts nothing is drawn in. It lets every kind of action through rather than any

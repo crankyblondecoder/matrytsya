@@ -16,6 +16,7 @@
 #include "../graph/graphActionFlagRegister.hpp"
 #include "../graph/actions/AgentAction.hpp"
 #include "../graph/nodes/AgentNode.hpp"
+#include "../graph/nodes/BuilderScriptNode.hpp"
 #include "../graph/nodes/PingNode.hpp"
 #include "../graph/nodes/SceneGeometryNode.hpp"
 #include "../graph/nodes/SceneGeometryScriptNode.hpp"
@@ -336,6 +337,11 @@ GraphNode* HiveBuilder::__createNode(const HiveNodeDescriptor& descriptor)
 		case HiveNodeDescriptor::TRIGGER:
 		{
 			return new TriggerNode(descriptor.coreScript, descriptor.pokeScript, descriptor.emitTriggerOnPoke);
+		}
+
+		case HiveNodeDescriptor::BUILDER_SCRIPT:
+		{
+			return new BuilderScriptNode(descriptor.coreScript, descriptor.pokeScript, descriptor.buildOnce);
 		}
 
 		default:

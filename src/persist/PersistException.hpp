@@ -149,6 +149,8 @@ class PersistException : public Exception
 			JSON_INVALID_AGENT_SERIALISE_ACTIONS,
 			/// A TriggerNode's "emitTriggerOnPoke" member was present but not a boolean.
 			JSON_INVALID_TRIGGER_EMIT_ON_POKE,
+			/// A BuilderScriptNode's "buildOnce" member was present but not a boolean.
+			JSON_INVALID_BUILDER_BUILD_ONCE,
 			/// A SceneTextScriptNode's "text" member was present but not a string.
 			JSON_INVALID_TEXT,
 			/// A SceneTextScriptNode's "textPosition" member was present but not a 3 element numeric array.

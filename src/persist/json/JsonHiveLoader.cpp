@@ -24,6 +24,7 @@ namespace
 		if(type == "AgentNode") return HiveNodeDescriptor::AGENT;
 		if(type == "TriggerNode") return HiveNodeDescriptor::TRIGGER;
 		if(type == "SceneTextScriptNode") return HiveNodeDescriptor::SCENE_TEXT_SCRIPT;
+		if(type == "BuilderScriptNode") return HiveNodeDescriptor::BUILDER_SCRIPT;
 
 		throw PersistException(PersistException::UNKNOWN_NODE_TYPE);
 	}
@@ -33,7 +34,8 @@ namespace
 		return type == HiveNodeDescriptor::SCENE_GEOMETRY_SCRIPT ||
 			type == HiveNodeDescriptor::SCENE_TRANSFORM_SCRIPT ||
 			type == HiveNodeDescriptor::TRIGGER ||
-			type == HiveNodeDescriptor::SCENE_TEXT_SCRIPT;
+			type == HiveNodeDescriptor::SCENE_TEXT_SCRIPT ||
+			type == HiveNodeDescriptor::BUILDER_SCRIPT;
 	}
 
 	HiveSurfaceDescriptor::Type __surfaceTypeFromString(const std::string& type)
@@ -399,6 +401,19 @@ namespace
 		}
 	}
 
+	void __parseBuilderFields(const rapidjson::Value& nodeValue, HiveNodeDescriptor& descriptor)
+	{
+		if(nodeValue.HasMember("buildOnce"))
+		{
+			if(!nodeValue["buildOnce"].IsBool())
+			{
+				throw PersistException(PersistException::JSON_INVALID_BUILDER_BUILD_ONCE);
+			}
+
+			descriptor.buildOnce = nodeValue["buildOnce"].GetBool();
+		}
+	}
+
 	void __readColour(const rapidjson::Value& colourValue, std::byte* out, PersistException::Error onError)
 	{
 		if(!colourValue.IsArray() || colourValue.Size() != 4) throw PersistException(onError);
@@ -574,6 +589,11 @@ namespace
 		if(descriptor.type == HiveNodeDescriptor::TRIGGER)
 		{
 			__parseTriggerFields(nodeValue, descriptor);
+		}
+
+		if(descriptor.type == HiveNodeDescriptor::BUILDER_SCRIPT)
+		{
+			__parseBuilderFields(nodeValue, descriptor);
 		}
 
 		if(descriptor.type == HiveNodeDescriptor::SCENE_TEXT_SCRIPT)

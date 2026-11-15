@@ -27,6 +27,7 @@ own subject:
 | `SceneTextScriptNode` | Text in a scene, which a script reads and sets | Yes | Scene, Strobe, Script, Animate, Agent | `getAnimating`, `setAnimating`, plus script defined | Runs `pokeScript` |
 | `AgentNode` | Holds prompts and emits them as an agent action | No | Trigger | — | No |
 | `TriggerNode` | Emits trigger actions for a script, a model or a poke | Yes | Script, Agent | `emitTrigger`, plus script defined | Runs `pokeScript`, then emits a trigger |
+| `BuilderScriptNode` | Creates nodes and edges in its hive from Lua | Yes | Trigger, Script, Agent | `emitTrigger`, plus script defined | Runs `pokeScript` |
 
 "Actions applied" is which action types have any effect on arriving at the node. Every node is still passed
 through by actions it does not react to, and still spends their energy; see
@@ -47,7 +48,8 @@ From `nodeBase`:
 | `pokeEnabled` | No, default `false` | Whether the node accepts pokes at all. |
 | `edges` | No | Outgoing edges, at most 32. Each names a `toNodeName`, optionally restricts the actions that may cross it with `actionFlags`, may set `actionsCompleteAfterTraverse`, and may lock the edge to actions holding a matching non-zero `traversalKey`. |
 
-Scripted types (`SceneGeometryScriptNode`, `SceneTransformScriptNode`, `SceneTextScriptNode`, `TriggerNode`) also require
+Scripted types (`SceneGeometryScriptNode`, `SceneTransformScriptNode`, `SceneTextScriptNode`, `TriggerNode`,
+`BuilderScriptNode`) also require
 `coreScript` and `pokeScript`, from `scriptSource`. Either may be an empty string.
 
 ## Fields and support by type
@@ -227,10 +229,10 @@ conversation from node to node, so later prompts see what earlier ones produced.
 | `autoTriggerAgentAction` | No, default `true` | Whether a trigger reaching this node emits the agent action. |
 | `serialiseEmittedActions` | No, default `true` | Whether only one emitted action may be running at a time, later ones waiting their turn. If false, each trigger starts its own conversation alongside any already running. |
 
-- **Actions applied:** Trigger. It is the only trigger target, so this is the only type a trigger fires.
+- **Actions applied:** Trigger. It and `BuilderScriptNode` are the only trigger targets.
 - **Emits:** An agent action when triggered, unless `autoTriggerAgentAction` is false.
-- **Where the agent action has effect:** Only `SceneGeometryScriptNode`, `SceneTransformScriptNode` and
-  `TriggerNode` react to an agent action. A prompt written for any other type is never sent. An agent action
+- **Where the agent action has effect:** Only `SceneGeometryScriptNode`, `SceneTransformScriptNode`,
+  `TriggerNode` and `BuilderScriptNode` react to an agent action. A prompt written for any other type is never sent. An agent action
   never crosses an edge without `actionFlags`, so every route it takes must list `AGENT_GRAPH_ACTION`.
 - **Lua, model tools, poke:** None.
 
@@ -257,6 +259,33 @@ in a scene.
 - **Poke:** Runs `pokeScript`, then emits a trigger unless `emitTriggerOnPoke` is false. It owns no geometry,
   so a scene surface never pokes it.
 
+### `BuilderScriptNode`
+
+A scripted node whose scripts can grow the hive it is part of while the hive runs. It takes no part in a
+scene.
+
+| Field | Required | Meaning |
+|---|---|---|
+| `coreScript`, `pokeScript` | Yes | The node's two Lua scripts. Either may build. |
+| `buildOnce` | No, default `true` | Whether the node builds once only. The first script run (each trigger is one) or script tool call that creates anything is the build, and once it has finished every later attempt is refused, so the same nodes and edges are never built twice. |
+
+- **Actions applied:** Trigger and Script, each of which runs `coreScript`. Being a trigger target is the
+  usual way to set a build off: a trigger from another script, a poked `TriggerNode`, a model's `emitTrigger`
+  or another hive. Agent, which sends the matching prompt with `emitTrigger` and any script defined tools on
+  offer. It supports neither strobe flag, so a strobe never runs its script, and an `init()` runs on the
+  first trigger or script action to reach it, not at hive start.
+- **Emits:** The same as a `TriggerNode` through `trigger()`, `emitAction()` and the `emitTrigger` model
+  tool. A poke never emits anything of its own accord.
+- **Lua:** The bindings on every scripted node, plus a create binding for every other type in this document
+  (`createPingNode{...}` to `createTriggerNode{...}`), each taking that type's fields, and `createEdge()`,
+  which wires any two nodes in the hive. `getHiveName()`, `getSelfName()`, `getNodeNames()`, `nodeExists()`,
+  `getNodeInfo()` and `getNodesOfType()` look the hive up, and the `ActionFlag` and `VertexVisibility`
+  constants fill the fields that take them. It cannot create another `BuilderScriptNode`. See
+  [LuaNodeAPI.md](LuaNodeAPI.md#builderscriptnode).
+- **Model tools:** `emitTrigger`, plus any the script declares. A script defined tool that calls the create
+  bindings is how a model is given the means to build.
+- **Poke:** Runs `pokeScript`. It owns no geometry, so a scene surface never pokes it.
+
 ## Identifying a type at runtime
 
 A node type has two other spellings besides its `type` name. Prompts' `nodeType` field, the Lua `NodeType`
@@ -274,6 +303,7 @@ constants and the `nodeType` argument of `emitTrigger` all use the upper-case fo
 | `SceneTextScriptNode` | `SCENE_TEXT_SCRIPT_NODE` |
 | `AgentNode` | `AGENT_NODE` |
 | `TriggerNode` | `TRIGGER_NODE` |
+| `BuilderScriptNode` | `BUILDER_SCRIPT_NODE` |
 
 `GRAPH_NODE` and `SCRIPT_NODE` are also listed in that enum, but no concrete type a hive can hold reports
 either of them.

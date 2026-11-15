@@ -57,7 +57,7 @@
 				"AGENT_AFFECT_GRAPH_ACTION",
 				"TEXT_VISIBLE_GRAPH_ACTION"
 			],
-			"description": "Used to describe the type of a particular graph action. Some actions carry more than one, and an edge naming any one of them admits that action. PING_GRAPH_ACTION: a ping action. SERIALISABLE_GRAPH_ACTION: an action that can be teleported to another hive, carried by ping and trigger actions, and the only flag a teleport node acts on. SCRIPT_GRAPH_ACTION: an action that runs a node's coreScript, carried by script actions and by the strobe action that drives them. SCENE_GRAPH_ACTION: the action a surface runs to collect geometry and transforms into itself. SCENE_STROBE_GRAPH_ACTION: the action a registered strobe emitter sends out at a fixed rate. ANIMATE_GRAPH_ACTION: the action that carries an animating mode out from the node that set it. AGENT_GRAPH_ACTION: the action an agent node emits to carry one conversation from node to node. TRIGGER_GRAPH_ACTION: the action emitted by a trigger node, by a script's trigger() call, or by a model's emitTrigger tool. AGENT_AFFECT_GRAPH_ACTION: the action a node sends out across its edges when an agentic request starts or stops directly affecting it, so that other nodes can react to it too. Sent only by a node whose emitAgentAffectAction is set; on scene geometry it arrives as that node's agent-visible flag being set. TEXT_VISIBLE_GRAPH_ACTION: the action a script sends out to show or hide the text of the text nodes it reaches."
+			"description": "Used to describe the type of a particular graph action. Some actions carry more than one, and an edge naming any one of them admits that action. PING_GRAPH_ACTION: a ping action. SERIALISABLE_GRAPH_ACTION: an action that can be teleported to another hive, carried by ping and trigger actions, and the only flag a teleport node acts on. SCRIPT_GRAPH_ACTION: an action that runs a node's coreScript, carried by script actions and by the strobe action that drives them. SCENE_GRAPH_ACTION: the action a surface runs to collect geometry and transforms into itself. SCENE_STROBE_GRAPH_ACTION: the action a registered strobe emitter sends out at a fixed rate. ANIMATE_GRAPH_ACTION: the action that carries an animating mode out from the node that set it. AGENT_GRAPH_ACTION: the action an agent node emits to carry one conversation from node to node. TRIGGER_GRAPH_ACTION: the action emitted by a trigger node, by a script's trigger() call, or by a model's emitTrigger tool. It fires agent nodes and builder script nodes. AGENT_AFFECT_GRAPH_ACTION: the action a node sends out across its edges when an agentic request starts or stops directly affecting it, so that other nodes can react to it too. Sent only by a node whose emitAgentAffectAction is set; on scene geometry it arrives as that node's agent-visible flag being set. TEXT_VISIBLE_GRAPH_ACTION: the action a script sends out to show or hide the text of the text nodes it reaches."
 		},
 
 		"nodeType": {
@@ -73,7 +73,8 @@
 				"TELEPORT_NODE",
 				"AGENT_NODE",
 				"TRIGGER_NODE",
-				"SCENE_TEXT_SCRIPT_NODE"
+				"SCENE_TEXT_SCRIPT_NODE",
+				"BUILDER_SCRIPT_NODE"
 			],
 			"description": "Identifies a kind of node, so that something visiting a node can recognise what it has arrived at. GRAPH_NODE is reported by any node that does not identify a more specific kind of its own."
 		},
@@ -335,7 +336,7 @@
 		},
 
 		"scriptNodeBase": {
-			"description": "Fields common to every node that runs Lua. Not a node type in its own right; mixed into the concrete scripted types, currently SceneGeometryScriptNode, SceneTransformScriptNode, SceneTextScriptNode and TriggerNode.",
+			"description": "Fields common to every node that runs Lua. Not a node type in its own right; mixed into the concrete scripted types, currently SceneGeometryScriptNode, SceneTransformScriptNode, SceneTextScriptNode, TriggerNode and BuilderScriptNode.",
 			"allOf": [
 				{ "$ref": "#/$defs/nodeBase" },
 				{ "$ref": "#/$defs/scriptSource" }
@@ -648,12 +649,31 @@
 			"unevaluatedProperties": false
 		},
 
+		"builderScriptNode": {
+			"description": "A Lua-scripted node whose scripts can grow the hive while it runs. Both of its scripts can create any other concrete node type in this hive, one binding per type taking the same fields that type takes here, and can create edges between any two nodes in the hive, so what a script creates can be wired to nodes that were already there. Lookup bindings let a script find those nodes by name or type and read their edges. A builder cannot create another builder. It takes no part in a scene, so a strobe never reaches its coreScript. That script runs when a trigger action reaches this node, which is the usual way to set a build off, and under an action that runs scripts. An agent action reaching it offers the model the same tool a TriggerNode offers, plus any the coreScript declares.",
+			"allOf": [
+				{ "$ref": "#/$defs/scriptNodeBase" },
+				{
+					"properties": {
+						"type": { "const": "BuilderScriptNode" },
+						"buildOnce": {
+							"type": "boolean",
+							"default": true,
+							"description": "Whether this node builds once only. When true, the first run of either script, or call of one of its script defined tools, that creates a node or an edge is the build, and once that run or call has finished every later attempt to create one is refused rather than building the same nodes and edges again. A creation refused for a malformed argument does not count. Set false to let every run build."
+						}
+					}
+				}
+			],
+			"unevaluatedProperties": false
+		},
+
 		"node": {
 			"description": "Concrete nodes that can be added directly to a hive.",
 			"oneOf": [
 				{ "$ref": "#/$defs/pingNode" },
 				{ "$ref": "#/$defs/agentNode" },
 				{ "$ref": "#/$defs/triggerNode" },
+				{ "$ref": "#/$defs/builderScriptNode" },
 				{ "$ref": "#/$defs/teleportNode" },
 				{ "$ref": "#/$defs/sceneRootNode" },
 				{ "$ref": "#/$defs/sceneGeometryNode" },

@@ -61,6 +61,7 @@ Flags each node type supports:
 | `SceneGeometryScriptNode`, `SceneTransformScriptNode` | `SCENE_GRAPH_ACTION`, `SCENE_STROBE_GRAPH_ACTION`, `SCRIPT_GRAPH_ACTION`, `ANIMATE_GRAPH_ACTION`, `AGENT_GRAPH_ACTION`, `AGENT_AFFECT_GRAPH_ACTION` |
 | `SceneTextScriptNode` | `SCENE_GRAPH_ACTION`, `SCENE_STROBE_GRAPH_ACTION`, `SCRIPT_GRAPH_ACTION`, `ANIMATE_GRAPH_ACTION`, `AGENT_GRAPH_ACTION`, `TEXT_VISIBLE_GRAPH_ACTION` |
 | `TriggerNode` | `SCRIPT_GRAPH_ACTION`, `AGENT_GRAPH_ACTION` |
+| `BuilderScriptNode` | `SCRIPT_GRAPH_ACTION`, `AGENT_GRAPH_ACTION`, `TRIGGER_GRAPH_ACTION` |
 | `AgentNode` | `TRIGGER_GRAPH_ACTION` |
 
 Consequences worth authoring to:
@@ -72,8 +73,9 @@ Consequences worth authoring to:
   node builds itself on the first run and costs nothing on every strobe after. A script defining neither runs
   top to bottom every time, unchanged. An `init()` that raises spends its one attempt anyway, is never
   retried, and still closes the top level down. `pokeScript` has no lifecycle: whole script, every poke.
-- A `TriggerNode` supports neither strobe flag, so a strobe never runs its `coreScript`. Its script runs only
-  under a script action.
+- A `TriggerNode` or `BuilderScriptNode` supports neither strobe flag, so a strobe never runs its `coreScript`.
+  A `TriggerNode`'s script runs only under a script action. A `BuilderScriptNode`'s also runs when a trigger
+  reaches it.
 - Only a `TeleportNode` supports `SERIALISABLE_GRAPH_ACTION`, so a trigger action leaves the hive only by
   reaching one. `SERIALISABLE_GRAPH_ACTION` on an edge admits trigger and ping actions, being the flag both
   carry.

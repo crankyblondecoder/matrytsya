@@ -85,6 +85,17 @@ class GraphHive : public RefCounted, public GraphNamed, public GraphVersioned
 		void addNode(GraphNode* node);
 
 		/**
+		 * Add a graph node to this hive, provided no node already in it has the same name.
+		 * @param node Node to add. Must already carry the name it is to be known by.
+		 * @returns True if the node was added. False if its name is empty, another node already has it, this
+		 *          hive is shut down or the node refused to join it.
+		 * @note The name is checked under the same lock the node is added under, so two nodes added at once
+		 *       can never both end up holding one name.
+		 * @note Expects to manage the initial reference count of this node regardless of whether it could be added.
+		 */
+		bool addUniquelyNamedNode(GraphNode* node);
+
+		/**
 		 * Notify this hive that one of its nodes has had an edge added or removed.
 		 * @note Bumps this hive's version, so that anything tracking the version can detect the topology
 		 *       change.
