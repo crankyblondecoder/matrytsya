@@ -1,3 +1,4 @@
+#include "../GraphNodeVisitor.hpp"
 #include "../actions/PingAction.hpp"
 #include "../graphActionFlagRegister.hpp"
 #include "../../util/Handle.hpp"
@@ -18,6 +19,11 @@ PingNode::PingNode() : GraphSerialisedActionNode()
 GraphNodeType PingNode::getType()
 {
 	return GraphNodeType::PING_NODE;
+}
+
+void PingNode::accept(GraphNodeVisitor& visitor)
+{
+	visitor.visit(*this);
 }
 
 bool PingNode::ping()

@@ -37,6 +37,42 @@ class JsonHiveLoader : public HiveLoader
 		unsigned getStrobeSurfaceCount() override;
 		void getStrobeSurface(unsigned index, std::string& surfaceName, unsigned& periodMs) override;
 
+		/**
+		 * Parse a single node object, as it appears in the "nodes" array of a hive definition.
+		 * @param json JSON text of the node object.
+		 * @returns Descriptor of the node.
+		 * @throw PersistException On any parse or structural validation failure.
+		 */
+		static HiveNodeDescriptor parseNodeFragment(const std::string& json);
+
+		/**
+		 * Parse a single surface object, as it appears in the "surfaces" array of a hive definition.
+		 * @param json JSON text of the surface object.
+		 * @returns Descriptor of the surface.
+		 * @throw PersistException On any parse or structural validation failure.
+		 */
+		static HiveSurfaceDescriptor parseSurfaceFragment(const std::string& json);
+
+		/**
+		 * Parse a single strobe emitter registration, as it appears in the "strobeEmitters" array of a hive
+		 * definition.
+		 * @param json JSON text of the registration.
+		 * @param nodeName Set to the name of the node to register as a strobe emitter.
+		 * @param periodMs Set to the emission period in milliseconds.
+		 * @throw PersistException On any parse or structural validation failure.
+		 */
+		static void parseStrobeEmitterFragment(const std::string& json, std::string& nodeName, unsigned& periodMs);
+
+		/**
+		 * Parse a single strobe surface registration, as it appears in the "strobeSurfaces" array of a hive
+		 * definition.
+		 * @param json JSON text of the registration.
+		 * @param surfaceName Set to the name of the surface to register as strobed.
+		 * @param periodMs Set to the strobe period in milliseconds.
+		 * @throw PersistException On any parse or structural validation failure.
+		 */
+		static void parseStrobeSurfaceFragment(const std::string& json, std::string& surfaceName, unsigned& periodMs);
+
 	private:
 
         // Do not allow copying.

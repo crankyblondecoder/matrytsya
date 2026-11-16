@@ -3,16 +3,15 @@
 
 #include <string>
 
-// All three are needed in full because the node type, capability and vertex visibility translation
-// helpers return their enums.
+// Both are needed in full because the node type and capability translation helpers return their enums.
 #include "../agent/AgenticHarness.hpp"
 #include "../graph/GraphNode.hpp"
-#include "../graph/nodes/SceneGeometry.hpp"
 #include "../util/Handle.hpp"
 
 class GraphHive;
 class GraphHiveSurface;
 class HiveLoader;
+class SceneGeometry;
 struct HiveNodeDescriptor;
 struct HiveSurfaceDescriptor;
 
@@ -69,13 +68,6 @@ class HiveBuilder
 			bool hasInitialFocusNode, unsigned initialFocusNodeId);
 
 		/**
-		 * Translate an action flag name into its bit value.
-		 * @param name Action flag name, as it appears in graphActionFlagRegister.hpp.
-		 * @throw PersistException(UNKNOWN_ACTION_FLAG) If the name is not recognised.
-		 */
-		static unsigned long __actionFlagFromName(const std::string& name);
-
-		/**
 		 * Translate a capability name into its enum value.
 		 * @param name Capability name, as it appears in AgenticHarness::Capability.
 		 * @throw PersistException(UNKNOWN_AGENT_CAPABILITY) If the name is not recognised.
@@ -88,13 +80,6 @@ class HiveBuilder
 		 * @throw PersistException(UNKNOWN_AGENT_PROMPT_NODE_TYPE) If the name is not recognised.
 		 */
 		static GraphNodeType __nodeTypeFromName(const std::string& name);
-
-		/**
-		 * Translate a vertex visibility name into its enum value.
-		 * @param name Vertex visibility name, as it appears in SceneGeometry::VertexVisibility.
-		 * @throw PersistException(UNKNOWN_VERTEX_VISIBILITY) If the name is not recognised.
-		 */
-		static SceneGeometry::VertexVisibility __vertexVisibilityFromName(const std::string& name);
 
 		/**
 		 * Append a descriptor's vertexes to the geometry of the node built from it, one group at a time so

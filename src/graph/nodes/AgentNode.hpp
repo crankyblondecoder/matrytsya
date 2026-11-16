@@ -31,6 +31,8 @@ class AgentNode : public GraphSerialisedActionNode, public TriggerActionTarget
 
 		GraphNodeType getType() override;
 
+		virtual void accept(GraphNodeVisitor& visitor) override;
+
 		/**
 		 * Emit an agent action carrying this node's prompts from this node.
 		 * @param wait Wait for the action to complete.

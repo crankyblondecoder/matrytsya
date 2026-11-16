@@ -13,6 +13,7 @@
 #include "StrobeEmitterNode.hpp"
 #include "TeleportNode.hpp"
 #include "TriggerNode.hpp"
+#include "../GraphNodeVisitor.hpp"
 #include "../actions/AgentAction.hpp"
 #include "../graphActionFlagRegister.hpp"
 #include "../graphSceneElements.hpp"
@@ -878,9 +879,12 @@ BuilderScriptNode::~BuilderScriptNode()
 {
 }
 
-BuilderScriptNode::BuilderScriptNode(const std::string& coreScript, const std::string& pokeScript, bool buildOnce)
+BuilderScriptNode::BuilderScriptNode(const std::string& coreScript, const std::string& pokeScript, bool buildOnce,
+	bool built)
 	: ScriptNode(coreScript, pokeScript), _buildOnce{buildOnce}
 {
+	if(_buildOnce && built) _buildState = BuildState::BUILT;
+
 	_setEnergyCost(1);
 
 	// Supports agent action.
@@ -893,6 +897,11 @@ BuilderScriptNode::BuilderScriptNode(const std::string& coreScript, const std::s
 GraphNodeType BuilderScriptNode::getType()
 {
 	return GraphNodeType::BUILDER_SCRIPT_NODE;
+}
+
+void BuilderScriptNode::accept(GraphNodeVisitor& visitor)
+{
+	visitor.visit(*this);
 }
 
 bool BuilderScriptNode::getBuildOnce()
@@ -910,10 +919,24 @@ bool BuilderScriptNode::getBuilt()
 
 void BuilderScriptNode::_sessionEnding(bool poke)
 {
+	bool builtNow = false;
+
 	{ SYNC(_buildLock)
 
 		// Only the session that built uses the build up; one that merely looked the hive up leaves it be.
-		if(_buildState == BuildState::BUILDING && _buildingInPoke == poke) _buildState = BuildState::BUILT;
+		if(_buildState == BuildState::BUILDING && _buildingInPoke == poke)
+		{
+			_buildState = BuildState::BUILT;
+			builtNow = true;
+		}
+	}
+
+	if(builtNow)
+	{
+		// Whether the build is used up is part of what the hive would have to be rebuilt from.
+		Handle<GraphHive> hive = getHive();
+
+		if(hive.isValid()) hive.getInstance() -> nodeStructureChanged();
 	}
 }
 

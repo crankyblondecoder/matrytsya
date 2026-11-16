@@ -71,6 +71,16 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 
 		GraphNodeType getType() override;
 
+		/**
+		 * Get the main Lua source code that this node runs when invoked.
+		 */
+		const std::string& getCoreScript();
+
+		/**
+		 * Get the Lua source code that this node runs when poked.
+		 */
+		const std::string& getPokeScript();
+
 		Handle<ScriptSession> requestCoreSession() override;
 
 		/**

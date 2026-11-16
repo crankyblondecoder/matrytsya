@@ -8,6 +8,7 @@
 class GraphAction;
 class GraphEdge;
 class GraphHive;
+class GraphNodeVisitor;
 class SceneRootNode;
 class StrobeEmitterNode;
 
@@ -63,6 +64,14 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
 		 * @returns This node as a SceneRootNode, or 0 if it is not one.
 		 */
 		virtual SceneRootNode* asSceneRoot();
+
+		/**
+		 * Accept a visitor, calling the visit() overload that matches this node's concrete type.
+		 * @note Default implementation calls visit(GraphNode&). Each concrete node type the visitor has an
+		 *       overload for overrides this to call that overload instead.
+		 * @param visitor Visitor to accept.
+		 */
+		virtual void accept(GraphNodeVisitor& visitor);
 
 		/**
 		 * Get the name a node type is exposed under.

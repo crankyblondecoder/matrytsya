@@ -2,6 +2,8 @@
 
 Dynamic hives use the embedded key/value store LMDB: https://symas.com/lmdb.php
 
+Hives are persisted to an LMDB database file given on the command line (`-d`). Executables link `-llmdb`.
+
 General-purpose JSON parsing and serialization uses the header-only RapidJSON library: https://rapidjson.org/
 
 

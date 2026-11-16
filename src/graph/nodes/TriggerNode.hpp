@@ -30,6 +30,8 @@ class TriggerNode : public ScriptNode, public AgentActionTarget
 
 		GraphNodeType getType() override;
 
+		virtual void accept(GraphNodeVisitor& visitor) override;
+
 		/**
 		 * Get whether poking this node emits a trigger action of its own.
 		 */

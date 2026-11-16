@@ -11,6 +11,12 @@ GraphSerialisedActionNode::GraphSerialisedActionNode(bool serialiseEmittedAction
 {
 }
 
+bool GraphSerialisedActionNode::getSerialiseEmittedActions()
+{
+	// Never changes after construction, so it needs no lock.
+	return _serialiseActions;
+}
+
 void GraphSerialisedActionNode::_emitAction(GraphAction* action)
 {
 	action -> addListener(*this);

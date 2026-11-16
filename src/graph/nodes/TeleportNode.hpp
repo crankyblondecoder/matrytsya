@@ -20,6 +20,13 @@ class TeleportNode : public GraphNode, public SerialisableActionTarget
 
 		GraphNodeType getType() override;
 
+		virtual void accept(GraphNodeVisitor& visitor) override;
+
+		/**
+		 * Get the location that received actions are teleported to.
+		 */
+		GraphNodeLocation getDestination();
+
 		/**
 		 * Teleport the payload of a serialisable action to this node's destination.
 		 */

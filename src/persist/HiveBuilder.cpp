@@ -4,6 +4,7 @@
 #include "HiveNodeDescriptor.hpp"
 #include "HiveSurfaceDescriptor.hpp"
 #include "PersistException.hpp"
+#include "hiveNames.hpp"
 #include "../graph/GraphEdge.hpp"
 #include "../util/Handle.hpp"
 #include "../graph/GraphHive.hpp"
@@ -13,7 +14,6 @@
 #include "../graph/GraphException.hpp"
 #include "../graph/GraphNamed.hpp"
 #include "../graph/GraphNode.hpp"
-#include "../graph/graphActionFlagRegister.hpp"
 #include "../graph/actions/AgentAction.hpp"
 #include "../graph/nodes/AgentNode.hpp"
 #include "../graph/nodes/BuilderScriptNode.hpp"
@@ -100,7 +100,7 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 
 				for(std::string& flagName : edgeDescriptor.actionFlagNames)
 				{
-					actionFlags.push_back(__actionFlagFromName(flagName));
+					actionFlags.push_back(hiveNames::actionFlagFromName(flagName));
 				}
 
 				Handle<GraphEdge> edgeHandle =
@@ -341,7 +341,8 @@ GraphNode* HiveBuilder::__createNode(const HiveNodeDescriptor& descriptor)
 
 		case HiveNodeDescriptor::BUILDER_SCRIPT:
 		{
-			return new BuilderScriptNode(descriptor.coreScript, descriptor.pokeScript, descriptor.buildOnce);
+			return new BuilderScriptNode(descriptor.coreScript, descriptor.pokeScript, descriptor.buildOnce,
+				descriptor.built);
 		}
 
 		default:
@@ -386,22 +387,6 @@ GraphHiveSurface* HiveBuilder::__createSurface(const HiveSurfaceDescriptor& desc
 	}
 }
 
-unsigned long HiveBuilder::__actionFlagFromName(const std::string& name)
-{
-	if(name == "PING_GRAPH_ACTION") return PING_GRAPH_ACTION;
-	if(name == "SERIALISABLE_GRAPH_ACTION") return SERIALISABLE_GRAPH_ACTION;
-	if(name == "SCRIPT_GRAPH_ACTION") return SCRIPT_GRAPH_ACTION;
-	if(name == "SCENE_GRAPH_ACTION") return SCENE_GRAPH_ACTION;
-	if(name == "SCENE_STROBE_GRAPH_ACTION") return SCENE_STROBE_GRAPH_ACTION;
-	if(name == "ANIMATE_GRAPH_ACTION") return ANIMATE_GRAPH_ACTION;
-	if(name == "AGENT_GRAPH_ACTION") return AGENT_GRAPH_ACTION;
-	if(name == "TRIGGER_GRAPH_ACTION") return TRIGGER_GRAPH_ACTION;
-	if(name == "AGENT_AFFECT_GRAPH_ACTION") return AGENT_AFFECT_GRAPH_ACTION;
-	if(name == "TEXT_VISIBLE_GRAPH_ACTION") return TEXT_VISIBLE_GRAPH_ACTION;
-
-	throw PersistException(PersistException::UNKNOWN_ACTION_FLAG);
-}
-
 AgenticHarness::Capability HiveBuilder::__capabilityFromName(const std::string& name)
 {
 	if(name == "LOW") return AgenticHarness::Capability::LOW;
@@ -423,21 +408,11 @@ GraphNodeType HiveBuilder::__nodeTypeFromName(const std::string& name)
 	}
 }
 
-SceneGeometry::VertexVisibility HiveBuilder::__vertexVisibilityFromName(const std::string& name)
-{
-	if(name == "ALWAYS") return SceneGeometry::VertexVisibility::ALWAYS;
-	if(name == "AGENT") return SceneGeometry::VertexVisibility::AGENT;
-	if(name == "GRABBED") return SceneGeometry::VertexVisibility::GRABBED;
-	if(name == "DRAGGING") return SceneGeometry::VertexVisibility::DRAGGING;
-	if(name == "HOVERED_OVER") return SceneGeometry::VertexVisibility::HOVERED_OVER;
-
-	throw PersistException(PersistException::UNKNOWN_VERTEX_VISIBILITY);
-}
-
 void HiveBuilder::__addVertexGroups(SceneGeometry* geometry, const HiveNodeDescriptor& descriptor)
 {
 	for(const HiveVertexGroupDescriptor& groupDescriptor : descriptor.vertexGroups)
 	{
-		geometry -> addVertexes(groupDescriptor.vertexes, __vertexVisibilityFromName(groupDescriptor.visibilityName));
+		geometry -> addVertexes(groupDescriptor.vertexes,
+			hiveNames::vertexVisibilityFromName(groupDescriptor.visibilityName));
 	}
 }

@@ -76,6 +76,14 @@ void SceneGeometry::addVertexes(double* rawData, unsigned length, VertexVisibili
 	_bumpVersion();
 }
 
+std::vector<SceneGeometry::VertexGroup> SceneGeometry::getVertexGroups() const
+{
+	{ SYNC(_lock)
+
+		return _vertexGroups;
+	}
+}
+
 std::size_t SceneGeometry::getVertexCount() const
 {
 	std::size_t count = 0;

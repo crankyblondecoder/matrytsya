@@ -1,5 +1,6 @@
 #include "TeleportNode.hpp"
 
+#include "../GraphNodeVisitor.hpp"
 #include "../GraphException.hpp"
 #include "../../util/Handle.hpp"
 #include "../GraphHive.hpp"
@@ -20,6 +21,17 @@ TeleportNode::TeleportNode(GraphNodeLocation destination) : GraphNode(), _destin
 GraphNodeType TeleportNode::getType()
 {
 	return GraphNodeType::TELEPORT_NODE;
+}
+
+void TeleportNode::accept(GraphNodeVisitor& visitor)
+{
+	visitor.visit(*this);
+}
+
+GraphNodeLocation TeleportNode::getDestination()
+{
+	// Never changes after construction, so it needs no lock.
+	return _destination;
 }
 
 bool TeleportNode::send(SerialisableActionPayload& payload)

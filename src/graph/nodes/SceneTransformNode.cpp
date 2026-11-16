@@ -1,5 +1,6 @@
 #include "SceneTransformNode.hpp"
 
+#include "../GraphNodeVisitor.hpp"
 #include "../actions/AgentAffectAction.hpp"
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphHiveSceneSurface.hpp"
@@ -20,6 +21,11 @@ SceneTransformNode::SceneTransformNode(bool emitAgentAffectAction)
 GraphNodeType SceneTransformNode::getType()
 {
 	return GraphNodeType::SCENE_TRANSFORM_NODE;
+}
+
+void SceneTransformNode::accept(GraphNodeVisitor& visitor)
+{
+	visitor.visit(*this);
 }
 
 void SceneTransformNode::populateSurface(Handle<GraphHiveSceneSurface> surface)

@@ -19,6 +19,8 @@ class PingNode : public GraphSerialisedActionNode, public PingActionTarget
 
 		GraphNodeType getType() override;
 
+		virtual void accept(GraphNodeVisitor& visitor) override;
+
 		bool ping() override;
 
 		/**

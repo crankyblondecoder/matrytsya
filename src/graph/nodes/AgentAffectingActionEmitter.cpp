@@ -9,6 +9,11 @@ AgentAffectingActionEmitter::AgentAffectingActionEmitter(bool emitsAgentAffectAc
 {
 }
 
+bool AgentAffectingActionEmitter::getEmitAgentAffectAction()
+{
+	return _emitsAgentAffectAction;
+}
+
 void AgentAffectingActionEmitter::_agentAffectingStart(bool direct)
 {
 	if(direct && _emitsAgentAffectAction)

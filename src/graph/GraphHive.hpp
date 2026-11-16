@@ -8,10 +8,12 @@
 #include "../thread/ThreadCondition.hpp"
 #include "../thread/ThreadMutex.hpp"
 #include "../thread/ThreadPool.hpp"
+#include "../util/EventEmitter.hpp"
 #include "../util/RefCounted.hpp"
 #include "./actions/SerialisableActionPayload.hpp"
 #include "../util/Handle.hpp"
 #include "GraphHiveCollection.hpp"
+#include "GraphHiveListener.hpp"
 #include "GraphNamed.hpp"
 #include "GraphNodeLocation.hpp"
 #include "GraphNodeType.hpp"
@@ -30,8 +32,9 @@ class ModelContext;
 /**
  * A "Hive" is a container for nodes.
  * Nodes can refer to the hive when they want access to specific services, like persistence for example.
+ * @note Emits GraphHiveListener events to the listeners bound to it.
  */
-class GraphHive : public RefCounted, public GraphNamed, public GraphVersioned
+class GraphHive : public RefCounted, public GraphNamed, public GraphVersioned, public EventEmitter<GraphHiveListener>
 {
     public:
 
@@ -73,6 +76,18 @@ class GraphHive : public RefCounted, public GraphNamed, public GraphVersioned
 		};
 
 		/**
+		 * Describes a single strobe registration, as reported by getStrobeEmitters() and getStrobeSurfaces().
+		 */
+		struct StrobeRegistration
+		{
+			/// Name of the node or surface that is strobed.
+			std::string name;
+
+			/// Strobe period in milliseconds.
+			unsigned periodMs;
+		};
+
+		/**
 		 * Shutdown this hive.
 		 * This will dismantle the hive's graph.
 		 */
@@ -81,6 +96,7 @@ class GraphHive : public RefCounted, public GraphNamed, public GraphVersioned
 		/**
 		 * Add a graph node to this hive.
 		 * @note Expects to manage the initial reference count of this node regardless of whether it could be added.
+		 * @note Emits GraphHiveListener::Event::NODE_ADDED once the node has joined.
 		 */
 		void addNode(GraphNode* node);
 
@@ -92,6 +108,7 @@ class GraphHive : public RefCounted, public GraphNamed, public GraphVersioned
 		 * @note The name is checked under the same lock the node is added under, so two nodes added at once
 		 *       can never both end up holding one name.
 		 * @note Expects to manage the initial reference count of this node regardless of whether it could be added.
+		 * @note Emits GraphHiveListener::Event::NODE_ADDED once the node has joined.
 		 */
 		bool addUniquelyNamedNode(GraphNode* node);
 
@@ -101,6 +118,13 @@ class GraphHive : public RefCounted, public GraphNamed, public GraphVersioned
 		 *       change.
 		 */
 		void nodeEdgesChanged();
+
+		/**
+		 * Notify this hive that one of its nodes has changed in a way that alters what the hive would have to be
+		 * rebuilt from, without any node or edge having been added or removed.
+		 * @note Bumps this hive's version, so that anything tracking the version can detect the change.
+		 */
+		void nodeStructureChanged();
 
 		/**
 		 * Remove node from hive.
@@ -199,6 +223,13 @@ class GraphHive : public RefCounted, public GraphNamed, public GraphVersioned
 		void clearStrobeEmitter(Handle<StrobeEmitterNode> nodeHandle);
 
 		/**
+		 * Get every node registered as a periodic strobe emitter within this hive.
+		 * @returns One entry per registered node, naming it and giving its emission period. Empty once this hive
+		 *          is shut down.
+		 */
+		std::vector<StrobeRegistration> getStrobeEmitters();
+
+		/**
 		 * Register a surface as being periodically strobed within this hive, or update an existing
 		 * registration's frequency.
 		 * @note Silently ignored if the handle is invalid or periodMs is 0. The surface stops being
@@ -214,6 +245,13 @@ class GraphHive : public RefCounted, public GraphNamed, public GraphVersioned
 		 * @param surfaceHandle Handle of the surface to remove.
 		 */
 		void clearStrobeSurface(Handle<GraphHiveSurface> surfaceHandle);
+
+		/**
+		 * Get every surface registered as being periodically strobed within this hive.
+		 * @returns One entry per registered surface, naming it and giving its strobe period. Empty once this hive
+		 *          is shut down.
+		 */
+		std::vector<StrobeRegistration> getStrobeSurfaces();
 
 		/**
 		 * Get the thread pool used by this hive to enumerate itself.

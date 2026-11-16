@@ -28,6 +28,11 @@ class GraphSerialisedActionNode : public GraphNode, private EventListener<GraphA
 		 */
         GraphSerialisedActionNode(bool serialiseEmittedActions = false);
 
+		/**
+		 * Get whether actions emitted by this node are serialised, i.e. only one is active at a time.
+		 */
+		bool getSerialiseEmittedActions();
+
     protected:
 
 		// Ref counted.

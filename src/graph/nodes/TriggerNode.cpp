@@ -1,5 +1,6 @@
 #include "TriggerNode.hpp"
 
+#include "../GraphNodeVisitor.hpp"
 #include "../actions/TriggerAction.hpp"
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphHive.hpp"
@@ -23,6 +24,11 @@ TriggerNode::TriggerNode(const std::string& coreScript, const std::string& pokeS
 GraphNodeType TriggerNode::getType()
 {
 	return GraphNodeType::TRIGGER_NODE;
+}
+
+void TriggerNode::accept(GraphNodeVisitor& visitor)
+{
+	visitor.visit(*this);
 }
 
 std::vector<Handle<ModelToolBindings>> TriggerNode::getModelToolBindings(AgenticHarness::Capability capability,

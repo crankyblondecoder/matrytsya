@@ -3,6 +3,7 @@
 
 #include <time.h>
 
+#include <utility>
 #include <vector>
 
 #include "../thread/Thread.hpp"
@@ -72,6 +73,18 @@ class GraphHiveStrobeScheduler : public Thread
 		 * Clear all registered surfaces.
 		 */
 		void clearSurfaces();
+
+		/**
+		 * Get every registered emitter along with its period.
+		 * @returns One node handle / period in milliseconds pair per registered emitter, in registration order.
+		 */
+		std::vector<std::pair<Handle<StrobeEmitterNode>, unsigned>> getEmitters();
+
+		/**
+		 * Get every registered surface along with its period.
+		 * @returns One surface handle / period in milliseconds pair per registered surface, in registration order.
+		 */
+		std::vector<std::pair<Handle<GraphHiveSurface>, unsigned>> getSurfaces();
 
     protected:
 

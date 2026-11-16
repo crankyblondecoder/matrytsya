@@ -96,6 +96,12 @@ class SceneGeometry : public GraphVersioned
 		std::size_t getVertexCount() const;
 
 		/**
+		 * Get a copy of every vertex group currently held, in the order the groups were created.
+		 * @returns Snapshot of the vertex groups. Later additions are not reflected in it.
+		 */
+		std::vector<VertexGroup> getVertexGroups() const;
+
+		/**
 		 * Set whether the VertexVisibility::AGENT vertexes held by this should currently be shown.
 		 * @note This is deliberately kept out of the vertex version, so that turning it on and off updates
 		 *       nothing but a single node id in the surface's scene. The vertexes themselves are never

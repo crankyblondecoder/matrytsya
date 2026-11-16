@@ -16,6 +16,7 @@
 #include "./persist/HiveBuilderUnitTest.hpp"
 #include "./persist/json/JsonHiveLoaderUnitTest.hpp"
 #include "./persist/json/JsonHarnessLoaderUnitTest.hpp"
+#include "./persist/HivePersistUnitTest.hpp"
 #include "./graph/actions/AgentAffectActionUnitTest.hpp"
 #include "./graph/actions/AgentVisibleAnimateUnitTest.hpp"
 #include "./scene/SceneTest.hpp"

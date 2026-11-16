@@ -660,6 +660,11 @@
 							"type": "boolean",
 							"default": true,
 							"description": "Whether this node builds once only. When true, the first run of either script, or call of one of its script defined tools, that creates a node or an edge is the build, and once that run or call has finished every later attempt to create one is refused rather than building the same nodes and edges again. A creation refused for a malformed argument does not count. Set false to let every run build."
+						},
+						"built": {
+							"type": "boolean",
+							"default": false,
+							"description": "Whether this node's one build has already been used up, so that it starts out refusing to build. Only meaningful when buildOnce is true. Written for a builder whose hive was stored after it had built, which already holds what the build created; there is seldom reason to set it by hand."
 						}
 					}
 				}

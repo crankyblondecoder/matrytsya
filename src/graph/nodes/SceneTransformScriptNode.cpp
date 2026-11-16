@@ -1,5 +1,6 @@
 #include "SceneTransformScriptNode.hpp"
 
+#include "../GraphNodeVisitor.hpp"
 #include "../actions/AgentAffectAction.hpp"
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphHiveSceneSurface.hpp"
@@ -23,6 +24,11 @@ SceneTransformScriptNode::SceneTransformScriptNode(const std::string& script, co
 GraphNodeType SceneTransformScriptNode::getType()
 {
 	return GraphNodeType::SCENE_TRANSFORM_SCRIPT_NODE;
+}
+
+void SceneTransformScriptNode::accept(GraphNodeVisitor& visitor)
+{
+	visitor.visit(*this);
 }
 
 void SceneTransformScriptNode::_registerCoreGlobals(lua_State* luaState)

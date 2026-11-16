@@ -326,6 +326,18 @@ GraphNodeType ScriptNode::getType()
 	return GraphNodeType::SCRIPT_NODE;
 }
 
+const std::string& ScriptNode::getCoreScript()
+{
+	// Never changes after construction, so it needs no lock.
+	return _coreScript;
+}
+
+const std::string& ScriptNode::getPokeScript()
+{
+	// Never changes after construction, so it needs no lock.
+	return _pokeScript;
+}
+
 Handle<ScriptSession> ScriptNode::requestCoreSession()
 {
 	_coreLock.lock();

@@ -1,14 +1,15 @@
 # matrytsya Command Line Reference
 
-`matrytsya` is the production server. It loads one or more hives, each from a JSON hive definition file, into
-a single collection. It runs them and serves every hive's surfaces through a web interface on one port. It can
-also run the hives against an agentic harness, so that the chat window and the agent nodes in a hive have a
-model behind them.
+`matrytsya` is the production server. It loads one or more hives, each from a JSON hive definition file or
+from a hive database, into a single collection. It runs them and serves every hive's surfaces through a web
+interface on one port. It can also run the hives against an agentic harness, so that the chat window and the
+agent nodes in a hive have a model behind them, and keep the hives stored in a hive database as they change.
 
 ## Synopsis
 
 ```
 matrytsya [-p PORT] [-a ADDRESS] [-H HARNESS] [-c LEVEL] [-n] [-t COUNT] [-v] HIVE [HIVE ...]
+matrytsya -d DATABASE [-p PORT] [-a ADDRESS] [-H HARNESS] [-c LEVEL] [-n] [-t COUNT] [-v] [HIVE ...]
 matrytsya -h
 ```
 
@@ -26,7 +27,8 @@ Both build from `src/matrytsya.cpp` and take the same command line.
 ## Arguments
 
 `HIVE` is the path of a hive definition file: a JSON document satisfying [hiveSchema.json](hiveSchema.json).
-At least one is required, and any number may be given.
+At least one is required, and any number may be given. With `-d`, none is required as long as the database
+already holds a hive (see [Hive database](#hive-database)).
 
 - Relative paths are resolved against the current working directory, not the executable's location.
 - All the hives go into one collection, so a teleport node in one hive can forward an action to a node in
@@ -42,6 +44,7 @@ At least one is required, and any number may be given.
 |-------|---------------------------|----------|---------|---------|
 | `-p`  | `--port`                  | `PORT`   | `8080`  | Port the web interface listens on. 1 to 65535. |
 | `-a`  | `--address`               | `ADDRESS` | `127.0.0.1` | IPv4 address of the network interface the web interface listens on. The default only accepts connections from this machine. Use `0.0.0.0` to listen on every interface, or a specific interface's address to listen on just that one. See [Web interface](#web-interface). |
+| `-d`  | `--database`              | `DATABASE` | none  | Hive database to load hives from and keep them stored in. Created if it doesn't exist. See [Hive database](#hive-database). |
 | `-H`  | `--harness`               | `FILE`   | none    | Agentic harness definition to run every hive against. See [Agentic harness](#agentic-harness). |
 | `-c`  | `--chat-capability`       | `LEVEL`  | `LOW`   | Capability the chat window asks for: `LOW`, `MEDIUM` or `HIGH`. Case sensitive. See [Chat window](#chat-window). |
 | `-n`  | `--no-chat`               | none     | off     | Disable the chat window. See [Chat window](#chat-window). |
@@ -142,10 +145,59 @@ the models behind them. Only listen beyond loopback on a network you trust.
 A hive's scene doesn't start populating until the first surface page is opened in a browser. Strobing and
 animation don't depend on this: they run on each hive's own threads from the moment it loads.
 
+## Hive database
+
+A hive can grow while it runs: a builder script node creates nodes and edges between them, and can register
+the scene roots it creates as strobe emitters. Without a hive database, all of that is lost when the program
+stops, and the hive is back as its hive file describes it on the next run. With `-d DATABASE`, every hive is
+kept stored in the database as it changes, and is loaded from it as it was left on the next run.
+
+The database is a single [LMDB](https://symas.com/lmdb/) file at `DATABASE`, with LMDB's lock file beside it
+at `DATABASE-lock`. Both are created if they don't exist. Don't run two programs against the same database at
+once: each keeps its own hives stored, and would overwrite what the other stores of any hive they share.
+
+### Which hives are loaded
+
+- Every hive the database holds is loaded first, in name order.
+- Each `HIVE` file is then read. If the database already holds a hive of the same `name`, the stored hive is
+  used, the file is ignored, and a line saying so is printed. Otherwise the hive is loaded from the file and
+  stored in the database straight away.
+- To start a hive afresh from its file, use a new database, or rename the hive in its file.
+
+### What is stored
+
+- **Each node as it joined the hive.** A node loaded from a hive file is stored as the file describes it.
+  A node a builder creates is stored as it was created. Changes a script makes to a node afterwards, such as a
+  transform being animated or text being changed, aren't stored, so the next run starts the hive's scenes
+  where they started rather than mid-animation.
+- **Every edge, as it stands.** That includes edges a builder adds to nodes that were loaded from a file.
+- **Whether each builder has used up its one build.** A builder that has built is loaded back as having
+  built, so it doesn't build the same nodes again on top of the stored ones.
+- **Strobe emitter and strobe surface registrations, as they stand.**
+- **Surfaces,** which don't change while a hive runs.
+
+### When it is written
+
+A change is written about half a second after the hive stops changing, as one transaction holding only the
+records that changed. A hive that keeps changing is written at least every five seconds. Anything not yet
+written is written when the program stops. A change made in the last moment before the program is killed
+without warning (for example with `SIGKILL`) can be lost; earlier changes are not.
+
+A failure to write while running is printed to standard error as
+`[ERROR] Could not store hive 'NAME': DESCRIPTION`. The hive keeps running, and the write is retried.
+
+### Inspecting a database
+
+Each hive is a named LMDB database, named after the hive. Its records are keyed `meta`, `node/NAME`,
+`surface/NAME`, `strobeEmitter/NAME` and `strobeSurface/NAME`. Each value is the JSON object that the same
+thing is written as in a hive file. The LMDB command line tools show them, e.g. `mdb_dump -p -s HIVENAME
+-n DATABASE`, or `mdb_stat -a -n DATABASE` to list the hives held.
+
 ## Running and stopping
 
 The program runs in the foreground until it gets `SIGINT` (Ctrl-C) or `SIGTERM`. It then stops the web server,
-shuts every hive down and exits with status 0.
+writes anything not yet stored to the hive database if there is one, shuts every hive down and exits with
+status 0.
 
 ## Exit status and errors
 
@@ -160,6 +212,10 @@ Each error is printed to standard error. All of them happen before the server st
 |---------|-------|
 | `invalid port '...'`, `invalid address '...'`, `invalid chat capability '...'`, `invalid thread count '...'`, an unrecognised option, or a missing option argument | Bad command line. The usage summary follows. |
 | `no hive definition files given` | No `HIVE` argument. The usage summary follows. |
+| `no hive definition files given, and DATABASE holds no hives` | No `HIVE` argument, and the hive database is empty. The usage summary follows. |
+| `Could not open hive database DATABASE: DESCRIPTION` | The database file can't be created or opened, e.g. its directory doesn't exist, or it isn't an LMDB file. |
+| `Could not load the hive 'NAME' stored in DATABASE: DESCRIPTION` | A stored hive can't be read back, e.g. a record is missing or malformed, or it was written by a newer version of this program. |
+| `Could not store the hive ... in DATABASE: DESCRIPTION` | A hive loaded from a file couldn't be written to the database. |
 | `Could not open hive definition file: PATH` | The hive file doesn't exist or can't be read. |
 | `Could not load the hive described by PATH: DESCRIPTION` | The hive file isn't valid JSON, or doesn't describe a valid hive. `DESCRIPTION` says what's wrong, e.g. `the file is not valid JSON -- line 3, column 17: Invalid value.` or `a surface names a node that does not exist`. |
 | `The hive described by PATH is named '...', which another hive already loaded is named too.` | Two hive files share a name. |
@@ -215,4 +271,16 @@ Serve the example hives to other machines on the network, listening on every int
 
 ```
 ./matrytsya -a 0.0.0.0 ../examples/engineHive.json ../examples/flowerHive.json
+```
+
+Serve the seed hive, keeping it stored in `seed.mdb` as its builder grows it:
+
+```
+./matrytsya -d seed.mdb ../examples/seedHive.json
+```
+
+Serve it again later, as it was left, from the database alone:
+
+```
+./matrytsya -d seed.mdb
 ```

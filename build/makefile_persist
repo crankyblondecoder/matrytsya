@@ -1,8 +1,15 @@
 srcFiles = HarnessBuilder.cpp \
 HiveBuilder.cpp \
+HiveNodeCapture.cpp \
+HivePersister.cpp \
 PersistException.cpp \
+hiveNames.cpp \
 json/JsonHarnessLoader.cpp \
-json/JsonHiveLoader.cpp
+json/JsonHiveLoader.cpp \
+json/JsonHiveWriter.cpp \
+lmdb/LmdbHiveLoader.cpp \
+lmdb/LmdbHiveStore.cpp \
+lmdb/lmdbHiveRecords.cpp
 
 objFiles = $(srcFiles:.cpp=.o)
 

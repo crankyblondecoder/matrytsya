@@ -16,6 +16,8 @@ class SceneRootNode : public StrobeEmitterNode
 
 		GraphNodeType getType() override;
 
+		virtual void accept(GraphNodeVisitor& visitor) override;
+
 		SceneRootNode* asSceneRoot() override;
 
 		/**

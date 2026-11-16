@@ -243,6 +243,38 @@ void GraphHiveStrobeScheduler::clearSurfaces()
 	// 'removed' goes out of scope here, decrRef'ing each surface outside the lock.
 }
 
+std::vector<std::pair<Handle<StrobeEmitterNode>, unsigned>> GraphHiveStrobeScheduler::getEmitters()
+{
+	std::vector<std::pair<Handle<StrobeEmitterNode>, unsigned>> emitters;
+
+	_cond.lockMutex();
+
+	for(StrobeEntry& entry : _entries)
+	{
+		emitters.push_back(std::make_pair(entry.handle, (unsigned)(entry.periodNs / NS_PER_MS)));
+	}
+
+	_cond.unlockMutex();
+
+	return emitters;
+}
+
+std::vector<std::pair<Handle<GraphHiveSurface>, unsigned>> GraphHiveStrobeScheduler::getSurfaces()
+{
+	std::vector<std::pair<Handle<GraphHiveSurface>, unsigned>> surfaces;
+
+	_cond.lockMutex();
+
+	for(SurfaceEntry& entry : _surfaceEntries)
+	{
+		surfaces.push_back(std::make_pair(entry.handle, (unsigned)(entry.periodNs / NS_PER_MS)));
+	}
+
+	_cond.unlockMutex();
+
+	return surfaces;
+}
+
 void GraphHiveStrobeScheduler::threadEntry()
 {
 	while(!_getQuit())

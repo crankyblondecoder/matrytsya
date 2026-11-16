@@ -1,5 +1,6 @@
 #include "SceneRootNode.hpp"
 
+#include "../GraphNodeVisitor.hpp"
 #include "../actions/SceneAction.hpp"
 #include "../../util/Handle.hpp"
 #include "../GraphHiveSceneSurface.hpp"
@@ -16,6 +17,11 @@ SceneRootNode::SceneRootNode() : StrobeEmitterNode(true)
 GraphNodeType SceneRootNode::getType()
 {
 	return GraphNodeType::SCENE_ROOT_NODE;
+}
+
+void SceneRootNode::accept(GraphNodeVisitor& visitor)
+{
+	visitor.visit(*this);
 }
 
 SceneRootNode* SceneRootNode::asSceneRoot()

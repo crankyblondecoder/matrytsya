@@ -106,6 +106,9 @@ void GraphHive::setStrobeEmitter(Handle<StrobeEmitterNode> nodeHandle, unsigned 
 	}
 
 	_strobeScheduler -> setEmitter(nodeHandle, periodMs);
+
+	// A strobe registration is part of what the hive would have to be rebuilt from.
+	_bumpVersion();
 }
 
 void GraphHive::clearStrobeEmitter(Handle<StrobeEmitterNode> nodeHandle)
@@ -116,6 +119,26 @@ void GraphHive::clearStrobeEmitter(Handle<StrobeEmitterNode> nodeHandle)
 	}
 
 	if(nodeHandle.isValid()) _strobeScheduler -> removeEmitter(nodeHandle);
+
+	// A strobe registration is part of what the hive would have to be rebuilt from.
+	_bumpVersion();
+}
+
+std::vector<GraphHive::StrobeRegistration> GraphHive::getStrobeEmitters()
+{
+	std::vector<StrobeRegistration> registrations;
+
+	{ SYNC(_lock)
+
+		if(!_active) return registrations;
+	}
+
+	for(std::pair<Handle<StrobeEmitterNode>, unsigned>& emitter : _strobeScheduler -> getEmitters())
+	{
+		registrations.push_back(StrobeRegistration{emitter.first.getInstance() -> getName(), emitter.second});
+	}
+
+	return registrations;
 }
 
 void GraphHive::setStrobeSurface(Handle<GraphHiveSurface> surfaceHandle, unsigned periodMs)
@@ -136,6 +159,23 @@ void GraphHive::clearStrobeSurface(Handle<GraphHiveSurface> surfaceHandle)
 	}
 
 	if(surfaceHandle.isValid()) _strobeScheduler -> removeSurface(surfaceHandle);
+}
+
+std::vector<GraphHive::StrobeRegistration> GraphHive::getStrobeSurfaces()
+{
+	std::vector<StrobeRegistration> registrations;
+
+	{ SYNC(_lock)
+
+		if(!_active) return registrations;
+	}
+
+	for(std::pair<Handle<GraphHiveSurface>, unsigned>& surface : _strobeScheduler -> getSurfaces())
+	{
+		registrations.push_back(StrobeRegistration{surface.first.getInstance() -> getName(), surface.second});
+	}
+
+	return registrations;
 }
 
 unsigned GraphHive::actionActive(GraphAction* action)
@@ -644,6 +684,8 @@ void GraphHive::addNode(GraphNode* node)
 
 	// Remove the ref added at the beginning of this function.
 	node -> decrRef();
+
+	if(addedIndex != -1) emitEvent(GraphHiveListener::Event::NODE_ADDED);
 }
 
 bool GraphHive::addUniquelyNamedNode(GraphNode* node)
@@ -730,10 +772,17 @@ bool GraphHive::addUniquelyNamedNode(GraphNode* node)
 	// Remove the ref added at the beginning of this function.
 	node -> decrRef();
 
+	if(addedIndex != -1) emitEvent(GraphHiveListener::Event::NODE_ADDED);
+
 	return addedIndex != -1;
 }
 
 void GraphHive::nodeEdgesChanged()
+{
+	_bumpVersion();
+}
+
+void GraphHive::nodeStructureChanged()
 {
 	_bumpVersion();
 }

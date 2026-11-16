@@ -31,6 +31,8 @@ class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarg
 
 		GraphNodeType getType() override;
 
+		virtual void accept(GraphNodeVisitor& visitor) override;
+
 		void populateSurface(Handle<GraphHiveSceneSurface> surface) override;
 
 		void strobe() override;

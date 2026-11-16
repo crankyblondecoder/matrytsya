@@ -1,4 +1,5 @@
 #include "SceneGeometryNode.hpp"
+#include "../GraphNodeVisitor.hpp"
 #include "../actions/AgentAffectAction.hpp"
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphHiveSceneSurface.hpp"
@@ -20,6 +21,11 @@ SceneGeometryNode::SceneGeometryNode(bool emitAgentAffectAction)
 GraphNodeType SceneGeometryNode::getType()
 {
 	return GraphNodeType::SCENE_GEOMETRY_NODE;
+}
+
+void SceneGeometryNode::accept(GraphNodeVisitor& visitor)
+{
+	visitor.visit(*this);
 }
 
 void SceneGeometryNode::populateSurface(Handle<GraphHiveSceneSurface> surface)

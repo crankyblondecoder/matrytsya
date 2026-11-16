@@ -83,6 +83,7 @@ const char* PersistException::getErrorDescription(Error error)
 			return "an agent node's \"serialiseEmittedActions\" is not a boolean";
 		case JSON_INVALID_TRIGGER_EMIT_ON_POKE: return "a trigger node's \"emitTriggerOnPoke\" is not a boolean";
 		case JSON_INVALID_BUILDER_BUILD_ONCE: return "a builder script node's \"buildOnce\" is not a boolean";
+		case JSON_INVALID_BUILDER_BUILT: return "a builder script node's \"built\" is not a boolean";
 		case JSON_INVALID_TEXT: return "a scene text node's \"text\" is not a string";
 		case JSON_INVALID_TEXT_POSITION: return "a scene text node's \"textPosition\" is not an array of 3 numbers";
 		case JSON_INVALID_TEXT_HEIGHT: return "a scene text node's \"textHeight\" is not a number greater than 0";
@@ -104,6 +105,14 @@ const char* PersistException::getErrorDescription(Error error)
 		case JSON_INVALID_MODEL_TEMPERATURE: return "a model assignment's \"temperature\" is not a number";
 		case JSON_INVALID_SYSTEM_PROMPTS: return "\"systemPrompts\" is not an array, or an entry in it is malformed";
 		case JSON_INVALID_TOOL_BINDINGS: return "\"toolBindings\" is not an array, or an entry in it is malformed";
+
+		// -- LMDB hive store errors --
+
+		case LMDB_OPEN_FAILED: return "the hive database could not be opened or created";
+		case LMDB_TXN_FAILED: return "reading from or writing to the hive database failed";
+		case LMDB_CORRUPT_RECORD: return "a hive stored in the database is missing a record or holds one that is malformed";
+		case LMDB_UNSUPPORTED_FORMAT: return "a hive stored in the database was written in a format this program does not read";
+		case HIVE_NOT_CAPTURABLE: return "a node in the running hive is of a kind that cannot be stored";
 	}
 
 	return "an unknown error occurred";

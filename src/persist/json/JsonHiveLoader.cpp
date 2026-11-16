@@ -1,32 +1,63 @@
 #include "JsonHiveLoader.hpp"
 
 #include "../PersistException.hpp"
+#include "../hiveNames.hpp"
 #include "../../graph/GraphNodeLocation.hpp"
 #include "../../graph/graphSceneElements.hpp"
 #include "../../rapidjson/document.h"
 #include "../../rapidjson/error/en.h"
 
 #include <algorithm>
+#include <utility>
 
 namespace
 {
-	// -- Parsing helpers, used only while JsonHiveLoader's constructor extracts everything up front --
+	// -- Parsing helpers, used while JsonHiveLoader's constructor extracts everything up front, and by the
+	//    fragment parsers --
 
-	HiveNodeDescriptor::Type __nodeTypeFromString(const std::string& type)
+	/**
+	 * Parse JSON text into a document, reporting a parse failure as a line and column rather than the byte offset
+	 * reported, as that is what an editor shows.
+	 * @throw PersistException(JSON_PARSE_ERROR) If the text is not well formed JSON.
+	 */
+	void __parseDocument(const std::string& json, rapidjson::Document& document)
 	{
-		if(type == "PingNode") return HiveNodeDescriptor::PING;
-		if(type == "TeleportNode") return HiveNodeDescriptor::TELEPORT;
-		if(type == "SceneRootNode") return HiveNodeDescriptor::SCENE_ROOT;
-		if(type == "SceneGeometryNode") return HiveNodeDescriptor::SCENE_GEOMETRY;
-		if(type == "SceneGeometryScriptNode") return HiveNodeDescriptor::SCENE_GEOMETRY_SCRIPT;
-		if(type == "SceneTransformNode") return HiveNodeDescriptor::SCENE_TRANSFORM;
-		if(type == "SceneTransformScriptNode") return HiveNodeDescriptor::SCENE_TRANSFORM_SCRIPT;
-		if(type == "AgentNode") return HiveNodeDescriptor::AGENT;
-		if(type == "TriggerNode") return HiveNodeDescriptor::TRIGGER;
-		if(type == "SceneTextScriptNode") return HiveNodeDescriptor::SCENE_TEXT_SCRIPT;
-		if(type == "BuilderScriptNode") return HiveNodeDescriptor::BUILDER_SCRIPT;
+		// Full precision, so that a number written out as the shortest text that reads back exactly does read back
+		// exactly, which is what a hive written back out and loaded again relies on.
+		document.Parse<rapidjson::kParseFullPrecisionFlag>(json.c_str(), json.size());
 
-		throw PersistException(PersistException::UNKNOWN_NODE_TYPE);
+		if(document.HasParseError())
+		{
+			size_t offset = document.GetErrorOffset();
+			size_t line = 1 + std::count(json.begin(), json.begin() + offset, '\n');
+			size_t lineStart = offset == 0 ? std::string::npos : json.rfind('\n', offset - 1);
+			size_t column = 1 + offset - (lineStart == std::string::npos ? 0 : lineStart + 1);
+
+			throw PersistException(PersistException::JSON_PARSE_ERROR, "line " + std::to_string(line) +
+				", column " + std::to_string(column) + ": " + rapidjson::GetParseError_En(document.GetParseError()));
+		}
+	}
+
+	/**
+	 * Read one entry of a strobe registration array.
+	 * @param entryValue Entry to read.
+	 * @param nameKey Member naming what is strobed.
+	 * @param onError Error to raise if the entry is malformed.
+	 * @returns Name / periodMs pair.
+	 */
+	std::pair<std::string, unsigned> __parseStrobeEntry(const rapidjson::Value& entryValue, const char* nameKey,
+		PersistException::Error onError)
+	{
+		if(!entryValue.IsObject() || !entryValue.HasMember(nameKey) || !entryValue[nameKey].IsString() ||
+			(entryValue.HasMember("periodMs") && !entryValue["periodMs"].IsUint()))
+		{
+			throw PersistException(onError);
+		}
+
+		// Schema default.
+		unsigned periodMs = entryValue.HasMember("periodMs") ? entryValue["periodMs"].GetUint() : 33;
+
+		return std::make_pair(std::string(entryValue[nameKey].GetString()), periodMs);
 	}
 
 	bool __isScriptType(HiveNodeDescriptor::Type type)
@@ -36,14 +67,6 @@ namespace
 			type == HiveNodeDescriptor::TRIGGER ||
 			type == HiveNodeDescriptor::SCENE_TEXT_SCRIPT ||
 			type == HiveNodeDescriptor::BUILDER_SCRIPT;
-	}
-
-	HiveSurfaceDescriptor::Type __surfaceTypeFromString(const std::string& type)
-	{
-		if(type == "GraphHiveSceneSurface") return HiveSurfaceDescriptor::SCENE_SURFACE;
-		if(type == "GraphHiveGraphViewSurface") return HiveSurfaceDescriptor::GRAPH_VIEW_SURFACE;
-
-		throw PersistException(PersistException::UNKNOWN_SURFACE_TYPE);
 	}
 
 	void __readDoubleArray(const rapidjson::Value& arrayValue, double* out, unsigned count, PersistException::Error onError)
@@ -412,6 +435,16 @@ namespace
 
 			descriptor.buildOnce = nodeValue["buildOnce"].GetBool();
 		}
+
+		if(nodeValue.HasMember("built"))
+		{
+			if(!nodeValue["built"].IsBool())
+			{
+				throw PersistException(PersistException::JSON_INVALID_BUILDER_BUILT);
+			}
+
+			descriptor.built = nodeValue["built"].GetBool();
+		}
 	}
 
 	void __readColour(const rapidjson::Value& colourValue, std::byte* out, PersistException::Error onError)
@@ -530,7 +563,7 @@ namespace
 		HiveNodeDescriptor descriptor{};
 
 		// May throw UNKNOWN_NODE_TYPE if "type" is a string but not one of the recognised values.
-		descriptor.type = __nodeTypeFromString(nodeValue["type"].GetString());
+		descriptor.type = hiveNames::nodeTypeFromName(nodeValue["type"].GetString());
 
 		if(!nodeValue.HasMember("name") || !nodeValue["name"].IsString())
 		{
@@ -614,7 +647,7 @@ namespace
 		HiveSurfaceDescriptor descriptor{};
 
 		// May throw UNKNOWN_SURFACE_TYPE if "type" is a string but not one of the recognised values.
-		descriptor.type = __surfaceTypeFromString(surfaceValue["type"].GetString());
+		descriptor.type = hiveNames::surfaceTypeFromName(surfaceValue["type"].GetString());
 
 		if(!surfaceValue.HasMember("name") || !surfaceValue["name"].IsString())
 		{
@@ -678,19 +711,7 @@ JsonHiveLoader::JsonHiveLoader(const std::string& json)
 {
 	rapidjson::Document document;
 
-	document.Parse(json.c_str());
-
-	if(document.HasParseError())
-	{
-		// Given as a line and column rather than the byte offset reported, as that is what an editor shows.
-		size_t offset = document.GetErrorOffset();
-		size_t line = 1 + std::count(json.begin(), json.begin() + offset, '\n');
-		size_t lineStart = offset == 0 ? std::string::npos : json.rfind('\n', offset - 1);
-		size_t column = 1 + offset - (lineStart == std::string::npos ? 0 : lineStart + 1);
-
-		throw PersistException(PersistException::JSON_PARSE_ERROR, "line " + std::to_string(line) +
-			", column " + std::to_string(column) + ": " + rapidjson::GetParseError_En(document.GetParseError()));
-	}
+	__parseDocument(json, document);
 
 	if(!document.IsObject()) throw PersistException(PersistException::JSON_ROOT_NOT_OBJECT);
 
@@ -737,17 +758,8 @@ JsonHiveLoader::JsonHiveLoader(const std::string& json)
 
 		for(auto& strobeEmitterValue : strobeEmittersValue.GetArray())
 		{
-			if(!strobeEmitterValue.IsObject() ||
-				!strobeEmitterValue.HasMember("nodeName") || !strobeEmitterValue["nodeName"].IsString() ||
-				(strobeEmitterValue.HasMember("periodMs") && !strobeEmitterValue["periodMs"].IsUint()))
-			{
-				throw PersistException(PersistException::JSON_INVALID_STROBE_EMITTERS);
-			}
-
-			unsigned periodMs = strobeEmitterValue.HasMember("periodMs") ?
-				strobeEmitterValue["periodMs"].GetUint() : 33; // Schema default.
-
-			_strobeEmitters.emplace_back(strobeEmitterValue["nodeName"].GetString(), periodMs);
+			_strobeEmitters.push_back(__parseStrobeEntry(strobeEmitterValue, "nodeName",
+				PersistException::JSON_INVALID_STROBE_EMITTERS));
 		}
 	}
 
@@ -759,17 +771,8 @@ JsonHiveLoader::JsonHiveLoader(const std::string& json)
 
 		for(auto& strobeSurfaceValue : strobeSurfacesValue.GetArray())
 		{
-			if(!strobeSurfaceValue.IsObject() ||
-				!strobeSurfaceValue.HasMember("surfaceName") || !strobeSurfaceValue["surfaceName"].IsString() ||
-				(strobeSurfaceValue.HasMember("periodMs") && !strobeSurfaceValue["periodMs"].IsUint()))
-			{
-				throw PersistException(PersistException::JSON_INVALID_STROBE_SURFACES);
-			}
-
-			unsigned periodMs = strobeSurfaceValue.HasMember("periodMs") ?
-				strobeSurfaceValue["periodMs"].GetUint() : 33; // Schema default.
-
-			_strobeSurfaces.emplace_back(strobeSurfaceValue["surfaceName"].GetString(), periodMs);
+			_strobeSurfaces.push_back(__parseStrobeEntry(strobeSurfaceValue, "surfaceName",
+				PersistException::JSON_INVALID_STROBE_SURFACES));
 		}
 	}
 }
@@ -823,4 +826,48 @@ void JsonHiveLoader::getStrobeSurface(unsigned index, std::string& surfaceName, 
 {
 	surfaceName = _strobeSurfaces[index].first;
 	periodMs = _strobeSurfaces[index].second;
+}
+
+HiveNodeDescriptor JsonHiveLoader::parseNodeFragment(const std::string& json)
+{
+	rapidjson::Document document;
+
+	__parseDocument(json, document);
+
+	return __parseNode(document);
+}
+
+HiveSurfaceDescriptor JsonHiveLoader::parseSurfaceFragment(const std::string& json)
+{
+	rapidjson::Document document;
+
+	__parseDocument(json, document);
+
+	return __parseSurface(document);
+}
+
+void JsonHiveLoader::parseStrobeEmitterFragment(const std::string& json, std::string& nodeName, unsigned& periodMs)
+{
+	rapidjson::Document document;
+
+	__parseDocument(json, document);
+
+	std::pair<std::string, unsigned> entry =
+		__parseStrobeEntry(document, "nodeName", PersistException::JSON_INVALID_STROBE_EMITTERS);
+
+	nodeName = entry.first;
+	periodMs = entry.second;
+}
+
+void JsonHiveLoader::parseStrobeSurfaceFragment(const std::string& json, std::string& surfaceName, unsigned& periodMs)
+{
+	rapidjson::Document document;
+
+	__parseDocument(json, document);
+
+	std::pair<std::string, unsigned> entry =
+		__parseStrobeEntry(document, "surfaceName", PersistException::JSON_INVALID_STROBE_SURFACES);
+
+	surfaceName = entry.first;
+	periodMs = entry.second;
 }

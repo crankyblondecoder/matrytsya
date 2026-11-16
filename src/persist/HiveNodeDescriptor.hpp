@@ -138,6 +138,10 @@ struct HiveNodeDescriptor
 	/// Whether a BuilderScriptNode builds once only. Only meaningful when type == BUILDER_SCRIPT.
 	bool buildOnce = true;
 
+	/// Whether a BuilderScriptNode that builds once only has already used its build up. Only meaningful when
+	/// type == BUILDER_SCRIPT.
+	bool built = false;
+
 	/// Text a SceneTextScriptNode displays. Only meaningful when type == SCENE_TEXT_SCRIPT.
 	std::string text;
 

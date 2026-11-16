@@ -7,9 +7,10 @@
 
 /**
  * Exception thrown by the persist module, covering the builders' structural validation of loaded hive
- * and harness data and the JSON loaders' parsing/validation of that data as JSON. JSON-specific errors
- * are prefixed JSON_ so they can be distinguished from the format-agnostic builder errors without a
- * second exception class.
+ * and harness data, the JSON loaders' parsing/validation of that data as JSON, and storing hives in and
+ * reading them back from an LMDB database. JSON-specific errors are prefixed JSON_ and database errors
+ * LMDB_ so they can be distinguished from the format-agnostic builder errors without a second exception
+ * class.
  */
 class PersistException : public Exception
 {
@@ -151,6 +152,8 @@ class PersistException : public Exception
 			JSON_INVALID_TRIGGER_EMIT_ON_POKE,
 			/// A BuilderScriptNode's "buildOnce" member was present but not a boolean.
 			JSON_INVALID_BUILDER_BUILD_ONCE,
+			/// A BuilderScriptNode's "built" member was present but not a boolean.
+			JSON_INVALID_BUILDER_BUILT,
 			/// A SceneTextScriptNode's "text" member was present but not a string.
 			JSON_INVALID_TEXT,
 			/// A SceneTextScriptNode's "textPosition" member was present but not a 3 element numeric array.
@@ -185,7 +188,23 @@ class PersistException : public Exception
 			/// The top level "systemPrompts" member was present but not an array, or an entry was malformed.
 			JSON_INVALID_SYSTEM_PROMPTS,
 			/// The top level "toolBindings" member was present but not an array, or an entry was malformed.
-			JSON_INVALID_TOOL_BINDINGS
+			JSON_INVALID_TOOL_BINDINGS,
+
+			// -- LMDB hive store errors --
+
+			/// The database file could not be opened, or created when it did not exist.
+			LMDB_OPEN_FAILED,
+			/// A read or write transaction against the database failed.
+			LMDB_TXN_FAILED,
+			/// A stored hive was missing its meta record, or held a record that could not be read back.
+			LMDB_CORRUPT_RECORD,
+			/// A stored hive's meta record named a format version this program does not read.
+			LMDB_UNSUPPORTED_FORMAT,
+
+			// -- Hive capture errors --
+
+			/// A node in a running hive is of a type that has no hive definition form, so the hive cannot be stored.
+			HIVE_NOT_CAPTURABLE
         };
 
         virtual ~PersistException(){}

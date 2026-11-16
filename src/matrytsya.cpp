@@ -17,12 +17,18 @@
 #include "graph/GraphToolBindingsFactory.hpp"
 #include "persist/HarnessBuilder.hpp"
 #include "persist/HiveBuilder.hpp"
+#include "persist/HiveLoader.hpp"
+#include "persist/HivePersister.hpp"
 #include "persist/PersistException.hpp"
 #include "persist/json/JsonHarnessLoader.hpp"
 #include "persist/json/JsonHiveLoader.hpp"
+#include "persist/lmdb/LmdbHiveLoader.hpp"
+#include "persist/lmdb/LmdbHiveStore.hpp"
+#include "thread/ThreadException.hpp"
 
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -84,10 +90,16 @@ namespace
 	void _printUsage(std::ostream& out, const char* programName)
 	{
 		out << "Usage: " << programName << " [options] hive.json [hive.json ...]\n"
+			"       " << programName << " [options] -d FILE [hive.json ...]\n"
 			"\n"
-			"Serve one or more hives, each defined by a JSON hive file, through a web interface.\n"
+			"Serve one or more hives, each defined by a JSON hive file or stored in a hive database, through a web\n"
+			"interface.\n"
 			"\n"
 			"Options:\n"
+			"  -d, --database FILE          Hive database to load hives from and keep them stored in, created if it\n"
+			"                               does not exist. A hive already stored there is loaded from it in place\n"
+			"                               of a hive file of the same name. Changes to a hive's structure while it\n"
+			"                               runs are written back to it.\n"
 			"  -p, --port PORT              Port the web interface listens on (default " << _DEFAULT_PORT << ").\n"
 			"  -a, --address ADDRESS        IPv4 address of the interface the web interface listens on\n"
 			"                               (default " << _DEFAULT_ADDRESS << "). Use " << _ANY_ADDRESS
@@ -207,6 +219,21 @@ namespace
 		return description;
 	}
 
+	/**
+	 * Somewhere a hive is loaded from, as gathered before any hive is built.
+	 */
+	struct HiveSource
+	{
+		/// Loader holding the hive's definition, already read and validated as far as the format goes.
+		std::unique_ptr<HiveLoader> loader;
+
+		/// What the hive was loaded from, worded to follow "the hive " in a message.
+		std::string description;
+
+		/// Whether the hive came from the hive database rather than a hive file.
+		bool fromStore;
+	};
+
 	std::string _readFile(const std::string& path)
 	{
 		std::ifstream file(path);
@@ -293,9 +320,11 @@ int main(int argc, char* argv[])
 	GraphHiveSurfaceHtmlMap::ShadingModel shadingModel = _DEFAULT_SHADING_MODEL;
 	unsigned verbosity = 0;
 	std::string harnessPath;
+	std::string databasePath;
 
 	const struct option longOptions[] =
 	{
+		{"database", required_argument, 0, 'd'},
 		{"port", required_argument, 0, 'p'},
 		{"address", required_argument, 0, 'a'},
 		{"harness", required_argument, 0, 'H'},
@@ -310,10 +339,16 @@ int main(int argc, char* argv[])
 
 	int option;
 
-	while((option = getopt_long(argc, argv, "p:a:H:c:ns:t:vh", longOptions, 0)) != -1)
+	while((option = getopt_long(argc, argv, "d:p:a:H:c:ns:t:vh", longOptions, 0)) != -1)
 	{
 		switch(option)
 		{
+			case 'd':
+
+				databasePath = optarg;
+
+				break;
+
 			case 'p':
 
 				if(!_parseUnsigned(optarg, 1, 65535, port))
@@ -405,14 +440,107 @@ int main(int argc, char* argv[])
 	Model::_logToConsole = verbosity >= _VERBOSITY_MODEL_TRAFFIC;
 	GraphNode::_logToConsole = verbosity >= _VERBOSITY_NODE_POKES;
 
-	if(optind >= argc)
+	std::vector<std::string> hiveJsonPaths(argv + optind, argv + argc);
+
+	// Held for as long as the program runs, as every hive stored in it is kept up to date with it.
+	Handle<LmdbHiveStore> storeHandle(0);
+
+	if(!databasePath.empty())
 	{
-		std::cerr << argv[0] << ": no hive definition files given" << std::endl;
+		try
+		{
+			LmdbHiveStore* store = new LmdbHiveStore(databasePath);
+
+			storeHandle = Handle<LmdbHiveStore>(store);
+
+			// The handle holds the reference; release the implicit construction ref.
+			store -> decrRef();
+		}
+		catch(PersistException& exception)
+		{
+			std::cerr << "Could not open hive database " << databasePath << ": " << _describe(exception) << std::endl;
+			exit(1);
+		}
+	}
+
+	// Every hive is read before any is built, so that a hive file naming a hive the database already holds can be
+	// set aside for the stored one, which has grown since that file was written.
+	std::vector<HiveSource> hiveSources;
+
+	if(storeHandle.isValid())
+	{
+		try
+		{
+			for(const std::string& hiveName : storeHandle.getInstance() -> getHiveNames())
+			{
+				try
+				{
+					hiveSources.push_back(HiveSource{std::make_unique<LmdbHiveLoader>(*storeHandle.getInstance(),
+						hiveName), "'" + hiveName + "' stored in " + databasePath, true});
+				}
+				catch(PersistException& exception)
+				{
+					std::cerr << "Could not load the hive '" << hiveName << "' stored in " << databasePath << ": "
+						<< _describe(exception) << std::endl;
+					exit(1);
+				}
+			}
+		}
+		catch(PersistException& exception)
+		{
+			std::cerr << "Could not read hive database " << databasePath << ": " << _describe(exception) << std::endl;
+			exit(1);
+		}
+	}
+
+	for(const std::string& hiveJsonPath : hiveJsonPaths)
+	{
+		std::unique_ptr<HiveLoader> loader;
+
+		try
+		{
+			loader = std::make_unique<JsonHiveLoader>(_readFile(hiveJsonPath));
+		}
+		catch(PersistException& exception)
+		{
+			std::cerr << "Could not load the hive described by " << hiveJsonPath << ": " << _describe(exception)
+				<< std::endl;
+			exit(1);
+		}
+
+		bool stored = false;
+
+		for(HiveSource& source : hiveSources)
+		{
+			if(source.fromStore && source.loader -> getHiveName() == loader -> getHiveName()) stored = true;
+		}
+
+		if(stored)
+		{
+			std::cout << "Using the hive '" << loader -> getHiveName() << "' stored in " << databasePath
+				<< " rather than the one described by " << hiveJsonPath << "." << std::endl;
+
+			continue;
+		}
+
+		hiveSources.push_back(HiveSource{std::move(loader), "described by " + hiveJsonPath, false});
+	}
+
+	if(hiveSources.empty())
+	{
+		if(storeHandle.isValid())
+		{
+			std::cerr << argv[0] << ": no hive definition files given, and " << databasePath << " holds no hives"
+				<< std::endl;
+		}
+		else
+		{
+			std::cerr << argv[0] << ": no hive definition files given" << std::endl;
+		}
+
 		_printUsage(std::cerr, argv[0]);
 		return 1;
 	}
-
-	std::vector<std::string> hiveJsonPaths(argv + optind, argv + argc);
 
 	// Declared before anything that points back at it: every hive loaded below is given this collection, and
 	// so is the index map, neither of which reference count it.
@@ -441,6 +569,9 @@ int main(int argc, char* argv[])
 	// server is still answering for it.
 	std::vector<Handle<GraphHive>> hiveHandles;
 
+	// One per hive when there is a hive database, each keeping its hive's stored copy up to date until stopped.
+	std::vector<Handle<HivePersister>> persisterHandles;
+
 	// Held as the HTML maps they are rather than as what each draws, since what is done with them from here on
 	// -- setting them up, mounting them on the index and waiting on a first request -- is the same whichever
 	// kind of surface is behind them.
@@ -449,21 +580,18 @@ int main(int argc, char* argv[])
 	// Path of the first scene surface served, which is the one a lone hive is landed on.
 	std::string firstScenePath;
 
-	for(const std::string& hiveJsonPath : hiveJsonPaths)
+	for(HiveSource& source : hiveSources)
 	{
 		GraphHive* hive = 0;
 
-		// Caught per file, unlike in the test program, so that a bad file among several is named.
+		// Caught per hive, unlike in the test program, so that a bad hive among several is named.
 		try
 		{
-			JsonHiveLoader loader(_readFile(hiveJsonPath));
-
-			hive = HiveBuilder::build(loader, numThreads);
+			hive = HiveBuilder::build(*source.loader, numThreads);
 		}
 		catch(PersistException& exception)
 		{
-			std::cerr << "Could not load the hive described by " << hiveJsonPath << ": " << _describe(exception)
-				<< std::endl;
+			std::cerr << "Could not load the hive " << source.description << ": " << _describe(exception) << std::endl;
 			exit(1);
 		}
 
@@ -481,16 +609,49 @@ int main(int argc, char* argv[])
 		{
 			if(exception.getError() == GraphException::DUPLICATE_HIVE)
 			{
-				std::cerr << "The hive described by " << hiveJsonPath << " is named '" << hive -> getName()
+				std::cerr << "The hive " << source.description << " is named '" << hive -> getName()
 					<< "', which another hive already loaded is named too." << std::endl;
 			}
 			else
 			{
-				std::cerr << "Could not add the hive described by " << hiveJsonPath << " (error "
+				std::cerr << "Could not add the hive " << source.description << " (error "
 					<< exception.getError() << ")" << std::endl;
 			}
 
 			exit(1);
+		}
+
+		if(storeHandle.isValid())
+		{
+			HivePersister* persister = new HivePersister(storeHandle, hiveHandle, *source.loader);
+
+			Handle<HivePersister> persisterHandle(persister);
+
+			// The handle holds the reference; release the implicit construction ref.
+			persister -> decrRef();
+
+			try
+			{
+				// A hive from a hive file is stored straight away, so that it is in the database from now on
+				// whether or not it ever changes.
+				if(!source.fromStore) persister -> flush();
+
+				persister -> start();
+			}
+			catch(PersistException& exception)
+			{
+				std::cerr << "Could not store the hive " << source.description << " in " << databasePath << ": "
+					<< _describe(exception) << std::endl;
+				exit(1);
+			}
+			catch(ThreadException& exception)
+			{
+				std::cerr << "Could not start keeping the hive " << source.description << " stored in "
+					<< databasePath << std::endl;
+				exit(1);
+			}
+
+			persisterHandles.push_back(persisterHandle);
 		}
 
 		hive -> setHiveCollection(&collection);
@@ -649,6 +810,9 @@ int main(int argc, char* argv[])
 	while(_running) pause();
 
 	httpServer.stop();
+
+	// Before the hives are shut down, as a hive that has been holds nothing left to store.
+	for(Handle<HivePersister>& persisterHandle : persisterHandles) persisterHandle.getInstance() -> stop();
 
 	collection.shutdown();
 

@@ -53,10 +53,15 @@ class BuilderScriptNode : public ScriptNode, public AgentActionTarget, public Tr
 		 * @param pokeScript The script that is called for processing a poke.
 		 * @param buildOnce If true, only the first script session that builds anything may build; later ones
 		 *        are refused. If false, every session may build.
+		 * @param built If true, and buildOnce is too, the one build is taken as already used up, as it is for a
+		 *        builder restored from a hive that already holds what it built. Ignored if buildOnce is false.
 		 */
-        BuilderScriptNode(const std::string& coreScript, const std::string& pokeScript, bool buildOnce = true);
+        BuilderScriptNode(const std::string& coreScript, const std::string& pokeScript, bool buildOnce = true,
+			bool built = false);
 
 		GraphNodeType getType() override;
+
+		virtual void accept(GraphNodeVisitor& visitor) override;
 
 		/**
 		 * Get whether this node builds once only.

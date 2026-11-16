@@ -1,5 +1,6 @@
 #include "AgentNode.hpp"
 
+#include "../GraphNodeVisitor.hpp"
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphPoke.hpp"
 #include "../../log/log.hpp"
@@ -23,6 +24,11 @@ AgentNode::AgentNode(AgenticHarness::Capability capability, std::vector<AgentAct
 GraphNodeType AgentNode::getType()
 {
 	return GraphNodeType::AGENT_NODE;
+}
+
+void AgentNode::accept(GraphNodeVisitor& visitor)
+{
+	visitor.visit(*this);
 }
 
 AgentAction* AgentNode::emitAgentAction(bool wait)

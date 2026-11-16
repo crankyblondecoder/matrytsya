@@ -1,4 +1,5 @@
 #include "SceneGeometryScriptNode.hpp"
+#include "../GraphNodeVisitor.hpp"
 #include "../actions/AgentAffectAction.hpp"
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphHiveSceneSurface.hpp"
@@ -22,6 +23,11 @@ SceneGeometryScriptNode::SceneGeometryScriptNode(const std::string& coreScript, 
 GraphNodeType SceneGeometryScriptNode::getType()
 {
 	return GraphNodeType::SCENE_GEOMETRY_SCRIPT_NODE;
+}
+
+void SceneGeometryScriptNode::accept(GraphNodeVisitor& visitor)
+{
+	visitor.visit(*this);
 }
 
 void SceneGeometryScriptNode::_registerCoreGlobals(lua_State* luaState)

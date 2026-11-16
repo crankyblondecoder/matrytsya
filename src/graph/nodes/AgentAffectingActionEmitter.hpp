@@ -9,6 +9,11 @@ class AgentAffectingActionEmitter
 {
     public:
 
+		/**
+		 * Get whether this emits an agent affect action if an agent action directly affects it.
+		 */
+		bool getEmitAgentAffectAction();
+
 	protected:
 
 		/**

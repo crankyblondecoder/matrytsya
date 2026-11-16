@@ -7,6 +7,7 @@
 #include "GraphException.hpp"
 #include "../util/Handle.hpp"
 #include "GraphHive.hpp"
+#include "GraphNodeVisitor.hpp"
 
 namespace
 {
@@ -89,6 +90,11 @@ StrobeEmitterNode* GraphNode::asStrobeEmitter()
 SceneRootNode* GraphNode::asSceneRoot()
 {
 	return 0;
+}
+
+void GraphNode::accept(GraphNodeVisitor& visitor)
+{
+	visitor.visit(*this);
 }
 
 std::string GraphNode::typeName(GraphNodeType type)
