@@ -1,0 +1,2014 @@
+{
+	"openapi": "3.1.0",
+	"info": {
+		"title": "Matrytsya hive control API",
+		"version": "1",
+		"summary": "Build, modify and drive running hives over HTTPS.",
+		"description": "Controls the hives a Matrytsya server is running: create and delete whole hives, add, inspect, edit and remove nodes and edges, and drive a hive by poking, triggering and animating its nodes and by setting how often its strobe emitters and surfaces fire.\n\nEvery request must carry an API token as `Authorization: Bearer <token>`. Every request body must be JSON, sent as `Content-Type: application/json`. Every response body is JSON; a failure is always an `Error` object.\n\nNode and hive bodies use exactly the shapes of a hive definition, described by the hive schema served at `/api/v1/hiveSchema.json`. A hive definition fetched from this API can be fed back to it, or loaded by the server from a file, unchanged.\n\nChanges made through this API are kept in the server's hive database, when it has one, just as changes a hive makes to itself are. A hive's version number rises with every structural change, whoever makes it.\n\nA guide to driving this API, written for AI agents, is served at `/api/v1/` as `agentGuide`."
+	},
+	"servers": [
+		{
+			"url": "/api/v1",
+			"description": "The server this description was fetched from."
+		}
+	],
+	"security": [
+		{
+			"bearerAuth": []
+		}
+	],
+	"tags": [
+		{
+			"name": "Discovery",
+			"description": "What the API offers and the shapes it uses."
+		},
+		{
+			"name": "Hives",
+			"description": "Whole hives: list, create, inspect, export and delete."
+		},
+		{
+			"name": "Nodes",
+			"description": "Nodes of a hive: list, add, inspect, edit and remove."
+		},
+		{
+			"name": "Edges",
+			"description": "Directed edges from one node to another, which decide where actions travel."
+		},
+		{
+			"name": "Control",
+			"description": "Drive a running hive: poke, trigger and animate nodes, and set strobe periods."
+		}
+	],
+	"paths": {
+		"/": {
+			"get": {
+				"operationId": "getIndex",
+				"tags": [
+					"Discovery"
+				],
+				"summary": "Describe the API",
+				"description": "Returns the API version, where its OpenAPI description and the hive schema are, and the full text of the guide for AI agents. Start here.",
+				"responses": {
+					"200": {
+						"description": "The API index.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiIndex"
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					}
+				}
+			}
+		},
+		"/openapi.json": {
+			"get": {
+				"operationId": "getOpenApi",
+				"tags": [
+					"Discovery"
+				],
+				"summary": "Get this OpenAPI description",
+				"description": "Returns this document. Its node and hive shapes refer to `hiveSchema.json`, which is served alongside it.",
+				"responses": {
+					"200": {
+						"description": "This OpenAPI description.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object"
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					}
+				}
+			}
+		},
+		"/hiveSchema.json": {
+			"get": {
+				"operationId": "getHiveSchema",
+				"tags": [
+					"Discovery"
+				],
+				"summary": "Get the hive definition schema",
+				"description": "Returns the JSON Schema a hive definition must satisfy. Its `$defs/node` is the shape of one node, as taken by `createNode` and returned in a node's `definition`.",
+				"responses": {
+					"200": {
+						"description": "The hive definition JSON Schema.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object"
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					}
+				}
+			}
+		},
+		"/hives": {
+			"get": {
+				"operationId": "listHives",
+				"tags": [
+					"Hives"
+				],
+				"summary": "List running hives",
+				"description": "Lists every running hive, by name, with its version and how many nodes it holds.",
+				"responses": {
+					"200": {
+						"description": "Running hives, sorted by name.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/HiveList"
+								},
+								"example": {
+									"hives": [
+										{
+											"name": "Seed",
+											"version": 15,
+											"nodeCount": 5
+										}
+									]
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					}
+				}
+			},
+			"post": {
+				"operationId": "createHive",
+				"tags": [
+					"Hives"
+				],
+				"summary": "Create and start a hive",
+				"description": "Builds a hive from a complete hive definition and starts running it. Its surfaces are served straight away, at the paths given in the response.\n\nThe hive is kept in the hive database unless `persist=false`. If the database holds a hive of the same name that is not running, the request is refused rather than overwriting it.",
+				"parameters": [
+					{
+						"name": "persist",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "boolean",
+							"default": true
+						},
+						"description": "Whether to keep the hive in the hive database. Ignored when the server has no hive database."
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "hiveSchema.json"
+							},
+							"example": {
+								"name": "Pinger",
+								"nodes": [
+									{
+										"type": "PingNode",
+										"name": "a",
+										"edges": [
+											{
+												"toNodeName": "b"
+											}
+										]
+									},
+									{
+										"type": "PingNode",
+										"name": "b"
+									}
+								]
+							}
+						}
+					},
+					"description": "A complete hive definition."
+				},
+				"responses": {
+					"201": {
+						"description": "The hive was created and is running.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/HiveSummary"
+								},
+								"example": {
+									"name": "Seed",
+									"version": 15,
+									"nodeCount": 5,
+									"persisted": true,
+									"surfaces": [
+										{
+											"name": "seed",
+											"path": "/Seed/seed/"
+										},
+										{
+											"name": "structure",
+											"path": "/Seed/structure/"
+										}
+									],
+									"strobeEmitters": [
+										{
+											"nodeName": "root",
+											"periodMs": 40
+										}
+									],
+									"strobeSurfaces": [
+										{
+											"surfaceName": "seed",
+											"periodMs": 40
+										},
+										{
+											"surfaceName": "structure",
+											"periodMs": 250
+										}
+									]
+								}
+							}
+						},
+						"headers": {
+							"Location": {
+								"description": "Path of the new hive.",
+								"schema": {
+									"type": "string"
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					},
+					"400": {
+						"$ref": "#/components/responses/BadRequest"
+					},
+					"409": {
+						"$ref": "#/components/responses/Conflict"
+					},
+					"415": {
+						"$ref": "#/components/responses/UnsupportedMediaType"
+					},
+					"422": {
+						"$ref": "#/components/responses/Unprocessable"
+					}
+				}
+			}
+		},
+		"/hives/{hive}": {
+			"parameters": [
+				{
+					"$ref": "#/components/parameters/hive"
+				}
+			],
+			"get": {
+				"operationId": "getHive",
+				"tags": [
+					"Hives"
+				],
+				"summary": "Summarise a hive",
+				"description": "Returns a hive's version, node count, whether it is kept in the hive database, the paths its surfaces are served at, and its strobe registrations.",
+				"responses": {
+					"200": {
+						"description": "The hive's summary.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/HiveSummary"
+								},
+								"example": {
+									"name": "Seed",
+									"version": 15,
+									"nodeCount": 5,
+									"persisted": true,
+									"surfaces": [
+										{
+											"name": "seed",
+											"path": "/Seed/seed/"
+										},
+										{
+											"name": "structure",
+											"path": "/Seed/structure/"
+										}
+									],
+									"strobeEmitters": [
+										{
+											"nodeName": "root",
+											"periodMs": 40
+										}
+									],
+									"strobeSurfaces": [
+										{
+											"surfaceName": "seed",
+											"periodMs": 40
+										},
+										{
+											"surfaceName": "structure",
+											"periodMs": 250
+										}
+									]
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					},
+					"404": {
+						"$ref": "#/components/responses/NotFound"
+					}
+				}
+			},
+			"delete": {
+				"operationId": "deleteHive",
+				"tags": [
+					"Hives"
+				],
+				"summary": "Stop and delete a hive",
+				"description": "Stops serving the hive and shuts it down. Without `purge=true` its stored copy is kept in the hive database, so the server loads it again on its next start. With `purge=true` the stored copy is deleted too; this also works on a hive that is stored but not running.",
+				"parameters": [
+					{
+						"name": "purge",
+						"in": "query",
+						"required": false,
+						"schema": {
+							"type": "boolean",
+							"default": false
+						},
+						"description": "Also delete the hive from the hive database."
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "What was deleted.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/HiveDeleted"
+								},
+								"example": {
+									"name": "Seed",
+									"deleted": true,
+									"purged": false
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					},
+					"404": {
+						"$ref": "#/components/responses/NotFound"
+					}
+				}
+			}
+		},
+		"/hives/{hive}/definition": {
+			"parameters": [
+				{
+					"$ref": "#/components/parameters/hive"
+				}
+			],
+			"get": {
+				"operationId": "getHiveDefinition",
+				"tags": [
+					"Hives"
+				],
+				"summary": "Export a hive's definition",
+				"description": "Returns the complete hive definition the running hive would be rebuilt from: each node as it was when it joined the hive, with its edges as they are now, and the hive's surfaces and current strobe registrations. It can be passed to `createHive` (under another name) or saved as a hive file.",
+				"responses": {
+					"200": {
+						"description": "The hive definition.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "hiveSchema.json"
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					},
+					"404": {
+						"$ref": "#/components/responses/NotFound"
+					}
+				}
+			}
+		},
+		"/hives/{hive}/nodes": {
+			"parameters": [
+				{
+					"$ref": "#/components/parameters/hive"
+				}
+			],
+			"get": {
+				"operationId": "listNodes",
+				"tags": [
+					"Nodes"
+				],
+				"summary": "List a hive's nodes",
+				"description": "Lists every node with its type and the edges leaving it.",
+				"responses": {
+					"200": {
+						"description": "The hive's nodes.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NodeList"
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					},
+					"404": {
+						"$ref": "#/components/responses/NotFound"
+					}
+				}
+			},
+			"post": {
+				"operationId": "createNode",
+				"tags": [
+					"Nodes"
+				],
+				"summary": "Add a node",
+				"description": "Adds a node to a running hive. The body is one node, exactly as it would appear in a hive definition's `nodes` array, edges included. Each edge must lead to a node already in the hive, or to the new node itself. To have an existing node lead to the new one, add that edge afterwards with `createEdge`.",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "hiveSchema.json#/$defs/node"
+							},
+							"example": {
+								"type": "PingNode",
+								"name": "pinger",
+								"edges": [
+									{
+										"toNodeName": "root",
+										"actionFlags": [
+											"PING_GRAPH_ACTION"
+										]
+									}
+								]
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "The node was added.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NodeView"
+								},
+								"example": {
+									"name": "pinger",
+									"id": 6,
+									"type": "PingNode",
+									"definition": {
+										"type": "PingNode",
+										"name": "pinger",
+										"pokeEnabled": false,
+										"edges": [
+											{
+												"toNodeName": "root",
+												"actionFlags": [
+													"PING_GRAPH_ACTION"
+												],
+												"actionsCompleteAfterTraverse": false,
+												"traversalKey": 0
+											}
+										]
+									},
+									"edges": [
+										{
+											"id": 9,
+											"to": "root",
+											"actionFlags": [
+												"PING_GRAPH_ACTION"
+											],
+											"traversalKey": 0,
+											"actionsCompleteAfterTraverse": false
+										}
+									]
+								}
+							}
+						},
+						"headers": {
+							"Location": {
+								"description": "Path of the new node.",
+								"schema": {
+									"type": "string"
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					},
+					"404": {
+						"$ref": "#/components/responses/NotFound"
+					},
+					"400": {
+						"$ref": "#/components/responses/BadRequest"
+					},
+					"409": {
+						"$ref": "#/components/responses/Conflict"
+					},
+					"415": {
+						"$ref": "#/components/responses/UnsupportedMediaType"
+					},
+					"422": {
+						"$ref": "#/components/responses/Unprocessable"
+					}
+				}
+			}
+		},
+		"/hives/{hive}/nodes/{node}": {
+			"parameters": [
+				{
+					"$ref": "#/components/parameters/hive"
+				},
+				{
+					"$ref": "#/components/parameters/node"
+				}
+			],
+			"get": {
+				"operationId": "getNode",
+				"tags": [
+					"Nodes"
+				],
+				"summary": "Get a node",
+				"description": "Returns a node's full definition and its edges, each with the id `deleteEdge` takes.",
+				"responses": {
+					"200": {
+						"description": "The node.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NodeView"
+								},
+								"example": {
+									"name": "pinger",
+									"id": 6,
+									"type": "PingNode",
+									"definition": {
+										"type": "PingNode",
+										"name": "pinger",
+										"pokeEnabled": false,
+										"edges": [
+											{
+												"toNodeName": "root",
+												"actionFlags": [
+													"PING_GRAPH_ACTION"
+												],
+												"actionsCompleteAfterTraverse": false,
+												"traversalKey": 0
+											}
+										]
+									},
+									"edges": [
+										{
+											"id": 9,
+											"to": "root",
+											"actionFlags": [
+												"PING_GRAPH_ACTION"
+											],
+											"traversalKey": 0,
+											"actionsCompleteAfterTraverse": false
+										}
+									]
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					},
+					"404": {
+						"$ref": "#/components/responses/NotFound"
+					}
+				}
+			},
+			"patch": {
+				"operationId": "updateNode",
+				"tags": [
+					"Nodes"
+				],
+				"summary": "Edit a node",
+				"description": "Changes some of a node's fields. Each top level field given replaces that field of the node's current definition (as `getNode` returns it); fields not given are kept. The node is then rebuilt from the result and put in place of the old one, keeping every edge to and from it and any strobe emitter registration.\n\nGiving `edges` replaces every edge leaving the node; edges into it are always kept. A node's `name` and `type` cannot be changed. A node a surface is bound to cannot be edited while the hive runs.\n\nA node's runtime state, such as what its script has done since it joined, is not carried over: the rebuilt node starts afresh.",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"description": "Top level fields of the node definition to replace.",
+								"additionalProperties": true
+							},
+							"example": {
+								"pokeEnabled": true
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "The edited node.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NodeView"
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					},
+					"404": {
+						"$ref": "#/components/responses/NotFound"
+					},
+					"400": {
+						"$ref": "#/components/responses/BadRequest"
+					},
+					"409": {
+						"$ref": "#/components/responses/Conflict"
+					},
+					"415": {
+						"$ref": "#/components/responses/UnsupportedMediaType"
+					},
+					"422": {
+						"$ref": "#/components/responses/Unprocessable"
+					}
+				}
+			},
+			"delete": {
+				"operationId": "deleteNode",
+				"tags": [
+					"Nodes"
+				],
+				"summary": "Remove a node",
+				"description": "Removes a node from the hive, along with every edge leaving it and every edge from another node into it, and stops it being a strobe emitter. A hive must keep at least one node, and a node a surface is bound to cannot be removed while the hive runs.",
+				"responses": {
+					"200": {
+						"description": "The node was removed.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NodeDeleted"
+								},
+								"example": {
+									"name": "pinger",
+									"deleted": true
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					},
+					"404": {
+						"$ref": "#/components/responses/NotFound"
+					},
+					"409": {
+						"$ref": "#/components/responses/Conflict"
+					}
+				}
+			}
+		},
+		"/hives/{hive}/nodes/{node}/edges": {
+			"parameters": [
+				{
+					"$ref": "#/components/parameters/hive"
+				},
+				{
+					"$ref": "#/components/parameters/node"
+				}
+			],
+			"post": {
+				"operationId": "createEdge",
+				"tags": [
+					"Edges"
+				],
+				"summary": "Add an edge",
+				"description": "Adds a directed edge from this node to another node (or to itself). A node holds at most 32 edges.",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/EdgeCreate"
+							},
+							"example": {
+								"to": "root",
+								"actionFlags": [
+									"PING_GRAPH_ACTION"
+								],
+								"traversalKey": 0,
+								"actionsCompleteAfterTraverse": false
+							}
+						}
+					}
+				},
+				"responses": {
+					"201": {
+						"description": "The edge was added.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Edge"
+								},
+								"example": {
+									"id": 12,
+									"to": "rootTransform",
+									"actionFlags": [
+										"SCENE_GRAPH_ACTION"
+									],
+									"traversalKey": 0,
+									"actionsCompleteAfterTraverse": false
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					},
+					"404": {
+						"$ref": "#/components/responses/NotFound"
+					},
+					"400": {
+						"$ref": "#/components/responses/BadRequest"
+					},
+					"415": {
+						"$ref": "#/components/responses/UnsupportedMediaType"
+					},
+					"422": {
+						"$ref": "#/components/responses/Unprocessable"
+					}
+				}
+			}
+		},
+		"/hives/{hive}/nodes/{node}/edges/{edgeId}": {
+			"parameters": [
+				{
+					"$ref": "#/components/parameters/hive"
+				},
+				{
+					"$ref": "#/components/parameters/node"
+				},
+				{
+					"$ref": "#/components/parameters/edgeId"
+				}
+			],
+			"delete": {
+				"operationId": "deleteEdge",
+				"tags": [
+					"Edges"
+				],
+				"summary": "Remove an edge",
+				"description": "Removes one edge leaving this node, by the id `getNode` or `listNodes` gives it. Ids are never reused, but an edge's id changes whenever its node is edited, so read them again after `updateNode`.",
+				"responses": {
+					"200": {
+						"description": "The edge was removed.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/EdgeDeleted"
+								},
+								"example": {
+									"id": 9,
+									"deleted": true
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					},
+					"404": {
+						"$ref": "#/components/responses/NotFound"
+					}
+				}
+			}
+		},
+		"/hives/{hive}/nodes/{node}/poke": {
+			"parameters": [
+				{
+					"$ref": "#/components/parameters/hive"
+				},
+				{
+					"$ref": "#/components/parameters/node"
+				}
+			],
+			"post": {
+				"operationId": "pokeNode",
+				"tags": [
+					"Control"
+				],
+				"summary": "Poke a node",
+				"description": "Pokes a node as a viewer interacting with it would. What a poke does is up to the node, typically its `pokeScript`; a node with `pokeEnabled` false ignores it. The poke is handled after the response is sent.",
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/Poke"
+							},
+							"example": {
+								"type": "hit"
+							}
+						}
+					}
+				},
+				"responses": {
+					"202": {
+						"description": "The poke was delivered.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Accepted"
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					},
+					"404": {
+						"$ref": "#/components/responses/NotFound"
+					},
+					"400": {
+						"$ref": "#/components/responses/BadRequest"
+					},
+					"415": {
+						"$ref": "#/components/responses/UnsupportedMediaType"
+					},
+					"422": {
+						"$ref": "#/components/responses/Unprocessable"
+					}
+				}
+			}
+		},
+		"/hives/{hive}/nodes/{node}/trigger": {
+			"parameters": [
+				{
+					"$ref": "#/components/parameters/hive"
+				},
+				{
+					"$ref": "#/components/parameters/node"
+				}
+			],
+			"post": {
+				"operationId": "triggerNode",
+				"tags": [
+					"Control"
+				],
+				"summary": "Emit a trigger action",
+				"description": "Emits a trigger action from this node into the graph, exactly as a model's `emitTrigger` tool would. It travels along the node's edges and triggers each node it reaches that reacts to triggers, such as a builder or trigger node, optionally only those with a given name or type. It is never applied to the node it is emitted from. The action runs after the response is sent.",
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/Trigger"
+							},
+							"example": {
+								"nodeType": "BUILDER_SCRIPT_NODE"
+							}
+						}
+					}
+				},
+				"responses": {
+					"202": {
+						"description": "The trigger action was emitted.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Accepted"
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					},
+					"404": {
+						"$ref": "#/components/responses/NotFound"
+					},
+					"400": {
+						"$ref": "#/components/responses/BadRequest"
+					},
+					"415": {
+						"$ref": "#/components/responses/UnsupportedMediaType"
+					},
+					"422": {
+						"$ref": "#/components/responses/Unprocessable"
+					}
+				}
+			}
+		},
+		"/hives/{hive}/nodes/{node}/animate": {
+			"parameters": [
+				{
+					"$ref": "#/components/parameters/hive"
+				},
+				{
+					"$ref": "#/components/parameters/node"
+				}
+			],
+			"post": {
+				"operationId": "animateNode",
+				"tags": [
+					"Control"
+				],
+				"summary": "Start or stop a node animating",
+				"description": "Sets whether an animating script node (a scene transform, geometry or text script node) runs its animation on each strobe.",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/Animate"
+							},
+							"example": {
+								"animating": true
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "The node's animating state.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/Animate"
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					},
+					"404": {
+						"$ref": "#/components/responses/NotFound"
+					},
+					"400": {
+						"$ref": "#/components/responses/BadRequest"
+					},
+					"415": {
+						"$ref": "#/components/responses/UnsupportedMediaType"
+					},
+					"422": {
+						"$ref": "#/components/responses/Unprocessable"
+					}
+				}
+			}
+		},
+		"/hives/{hive}/strobeEmitters/{node}": {
+			"parameters": [
+				{
+					"$ref": "#/components/parameters/hive"
+				},
+				{
+					"$ref": "#/components/parameters/node"
+				}
+			],
+			"put": {
+				"operationId": "setStrobeEmitter",
+				"tags": [
+					"Control"
+				],
+				"summary": "Make a node a strobe emitter",
+				"description": "Registers a scene root node as a strobe emitter firing every `periodMs`, or changes its period. Safe to repeat.",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/StrobePeriod"
+							},
+							"example": {
+								"periodMs": 40
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "The registration.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/StrobeEmitter"
+								},
+								"example": {
+									"nodeName": "root",
+									"periodMs": 40
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					},
+					"404": {
+						"$ref": "#/components/responses/NotFound"
+					},
+					"400": {
+						"$ref": "#/components/responses/BadRequest"
+					},
+					"415": {
+						"$ref": "#/components/responses/UnsupportedMediaType"
+					},
+					"422": {
+						"$ref": "#/components/responses/Unprocessable"
+					}
+				}
+			},
+			"delete": {
+				"operationId": "clearStrobeEmitter",
+				"tags": [
+					"Control"
+				],
+				"summary": "Stop a node being a strobe emitter",
+				"description": "Stops a node firing strobes. Safe to repeat, and to call for a node that is not a strobe emitter.",
+				"responses": {
+					"200": {
+						"description": "The node no longer strobes.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/StrobeCleared"
+								},
+								"example": {
+									"nodeName": "root",
+									"strobing": false
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					},
+					"404": {
+						"$ref": "#/components/responses/NotFound"
+					}
+				}
+			}
+		},
+		"/hives/{hive}/strobeSurfaces/{surface}": {
+			"parameters": [
+				{
+					"$ref": "#/components/parameters/hive"
+				},
+				{
+					"$ref": "#/components/parameters/surface"
+				}
+			],
+			"put": {
+				"operationId": "setStrobeSurface",
+				"tags": [
+					"Control"
+				],
+				"summary": "Strobe a surface",
+				"description": "Registers a surface to be strobed, which publishes what it holds to its viewers, every `periodMs`, or changes its period. Safe to repeat.",
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/StrobePeriod"
+							},
+							"example": {
+								"periodMs": 40
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "The registration.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/StrobeSurface"
+								},
+								"example": {
+									"surfaceName": "seed",
+									"periodMs": 40
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					},
+					"404": {
+						"$ref": "#/components/responses/NotFound"
+					},
+					"400": {
+						"$ref": "#/components/responses/BadRequest"
+					},
+					"415": {
+						"$ref": "#/components/responses/UnsupportedMediaType"
+					},
+					"422": {
+						"$ref": "#/components/responses/Unprocessable"
+					}
+				}
+			},
+			"delete": {
+				"operationId": "clearStrobeSurface",
+				"tags": [
+					"Control"
+				],
+				"summary": "Stop strobing a surface",
+				"description": "Stops a surface being strobed, which freezes what its viewers see. Safe to repeat.",
+				"responses": {
+					"200": {
+						"description": "The surface is no longer strobed.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/StrobeCleared"
+								},
+								"example": {
+									"surfaceName": "seed",
+									"strobing": false
+								}
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/components/responses/Unauthorised"
+					},
+					"429": {
+						"$ref": "#/components/responses/RateLimited"
+					},
+					"500": {
+						"$ref": "#/components/responses/Internal"
+					},
+					"404": {
+						"$ref": "#/components/responses/NotFound"
+					}
+				}
+			}
+		}
+	},
+	"components": {
+		"securitySchemes": {
+			"bearerAuth": {
+				"type": "http",
+				"scheme": "bearer",
+				"description": "An API token the server was started with. Ten failed attempts from one address within a minute lock that address out for the rest of the minute."
+			}
+		},
+		"parameters": {
+			"hive": {
+				"name": "hive",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"minLength": 1
+				},
+				"description": "Name of the hive. URL encode it."
+			},
+			"node": {
+				"name": "node",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"minLength": 1
+				},
+				"description": "Name of the node within the hive. URL encode it."
+			},
+			"surface": {
+				"name": "surface",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"type": "string",
+					"minLength": 1
+				},
+				"description": "Name of the surface within the hive. URL encode it."
+			},
+			"edgeId": {
+				"name": "edgeId",
+				"in": "path",
+				"required": true,
+				"schema": {
+					"type": "integer",
+					"minimum": 0
+				},
+				"description": "Id of the edge, as `getNode` gives it."
+			}
+		},
+		"schemas": {
+			"Error": {
+				"type": "object",
+				"required": [
+					"error"
+				],
+				"additionalProperties": false,
+				"description": "Returned with every failure.",
+				"properties": {
+					"error": {
+						"type": "object",
+						"required": [
+							"code",
+							"message"
+						],
+						"additionalProperties": false,
+						"properties": {
+							"code": {
+								"type": "string",
+								"enum": [
+									"UNAUTHORISED",
+									"RATE_LIMITED",
+									"NOT_FOUND",
+									"METHOD_NOT_ALLOWED",
+									"BAD_REQUEST",
+									"UNSUPPORTED_MEDIA_TYPE",
+									"CONFLICT",
+									"UNPROCESSABLE",
+									"INTERNAL"
+								],
+								"description": "What kind of failure it is, and what to do about it:\n- `UNAUTHORISED` (401): no valid token. Fix the token; do not retry blindly, as failures count towards a lockout.\n- `RATE_LIMITED` (429): too many failed attempts from this address. Wait for `Retry-After` seconds.\n- `NOT_FOUND` (404): the hive, node, surface or edge does not exist. List again to see what does.\n- `METHOD_NOT_ALLOWED` (405): the path exists but not with this method. The `Allow` header lists those it takes.\n- `BAD_REQUEST` (400): the body is missing or not a JSON object. Fix the body.\n- `UNSUPPORTED_MEDIA_TYPE` (415): the body was not sent as `application/json`.\n- `CONFLICT` (409): the request clashes with the hive's current state, e.g. a name already in use, a node a surface is bound to, or the hive's last node. Read the current state, then decide.\n- `UNPROCESSABLE` (422): the body is JSON but describes something invalid, e.g. an unknown node type or action flag. The message says what. Fix the body.\n- `INTERNAL` (500): the server failed. Retrying may help; report it if it persists."
+							},
+							"message": {
+								"type": "string",
+								"description": "What went wrong, in words."
+							}
+						}
+					}
+				},
+				"example": {
+					"error": {
+						"code": "NOT_FOUND",
+						"message": "No node named \"pinger\" is in this hive."
+					}
+				}
+			},
+			"ApiIndex": {
+				"type": "object",
+				"required": [
+					"name",
+					"version",
+					"basePath",
+					"openapi",
+					"hiveSchema",
+					"agentGuide"
+				],
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"version": {
+						"type": "string"
+					},
+					"basePath": {
+						"type": "string",
+						"description": "Path every API path is below."
+					},
+					"openapi": {
+						"type": "string",
+						"description": "Path of this OpenAPI description."
+					},
+					"hiveSchema": {
+						"type": "string",
+						"description": "Path of the hive definition schema."
+					},
+					"agentGuide": {
+						"type": "string",
+						"description": "Guide to driving this API, in Markdown, written for AI agents."
+					}
+				}
+			},
+			"HiveList": {
+				"type": "object",
+				"required": [
+					"hives"
+				],
+				"properties": {
+					"hives": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/HiveListItem"
+						}
+					}
+				}
+			},
+			"HiveListItem": {
+				"type": "object",
+				"required": [
+					"name",
+					"version",
+					"nodeCount"
+				],
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"version": {
+						"$ref": "#/components/schemas/Version"
+					},
+					"nodeCount": {
+						"type": "integer",
+						"minimum": 0
+					}
+				}
+			},
+			"Version": {
+				"type": "integer",
+				"minimum": 0,
+				"description": "Rises with every structural change to the hive: a node, edge, surface or strobe registration added, removed or changed, by this API or by the hive itself. Compare two readings to tell whether anything changed between them."
+			},
+			"HiveSummary": {
+				"type": "object",
+				"required": [
+					"name",
+					"version",
+					"nodeCount",
+					"persisted",
+					"surfaces",
+					"strobeEmitters",
+					"strobeSurfaces"
+				],
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"version": {
+						"$ref": "#/components/schemas/Version"
+					},
+					"nodeCount": {
+						"type": "integer",
+						"minimum": 0
+					},
+					"persisted": {
+						"type": "boolean",
+						"description": "Whether the hive is kept in the hive database."
+					},
+					"surfaces": {
+						"type": "array",
+						"description": "Surfaces served, each with the path a browser views it at.",
+						"items": {
+							"type": "object",
+							"required": [
+								"name",
+								"path"
+							],
+							"properties": {
+								"name": {
+									"type": "string"
+								},
+								"path": {
+									"type": "string"
+								}
+							}
+						}
+					},
+					"strobeEmitters": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/StrobeEmitter"
+						}
+					},
+					"strobeSurfaces": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/StrobeSurface"
+						}
+					}
+				}
+			},
+			"HiveDeleted": {
+				"type": "object",
+				"required": [
+					"name",
+					"deleted",
+					"purged"
+				],
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"deleted": {
+						"type": "boolean",
+						"description": "Whether a running hive was stopped."
+					},
+					"purged": {
+						"type": "boolean",
+						"description": "Whether the hive was deleted from the hive database."
+					}
+				}
+			},
+			"NodeList": {
+				"type": "object",
+				"required": [
+					"nodes"
+				],
+				"properties": {
+					"nodes": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/NodeListItem"
+						}
+					}
+				}
+			},
+			"NodeListItem": {
+				"type": "object",
+				"required": [
+					"name",
+					"id",
+					"type",
+					"edges"
+				],
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"id": {
+						"type": "integer",
+						"minimum": 0,
+						"description": "Id of the node. Changes when the node is edited."
+					},
+					"type": {
+						"type": "string",
+						"description": "Node type, as a hive definition names it, e.g. `PingNode`."
+					},
+					"edges": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/Edge"
+						}
+					}
+				}
+			},
+			"NodeView": {
+				"type": "object",
+				"required": [
+					"name",
+					"id",
+					"type",
+					"definition",
+					"edges"
+				],
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"id": {
+						"type": "integer",
+						"minimum": 0,
+						"description": "Id of the node. Changes when the node is edited."
+					},
+					"type": {
+						"type": "string",
+						"description": "Node type, as a hive definition names it, e.g. `PingNode`."
+					},
+					"definition": {
+						"$ref": "hiveSchema.json#/$defs/node",
+						"description": "The node as it was when it joined the hive, with its edges as they are now. This is what `updateNode` edits."
+					},
+					"edges": {
+						"type": "array",
+						"description": "Edges leaving the node, with their ids.",
+						"items": {
+							"$ref": "#/components/schemas/Edge"
+						}
+					}
+				}
+			},
+			"NodeDeleted": {
+				"type": "object",
+				"required": [
+					"name",
+					"deleted"
+				],
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"deleted": {
+						"type": "boolean"
+					}
+				}
+			},
+			"ActionFlag": {
+				"$ref": "hiveSchema.json#/$defs/actionFlag"
+			},
+			"Edge": {
+				"type": "object",
+				"required": [
+					"id",
+					"to",
+					"actionFlags",
+					"traversalKey",
+					"actionsCompleteAfterTraverse"
+				],
+				"properties": {
+					"id": {
+						"type": "integer",
+						"minimum": 0,
+						"description": "Id of the edge, unique across the server."
+					},
+					"to": {
+						"type": "string",
+						"description": "Name of the node the edge leads to."
+					},
+					"actionFlags": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ActionFlag"
+						},
+						"description": "Only actions carrying one of these flags may cross the edge. Empty for any action."
+					},
+					"traversalKey": {
+						"type": "integer",
+						"minimum": 0,
+						"description": "Only an action holding this key may cross the edge. 0 for no key."
+					},
+					"actionsCompleteAfterTraverse": {
+						"type": "boolean",
+						"description": "Whether an action stops after being applied at the node this edge leads to."
+					}
+				}
+			},
+			"EdgeCreate": {
+				"type": "object",
+				"required": [
+					"to"
+				],
+				"additionalProperties": false,
+				"properties": {
+					"to": {
+						"type": "string",
+						"minLength": 1,
+						"description": "Name of the node the edge leads to."
+					},
+					"actionFlags": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/ActionFlag"
+						},
+						"default": []
+					},
+					"traversalKey": {
+						"type": "integer",
+						"minimum": 0,
+						"default": 0
+					},
+					"actionsCompleteAfterTraverse": {
+						"type": "boolean",
+						"default": false
+					}
+				}
+			},
+			"EdgeDeleted": {
+				"type": "object",
+				"required": [
+					"id",
+					"deleted"
+				],
+				"properties": {
+					"id": {
+						"type": "integer"
+					},
+					"deleted": {
+						"type": "boolean"
+					}
+				}
+			},
+			"Poke": {
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"type": {
+						"type": "string",
+						"enum": [
+							"hit",
+							"grab",
+							"drag",
+							"hoverEnter",
+							"hoverLeave"
+						],
+						"default": "hit"
+					},
+					"chunkId": {
+						"type": "integer",
+						"minimum": 0,
+						"default": 0,
+						"description": "Id of the part of the node's scene geometry poked. 0 for none."
+					}
+				}
+			},
+			"Trigger": {
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"nodeName": {
+						"type": "string",
+						"description": "Only trigger nodes with this name."
+					},
+					"nodeType": {
+						"type": "string",
+						"description": "Only trigger nodes of this type.",
+						"enum": [
+							"GRAPH_NODE",
+							"PING_NODE",
+							"SCENE_GEOMETRY_NODE",
+							"SCENE_TRANSFORM_NODE",
+							"SCRIPT_NODE",
+							"SCENE_GEOMETRY_SCRIPT_NODE",
+							"SCENE_TRANSFORM_SCRIPT_NODE",
+							"SCENE_ROOT_NODE",
+							"TELEPORT_NODE",
+							"AGENT_NODE",
+							"TRIGGER_NODE",
+							"SCENE_TEXT_SCRIPT_NODE",
+							"BUILDER_SCRIPT_NODE"
+						]
+					}
+				}
+			},
+			"Animate": {
+				"type": "object",
+				"required": [
+					"animating"
+				],
+				"additionalProperties": false,
+				"properties": {
+					"animating": {
+						"type": "boolean"
+					}
+				}
+			},
+			"Accepted": {
+				"type": "object",
+				"required": [
+					"accepted"
+				],
+				"properties": {
+					"accepted": {
+						"const": true
+					}
+				}
+			},
+			"StrobePeriod": {
+				"type": "object",
+				"required": [
+					"periodMs"
+				],
+				"additionalProperties": false,
+				"properties": {
+					"periodMs": {
+						"type": "integer",
+						"minimum": 1,
+						"description": "Milliseconds between strobes."
+					}
+				}
+			},
+			"StrobeEmitter": {
+				"type": "object",
+				"required": [
+					"nodeName",
+					"periodMs"
+				],
+				"properties": {
+					"nodeName": {
+						"type": "string"
+					},
+					"periodMs": {
+						"type": "integer",
+						"minimum": 1
+					}
+				}
+			},
+			"StrobeSurface": {
+				"type": "object",
+				"required": [
+					"surfaceName",
+					"periodMs"
+				],
+				"properties": {
+					"surfaceName": {
+						"type": "string"
+					},
+					"periodMs": {
+						"type": "integer",
+						"minimum": 1
+					}
+				}
+			},
+			"StrobeCleared": {
+				"type": "object",
+				"required": [
+					"strobing"
+				],
+				"properties": {
+					"nodeName": {
+						"type": "string"
+					},
+					"surfaceName": {
+						"type": "string"
+					},
+					"strobing": {
+						"const": false
+					}
+				}
+			}
+		},
+		"responses": {
+			"BadRequest": {
+				"description": "The body is missing or is not a JSON object.",
+				"content": {
+					"application/json": {
+						"schema": {
+							"$ref": "#/components/schemas/Error"
+						},
+						"example": {
+							"error": {
+								"code": "BAD_REQUEST",
+								"message": "The body must be a JSON object."
+							}
+						}
+					}
+				}
+			},
+			"Unauthorised": {
+				"description": "No valid API token was given.",
+				"content": {
+					"application/json": {
+						"schema": {
+							"$ref": "#/components/schemas/Error"
+						},
+						"example": {
+							"error": {
+								"code": "UNAUTHORISED",
+								"message": "A valid API token is required, as \"Authorization: Bearer <token>\"."
+							}
+						}
+					}
+				},
+				"headers": {
+					"WWW-Authenticate": {
+						"schema": {
+							"type": "string"
+						},
+						"description": "Always `Bearer realm=\"matrytsya\"`."
+					}
+				}
+			},
+			"NotFound": {
+				"description": "The hive, node, surface or edge does not exist.",
+				"content": {
+					"application/json": {
+						"schema": {
+							"$ref": "#/components/schemas/Error"
+						},
+						"example": {
+							"error": {
+								"code": "NOT_FOUND",
+								"message": "No hive named \"Garden\" is running."
+							}
+						}
+					}
+				}
+			},
+			"Conflict": {
+				"description": "The request clashes with the hive's current state.",
+				"content": {
+					"application/json": {
+						"schema": {
+							"$ref": "#/components/schemas/Error"
+						},
+						"example": {
+							"error": {
+								"code": "CONFLICT",
+								"message": "A node named \"pinger\" already exists."
+							}
+						}
+					}
+				}
+			},
+			"UnsupportedMediaType": {
+				"description": "The body was not sent as JSON.",
+				"content": {
+					"application/json": {
+						"schema": {
+							"$ref": "#/components/schemas/Error"
+						},
+						"example": {
+							"error": {
+								"code": "UNSUPPORTED_MEDIA_TYPE",
+								"message": "A request body must be sent as \"Content-Type: application/json\"."
+							}
+						}
+					}
+				}
+			},
+			"Unprocessable": {
+				"description": "The body describes something invalid.",
+				"content": {
+					"application/json": {
+						"schema": {
+							"$ref": "#/components/schemas/Error"
+						},
+						"example": {
+							"error": {
+								"code": "UNPROCESSABLE",
+								"message": "an edge names an action flag that does not exist -- VERSION_GRAPH_ACTION"
+							}
+						}
+					}
+				}
+			},
+			"RateLimited": {
+				"description": "Too many failed authentications from this address.",
+				"content": {
+					"application/json": {
+						"schema": {
+							"$ref": "#/components/schemas/Error"
+						},
+						"example": {
+							"error": {
+								"code": "RATE_LIMITED",
+								"message": "Too many requests from this address failed to authenticate. Wait before trying again."
+							}
+						}
+					}
+				},
+				"headers": {
+					"Retry-After": {
+						"schema": {
+							"type": "integer"
+						},
+						"description": "Seconds to wait."
+					}
+				}
+			},
+			"Internal": {
+				"description": "The server failed.",
+				"content": {
+					"application/json": {
+						"schema": {
+							"$ref": "#/components/schemas/Error"
+						},
+						"example": {
+							"error": {
+								"code": "INTERNAL",
+								"message": "The server could not carry out the request."
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

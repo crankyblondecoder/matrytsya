@@ -117,6 +117,12 @@ GraphHiveSurfaceHtmlMap::~GraphHiveSurfaceHtmlMap()
 	if(chatThreadRunning) stop(true);
 }
 
+void GraphHiveSurfaceHtmlMap::_unmounting()
+{
+	// The surface holds this as a listener, which would otherwise keep this alive for as long as the surface is.
+	_getSurface().removeListener(*this);
+}
+
 std::string GraphHiveSurfaceHtmlMap::getShadingModelName(ShadingModel shadingModel)
 {
 	switch(shadingModel)

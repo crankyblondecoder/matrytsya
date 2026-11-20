@@ -2,6 +2,7 @@ srcFiles = HarnessBuilder.cpp \
 HiveBuilder.cpp \
 HiveNodeCapture.cpp \
 HivePersister.cpp \
+HiveRecorder.cpp \
 PersistException.cpp \
 hiveNames.cpp \
 json/JsonHarnessLoader.cpp \

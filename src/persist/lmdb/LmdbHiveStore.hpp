@@ -15,7 +15,8 @@ struct MDB_env;
  * of its own, named after the hive. What the records hold is up to the caller; see lmdbHiveRecords.hpp for the
  * layout hives are stored in.
  * @note The database is a single file at the path given, with LMDB's lock file beside it at that path plus
- *       "-lock". Both are created if they do not exist.
+ *       "-lock". Both are created if they do not exist. The lock file is removed when the store is destroyed,
+ *       unless another process still has the database open.
  * @note Thread safe. Each read or write is a transaction of its own, and transactions are run one at a time.
  */
 class LmdbHiveStore : public RefCounted
@@ -67,6 +68,14 @@ class LmdbHiveStore : public RefCounted
 		 */
 		void writeRecords(const std::string& hiveName, const std::map<std::string, std::string>& puts,
 			const std::vector<std::string>& deletes);
+
+		/**
+		 * Remove a hive, and every record of it, from the store.
+		 * @param hiveName Name of the hive.
+		 * @returns True if the hive was held and has been removed. False if no hive of that name was held.
+		 * @throw PersistException(LMDB_TXN_FAILED) If the database cannot be written.
+		 */
+		bool deleteHive(const std::string& hiveName);
 
 	protected:
 

@@ -1,6 +1,7 @@
 #ifndef GRAPH_HIVE_SURFACE_HTTP_MAP_H
 #define GRAPH_HIVE_SURFACE_HTTP_MAP_H
 
+#include <atomic>
 #include <string>
 
 #include "../thread/ThreadCondition.hpp"
@@ -29,6 +30,10 @@ class GraphHiveSurfaceHttpMap : public GraphHiveSurfaceMap, public HttpRequestHa
 
         void handleRequest(HttpRequest& request, HttpResponse& response) final;
 
+        bool retainHandler() final;
+
+        void releaseHandler() final;
+
         /**
          * Block the calling thread until this map has received its first HTTP request, e.g. a browser loading
          * its page for the first time.
@@ -40,6 +45,14 @@ class GraphHiveSurfaceHttpMap : public GraphHiveSurfaceMap, public HttpRequestHa
          * Get whether this map has received its first HTTP request yet.
          */
         bool hasReceivedFirstRequest();
+
+        /**
+         * Stop serving the surface: unmount from the HTTP server and let go of anything the surface holds of
+         * this, so that this is destroyed once the last handle to it is dropped.
+         * @note Needed before dropping the last handle to a map whose hive keeps running or is about to be shut
+         *       down, as a surface holds each map listening to it. Safe to call more than once.
+         */
+        void unmount();
 
     protected:
 
@@ -59,6 +72,12 @@ class GraphHiveSurfaceHttpMap : public GraphHiveSurfaceMap, public HttpRequestHa
          */
         virtual void _serveData(HttpRequest& request, HttpResponse& response) = 0;
 
+        /**
+         * Sub-class hook called by unmount(), to let go of anything the surface holds of this map.
+         * @note Called once at most, before the map is unmounted from the server.
+         */
+        virtual void _unmounting();
+
     private:
 
         // Disable copying.
@@ -73,6 +92,9 @@ class GraphHiveSurfaceHttpMap : public GraphHiveSurfaceMap, public HttpRequestHa
 
         /// HTTP server this map is registered with.
         HttpServerBase& _httpServer;
+
+        /// Whether this map is still mounted on the HTTP server.
+        std::atomic<bool> _mounted{true};
 
         /// Set once the first HTTP request for this map has been received.
         bool _receivedFirstRequest = false;

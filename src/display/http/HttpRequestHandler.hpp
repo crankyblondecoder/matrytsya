@@ -22,6 +22,21 @@ class HttpRequestHandler
          */
         virtual void handleRequest(HttpRequest& request, HttpResponse& response) = 0;
 
+        /**
+         * Take a hold on this handler for the duration of one request, so that it cannot be destroyed part way
+         * through answering it.
+         * @returns False if this handler is already being destroyed, in which case it must not be called.
+         * @note Called by the server under the lock that guards its handler table. A handler removes itself from
+         *       that table before its memory is released, so it is always safe to call from there.
+         */
+        virtual bool retainHandler() = 0;
+
+        /**
+         * Release a hold taken by retainHandler().
+         * @note Never called under a server lock, as releasing the last hold destroys the handler.
+         */
+        virtual void releaseHandler() = 0;
+
     protected:
 
     private:

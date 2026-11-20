@@ -4,13 +4,18 @@
 from a hive database, into a single collection. It runs them and serves every hive's surfaces through a web
 interface on one port. It can also run the hives against an agentic harness, so that the chat window and the
 agent nodes in a hive have a model behind them, and keep the hives stored in a hive database as they change.
+With `-k`, it also serves the hive control API, through which hives can be created, built, changed, driven and
+deleted while the program runs (see [Hive control API](#hive-control-api)).
 
 ## Synopsis
 
 ```
-matrytsya [-p PORT] [-a ADDRESS] [-H HARNESS] [-c LEVEL] [-n] [-t COUNT] [-v] HIVE [HIVE ...]
-matrytsya -d DATABASE [-p PORT] [-a ADDRESS] [-H HARNESS] [-c LEVEL] [-n] [-t COUNT] [-v] [HIVE ...]
+matrytsya [-p PORT] [-a ADDRESS] [-H HARNESS] [-c LEVEL] [-n] [-t COUNT] [-v] [TLS] HIVE [HIVE ...]
+matrytsya -d DATABASE [-p PORT] [-a ADDRESS] [-H HARNESS] [-c LEVEL] [-n] [-t COUNT] [-v] [TLS] [HIVE ...]
+matrytsya -k VARIABLE [-d DATABASE] [other options] [TLS] [HIVE ...]
 matrytsya -h
+
+TLS: --tls-cert CERTFILE --tls-key KEYFILE
 ```
 
 ## Building
@@ -28,7 +33,8 @@ Both build from `src/matrytsya.cpp` and take the same command line.
 
 `HIVE` is the path of a hive definition file: a JSON document satisfying [hiveSchema.json](hiveSchema.json).
 At least one is required, and any number may be given. With `-d`, none is required as long as the database
-already holds a hive (see [Hive database](#hive-database)).
+already holds a hive (see [Hive database](#hive-database)). With `-k`, none is required at all: the server
+starts with whatever hives it has, possibly none, and more can be created through the control API.
 
 - Relative paths are resolved against the current working directory, not the executable's location.
 - All the hives go into one collection, so a teleport node in one hive can forward an action to a node in
@@ -50,6 +56,9 @@ already holds a hive (see [Hive database](#hive-database)).
 | `-n`  | `--no-chat`               | none     | off     | Disable the chat window. See [Chat window](#chat-window). |
 | `-s`  | `--shading`               | `MODEL`  | `BLINN_PHONG` | Lighting model the WebGL scene and structure views shade with: `BLINN_PHONG` (diffuse plus a specular highlight, worked out per pixel) or `LAMBERT` (diffuse only, worked out per vertex). Case sensitive. |
 | `-t`  | `--threads`               | `COUNT`  | `2`     | Number of threads in each hive's thread pool. 1 to 1024. Every hive gets its own pool of this size. |
+| `-k`  | `--api-token-env`         | `VARIABLE` | none  | Serve the hive control API, accepting the API token held in environment variable `VARIABLE`. See [Hive control API](#hive-control-api). |
+|       | `--tls-cert`              | `FILE`   | none    | PEM certificate, or certificate chain, to serve HTTPS with. Needs `--tls-key`. See [HTTPS](#https). |
+|       | `--tls-key`               | `FILE`   | none    | PEM private key of the certificate given by `--tls-cert`. |
 | `-v`  | `--verbose`               | none     | off     | Raise the console logging level by one. Can be repeated. See [Verbosity](#verbosity). |
 | `-h`  | `--help`                  | none     |         | Print a usage summary to standard output and exit with status 0. |
 
@@ -122,13 +131,17 @@ or, with `-a 0.0.0.0`:
 Listening on every interface, port PORT, e.g. http://localhost:PORT/
 ```
 
+With `--tls-cert` and `--tls-key`, every `http://` above is `https://` instead.
+
 The web interface has no authentication. Anyone who can reach it can drive the hives and, with a harness,
-the models behind them. Only listen beyond loopback on a network you trust.
+the models behind them. Only listen beyond loopback on a network you trust. The control API, under `/api/`,
+is the exception: it always requires an API token.
 
 | Path                         | Serves |
 |------------------------------|--------|
 | `/`                          | Index of every hive loaded, with links to each hive's surfaces. Paths no surface claims also land here. |
 | `/HIVE/SURFACE/`             | The page for one surface of one hive, where `HIVE` is the hive's name and `SURFACE` is the surface's name. |
+| `/api/v1/`                   | The hive control API, when enabled with `-k`. See [Hive control API](#hive-control-api). |
 
 - If only one hive is given, `/` sends the browser on to that hive's first scene surface, or to its only
   surface if it has no scene surface, or to its page listing the surfaces otherwise.
@@ -169,7 +182,8 @@ once: each keeps its own hives stored, and would overwrite what the other stores
 - **Each node as it joined the hive.** A node loaded from a hive file is stored as the file describes it.
   A node a builder creates is stored as it was created. Changes a script makes to a node afterwards, such as a
   transform being animated or text being changed, aren't stored, so the next run starts the hive's scenes
-  where they started rather than mid-animation.
+  where they started rather than mid-animation. A node added or edited through the control API is stored as
+  it was added or edited, and a node removed through it is removed from the database too.
 - **Every edge, as it stands.** That includes edges a builder adds to nodes that were loaded from a file.
 - **Whether each builder has used up its one build.** A builder that has built is loaded back as having
   built, so it doesn't build the same nodes again on top of the stored ones.
@@ -193,6 +207,49 @@ Each hive is a named LMDB database, named after the hive. Its records are keyed 
 thing is written as in a hive file. The LMDB command line tools show them, e.g. `mdb_dump -p -s HIVENAME
 -n DATABASE`, or `mdb_stat -a -n DATABASE` to list the hives held.
 
+## HTTPS
+
+`--tls-cert CERTFILE --tls-key KEYFILE` serves everything, the web interface and the control API alike, over
+HTTPS instead of HTTP, on the same port. Both files are PEM. The certificate file may hold a chain, server
+certificate first. Both are read once at startup, so they can be made unreadable to the program afterwards.
+Plain HTTP requests to a TLS port fail.
+
+For local testing, a self-signed certificate will do:
+
+```
+openssl req -x509 -newkey rsa:2048 -nodes -keyout key.pem -out cert.pem -days 30 \
+	-subj /CN=localhost -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+```
+
+A client then has to be told to trust it, e.g. `curl --cacert cert.pem`.
+
+## Hive control API
+
+`-k VARIABLE` serves a JSON API at `/api/v1/` through which hives can be fully controlled while the program
+runs: listed, created from a hive definition, exported, deleted, and changed node by node and edge by edge;
+and driven, by poking, triggering and animating nodes and by setting strobe periods. Changes are kept in the
+hive database like any other change to a hive.
+
+- **Token.** `VARIABLE` names an environment variable holding the API token, at least 32 characters, e.g.
+  from `openssl rand -hex 32`. Several tokens can be given separated by commas, so that a new one can be
+  brought in before the old is retired. The variable is removed from the program's environment once read.
+- **HTTPS required.** Unless the address is a loopback address (`127.x.x.x`), `-k` needs `--tls-cert` and
+  `--tls-key`, so that the token never crosses a network in the clear. On loopback without them, a warning
+  is printed.
+- **Authentication.** Every request must carry `Authorization: Bearer TOKEN`. After ten failed attempts from
+  one address within a minute, that address is refused for the rest of the minute.
+
+Once started with the API, the server also prints:
+
+```
+Hive control API at https://ADDRESS:PORT/api/v1/
+```
+
+The API is documented in [hiveApi.md](hiveApi.md), described exactly by
+[hiveApi.openapi.json](hiveApi.openapi.json), and explained for AI agents in
+[hiveApiAgentGuide.md](hiveApiAgentGuide.md). The server itself serves all three: `GET /api/v1/` gives the
+agent guide and links to the others.
+
 ## Running and stopping
 
 The program runs in the foreground until it gets `SIGINT` (Ctrl-C) or `SIGTERM`. It then stops the web server,
@@ -211,7 +268,12 @@ Each error is printed to standard error. All of them happen before the server st
 | Message | Cause |
 |---------|-------|
 | `invalid port '...'`, `invalid address '...'`, `invalid chat capability '...'`, `invalid thread count '...'`, an unrecognised option, or a missing option argument | Bad command line. The usage summary follows. |
-| `no hive definition files given` | No `HIVE` argument. The usage summary follows. |
+| `--tls-cert and --tls-key must be given together` | Only one of the two was given. |
+| `the hive control API needs --tls-cert and --tls-key when listening on ADDRESS, which is not a loopback address` | `-k` with a non-loopback `-a` and no TLS. |
+| `cannot enable the hive control API from environment variable VARIABLE: No API token was given.` | The variable named by `-k` is unset or empty. |
+| `cannot enable the hive control API from environment variable VARIABLE: Every API token must be at least 32 characters long.` | A token in the variable is too short. |
+| `Could not read the TLS certificate CERTFILE or its key KEYFILE` | Either file is missing, unreadable or empty. |
+| `no hive definition files given` | No `HIVE` argument, and no `-k`. The usage summary follows. |
 | `no hive definition files given, and DATABASE holds no hives` | No `HIVE` argument, and the hive database is empty. The usage summary follows. |
 | `Could not open hive database DATABASE: DESCRIPTION` | The database file can't be created or opened, e.g. its directory doesn't exist, or it isn't an LMDB file. |
 | `Could not load the hive 'NAME' stored in DATABASE: DESCRIPTION` | A stored hive can't be read back, e.g. a record is missing or malformed, or it was written by a newer version of this program. |
@@ -219,7 +281,7 @@ Each error is printed to standard error. All of them happen before the server st
 | `Could not open hive definition file: PATH` | The hive file doesn't exist or can't be read. |
 | `Could not load the hive described by PATH: DESCRIPTION` | The hive file isn't valid JSON, or doesn't describe a valid hive. `DESCRIPTION` says what's wrong, e.g. `the file is not valid JSON -- line 3, column 17: Invalid value.` or `a surface names a node that does not exist`. |
 | `The hive described by PATH is named '...', which another hive already loaded is named too.` | Two hive files share a name. |
-| `None of the hive definition files loaded produced a surface to serve.` | No hive has a scene or graph view surface. |
+| `None of the hive definition files loaded produced a surface to serve.` | No hive has a scene or graph view surface. Not an error with `-k`. |
 | `Could not start HTTP server on ADDRESS:PORT (error N)` | The port is in use, the program isn't allowed to bind it, or `ADDRESS` isn't an address of this machine. |
 
 Harness problems are also printed to standard error, but they aren't fatal (see

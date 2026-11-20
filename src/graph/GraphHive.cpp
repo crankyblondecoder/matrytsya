@@ -787,16 +787,16 @@ void GraphHive::nodeStructureChanged()
 	_bumpVersion();
 }
 
-void GraphHive::removeNode(Handle<GraphNode> nodeHandle)
+bool GraphHive::removeNode(Handle<GraphNode> nodeHandle)
 {
-	if(!nodeHandle.isValid()) return;
+	if(!nodeHandle.isValid()) return false;
 
 	GraphNode* nodeToFind = nodeHandle.getInstance();
 	bool decouple = false;
 
 	{ SYNC(_lock)
 
-		if(!_active) return;
+		if(!_active) return false;
 
 		for(unsigned index = 0; index < _nodes.size(); index++)
 		{
@@ -812,16 +812,192 @@ void GraphHive::removeNode(Handle<GraphNode> nodeHandle)
 		}
 	}
 
-	if(decouple)
-	{
-		// A node that is removed from the hive must also stop being a strobe emitter. Only nodes that
-		// are actually StrobeEmitterNodes can ever be registered, so a null accessor result just means
-		// the node was never an emitter.
-		if(_strobeScheduler) _strobeScheduler -> removeEmitter(Handle<StrobeEmitterNode>(nodeToFind -> asStrobeEmitter()));
+	if(!decouple) return false;
 
-		nodeToFind -> decouple();
-		nodeToFind -> decrRef();
+	// A node that is removed from the hive must also stop being a strobe emitter. Only nodes that
+	// are actually StrobeEmitterNodes can ever be registered, so a null accessor result just means
+	// the node was never an emitter.
+	if(_strobeScheduler) _strobeScheduler -> removeEmitter(Handle<StrobeEmitterNode>(nodeToFind -> asStrobeEmitter()));
+
+	// Each edge holds the node it leads to, so an edge left pointing at a removed node would both keep it alive
+	// and keep sending actions into a node that is no longer part of anything.
+	for(Handle<GraphNode>& other : __otherNodes(nodeToFind)) other.getInstance() -> removeEdgesTo(nodeHandle);
+
+	nodeToFind -> decouple();
+	nodeToFind -> decrRef();
+
+	emitEvent(GraphHiveListener::Event::NODE_REMOVED);
+
+	return true;
+}
+
+bool GraphHive::replaceNode(Handle<GraphNode> nodeHandle, GraphNode* replacement)
+{
+	// Increment the ref to the replacement so that shutdown can't delete it pre-maturely.
+	if(!replacement -> incrRef()) return false;
+
+	// Held by the hive once it has joined, else released below along with the hold taken above.
+	bool removeInitRef = true;
+	bool replaced = false;
+
+	GraphNode* original = nodeHandle.isValid() ? nodeHandle.getInstance() : 0;
+
+	if(original && original != replacement && original -> getName() == replacement -> getName())
+	{
+		// An edge as it has to be recreated: where it leaves from, where it goes and how it is restricted.
+		struct EdgeCopy
+		{
+			Handle<GraphNode> from;
+			Handle<GraphNode> to;
+			unsigned long actionFlags;
+			unsigned traversalKey;
+			bool actionsCompleteAfterTraverse;
+			std::string description;
+		};
+
+		Handle<GraphNode> replacementHandle(replacement);
+
+		std::vector<EdgeCopy> edges;
+
+		// Outbound edges, with any that loop back to the original turned towards the replacement.
+		for(Handle<GraphEdge>& edge : original -> getEdges())
+		{
+			GraphEdge* edgeInstance = edge.getInstance();
+			Handle<GraphNode> toNode = edgeInstance -> traverse();
+
+			if(!toNode.isValid()) continue;
+
+			if(toNode.getInstance() == original) toNode = replacementHandle;
+
+			edges.push_back(EdgeCopy{replacementHandle, toNode, edgeInstance -> getActionFlags(),
+				edgeInstance -> getTraversalKey(), edgeInstance -> getActionsCompleteAfterTraverse(),
+				edgeInstance -> getDescription()});
+		}
+
+		std::vector<Handle<GraphNode>> others = __otherNodes(original);
+
+		// Inbound edges from every other node.
+		for(Handle<GraphNode>& other : others)
+		{
+			for(Handle<GraphEdge>& edge : other.getInstance() -> getEdges())
+			{
+				GraphEdge* edgeInstance = edge.getInstance();
+				Handle<GraphNode> toNode = edgeInstance -> traverse();
+
+				if(!toNode.isValid() || toNode.getInstance() != original) continue;
+
+				edges.push_back(EdgeCopy{other, replacementHandle, edgeInstance -> getActionFlags(),
+					edgeInstance -> getTraversalKey(), edgeInstance -> getActionsCompleteAfterTraverse(),
+					edgeInstance -> getDescription()});
+			}
+		}
+
+		unsigned strobePeriodMs = 0;
+
+		for(StrobeRegistration& registration : getStrobeEmitters())
+		{
+			if(registration.name == original -> getName()) strobePeriodMs = registration.periodMs;
+		}
+
+		int replacedIndex = -1;
+
+		{ SYNC(_lock)
+
+			if(_active)
+			{
+				for(unsigned index = 0; index < _nodes.size(); index++)
+				{
+					if(_nodes[index] == original)
+					{
+						// Swapped in the same slot, so that no other node can claim the name in between.
+						_nodes[index] = replacement;
+						replacedIndex = index;
+
+						_bumpVersion();
+
+						break;
+					}
+				}
+			}
+		}
+
+		if(replacedIndex != -1)
+		{
+			bool accepted = replacement -> setHive(Handle<GraphHive>(this));
+
+			if(!accepted)
+			{
+				// Put the original back, as nothing about it has been changed yet.
+				{ SYNC(_lock)
+
+					if(_active && _nodes[replacedIndex] == replacement) _nodes[replacedIndex] = original;
+
+					_bumpVersion();
+				}
+			}
+			else
+			{
+				removeInitRef = false;
+				replaced = true;
+
+				if(_strobeScheduler) _strobeScheduler -> removeEmitter(Handle<StrobeEmitterNode>(original -> asStrobeEmitter()));
+
+				for(Handle<GraphNode>& other : others) other.getInstance() -> removeEdgesTo(nodeHandle);
+
+				original -> decouple();
+
+				for(EdgeCopy& copy : edges)
+				{
+					Handle<GraphEdge> edge = copy.from.getInstance() -> createEdge(copy.to,
+						std::vector<unsigned long>{copy.actionFlags}, copy.traversalKey);
+
+					if(!edge.isValid()) continue;
+
+					edge.getInstance() -> setActionsCompleteAfterTraverse(copy.actionsCompleteAfterTraverse);
+					edge.getInstance() -> setDescription(copy.description);
+				}
+
+				if(strobePeriodMs > 0)
+				{
+					setStrobeEmitter(Handle<StrobeEmitterNode>(replacement -> asStrobeEmitter()), strobePeriodMs);
+				}
+
+				// Release the hive's hold on the original.
+				original -> decrRef();
+			}
+		}
 	}
+
+	if(removeInitRef) replacement -> decrRef();
+
+	// Remove the ref added at the beginning of this function.
+	replacement -> decrRef();
+
+	if(replaced)
+	{
+		emitEvent(GraphHiveListener::Event::NODE_REMOVED);
+		emitEvent(GraphHiveListener::Event::NODE_ADDED);
+	}
+
+	return replaced;
+}
+
+std::vector<Handle<GraphNode>> GraphHive::__otherNodes(GraphNode* exclude)
+{
+	std::vector<Handle<GraphNode>> others;
+
+	{ SYNC(_lock)
+
+		if(_active)
+		{
+			for(GraphNode* node : _nodes)
+			{
+				if(node && node != exclude) others.push_back(Handle<GraphNode>(node));
+			}
+		}
+	}
+
+	return others;
 }
 
 Handle<GraphNode> GraphHive::getNode(std::string nodeName)

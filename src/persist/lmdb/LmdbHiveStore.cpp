@@ -3,7 +3,9 @@
 #include "../PersistException.hpp"
 #include "../../thread/thread.hpp"
 
+#include <fcntl.h>
 #include <lmdb.h>
+#include <unistd.h>
 
 namespace
 {
@@ -25,6 +27,34 @@ namespace
 	std::string __describe(const std::string& operation, int rc)
 	{
 		return operation + ": " + mdb_strerror(rc);
+	}
+
+	/**
+	 * Remove an LMDB lock file, unless some other process still has the database open.
+	 * @param lockPath Path of the lock file.
+	 * @note LMDB never removes its lock file itself, not even on a clean close.
+	 * @note Call only after this process has closed its own environment on the database. Closing it releases
+	 *       this process's locks on the file, which would otherwise hide whether any other process holds one.
+	 */
+	void __removeLockFileIfUnused(const std::string& lockPath)
+	{
+		int fd = open(lockPath.c_str(), O_RDWR);
+
+		if(fd < 0) return;
+
+		// Every process with the database open holds a shared lock on the first byte of the lock file for as
+		// long as it does, so an exclusive lock on that byte can only be had once no process is using it.
+		// A process that opened the file just before the unlink waits on this lock and then carries on with
+		// the unlinked file, which is only unsafe if a third opens the database while it still runs.
+		struct flock lock = {};
+		lock.l_type = F_WRLCK;
+		lock.l_whence = SEEK_SET;
+		lock.l_start = 0;
+		lock.l_len = 1;
+
+		if(fcntl(fd, F_SETLK, &lock) == 0) unlink(lockPath.c_str());
+
+		close(fd);
 	}
 
 	MDB_val __toVal(const std::string& text)
@@ -105,7 +135,11 @@ LmdbHiveStore::LmdbHiveStore(const std::string& path) : _path{path}
 
 LmdbHiveStore::~LmdbHiveStore()
 {
-	if(_env) mdb_env_close(_env);
+	if(!_env) return;
+
+	mdb_env_close(_env);
+
+	__removeLockFileIfUnused(_path + "-lock");
 }
 
 const std::string& LmdbHiveStore::getPath()
@@ -270,4 +304,45 @@ void LmdbHiveStore::writeRecords(const std::string& hiveName, const std::map<std
 
 		if(rc != MDB_SUCCESS) throw PersistException(PersistException::LMDB_TXN_FAILED, __describe("commit", rc));
 	}
+}
+
+bool LmdbHiveStore::deleteHive(const std::string& hiveName)
+{
+	// LMDB calls are made under this lock, which no LMDB call can re-enter.
+	{ SYNC(_txnLock)
+
+		MDB_txn* txn = 0;
+
+		int rc = mdb_txn_begin(_env, 0, 0, &txn);
+
+		if(rc != MDB_SUCCESS) throw PersistException(PersistException::LMDB_TXN_FAILED, __describe("begin write", rc));
+
+		TxnGuard guard(txn);
+
+		MDB_dbi dbi;
+
+		// Opened without MDB_CREATE, so that removing a hive that was never stored creates nothing.
+		rc = mdb_dbi_open(txn, hiveName.c_str(), 0, &dbi);
+
+		if(rc == MDB_NOTFOUND) return false;
+
+		if(rc != MDB_SUCCESS)
+		{
+			throw PersistException(PersistException::LMDB_TXN_FAILED, __describe("open hive '" + hiveName + "'", rc));
+		}
+
+		// Deletes the hive's named database as well as emptying it, so that it no longer lists as a hive.
+		rc = mdb_drop(txn, dbi, 1);
+
+		if(rc != MDB_SUCCESS)
+		{
+			throw PersistException(PersistException::LMDB_TXN_FAILED, __describe("drop hive '" + hiveName + "'", rc));
+		}
+
+		rc = guard.commit();
+
+		if(rc != MDB_SUCCESS) throw PersistException(PersistException::LMDB_TXN_FAILED, __describe("commit", rc));
+	}
+
+	return true;
 }

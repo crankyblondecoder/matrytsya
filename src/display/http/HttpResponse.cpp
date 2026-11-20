@@ -33,3 +33,15 @@ std::string HttpResponse::getBody()
 {
 	return _body;
 }
+
+void HttpResponse::addHeader(std::string name, std::string value)
+{
+	if(name.find_first_of("\r\n") != std::string::npos || value.find_first_of("\r\n") != std::string::npos) return;
+
+	_headers.push_back(std::make_pair(name, value));
+}
+
+std::vector<std::pair<std::string, std::string>> HttpResponse::getHeaders()
+{
+	return _headers;
+}

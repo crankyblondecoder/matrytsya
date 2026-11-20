@@ -64,7 +64,19 @@ class GraphHiveCollectionHttpMap : public RefCounted, public HttpRequestHandler
          */
         void setLandingPath(std::string path);
 
+        /**
+         * Stop offering a hive and every surface map of it that was offered.
+         * @param hiveName Name of the hive, as given to addSurfaceMap().
+         * @note The landing path is cleared if it led into the hive, so that a browser arriving at the top page
+         *       is shown the listing rather than sent somewhere that no longer answers.
+         */
+        void removeHive(std::string hiveName);
+
         void handleRequest(HttpRequest& request, HttpResponse& response) final;
+
+        bool retainHandler() final;
+
+        void releaseHandler() final;
 
     protected:
 

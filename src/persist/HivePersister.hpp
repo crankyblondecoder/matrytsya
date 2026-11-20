@@ -5,14 +5,10 @@
 #include <string>
 #include <vector>
 
-#include "HiveNodeDescriptor.hpp"
-#include "HiveSurfaceDescriptor.hpp"
-#include "../graph/GraphHiveListener.hpp"
+#include "HiveRecorder.hpp"
 #include "../thread/Thread.hpp"
 #include "../thread/ThreadCondition.hpp"
 #include "../thread/ThreadMutex.hpp"
-#include "../util/EventEmitter.hpp"
-#include "../util/EventListener.hpp"
 #include "../util/Handle.hpp"
 #include "../util/RefCounted.hpp"
 
@@ -25,10 +21,8 @@ class LmdbHiveStore;
  * Keeps a running hive's stored copy in an LmdbHiveStore up to date with it, so that the hive is rebuilt as it
  * has grown rather than as it was first defined.
  *
- * What is stored for each node is what it held as it joined the hive: what it was loaded with, or for a node
- * added while the hive runs, what it held when added. Its edges, whether a builder has used its one build up, and
- * the hive's strobe registrations are stored as they stand, as these are what a hive's growth changes. Nothing a
- * script changes about a node after it joins - a transform being animated, say - is stored.
+ * What is stored is what a HiveRecorder records of the hive: each node as it joined, with its edges, build state
+ * and the hive's strobe registrations as they stand. A node removed from the hive is removed from the store.
  *
  * Changes are noticed by the hive's version changing, and written once the version has held still for a moment,
  * or after a while regardless if it never does, each write being one transaction holding only the records that
@@ -40,7 +34,7 @@ class LmdbHiveStore;
  *       between start() and stop(), and by stop() itself once that thread has ended. A node joining the hive is
  *       captured on whichever thread added it.
  */
-class HivePersister : public RefCounted, private EventListener<GraphHiveListener>
+class HivePersister : public RefCounted
 {
 	public:
 
@@ -52,6 +46,15 @@ class HivePersister : public RefCounted, private EventListener<GraphHiveListener
 		 * @throw PersistException(LMDB_TXN_FAILED) If what the store already holds of the hive cannot be read.
 		 */
 		HivePersister(Handle<LmdbHiveStore> store, Handle<GraphHive> hive, HiveLoader& loader);
+
+		/**
+		 * @param store Store the hive is kept in.
+		 * @param hive Hive to keep stored.
+		 * @param recorder Recorder of the hive, shared with whatever else needs it. Started by start(), but left
+		 *        for its owner to stop.
+		 * @throw PersistException(LMDB_TXN_FAILED) If what the store already holds of the hive cannot be read.
+		 */
+		HivePersister(Handle<LmdbHiveStore> store, Handle<GraphHive> hive, Handle<HiveRecorder> recorder);
 
 		/**
 		 * Start keeping the stored copy up to date: listen for nodes joining the hive, and start the thread that
@@ -117,10 +120,6 @@ class HivePersister : public RefCounted, private EventListener<GraphHiveListener
 		HivePersister(const HivePersister& copyFrom);
 		HivePersister& operator= (const HivePersister& copyFrom);
 
-		virtual void hiveNodeAdded(EventEmitter<GraphHiveListener>& emitter) override;
-
-		virtual void populateEventListenerHandle(CastHandle<GraphHiveListener>& handle) override;
-
 		/**
 		 * Check the hive's version, and write if a change has settled or has been waiting too long.
 		 * @note Called by the writer thread on every poll. A failure to write is reported and retried at the next
@@ -128,11 +127,6 @@ class HivePersister : public RefCounted, private EventListener<GraphHiveListener
 		 */
 		void __poll();
 
-		/**
-		 * Capture every node in the hive that has not yet been captured, as it stands now.
-		 * @throw PersistException(HIVE_NOT_CAPTURABLE) If a node no hive definition can describe has joined.
-		 */
-		void __captureNewNodes();
 
 		/**
 		 * Build every record of the hive as it now stands.
@@ -149,15 +143,11 @@ class HivePersister : public RefCounted, private EventListener<GraphHiveListener
 		/// Name of the hive, which is also the name it is stored under.
 		std::string _hiveName;
 
-		/// Names of the hive's nodes, in the order they are to be rebuilt in. Guarded by _lock.
-		std::vector<std::string> _nodeOrder;
+		/// Records what the hive would have to be rebuilt from.
+		Handle<HiveRecorder> _recorder;
 
-		/// Each node as it joined the hive, by name. Edges and build state are left as captured, and replaced
-		/// when written. Guarded by _lock.
-		std::map<std::string, HiveNodeDescriptor> _nodes;
-
-		/// The hive's surfaces, in the order they are to be rebuilt in. These never change while a hive runs.
-		std::vector<HiveSurfaceDescriptor> _surfaces;
+		/// Whether the recorder was made by this, and so is stopped by it too.
+		bool _ownsRecorder = false;
 
 		/// Each record as last written, or as found in the store before anything was written, by key. Only
 		/// touched by whichever thread is writing.

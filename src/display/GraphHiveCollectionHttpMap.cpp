@@ -136,6 +136,25 @@ void GraphHiveCollectionHttpMap::setLandingPath(std::string path)
 	}
 }
 
+void GraphHiveCollectionHttpMap::removeHive(std::string hiveName)
+{
+	std::string hivePath = _path + hiveName + "/";
+
+	{ SYNC(_lock)
+
+		for(std::vector<HiveEntry>::iterator iter = _hives.begin(); iter != _hives.end(); iter++)
+		{
+			if(iter -> hiveName == hiveName)
+			{
+				_hives.erase(iter);
+				break;
+			}
+		}
+
+		if(_landingPath.compare(0, hivePath.size(), hivePath) == 0) _landingPath.clear();
+	}
+}
+
 void GraphHiveCollectionHttpMap::handleRequest(HttpRequest& request, HttpResponse& response)
 {
 	std::string requestPath = request.getPath();
@@ -242,4 +261,14 @@ std::vector<GraphHiveCollectionHttpMap::SurfaceEntry> GraphHiveCollectionHttpMap
 	}
 
 	return entries;
+}
+
+bool GraphHiveCollectionHttpMap::retainHandler()
+{
+	return incrRef();
+}
+
+void GraphHiveCollectionHttpMap::releaseHandler()
+{
+	decrRef();
 }

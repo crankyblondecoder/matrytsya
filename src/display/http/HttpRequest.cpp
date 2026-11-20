@@ -1,5 +1,6 @@
 #include "HttpRequest.hpp"
 
+#include <ctype.h>
 #include <stdlib.h>
 
 namespace
@@ -32,6 +33,15 @@ namespace
 		}
 
 		return decoded;
+	}
+
+	std::string lowerCase(const std::string& value)
+	{
+		std::string lowered = value;
+
+		for(char& character : lowered) character = (char) tolower((unsigned char) character);
+
+		return lowered;
 	}
 }
 
@@ -86,4 +96,26 @@ std::string HttpRequest::getQueryParam(std::string name)
 	}
 
 	return "";
+}
+
+void HttpRequest::setHeader(std::string name, std::string value)
+{
+	_headers[lowerCase(name)] = value;
+}
+
+std::string HttpRequest::getHeader(std::string name)
+{
+	std::map<std::string, std::string>::iterator found = _headers.find(lowerCase(name));
+
+	return found == _headers.end() ? "" : found -> second;
+}
+
+void HttpRequest::setRemoteAddress(std::string remoteAddress)
+{
+	_remoteAddress = remoteAddress;
+}
+
+std::string HttpRequest::getRemoteAddress()
+{
+	return _remoteAddress;
 }

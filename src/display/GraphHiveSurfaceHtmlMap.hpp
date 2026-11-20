@@ -108,6 +108,8 @@ class GraphHiveSurfaceHtmlMap : public GraphHiveSurfaceHttpMap, private EventLis
         // Required by ref counting.
         virtual ~GraphHiveSurfaceHtmlMap();
 
+        virtual void _unmounting() override;
+
         /**
          * Get the path this map is mounted at with any trailing separator taken off, which is what this map's
          * endpoints hang from.

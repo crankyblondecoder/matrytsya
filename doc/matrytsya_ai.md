@@ -9,6 +9,7 @@
 - [LuaNodeAPI.md](LuaNodeAPI.md) — Lua bindings for a hive's `coreScript`/`pokeScript` sources, per concrete node type.
 - [modelTools.md](modelTools.md) — tools a model is given when a hive makes a request of it, and the role and capability each request is made for.
 - [nodeTypes.md](nodeTypes.md) — per concrete node type: its fields, the actions it reacts to, what it emits, and its Lua bindings, model tools and poke behaviour, gathered in one place.
+- [hiveApiAgentGuide.md](hiveApiAgentGuide.md) — driving a running server over its HTTPS control API: creating, exporting and deleting hives, adding, editing and removing nodes and edges, and poking, triggering, animating and strobing. Exact contract in [hiveApi.openapi.json](hiveApi.openapi.json).
 
 ## Action
 

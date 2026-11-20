@@ -115,3 +115,33 @@ void GraphHiveCollection::shutdown()
 	}
 }
 
+
+Handle<GraphHive> GraphHiveCollection::removeHive(std::string hiveName)
+{
+	Handle<GraphHive>* removedHandle = 0;
+
+	{ SYNC(_lock)
+
+		for(std::vector<Handle<GraphHive>*>::iterator iter = _hives.begin(); iter != _hives.end(); iter++)
+		{
+			Handle<GraphHive>* handle = *iter;
+
+			if(handle && handle -> isValid() && handle -> getInstance() -> getName() == hiveName)
+			{
+				removedHandle = handle;
+
+				_hives.erase(iter);
+				break;
+			}
+		}
+	}
+
+	if(!removedHandle) return Handle<GraphHive>(0);
+
+	Handle<GraphHive> hiveHandle(*removedHandle);
+
+	// Deleted outside the lock, as dropping the collection's hold could be what releases the hive.
+	delete removedHandle;
+
+	return hiveHandle;
+}

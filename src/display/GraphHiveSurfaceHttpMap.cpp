@@ -14,7 +14,20 @@ GraphHiveSurfaceHttpMap::GraphHiveSurfaceHttpMap(HttpServerBase& httpServer, Gra
 
 GraphHiveSurfaceHttpMap::~GraphHiveSurfaceHttpMap()
 {
+	if(_mounted.exchange(false)) _httpServer.removeHandler(getPath());
+}
+
+void GraphHiveSurfaceHttpMap::unmount()
+{
+	if(!_mounted.exchange(false)) return;
+
+	_unmounting();
+
 	_httpServer.removeHandler(getPath());
+}
+
+void GraphHiveSurfaceHttpMap::_unmounting()
+{
 }
 
 void GraphHiveSurfaceHttpMap::handleRequest(HttpRequest& request, HttpResponse& response)
@@ -96,4 +109,14 @@ void GraphHiveSurfaceHttpMap::__signalFirstRequest()
 	}
 
 	_firstRequestCond.unlockMutex();
+}
+
+bool GraphHiveSurfaceHttpMap::retainHandler()
+{
+	return incrRef();
+}
+
+void GraphHiveSurfaceHttpMap::releaseHandler()
+{
+	decrRef();
 }

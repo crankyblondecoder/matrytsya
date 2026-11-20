@@ -16,7 +16,9 @@ class GraphHiveListener
 		enum class Event
 		{
 			/// A node has joined the hive.
-			NODE_ADDED
+			NODE_ADDED,
+			/// A node has left the hive.
+			NODE_REMOVED
 		};
 
 		GraphHiveListener() {}
@@ -32,6 +34,7 @@ class GraphHiveListener
 			switch(event)
 			{
 				case Event::NODE_ADDED: hiveNodeAdded(emitter); break;
+				case Event::NODE_REMOVED: hiveNodeRemoved(emitter); break;
 			}
 		}
 
@@ -43,6 +46,16 @@ class GraphHiveListener
 		 *       hive by the time this is called.
 		 */
 		virtual void hiveNodeAdded(EventEmitter<GraphHiveListener>& emitter) = 0;
+
+		/**
+		 * Indicate that a node has left the bound hive.
+		 * @param emitter The event emitter that is emitting this event.
+		 * @note Emitted on the thread that removed the node, once it has gone and no hive lock is held. As with
+		 *       hiveNodeAdded(), which node left is not carried. A node replaced by another of the same name is
+		 *       reported as this followed by hiveNodeAdded(), so a listener cannot tell the two apart by name
+		 *       alone.
+		 */
+		virtual void hiveNodeRemoved(EventEmitter<GraphHiveListener>& emitter) = 0;
 };
 
 #endif

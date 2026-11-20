@@ -48,6 +48,15 @@ class GraphHiveCollection
 		 */
 		void shutdown();
 
+		/**
+		 * Take a hive out of this collection.
+		 * @param hiveName Name of the hive to take out.
+		 * @returns Handle to the hive taken out, so that the caller can shut it down once it is no longer
+		 *          reachable through this collection. Invalid handle if no hive by that name is held.
+		 * @note The hive is not shut down here.
+		 */
+		Handle<GraphHive> removeHive(std::string hiveName);
+
 	protected:
 
 	private:

@@ -1,7 +1,7 @@
 #include "HivePersister.hpp"
 
 #include "HiveLoader.hpp"
-#include "HiveNodeCapture.hpp"
+#include "HiveSnapshot.hpp"
 #include "PersistException.hpp"
 #include "json/JsonHiveWriter.hpp"
 #include "lmdb/LmdbHiveStore.hpp"
@@ -10,8 +10,6 @@
 #include "../graph/GraphNode.hpp"
 #include "../log/log.hpp"
 #include "../thread/thread.hpp"
-#include "../util/CastHandle.hpp"
-#include "../util/EventEmitter.hpp"
 
 #include <time.h>
 
@@ -84,22 +82,29 @@ void HivePersister::WriterThread::_quitRequested()
 // -- HivePersister --
 
 HivePersister::HivePersister(Handle<LmdbHiveStore> store, Handle<GraphHive> hive, HiveLoader& loader)
-	: _store(store), _hive(hive)
+	: _store(store), _hive(hive), _recorder(0)
 {
+	HiveRecorder* recorder = new HiveRecorder(hive, loader);
+
+	_recorder = Handle<HiveRecorder>(recorder);
+
+	// The handle holds the reference; release the implicit construction ref.
+	recorder -> decrRef();
+
+	_ownsRecorder = true;
+
 	_hiveName = _hive.getInstance() -> getName();
-
-	for(unsigned i = 0; i < loader.getNodeCount(); i++)
-	{
-		HiveNodeDescriptor descriptor = loader.getNode(i);
-
-		_nodeOrder.push_back(descriptor.name);
-		_nodes.emplace(descriptor.name, descriptor);
-	}
-
-	for(unsigned i = 0; i < loader.getSurfaceCount(); i++) _surfaces.push_back(loader.getSurface(i));
 
 	// Starting from what is already stored means only what differs from it is ever written, so a hive loaded
 	// from the store is not rewritten in full just for having been loaded.
+	_written = _store.getInstance() -> readRecords(_hiveName);
+}
+
+HivePersister::HivePersister(Handle<LmdbHiveStore> store, Handle<GraphHive> hive, Handle<HiveRecorder> recorder)
+	: _store(store), _hive(hive), _recorder(recorder)
+{
+	_hiveName = _hive.getInstance() -> getName();
+
 	_written = _store.getInstance() -> readRecords(_hiveName);
 }
 
@@ -124,7 +129,7 @@ void HivePersister::start()
 	}
 
 	// Listening first, so that no node joining from here on goes uncaptured until a write happens to reconcile it.
-	_hive.getInstance() -> addListener(*this);
+	_recorder.getInstance() -> start();
 
 	_writerThread = new WriterThread(*this);
 	_writerThread -> start();
@@ -149,7 +154,7 @@ void HivePersister::stop()
 		_writerThread = 0;
 	}
 
-	if(started) _hive.getInstance() -> removeListener(*this);
+	if(started && _ownsRecorder) _recorder.getInstance() -> stop();
 
 	try
 	{
@@ -170,8 +175,6 @@ void HivePersister::flush()
 	// A hive always holds at least one node until it is shut down, after which it holds none. Writing then would
 	// store it as having lost every node.
 	if(_hive.getInstance() -> getNodeNames().empty()) return;
-
-	__captureNewNodes();
 
 	std::map<std::string, std::string> records = __buildRecords();
 
@@ -234,117 +237,43 @@ void HivePersister::__poll()
 	}
 }
 
-void HivePersister::hiveNodeAdded(EventEmitter<GraphHiveListener>& emitter)
-{
-	// Runs on whichever thread added the node, which may be a builder's script session, so nothing may escape.
-	try
-	{
-		__captureNewNodes();
-	}
-	catch(PersistException& exception)
-	{
-		__report(_hiveName, exception);
-	}
-	catch(...)
-	{
-		LOG(Logger::ERROR, "Could not capture a node added to hive '" + _hiveName + "'")
-	}
-}
-
-void HivePersister::populateEventListenerHandle(CastHandle<GraphHiveListener>& handle)
-{
-	handle = CastHandle<GraphHiveListener>(this, this);
-}
-
-void HivePersister::__captureNewNodes()
-{
-	std::vector<std::string> newNames;
-
-	for(const std::string& name : _hive.getInstance() -> getNodeNames())
-	{
-		{ SYNC(_lock)
-
-			if(_nodes.find(name) == _nodes.end()) newNames.push_back(name);
-		}
-	}
-
-	for(const std::string& name : newNames)
-	{
-		Handle<GraphNode> node = _hive.getInstance() -> getNode(name);
-
-		// Gone again already, so there is nothing to capture.
-		if(!node.isValid()) continue;
-
-		HiveNodeDescriptor descriptor = HiveNodeCapture::capture(*node.getInstance());
-
-		{ SYNC(_lock)
-
-			// Another thread may have captured it in the meantime, in which case its capture, being the earlier
-			// or as early, is kept.
-			if(_nodes.emplace(name, descriptor).second) _nodeOrder.push_back(name);
-		}
-	}
-}
-
 std::map<std::string, std::string> HivePersister::__buildRecords()
 {
-	std::vector<std::string> nodeOrder;
-	std::map<std::string, HiveNodeDescriptor> nodes;
-
-	{ SYNC(_lock)
-
-		nodeOrder = _nodeOrder;
-		nodes = _nodes;
-	}
+	HiveSnapshot snapshot = _recorder.getInstance() -> snapshot();
 
 	std::map<std::string, std::string> records;
 
-	std::vector<std::string> liveNodeOrder;
+	std::vector<std::string> nodeOrder;
 
-	for(const std::string& name : nodeOrder)
+	for(const HiveNodeDescriptor& descriptor : snapshot.nodes)
 	{
-		Handle<GraphNode> node = _hive.getInstance() -> getNode(name);
+		records.emplace(lmdbHiveRecords::nodeKey(descriptor.name), JsonHiveWriter::nodeFragment(descriptor));
 
-		// No longer in the hive, so no longer stored. Kept in _nodes regardless, as no node can be removed from a
-		// running hive at present, and one that came back under the same name would be its own node anyway.
-		if(!node.isValid()) continue;
-
-		HiveNodeDescriptor descriptor = nodes.at(name);
-
-		// Edges and build state are what a hive growing changes, so are stored as they stand rather than as the
-		// node joined.
-		HiveNodeDescriptor live = HiveNodeCapture::capture(*node.getInstance());
-
-		descriptor.edges = live.edges;
-		descriptor.built = live.built;
-
-		records.emplace(lmdbHiveRecords::nodeKey(name), JsonHiveWriter::nodeFragment(descriptor));
-
-		liveNodeOrder.push_back(name);
+		nodeOrder.push_back(descriptor.name);
 	}
 
 	std::vector<std::string> surfaceOrder;
 
-	for(const HiveSurfaceDescriptor& surface : _surfaces)
+	for(const HiveSurfaceDescriptor& surface : snapshot.surfaces)
 	{
 		records.emplace(lmdbHiveRecords::surfaceKey(surface.name), JsonHiveWriter::surfaceFragment(surface));
 
 		surfaceOrder.push_back(surface.name);
 	}
 
-	for(GraphHive::StrobeRegistration& emitter : _hive.getInstance() -> getStrobeEmitters())
+	for(const HiveStrobeDescriptor& emitter : snapshot.strobeEmitters)
 	{
 		records.emplace(lmdbHiveRecords::strobeEmitterKey(emitter.name),
 			JsonHiveWriter::strobeEmitterFragment(emitter.name, emitter.periodMs));
 	}
 
-	for(GraphHive::StrobeRegistration& surface : _hive.getInstance() -> getStrobeSurfaces())
+	for(const HiveStrobeDescriptor& surface : snapshot.strobeSurfaces)
 	{
 		records.emplace(lmdbHiveRecords::strobeSurfaceKey(surface.name),
 			JsonHiveWriter::strobeSurfaceFragment(surface.name, surface.periodMs));
 	}
 
-	records.emplace(lmdbHiveRecords::META_KEY, lmdbHiveRecords::metaRecord(_hiveName, liveNodeOrder, surfaceOrder));
+	records.emplace(lmdbHiveRecords::META_KEY, lmdbHiveRecords::metaRecord(_hiveName, nodeOrder, surfaceOrder));
 
 	return records;
 }

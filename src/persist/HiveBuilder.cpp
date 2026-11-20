@@ -30,6 +30,43 @@
 
 #include <map>
 
+GraphNode* HiveBuilder::createNode(const HiveNodeDescriptor& descriptor)
+{
+	if(descriptor.name.empty())
+	{
+		throw PersistException(PersistException::INVALID_NODE_NAME);
+	}
+
+	GraphNode* node = __createNode(descriptor);
+
+	node -> setName(descriptor.name);
+	node -> setPokeEnabled(descriptor.pokeEnabled);
+
+	return node;
+}
+
+Handle<GraphEdge> HiveBuilder::createEdge(GraphNode& fromNode, Handle<GraphNode> toNode,
+	const HiveEdgeDescriptor& descriptor)
+{
+	std::vector<unsigned long> actionFlags;
+
+	for(const std::string& flagName : descriptor.actionFlagNames)
+	{
+		actionFlags.push_back(hiveNames::actionFlagFromName(flagName));
+	}
+
+	Handle<GraphEdge> edgeHandle = fromNode.createEdge(toNode, actionFlags, descriptor.traversalKey);
+
+	if(!edgeHandle.isValid())
+	{
+		throw PersistException(PersistException::EDGE_CREATE_FAILED);
+	}
+
+	edgeHandle.getInstance() -> setActionsCompleteAfterTraverse(descriptor.actionsCompleteAfterTraverse);
+
+	return edgeHandle;
+}
+
 GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 {
 	std::string hiveName = loader.getHiveName();
@@ -69,10 +106,7 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 				throw PersistException(PersistException::DUPLICATE_NODE_NAME);
 			}
 
-			GraphNode* node = __createNode(descriptor);
-
-			node -> setName(descriptor.name);
-			node -> setPokeEnabled(descriptor.pokeEnabled);
+			GraphNode* node = createNode(descriptor);
 
 			// Hive manages the node's initial reference count from here.
 			hive -> addNode(node);
@@ -96,22 +130,7 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 					throw PersistException(PersistException::EDGE_TARGET_NOT_FOUND);
 				}
 
-				std::vector<unsigned long> actionFlags;
-
-				for(std::string& flagName : edgeDescriptor.actionFlagNames)
-				{
-					actionFlags.push_back(hiveNames::actionFlagFromName(flagName));
-				}
-
-				Handle<GraphEdge> edgeHandle =
-					fromHandle.getInstance() -> createEdge(targetIt -> second, actionFlags, edgeDescriptor.traversalKey);
-
-				if(!edgeHandle.isValid())
-				{
-					throw PersistException(PersistException::EDGE_CREATE_FAILED);
-				}
-
-				edgeHandle.getInstance() -> setActionsCompleteAfterTraverse(edgeDescriptor.actionsCompleteAfterTraverse);
+				createEdge(*fromHandle.getInstance(), targetIt -> second, edgeDescriptor);
 			}
 		}
 

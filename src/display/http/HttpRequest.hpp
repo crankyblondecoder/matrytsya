@@ -1,6 +1,7 @@
 #ifndef HTTP_REQUEST_H
 #define HTTP_REQUEST_H
 
+#include <map>
 #include <string>
 
 /**
@@ -39,6 +40,32 @@ class HttpRequest
          */
         std::string getQueryParam(std::string name);
 
+        /**
+         * Set a header of this request.
+         * @param name Name of the header. Matched without regard to case, as HTTP header names are.
+         * @param value Value of the header. Replaces any value already set under the same name.
+         */
+        void setHeader(std::string name, std::string value);
+
+        /**
+         * Get a header of this request by name.
+         * @param name Name of the header, in any case.
+         * @returns Value of the header, or an empty string if not present.
+         */
+        std::string getHeader(std::string name);
+
+        /**
+         * Set the address of the client this request came from.
+         * @param remoteAddress Address of the client, without its port, e.g. "192.168.1.4".
+         */
+        void setRemoteAddress(std::string remoteAddress);
+
+        /**
+         * Get the address of the client this request came from.
+         * @returns Address of the client, without its port. Empty if it was never set.
+         */
+        std::string getRemoteAddress();
+
     protected:
 
     private:
@@ -54,6 +81,12 @@ class HttpRequest
 
         /// Body of this request.
         std::string _body;
+
+        /// Headers of this request, keyed by lower cased name.
+        std::map<std::string, std::string> _headers;
+
+        /// Address of the client this request came from.
+        std::string _remoteAddress;
 };
 
 #endif

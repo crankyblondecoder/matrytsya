@@ -1,0 +1,17 @@
+srcFiles = ApiAuthenticator.cpp ApiController.cpp ApiHttpMap.cpp HiveHost.cpp apiDocs.cpp
+
+objFiles = $(srcFiles:.cpp=.o)
+
+CXX = $(cname)
+CXXFLAGS = $(cflags)
+
+# Tell make to search other paths. Separate multiple with ":"
+VPATH = ../../src/api
+
+api.a : $(objFiles)
+	@ echo
+	@ echo "*** Building - API Module ***"
+	@ echo
+	ar rcs api.a $(objFiles)
+
+-include ../makefile_std_dep

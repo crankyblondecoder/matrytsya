@@ -16,7 +16,9 @@ class DisplayException : public Exception
             /// The underlying HTTP server implementation could not be started.
             HTTP_SERVER_START_FAILED,
             /// A handler has already been registered for the given path.
-            DUPLICATE_HTTP_HANDLER_PATH
+            DUPLICATE_HTTP_HANDLER_PATH,
+            /// The TLS certificate or private key file given to the HTTP server could not be read.
+            TLS_CERT_UNREADABLE
         };
 
         virtual ~DisplayException(){}

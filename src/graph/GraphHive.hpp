@@ -128,8 +128,27 @@ class GraphHive : public RefCounted, public GraphNamed, public GraphVersioned, p
 
 		/**
 		 * Remove node from hive.
+		 * @note Every edge directed to the node from another node in this hive is removed with it, and it stops
+		 *       being a strobe emitter.
+		 * @note Emits GraphHiveListener::Event::NODE_REMOVED once the node has gone.
+		 * @returns True if the node was in this hive and has been removed.
 		 */
-		void removeNode(Handle<GraphNode> nodeHandle);
+		bool removeNode(Handle<GraphNode> nodeHandle);
+
+		/**
+		 * Replace a node in this hive with another of the same name, carrying over every edge to and from it and
+		 * any strobe emitter registration it had.
+		 * @param nodeHandle Node to replace.
+		 * @param replacement Node to put in its place. Must carry the same name as the node it replaces.
+		 * @returns True if the node was replaced. False if it is not in this hive, the names differ, this hive is
+		 *          shut down or the replacement refused to join it.
+		 * @note Expects to manage the initial reference count of the replacement regardless of whether it could be
+		 *       added.
+		 * @note An edge that could not be recreated, because a node it leaves from has no free edge slot left, is
+		 *       dropped.
+		 * @note Emits GraphHiveListener::Event::NODE_REMOVED and then GraphHiveListener::Event::NODE_ADDED.
+		 */
+		bool replaceNode(Handle<GraphNode> nodeHandle, GraphNode* replacement);
 
 		/**
 		 * Find a node in this hive by name.
@@ -398,6 +417,12 @@ class GraphHive : public RefCounted, public GraphNamed, public GraphVersioned, p
 		 * @returns Node handle. If no node was found this will be invalid.
 		 */
 		Handle<GraphNode> __findNode(unsigned nodeId);
+
+		/**
+		 * Get a handle to every node in this hive other than one.
+		 * @param exclude Node to leave out. May be null to leave none out.
+		 */
+		std::vector<Handle<GraphNode>> __otherNodes(GraphNode* exclude);
 
 		/**
 		 * Process an agentic request against this hive's agentic harness for the given role.

@@ -346,6 +346,38 @@ void GraphNode::removeEdge(Handle<GraphEdge> edgeHandle)
 	}
 }
 
+unsigned GraphNode::removeEdgesTo(Handle<GraphNode> target)
+{
+	unsigned removed = 0;
+
+	if(!target.isValid()) return removed;
+
+	// Worked out from a snapshot rather than under this node's lock, as finding where an edge leads reaches into
+	// the edge.
+	for(Handle<GraphEdge>& edge : getEdges())
+	{
+		Handle<GraphNode> toNode = edge.getInstance() -> traverse();
+
+		if(toNode.isValid() && toNode.getInstance() == target.getInstance())
+		{
+			removeEdge(edge);
+			removed++;
+		}
+	}
+
+	return removed;
+}
+
+Handle<GraphEdge> GraphNode::getEdge(unsigned edgeId)
+{
+	for(Handle<GraphEdge>& edge : getEdges())
+	{
+		if(edge.getInstance() -> getId() == edgeId) return edge;
+	}
+
+	return Handle<GraphEdge>(0);
+}
+
 GraphEdge* GraphNode::__removeEdge(int edgeHandle)
 {
 	// Note: This function needs to be externally synchronised.

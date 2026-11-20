@@ -1,6 +1,7 @@
 #include "JsonHiveWriter.hpp"
 
 #include "../HiveNodeDescriptor.hpp"
+#include "../HiveSnapshot.hpp"
 #include "../HiveSurfaceDescriptor.hpp"
 #include "../hiveNames.hpp"
 #include "../../rapidjson/stringbuffer.h"
@@ -373,4 +374,56 @@ std::string JsonHiveWriter::strobeEmitterFragment(const std::string& nodeName, u
 std::string JsonHiveWriter::strobeSurfaceFragment(const std::string& surfaceName, unsigned periodMs)
 {
 	return __strobeFragment("surfaceName", surfaceName, periodMs);
+}
+
+std::string JsonHiveWriter::hiveDocument(const HiveSnapshot& snapshot)
+{
+	// The name is written by the JSON writer, so that it is escaped as any other string is. Everything else is
+	// made of fragments, which are each complete JSON values already.
+	rapidjson::StringBuffer nameBuffer;
+	HiveJsonWriter nameWriter(nameBuffer);
+
+	__writeString(nameWriter, snapshot.name);
+
+	std::string document = "{\"name\":" + std::string(nameBuffer.GetString(), nameBuffer.GetSize());
+
+	document += ",\"nodes\":[";
+
+	for(std::size_t i = 0; i < snapshot.nodes.size(); i++)
+	{
+		if(i > 0) document += ",";
+
+		document += nodeFragment(snapshot.nodes[i]);
+	}
+
+	document += "],\"strobeEmitters\":[";
+
+	for(std::size_t i = 0; i < snapshot.strobeEmitters.size(); i++)
+	{
+		if(i > 0) document += ",";
+
+		document += strobeEmitterFragment(snapshot.strobeEmitters[i].name, snapshot.strobeEmitters[i].periodMs);
+	}
+
+	document += "],\"surfaces\":[";
+
+	for(std::size_t i = 0; i < snapshot.surfaces.size(); i++)
+	{
+		if(i > 0) document += ",";
+
+		document += surfaceFragment(snapshot.surfaces[i]);
+	}
+
+	document += "],\"strobeSurfaces\":[";
+
+	for(std::size_t i = 0; i < snapshot.strobeSurfaces.size(); i++)
+	{
+		if(i > 0) document += ",";
+
+		document += strobeSurfaceFragment(snapshot.strobeSurfaces[i].name, snapshot.strobeSurfaces[i].periodMs);
+	}
+
+	document += "]}";
+
+	return document;
 }

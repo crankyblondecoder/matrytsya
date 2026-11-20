@@ -116,6 +116,20 @@ class GraphNode : public RefCounted, public GraphActionTargetable, public GraphN
         void removeEdge(Handle<GraphEdge> handle);
 
 		/**
+		 * Remove every edge from this node that is directed to a particular node.
+		 * @param target Node whose inbound edges from this node are to be removed.
+		 * @returns Number of edges removed.
+		 */
+		unsigned removeEdgesTo(Handle<GraphNode> target);
+
+		/**
+		 * Find an edge directed from this node by its id.
+		 * @param edgeId Id of the edge, as given by GraphEdge::getId().
+		 * @returns Handle to the edge. Invalid handle if this node has no edge with that id.
+		 */
+		Handle<GraphEdge> getEdge(unsigned edgeId);
+
+		/**
 		 * Find the next node to traverse to.
 		 * @note This defines default traversal behaviour which is to traverse the next edge that the action has not
 		 *       already traversed.

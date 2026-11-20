@@ -13,7 +13,8 @@ class Exception
 			GRAPH,
 			DISPLAY,
 			PERSIST,
-			AGENT
+			AGENT,
+			API
 		};
 
 		Exception(Module module) : _module{module} {}

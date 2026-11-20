@@ -1,24 +1,23 @@
 #include "agent/AgenticHarness.hpp"
 #include "agent/Model.hpp"
 #include "agent_bindings/ModelToolBindingsFactory.hpp"
+#include "api/ApiAuthenticator.hpp"
+#include "api/ApiController.hpp"
+#include "api/ApiException.hpp"
+#include "api/ApiHttpMap.hpp"
+#include "api/HiveHost.hpp"
 #include "display/DisplayException.hpp"
 #include "display/GraphHiveCollectionHttpMap.hpp"
-#include "display/GraphHiveGraphViewSurfaceWebglMap.hpp"
-#include "display/GraphHiveSceneSurfaceWebglMap.hpp"
 #include "display/GraphHiveSurfaceHtmlMap.hpp"
 #include "display/http/HttpServer.hpp"
 #include "util/Handle.hpp"
 #include "graph/GraphException.hpp"
 #include "graph/GraphHive.hpp"
 #include "graph/GraphHiveCollection.hpp"
-#include "graph/GraphHiveGraphViewSurface.hpp"
-#include "graph/GraphHiveSceneSurface.hpp"
 #include "graph/GraphNode.hpp"
 #include "graph/GraphToolBindingsFactory.hpp"
 #include "persist/HarnessBuilder.hpp"
-#include "persist/HiveBuilder.hpp"
 #include "persist/HiveLoader.hpp"
-#include "persist/HivePersister.hpp"
 #include "persist/PersistException.hpp"
 #include "persist/json/JsonHarnessLoader.hpp"
 #include "persist/json/JsonHiveLoader.hpp"
@@ -82,6 +81,13 @@ namespace
 	/// Path the collection index is mounted at, which is what a browser arriving at the server lands on.
 	const char* const _INDEX_PATH = "/";
 
+	/// Path the hive control API is mounted at. Its versioned base path is below this.
+	const char* const _API_PATH = "/api";
+
+	/// Values getopt_long gives the options that only have a long form.
+	const int _OPTION_TLS_CERT = 256;
+	const int _OPTION_TLS_KEY = 257;
+
 	/**
 	 * Print the command line synopsis and options.
 	 * @param out Stream to print to.
@@ -115,6 +121,13 @@ namespace
 			_DEFAULT_SHADING_MODEL) << ").\n"
 			"  -t, --threads COUNT          Threads in each hive's thread pool (default " << _DEFAULT_NUM_THREADS
 			<< ").\n"
+			"  -k, --api-token-env VAR      Enable the hive control API at " << _API_PATH << "/v1/, accepting the\n"
+			"                               API token(s) held in environment variable VAR (comma separated, each\n"
+			"                               at least " << ApiAuthenticator::MIN_TOKEN_LENGTH << " characters). Unless the address is loopback,\n"
+			"                               --tls-cert and --tls-key are required. With the API enabled, the\n"
+			"                               server may start with no hives.\n"
+			"      --tls-cert FILE          PEM certificate (chain) to serve HTTPS with. Needs --tls-key.\n"
+			"      --tls-key FILE           PEM private key of the certificate given by --tls-cert.\n"
 			"  -v, --verbose                Log model traffic to the console. Repeat (-vv) to also log\n"
 			"                               node pokes.\n"
 			"  -h, --help                   Print this help and exit.\n"
@@ -155,6 +168,20 @@ namespace
 		struct in_addr parsed;
 
 		return inet_pton(AF_INET, text, &parsed) == 1;
+	}
+
+	/**
+	 * Test whether an IPv4 address is a loopback address, which only this machine can reach.
+	 * @param text Address to test, already known to be an IPv4 address.
+	 */
+	bool _isLoopbackAddress(const std::string& text)
+	{
+		struct in_addr parsed;
+
+		if(inet_pton(AF_INET, text.c_str(), &parsed) != 1) return false;
+
+		// 127.0.0.0/8, held in network byte order.
+		return (ntohl(parsed.s_addr) >> 24) == 127;
 	}
 
 	/**
@@ -321,6 +348,9 @@ int main(int argc, char* argv[])
 	unsigned verbosity = 0;
 	std::string harnessPath;
 	std::string databasePath;
+	std::string apiTokenEnv;
+	std::string tlsCertPath;
+	std::string tlsKeyPath;
 
 	const struct option longOptions[] =
 	{
@@ -332,6 +362,9 @@ int main(int argc, char* argv[])
 		{"no-chat", no_argument, 0, 'n'},
 		{"shading", required_argument, 0, 's'},
 		{"threads", required_argument, 0, 't'},
+		{"api-token-env", required_argument, 0, 'k'},
+		{"tls-cert", required_argument, 0, _OPTION_TLS_CERT},
+		{"tls-key", required_argument, 0, _OPTION_TLS_KEY},
 		{"verbose", no_argument, 0, 'v'},
 		{"help", no_argument, 0, 'h'},
 		{0, 0, 0, 0}
@@ -339,7 +372,7 @@ int main(int argc, char* argv[])
 
 	int option;
 
-	while((option = getopt_long(argc, argv, "d:p:a:H:c:ns:t:vh", longOptions, 0)) != -1)
+	while((option = getopt_long(argc, argv, "d:p:a:H:c:ns:t:k:vh", longOptions, 0)) != -1)
 	{
 		switch(option)
 		{
@@ -418,6 +451,24 @@ int main(int argc, char* argv[])
 
 				break;
 
+			case 'k':
+
+				apiTokenEnv = optarg;
+
+				break;
+
+			case _OPTION_TLS_CERT:
+
+				tlsCertPath = optarg;
+
+				break;
+
+			case _OPTION_TLS_KEY:
+
+				tlsKeyPath = optarg;
+
+				break;
+
 			case 'v':
 
 				verbosity++;
@@ -434,6 +485,55 @@ int main(int argc, char* argv[])
 				// getopt_long has already said what was wrong with the option.
 				_printUsage(std::cerr, argv[0]);
 				return 1;
+		}
+	}
+
+	if(tlsCertPath.empty() != tlsKeyPath.empty())
+	{
+		std::cerr << argv[0] << ": --tls-cert and --tls-key must be given together" << std::endl;
+		return 1;
+	}
+
+	bool apiEnabled = !apiTokenEnv.empty();
+
+	// Built before anything else is loaded, so that a missing or weak token is reported straight away rather
+	// than after every hive has been built.
+	std::unique_ptr<ApiAuthenticator> apiAuthenticatorBuilt;
+
+	if(apiEnabled)
+	{
+		// The token would be sent in the clear over plain HTTP, so that is only allowed where it cannot leave this
+		// machine.
+		if(tlsCertPath.empty() && !_isLoopbackAddress(address))
+		{
+			std::cerr << argv[0] << ": the hive control API needs --tls-cert and --tls-key when listening on "
+				<< address << ", which is not a loopback address" << std::endl;
+			return 1;
+		}
+
+		const char* tokens = getenv(apiTokenEnv.c_str());
+
+		std::string tokenText = tokens ? tokens : "";
+
+		// Removed from the environment once read, so that nothing this process starts, or any script it runs,
+		// can read it from there.
+		unsetenv(apiTokenEnv.c_str());
+
+		try
+		{
+			apiAuthenticatorBuilt = std::make_unique<ApiAuthenticator>(tokenText);
+		}
+		catch(ApiException& exception)
+		{
+			std::cerr << argv[0] << ": cannot enable the hive control API from environment variable " << apiTokenEnv
+				<< ": " << exception.getDetail() << std::endl;
+			return 1;
+		}
+
+		if(tlsCertPath.empty())
+		{
+			std::cerr << "Warning: the hive control API is served over plain HTTP. This is only safe because "
+				<< address << " is a loopback address." << std::endl;
 		}
 	}
 
@@ -526,7 +626,7 @@ int main(int argc, char* argv[])
 		hiveSources.push_back(HiveSource{std::move(loader), "described by " + hiveJsonPath, false});
 	}
 
-	if(hiveSources.empty())
+	if(hiveSources.empty() && !apiEnabled)
 	{
 		if(storeHandle.isValid())
 		{
@@ -548,6 +648,20 @@ int main(int argc, char* argv[])
 
 	HttpServer httpServer(address, port);
 
+	if(!tlsCertPath.empty())
+	{
+		try
+		{
+			httpServer.setTls(tlsCertPath, tlsKeyPath);
+		}
+		catch(DisplayException& exception)
+		{
+			std::cerr << "Could not read the TLS certificate " << tlsCertPath << " or its key " << tlsKeyPath
+				<< std::endl;
+			exit(1);
+		}
+	}
+
 	// Mounted at the root, so it is both what a browser arriving at the server lands on and what any path no
 	// surface map claims falls through to. Routing is by longest matching prefix, so the surface maps mounted
 	// below it are still reached.
@@ -565,51 +679,46 @@ int main(int argc, char* argv[])
 	// The handle holds the reference; release the implicit construction ref.
 	toolBindingsFactory -> decrRef();
 
-	// Held for as long as the program runs, so that neither a hive nor a map it serves is released while the
-	// server is still answering for it.
-	std::vector<Handle<GraphHive>> hiveHandles;
+	HiveHost::Settings hostSettings;
 
-	// One per hive when there is a hive database, each keeping its hive's stored copy up to date until stopped.
-	std::vector<Handle<HivePersister>> persisterHandles;
+	hostSettings.numThreads = numThreads;
+	hostSettings.indexPath = _INDEX_PATH;
+	hostSettings.pollIntervalMs = _WEBGL_POLL_INTERVAL_MS;
+	hostSettings.shadingModel = shadingModel;
+	hostSettings.chatEnabled = chatEnabled;
+	hostSettings.chatCapability = chatCapability;
 
-	// Held as the HTML maps they are rather than as what each draws, since what is done with them from here on
-	// -- setting them up, mounting them on the index and waiting on a first request -- is the same whichever
-	// kind of surface is behind them.
-	std::vector<Handle<GraphHiveSurfaceHtmlMap>> surfaceMapHandles;
+	// Built per hive, as the tool bindings it is given report on one hive, which means the servers the harness
+	// file names are contacted once for every hive loaded, including any created through the control API.
+	HiveHost::HarnessFactory harnessFactory = [&harnessPath, &toolBindingsFactoryHandle](Handle<GraphHive> hive)
+	{
+		return _buildAgenticHarness(harnessPath, hive, toolBindingsFactoryHandle);
+	};
 
-	// Path of the first scene surface served, which is the one a lone hive is landed on.
-	std::string firstScenePath;
+	HiveHost host(collection, httpServer, *collectionMap, storeHandle, toolBindingsFactoryHandle, harnessFactory,
+		hostSettings);
+
+	std::vector<std::string> hostedNames;
 
 	for(HiveSource& source : hiveSources)
 	{
-		GraphHive* hive = 0;
-
 		// Caught per hive, unlike in the test program, so that a bad hive among several is named.
 		try
 		{
-			hive = HiveBuilder::build(*source.loader, numThreads);
+			Handle<GraphHive> hive = host.addHive(*source.loader, source.fromStore);
+
+			hostedNames.push_back(hive.getInstance() -> getName());
 		}
 		catch(PersistException& exception)
 		{
 			std::cerr << "Could not load the hive " << source.description << ": " << _describe(exception) << std::endl;
 			exit(1);
 		}
-
-		Handle<GraphHive> hiveHandle(hive);
-
-		hiveHandles.push_back(hiveHandle);
-
-		// Both directions of the association are needed: the collection serves the hive up by name, and the
-		// hive reaches back through the collection to teleport an action to a node in one of the others.
-		try
-		{
-			collection.addHive(hiveHandle);
-		}
 		catch(GraphException& exception)
 		{
 			if(exception.getError() == GraphException::DUPLICATE_HIVE)
 			{
-				std::cerr << "The hive " << source.description << " is named '" << hive -> getName()
+				std::cerr << "The hive " << source.description << " is named '" << source.loader -> getHiveName()
 					<< "', which another hive already loaded is named too." << std::endl;
 			}
 			else
@@ -620,116 +729,19 @@ int main(int argc, char* argv[])
 
 			exit(1);
 		}
-
-		if(storeHandle.isValid())
+		catch(ThreadException& exception)
 		{
-			HivePersister* persister = new HivePersister(storeHandle, hiveHandle, *source.loader);
-
-			Handle<HivePersister> persisterHandle(persister);
-
-			// The handle holds the reference; release the implicit construction ref.
-			persister -> decrRef();
-
-			try
-			{
-				// A hive from a hive file is stored straight away, so that it is in the database from now on
-				// whether or not it ever changes.
-				if(!source.fromStore) persister -> flush();
-
-				persister -> start();
-			}
-			catch(PersistException& exception)
-			{
-				std::cerr << "Could not store the hive " << source.description << " in " << databasePath << ": "
-					<< _describe(exception) << std::endl;
-				exit(1);
-			}
-			catch(ThreadException& exception)
-			{
-				std::cerr << "Could not start keeping the hive " << source.description << " stored in "
-					<< databasePath << std::endl;
-				exit(1);
-			}
-
-			persisterHandles.push_back(persisterHandle);
-		}
-
-		hive -> setHiveCollection(&collection);
-
-		hive -> setToolBindingsFactory(toolBindingsFactoryHandle);
-
-		// Set before this hive's surfaces are served, so that the first chat request cannot arrive without a
-		// model behind it. The factory is passed in rather than read back off the hive, so the harness cannot
-		// end up with no chat tools purely because of the order these two calls are made in.
-		// Built per hive, as the tool bindings it is given report on one hive, which means the servers the
-		// harness file names are contacted once for every hive loaded here.
-		hive -> setAgenticHarness(_buildAgenticHarness(harnessPath, hiveHandle, toolBindingsFactoryHandle));
-
-		// Worked out before any map is built, since a scene surface has to be told where this hive's structure
-		// is when its map is made, and the surface holding it may well be listed after it. Empty when the hive
-		// mounts no graph view surface, which is what leaves a scene page offering no such link.
-		std::string structurePath;
-
-		for(std::string surfaceName : hive -> getSurfaceNames())
-		{
-			if(!hive -> getGraphViewSurface(surfaceName).isValid()) continue;
-
-			structurePath = _INDEX_PATH + hive -> getName() + "/" + surfaceName + "/";
-
-			break;
-		}
-
-		for(std::string surfaceName : hive -> getSurfaceNames())
-		{
-			// Nested under the hive's own page, so that the index reads as one tree rather than a listing
-			// pointing off somewhere else.
-			std::string surfacePath = _INDEX_PATH + hive -> getName() + "/" + surfaceName + "/";
-
-			Handle<GraphHiveSceneSurface> sceneSurfaceHandle = hive -> getSceneSurface(surfaceName);
-			Handle<GraphHiveGraphViewSurface> graphViewSurfaceHandle = hive -> getGraphViewSurface(surfaceName);
-
-			GraphHiveSurfaceHtmlMap* surfaceMap = 0;
-
-			if(sceneSurfaceHandle.isValid())
-			{
-				surfaceMap = new GraphHiveSceneSurfaceWebglMap(httpServer, *sceneSurfaceHandle.getInstance(),
-					surfacePath);
-
-				// Only a scene page is offered the link. The structure page is the one it would lead to.
-				surfaceMap -> setStructurePath(structurePath);
-
-				if(firstScenePath.empty()) firstScenePath = surfacePath;
-			}
-			else if(graphViewSurfaceHandle.isValid())
-			{
-				surfaceMap = new GraphHiveGraphViewSurfaceWebglMap(httpServer,
-					*graphViewSurfaceHandle.getInstance(), surfacePath);
-			}
-			else
-			{
-				// A surface of a kind nothing here knows how to draw. Left out of the index rather than
-				// fatal, as the hive is still perfectly serviceable without it being viewable.
-				continue;
-			}
-
-			Handle<GraphHiveSurfaceHtmlMap> surfaceMapHandle(surfaceMap);
-
-			surfaceMapHandles.push_back(surfaceMapHandle);
-
-			surfaceMap -> setPollInterval(_WEBGL_POLL_INTERVAL_MS);
-
-			surfaceMap -> setShadingModel(shadingModel);
-
-			surfaceMap -> setChatEnabled(chatEnabled);
-
-			// The map asks for MEDIUM by default, which a harness need not assign any model to.
-			surfaceMap -> setChatCapability(chatCapability);
-
-			collectionMap -> addSurfaceMap(hive -> getName(), *surfaceMap);
+			std::cerr << "Could not start keeping the hive " << source.description << " stored in "
+				<< databasePath << std::endl;
+			exit(1);
 		}
 	}
 
-	if(surfaceMapHandles.empty())
+	unsigned surfaceCount = 0;
+
+	for(std::string& hiveName : hostedNames) surfaceCount += host.getSurfacePaths(hiveName).size();
+
+	if(surfaceCount == 0 && !apiEnabled)
 	{
 		std::cerr << "None of the hive definition files loaded produced a surface to serve." << std::endl;
 		exit(1);
@@ -738,20 +750,43 @@ int main(int argc, char* argv[])
 	// With only one hive there is nothing to choose between at the index, so a browser arriving there is sent
 	// straight to its view: the first scene surface, which links on to the structure page, or else its only
 	// surface, or else the page listing its surfaces.
-	if(hiveHandles.size() == 1)
+	if(hostedNames.size() == 1)
 	{
+		std::string firstScenePath = host.getFirstScenePath(hostedNames[0]);
+		std::vector<std::pair<std::string, std::string>> surfacePaths = host.getSurfacePaths(hostedNames[0]);
+
 		if(!firstScenePath.empty())
 		{
 			collectionMap -> setLandingPath(firstScenePath);
 		}
-		else if(surfaceMapHandles.size() == 1)
+		else if(surfacePaths.size() == 1)
 		{
-			collectionMap -> setLandingPath(surfaceMapHandles[0].getInstance() -> getPath());
+			collectionMap -> setLandingPath(surfacePaths[0].second);
 		}
 		else
 		{
-			collectionMap -> setLandingPath(_INDEX_PATH + hiveHandles[0].getInstance() -> getName() + "/");
+			collectionMap -> setLandingPath(_INDEX_PATH + hostedNames[0] + "/");
 		}
+	}
+
+	// Only present when the API is enabled. Each refers to the next, so they are declared in that order and
+	// released in the reverse.
+	std::unique_ptr<ApiAuthenticator> apiAuthenticator;
+	std::unique_ptr<ApiController> apiController;
+	Handle<ApiHttpMap> apiMapHandle(0);
+
+	if(apiEnabled)
+	{
+		apiAuthenticator = std::move(apiAuthenticatorBuilt);
+		apiController = std::make_unique<ApiController>(host, collection);
+
+		ApiHttpMap* apiMap = new ApiHttpMap(httpServer, *apiAuthenticator, *apiController, _API_PATH);
+
+		apiMapHandle = Handle<ApiHttpMap>(apiMap);
+
+		// The handle holds the reference; release the implicit construction ref, so that the map is unmounted
+		// when the handle goes.
+		apiMap -> decrRef();
 	}
 
 	try
@@ -765,42 +800,53 @@ int main(int argc, char* argv[])
 		exit(1);
 	}
 
+	std::string scheme = httpServer.getTlsEnabled() ? "https" : "http";
+
 	if(address == _ANY_ADDRESS)
 	{
-		std::cout << "Listening on every interface, port " << httpServer.getPort() << ", e.g. http://localhost:"
-			<< httpServer.getPort() << _INDEX_PATH << std::endl;
+		std::cout << "Listening on every interface, port " << httpServer.getPort() << ", e.g. " << scheme
+			<< "://localhost:" << httpServer.getPort() << _INDEX_PATH << std::endl;
 	}
 	else
 	{
-		std::cout << "Listening on http://" << address << ":" << httpServer.getPort() << _INDEX_PATH << std::endl;
+		std::cout << "Listening on " << scheme << "://" << address << ":" << httpServer.getPort() << _INDEX_PATH
+			<< std::endl;
+	}
+
+	if(apiEnabled)
+	{
+		std::cout << "Hive control API at " << scheme << "://" << (address == _ANY_ADDRESS ? "localhost" : address)
+			<< ":" << httpServer.getPort() << _API_PATH << "/v1/" << std::endl;
 	}
 
 	signal(SIGINT, _handleSigInt);
 	signal(SIGTERM, _handleSigInt);
 
-	// This wait must happen before the process can otherwise go idle, or scene population stalls. Strobing is
-	// unrelated: each hive has already been driving it on its own scheduler thread since the calls above
-	// registered its emitters and surfaces.
-	// Only one map need be waited on, since only one can be the first to be opened and whichever it is ends
-	// the wait for all of them. The first map is the one blocked on because a wait has to be made against
-	// something; the check that ends the loop is made against every map, so opening any hive's surface
-	// releases it within a poll of it landing.
-	bool receivedFirstRequest = false;
-
-	while(_running && !receivedFirstRequest)
 	{
-		for(Handle<GraphHiveSurfaceHtmlMap>& surfaceMapHandle : surfaceMapHandles)
-		{
-			if(surfaceMapHandle.getInstance() -> hasReceivedFirstRequest())
-			{
-				receivedFirstRequest = true;
-				break;
-			}
-		}
+		// Held only for this wait, so that a hive the control API later deletes is not kept mounted by it.
+		std::vector<Handle<GraphHiveSurfaceHtmlMap>> surfaceMapHandles = host.getSurfaceMaps();
 
-		if(!receivedFirstRequest)
+		// Only one map need be waited on, since only one can be the first to be opened and whichever it is ends
+		// the wait for all of them. The first map is the one blocked on because a wait has to be made against
+		// something; the check that ends the loop is made against every map, so opening any hive's surface
+		// releases it within a poll of it landing.
+		bool receivedFirstRequest = surfaceMapHandles.empty();
+
+		while(_running && !receivedFirstRequest)
 		{
-			surfaceMapHandles[0].getInstance() -> waitForFirstRequest(_FIRST_REQUEST_WAIT_POLL_MS);
+			for(Handle<GraphHiveSurfaceHtmlMap>& surfaceMapHandle : surfaceMapHandles)
+			{
+				if(surfaceMapHandle.getInstance() -> hasReceivedFirstRequest())
+				{
+					receivedFirstRequest = true;
+					break;
+				}
+			}
+
+			if(!receivedFirstRequest)
+			{
+				surfaceMapHandles[0].getInstance() -> waitForFirstRequest(_FIRST_REQUEST_WAIT_POLL_MS);
+			}
 		}
 	}
 
@@ -812,7 +858,7 @@ int main(int argc, char* argv[])
 	httpServer.stop();
 
 	// Before the hives are shut down, as a hive that has been holds nothing left to store.
-	for(Handle<HivePersister>& persisterHandle : persisterHandles) persisterHandle.getInstance() -> stop();
+	host.shutdown();
 
 	collection.shutdown();
 

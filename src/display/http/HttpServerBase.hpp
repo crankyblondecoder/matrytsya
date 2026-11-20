@@ -54,6 +54,21 @@ class HttpServerBase
         void removeHandler(std::string path);
 
         /**
+         * Serve over TLS (HTTPS) rather than plain HTTP.
+         * @param certPath Path of the PEM file holding the server's certificate, or certificate chain.
+         * @param keyPath Path of the PEM file holding the certificate's private key.
+         * @note Must be called before start(). Both files are read here, once, so they may be made unreadable
+         *       to this process afterwards.
+         * @throw DisplayException If either file could not be read or is empty.
+         */
+        void setTls(std::string certPath, std::string keyPath);
+
+        /**
+         * Get whether this server serves over TLS.
+         */
+        bool getTlsEnabled();
+
+        /**
          * Get the port this server is configured to listen on.
          */
         unsigned getPort();
@@ -82,6 +97,16 @@ class HttpServerBase
          */
         void _routeRequest(HttpRequest& request, HttpResponse& response);
 
+        /**
+         * Get the PEM certificate set by setTls(). Empty when TLS is not enabled.
+         */
+        const std::string& _getTlsCert();
+
+        /**
+         * Get the PEM private key set by setTls(). Empty when TLS is not enabled.
+         */
+        const std::string& _getTlsKey();
+
     private:
 
         // Disable copying.
@@ -99,6 +124,12 @@ class HttpServerBase
 
         /// Guards _handlers.
         ThreadMutex _lock;
+
+        /// PEM certificate served over TLS. Empty when TLS is not enabled.
+        std::string _tlsCert;
+
+        /// PEM private key of the certificate served over TLS. Empty when TLS is not enabled.
+        std::string _tlsKey;
 };
 
 #endif

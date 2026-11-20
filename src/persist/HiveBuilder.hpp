@@ -12,6 +12,8 @@ class GraphHive;
 class GraphHiveSurface;
 class HiveLoader;
 class SceneGeometry;
+class GraphEdge;
+struct HiveEdgeDescriptor;
 struct HiveNodeDescriptor;
 struct HiveSurfaceDescriptor;
 
@@ -34,6 +36,29 @@ class HiveBuilder
 		 * @throw PersistException On any structural problem in the loader's data.
 		 */
 		static GraphHive* build(HiveLoader& loader, unsigned numThreads);
+
+		/**
+		 * Create a node, not yet in any hive, from a descriptor. Its edges are not made, as the nodes they lead
+		 * to may not exist yet; see createEdge().
+		 * @param descriptor Descriptor of the node to create.
+		 * @returns Newly allocated node carrying the descriptor's name. Caller takes ownership of the initial
+		 *          reference.
+		 * @throw PersistException(INVALID_NODE_NAME) If the descriptor has no name.
+		 * @throw PersistException On any other problem with the descriptor's type-specific data.
+		 */
+		static GraphNode* createNode(const HiveNodeDescriptor& descriptor);
+
+		/**
+		 * Create an edge between two nodes from a descriptor.
+		 * @param fromNode Node the edge leaves from.
+		 * @param toNode Node the edge leads to.
+		 * @param descriptor Descriptor of the edge. Its target name is not consulted; toNode is used instead.
+		 * @throw PersistException(UNKNOWN_ACTION_FLAG) If the descriptor names an action flag that does not exist.
+		 * @throw PersistException(EDGE_CREATE_FAILED) If the edge could not be made, e.g. as fromNode has no
+		 *        free edge slot left.
+		 */
+		static Handle<GraphEdge> createEdge(GraphNode& fromNode, Handle<GraphNode> toNode,
+			const HiveEdgeDescriptor& descriptor);
 
 	private:
 

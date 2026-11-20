@@ -9,3 +9,4 @@ runUnitTests
 fix_perms.sh
 .claude
 doc/generated
+src/api/apiDocs.cpp

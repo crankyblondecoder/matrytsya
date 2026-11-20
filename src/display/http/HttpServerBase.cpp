@@ -6,12 +6,64 @@
 #include "HttpRequestHandler.hpp"
 #include "HttpResponse.hpp"
 
+#include <fstream>
+#include <sstream>
+
+namespace
+{
+	// Reads a whole file, throwing if it cannot be read or holds nothing, as an empty certificate or key would
+	// only fail later, on the first connection, far from the option that named it.
+	std::string readPemFile(const std::string& path)
+	{
+		std::ifstream file(path, std::ios::binary);
+
+		if(!file) throw DisplayException(DisplayException::TLS_CERT_UNREADABLE);
+
+		std::ostringstream contents;
+
+		contents << file.rdbuf();
+
+		if(!file.good() && !file.eof()) throw DisplayException(DisplayException::TLS_CERT_UNREADABLE);
+
+		std::string pem = contents.str();
+
+		if(pem.empty()) throw DisplayException(DisplayException::TLS_CERT_UNREADABLE);
+
+		return pem;
+	}
+}
+
 HttpServerBase::HttpServerBase(std::string address, unsigned port) : _address{address}, _port{port}
 {
 }
 
 HttpServerBase::~HttpServerBase()
 {
+	// The key is overwritten rather than just released, so that it is not left lying in freed memory.
+	volatile char* key = (volatile char*) _tlsKey.data();
+
+	for(std::size_t index = 0; index < _tlsKey.size(); index++) key[index] = 0;
+}
+
+void HttpServerBase::setTls(std::string certPath, std::string keyPath)
+{
+	_tlsCert = readPemFile(certPath);
+	_tlsKey = readPemFile(keyPath);
+}
+
+bool HttpServerBase::getTlsEnabled()
+{
+	return !_tlsCert.empty();
+}
+
+const std::string& HttpServerBase::_getTlsCert()
+{
+	return _tlsCert;
+}
+
+const std::string& HttpServerBase::_getTlsKey()
+{
+	return _tlsKey;
 }
 
 void HttpServerBase::start()
@@ -82,11 +134,26 @@ void HttpServerBase::_routeRequest(HttpRequest& request, HttpResponse& response)
 				bestLength = registeredPath.size();
 			}
 		}
+
+		// Held from here so that a handler removed by another thread, e.g. when a hive is deleted, is not
+		// destroyed while this request is still inside it. One that is already being destroyed is answered as
+		// though it were never there.
+		if(handler && !handler -> retainHandler()) handler = 0;
 	}
 
 	if(handler)
 	{
-		handler -> handleRequest(request, response);
+		try
+		{
+			handler -> handleRequest(request, response);
+		}
+		catch(...)
+		{
+			handler -> releaseHandler();
+			throw;
+		}
+
+		handler -> releaseHandler();
 	}
 	else
 	{

@@ -2,9 +2,10 @@
 
 # Each module has a subdirectory where the module name and the directory name are the same.
 # The order is important because it sets the final linking order and if that is incorrect it causes undefined reference errors.
-# agent_bindings depends on both agent and graph; graph depends on agent; persist depends on graph.
+# api depends on agent_bindings, persist, graph and display; agent_bindings depends on both agent and graph; graph
+# depends on agent; persist depends on graph.
 # Static archives resolve left-to-right, so each module must precede everything it depends on.
-modules = agent_bindings persist graph agent util thread log lua display mongoose
+modules = api agent_bindings persist graph agent util thread log lua display mongoose
 
 # The name of the static library (.a file) should be modulename.a
 export module_libs = $(foreach module, $(modules), $(module).a)
@@ -48,7 +49,7 @@ VPATH = ../src
 # (heap corruption from mismatched class layouts) rather than a broken build.
 
 .PHONY : debug
-debug : subDirs
+debug : subDirs apiDocs
 	@ echo
 	@ echo "*** Building - Debug ***"
 	@ echo
@@ -59,7 +60,7 @@ debug : subDirs
 	$(cname) $(cflags_debug) -o $(execName_debug) ../src/$(execName).cpp $(foreach module_lib, $(module_libs), debug/$(module_lib)) $(system_libs)
 
 .PHONY : release
-release : subDirs
+release : subDirs apiDocs
 	@ echo
 	@ echo "*** Building - Release ***"
 	@ echo
@@ -70,7 +71,7 @@ release : subDirs
 	$(cname) $(cflags_release) -o $(execName) ../src/$(execName).cpp $(foreach module_lib, $(module_libs), release/$(module_lib)) $(system_libs)
 
 .PHONY : debug_test
-debug_test : subDirs
+debug_test : subDirs apiDocs
 	@ echo
 	@ echo "*** Building - Debug ***"
 	@ echo
@@ -88,7 +89,7 @@ lua : subDirs
 	cd debug && $(MAKE) --makefile=../makefile_lua cflags="$(cflags_debug)"
 
 .PHONY : dep
-dep : subDirs
+dep : subDirs apiDocs
 	@ echo
 	@ echo "*** Building Dependencies ***"
 	@ echo
@@ -121,12 +122,18 @@ lua_clean :
 	@ -rm -f $(foreach dir, debug release test, $(foreach f, $(luaArtifacts), $(dir)/$(f)))
 
 .PHONY : test
-test : subDirs $(modules)
+test : subDirs apiDocs $(modules)
 	@ echo
 	@ echo "*** Building and Running Tests ***"
 	@ echo
 	cd test && for makeFile in $(module_makefiles); do $(MAKE) --makefile=../$$makeFile cflags="$(cflags_test)" || exit 1; done
 	cd test && $(MAKE) --makefile=../makefile_test cflags="$(cflags_test)"
+
+# The control API serves its own documentation, which is embedded from the files in doc/. Regenerated on every
+# build, but only rewritten when a document has changed, so it costs a rebuild only then.
+.PHONY : apiDocs
+apiDocs :
+	@ ./gen_api_docs.sh
 
 .PHONY : subDirs
 subDirs :

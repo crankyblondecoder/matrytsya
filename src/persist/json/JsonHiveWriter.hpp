@@ -3,6 +3,8 @@
 
 #include <string>
 
+struct HiveSnapshot;
+
 struct HiveNodeDescriptor;
 struct HiveSurfaceDescriptor;
 
@@ -48,6 +50,13 @@ class JsonHiveWriter
 		 * @returns JSON text of the registration.
 		 */
 		static std::string strobeSurfaceFragment(const std::string& surfaceName, unsigned periodMs);
+
+		/**
+		 * Write a whole hive as one hive definition document, as described by doc/hiveSchema.json.
+		 * @param snapshot Snapshot of the hive.
+		 * @returns JSON text of the document, which a JsonHiveLoader builds the same hive from.
+		 */
+		static std::string hiveDocument(const HiveSnapshot& snapshot);
 
 	private:
 
