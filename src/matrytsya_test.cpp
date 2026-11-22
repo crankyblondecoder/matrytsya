@@ -244,6 +244,8 @@ int main(int argc, char const *argv[])
 			// The map asks for MEDIUM by default, which the harness file assigns no model to.
 			surfaceMap -> setChatCapability(_CHAT_CAPABILITY);
 
+			surfaceMap -> setIndexPath(collectionMap -> getListingPath());
+
 			collectionMap -> addSurfaceMap(hive -> getName(), *surfaceMap);
 		}
 	}

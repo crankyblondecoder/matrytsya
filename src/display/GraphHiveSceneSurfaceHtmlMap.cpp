@@ -3,6 +3,9 @@
 #include "../graph/GraphHiveSceneSurface.hpp"
 #include "http/HttpRequest.hpp"
 
+#include <iomanip>
+#include <sstream>
+
 namespace
 {
 	/// How many poll intervals a page stays counted as a viewer without polling again. More than one, so that
@@ -50,5 +53,20 @@ std::string GraphHiveSceneSurfaceHtmlMap::_serveRevisionExtras(HttpRequest& requ
 		}
 	}
 
-	return ",\"viewerCount\":" + std::to_string(_getSceneSurface().getViewerCount());
+	unsigned focusSequence;
+	unsigned focusNodeId;
+	double focusViewportFraction;
+
+	_getSceneSurface().getFocusRequest(focusSequence, focusNodeId, focusViewportFraction);
+
+	std::ostringstream fractionStream;
+
+	fractionStream << std::setprecision(9) << focusViewportFraction;
+
+	// Carried by the revision rather than the scene data, so that a page is told of a focus request on its very
+	// next poll without having to fetch a scene that has not changed.
+	return ",\"viewerCount\":" + std::to_string(_getSceneSurface().getViewerCount()) +
+		",\"focus\":{\"sequence\":" + std::to_string(focusSequence) +
+		",\"nodeId\":" + std::to_string(focusNodeId) +
+		",\"viewportFraction\":" + fractionStream.str() + "}";
 }

@@ -44,7 +44,11 @@ class GraphHiveSceneSurfaceHtmlMap : public GraphHiveSurfaceHtmlMap
          *        which keeps it counted for a few poll intervals more (and never under a few seconds, to allow for a
          *        browser slowing a background tab's polling); one left out is not counted at all. A
          *        "leave" query parameter of "1" stops the page being counted straight away instead.
-         * @returns The viewer count, as ",\"viewerCount\":N".
+         * @returns The viewer count and the most recent request for viewers to bring a node into focus, as
+         *          ",\"viewerCount\":N,\"focus\":{\"sequence\":N,\"nodeId\":N,\"viewportFraction\":N}". The
+         *          sequence changes whenever a new focus request is made, and is 0 if none ever has been. A
+         *          viewportFraction of 0 asks for right-click behaviour, any other the fraction of the view's
+         *          height to fit the node to.
          */
         virtual std::string _serveRevisionExtras(HttpRequest& request) override;
 

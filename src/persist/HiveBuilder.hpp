@@ -8,6 +8,9 @@
 #include "../graph/GraphNode.hpp"
 #include "../util/Handle.hpp"
 
+// Needed in full because the image helper returns one.
+#include "../graph/ImageSource.hpp"
+
 class GraphHive;
 class GraphHiveSurface;
 class HiveLoader;
@@ -75,6 +78,15 @@ class HiveBuilder
 		 * @throw PersistException(UNKNOWN_NODE_TYPE) If the descriptor's type is not recognised.
 		 */
 		static GraphNode* __createNode(const HiveNodeDescriptor& descriptor);
+
+		/**
+		 * Read the image a scene image node's descriptor describes.
+		 * @param descriptor Descriptor of a SCENE_IMAGE node.
+		 * @returns The image. An embedded or file image has been checked to be a PNG that can be displayed; a URL
+		 *          image is not read, as the viewer loads it.
+		 * @throw PersistException(INVALID_IMAGE) If an embedded or file image cannot be read or is not such a PNG.
+		 */
+		static ImageSource __imageSource(const HiveNodeDescriptor& descriptor);
 
 		/**
 		 * Create the concrete GraphHiveSurface subclass described by a descriptor.

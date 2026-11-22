@@ -158,6 +158,14 @@ void GraphHiveSurfaceHtmlMap::setStructurePath(std::string path)
 	}
 }
 
+void GraphHiveSurfaceHtmlMap::setIndexPath(std::string path)
+{
+	{ SYNC(_lock)
+
+		_indexPath = path;
+	}
+}
+
 void GraphHiveSurfaceHtmlMap::setChatCapability(AgenticHarness::Capability capability)
 {
 	{ SYNC(_lock)
@@ -191,6 +199,7 @@ void GraphHiveSurfaceHtmlMap::_renderPageTemplate(const std::string& pageTemplat
 	unsigned pollIntervalMs;
 	ShadingModel shadingModel;
 	std::string structurePath;
+	std::string indexPath;
 	bool chatEnabled;
 
 	{ SYNC(_lock)
@@ -198,6 +207,7 @@ void GraphHiveSurfaceHtmlMap::_renderPageTemplate(const std::string& pageTemplat
 		pollIntervalMs = _pollIntervalMs;
 		shadingModel = _shadingModel;
 		structurePath = _structurePath;
+		indexPath = _indexPath;
 		chatEnabled = _chatEnabled;
 	}
 
@@ -213,6 +223,14 @@ void GraphHiveSurfaceHtmlMap::_renderPageTemplate(const std::string& pageTemplat
 			"\" title=\"View this hive's graph structure\">Structure</a>";
 	}
 
+	std::string indexMarkup;
+
+	if(!indexPath.empty())
+	{
+		indexMarkup = "<a id=\"indexLink\" href=\"" + htmlEscape(indexPath) +
+			"\" title=\"List every hive\">&larr; Hives</a>";
+	}
+
 	// Put the chat window in before anything else, so that a placeholder appearing within it is filled in too
 	// rather than being left in the page as it stands.
 	// Emptied rather than left in when disabled, which is all it takes for the page to go without a chat window:
@@ -222,6 +240,7 @@ void GraphHiveSurfaceHtmlMap::_renderPageTemplate(const std::string& pageTemplat
 	replacePlaceholder(page, "%CHAT_SCRIPT%", chatEnabled ? chatWindowScript : "");
 
 	replacePlaceholder(page, "%STRUCTURE_MARKUP%", structureMarkup);
+	replacePlaceholder(page, "%INDEX_MARKUP%", indexMarkup);
 
 	replacePlaceholder(page, "%TITLE%", title);
 	replacePlaceholder(page, "%POLL_INTERVAL_MS%", std::to_string(pollIntervalMs));

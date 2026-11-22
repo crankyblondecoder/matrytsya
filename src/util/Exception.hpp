@@ -14,7 +14,8 @@ class Exception
 			DISPLAY,
 			PERSIST,
 			AGENT,
-			API
+			API,
+			IMAGE
 		};
 
 		Exception(Module module) : _module{module} {}

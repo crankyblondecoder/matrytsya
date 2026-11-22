@@ -6,6 +6,8 @@
 #include "../GraphException.hpp"
 #include "../GraphPoke.hpp"
 #include "../actions/AnimateAction.hpp"
+#include "../actions/FocusAction.hpp"
+#include "../actions/ImageVisibleAction.hpp"
 #include "../actions/TextVisibleAction.hpp"
 #include "../actions/TriggerAction.hpp"
 
@@ -32,6 +34,8 @@ namespace
 	const char* const TRIGGER_PARAM_FIELDS[] = {"nodeName", "nodeType"};
 	const char* const ANIMATE_PARAM_FIELDS[] = {"animating"};
 	const char* const TEXT_VISIBLE_PARAM_FIELDS[] = {"visible"};
+	const char* const IMAGE_VISIBLE_PARAM_FIELDS[] = {"visible"};
+	const char* const FOCUS_PARAM_FIELDS[] = {"nodeName", "viewportFraction"};
 
 	/**
 	 * Find the node type whose integer value is the one given.
@@ -872,6 +876,67 @@ int ScriptNode::__luaEmitAction(lua_State* luaState)
 
 			break;
 		}
+
+		case EmittableActionType::IMAGE_VISIBLE:
+		{
+			if(!hasParams) luaL_error(luaState, "emitAction: IMAGE_VISIBLE requires params.visible");
+
+			__checkParamFields(luaState, 2, IMAGE_VISIBLE_PARAM_FIELDS, std::size(IMAGE_VISIBLE_PARAM_FIELDS));
+
+			if(__rawGetField(luaState, 2, "visible") != LUA_TBOOLEAN) // [..., visible]
+			{
+				luaL_error(luaState, "emitAction: IMAGE_VISIBLE requires params.visible to be a boolean");
+			}
+
+			bool visible = lua_toboolean(luaState, -1);
+
+			lua_pop(luaState, 1); // [...]
+
+			node -> __emitImageVisibleAction(visible, __readTraversalKeys(luaState, 3));
+
+			break;
+		}
+
+		case EmittableActionType::FOCUS:
+		{
+			// An empty name is what FocusAction takes as "any name". The pointer stays valid for the rest of
+			// this call, as the params table, still on the stack, holds the string it points into.
+			const char* nodeName = "";
+			double viewportFraction = 0;
+
+			if(hasParams)
+			{
+				__checkParamFields(luaState, 2, FOCUS_PARAM_FIELDS, std::size(FOCUS_PARAM_FIELDS));
+
+				int nameType = __rawGetField(luaState, 2, "nodeName"); // [..., nodeName]
+
+				if(nameType == LUA_TSTRING) nodeName = lua_tostring(luaState, -1);
+				else if(nameType != LUA_TNIL) luaL_error(luaState, "emitAction: params.nodeName must be a string");
+
+				lua_pop(luaState, 1); // [...]
+
+				int fractionType = __rawGetField(luaState, 2, "viewportFraction"); // [..., viewportFraction]
+
+				if(fractionType != LUA_TNIL)
+				{
+					// The same range a surface's initial focusViewportFraction is held to. Written so that NaN,
+					// which every comparison is false for, fails it too.
+					if(fractionType == LUA_TNUMBER) viewportFraction = lua_tonumber(luaState, -1);
+
+					if(fractionType != LUA_TNUMBER || !(viewportFraction > 0 && viewportFraction <= 1))
+					{
+						luaL_error(luaState, "emitAction: params.viewportFraction must be a number greater than 0 "
+							"and no greater than 1");
+					}
+				}
+
+				lua_pop(luaState, 1); // [...]
+			}
+
+			node -> __emitFocusAction(nodeName, viewportFraction, __readTraversalKeys(luaState, 3));
+
+			break;
+		}
 	}
 
 	return 0;
@@ -1019,6 +1084,32 @@ void ScriptNode::__emitTextVisibleAction(bool visible, std::vector<unsigned> edg
 {
 	// Action will self delete once complete.
 	TextVisibleAction* action = new TextVisibleAction(Handle<GraphNode>(this), visible, std::move(edgeTraversalKeys));
+
+	action -> incrRef();
+
+	_emitAction(action);
+
+	action -> decrRef();
+}
+
+void ScriptNode::__emitImageVisibleAction(bool visible, std::vector<unsigned> edgeTraversalKeys)
+{
+	// Action will self delete once complete.
+	ImageVisibleAction* action = new ImageVisibleAction(Handle<GraphNode>(this), visible, std::move(edgeTraversalKeys));
+
+	action -> incrRef();
+
+	_emitAction(action);
+
+	action -> decrRef();
+}
+
+void ScriptNode::__emitFocusAction(const std::string& nodeName, double viewportFraction,
+	std::vector<unsigned> edgeTraversalKeys)
+{
+	// Action will self delete once complete.
+	FocusAction* action = new FocusAction(Handle<GraphNode>(this), nodeName, viewportFraction,
+		std::move(edgeTraversalKeys));
 
 	action -> incrRef();
 

@@ -10,8 +10,8 @@ deleted while the program runs (see [Hive control API](#hive-control-api)).
 ## Synopsis
 
 ```
-matrytsya [-p PORT] [-a ADDRESS] [-H HARNESS] [-c LEVEL] [-n] [-t COUNT] [-v] [TLS] HIVE [HIVE ...]
-matrytsya -d DATABASE [-p PORT] [-a ADDRESS] [-H HARNESS] [-c LEVEL] [-n] [-t COUNT] [-v] [TLS] [HIVE ...]
+matrytsya [-p PORT] [-a ADDRESS] [-H HARNESS] [-c LEVEL] [-n] [-t COUNT] [-i DIR] [-v] [TLS] HIVE [HIVE ...]
+matrytsya -d DATABASE [-p PORT] [-a ADDRESS] [-H HARNESS] [-c LEVEL] [-n] [-t COUNT] [-i DIR] [-v] [TLS] [HIVE ...]
 matrytsya -k VARIABLE [-d DATABASE] [other options] [TLS] [HIVE ...]
 matrytsya -h
 
@@ -56,6 +56,7 @@ starts with whatever hives it has, possibly none, and more can be created throug
 | `-n`  | `--no-chat`               | none     | off     | Disable the chat window. See [Chat window](#chat-window). |
 | `-s`  | `--shading`               | `MODEL`  | `BLINN_PHONG` | Lighting model the WebGL scene and structure views shade with: `BLINN_PHONG` (diffuse plus a specular highlight, worked out per pixel) or `LAMBERT` (diffuse only, worked out per vertex). Case sensitive. |
 | `-t`  | `--threads`               | `COUNT`  | `2`     | Number of threads in each hive's thread pool. 1 to 1024. Every hive gets its own pool of this size. |
+| `-i`  | `--image-root`            | `DIR`    | none    | Directory image files are read from. Only files in `DIR` or a directory below it can be read, and a relative `imageFile` path is relative to `DIR`. See [Image files](#image-files). |
 | `-k`  | `--api-token-env`         | `VARIABLE` | none  | Serve the hive control API, accepting the API token held in environment variable `VARIABLE`. See [Hive control API](#hive-control-api). |
 |       | `--tls-cert`              | `FILE`   | none    | PEM certificate, or certificate chain, to serve HTTPS with. Needs `--tls-key`. See [HTTPS](#https). |
 |       | `--tls-key`               | `FILE`   | none    | PEM private key of the certificate given by `--tls-cert`. |
@@ -65,6 +66,28 @@ starts with whatever hives it has, possibly none, and more can be created throug
 Long options take their argument either as the next word (`--port 9000`) or after `=` (`--port=9000`).
 Options and hive files can come in any order. Use `--` to end the options if a hive file's name starts
 with `-`.
+
+## Image files
+
+A `SceneImageNode` with an `imageFile` reads that file when its hive is built, whether the hive comes from a
+hive file, a hive database, a builder script or the control API. Without `-i`, a relative path is resolved
+against the current working directory, and any file the program can read may be named.
+
+With `-i DIR`, image files are confined to `DIR`:
+
+- A relative `imageFile` path is resolved against `DIR`, not the working directory.
+- An absolute path is allowed only if it lies within `DIR`.
+- A path that leads out of `DIR`, for example through `..`, is refused before anything is looked up, with the
+  error "image file is outside the image file root directory".
+- A symbolic link inside `DIR` is followed only as far as it stays inside `DIR`. One that leads out of it is
+  refused as if the file could not be read, so that links cannot be used to learn what lies outside.
+- Only regular files are read.
+
+`DIR` must be an existing directory, or the program exits before loading anything. The path stored for a node
+is the one its hive gave, so a hive saved while running with `-i` should be run with the same `-i` again.
+
+When `imageFile` paths can come from anyone less trusted than whoever runs the server, such as clients of the
+control API or models driving builder scripts, give `-i` a directory holding only images that may be shown.
 
 ## Verbosity
 

@@ -4,6 +4,8 @@
 #include "actionTargets/AgentActionTarget.hpp"
 #include "actionTargets/AgentAffectActionTarget.hpp"
 #include "actionTargets/AnimateActionTarget.hpp"
+#include "actionTargets/FocusActionTarget.hpp"
+#include "actionTargets/ImageVisibleActionTarget.hpp"
 #include "actionTargets/PingActionTarget.hpp"
 #include "actionTargets/SceneActionTarget.hpp"
 #include "actionTargets/StrobeActionTarget.hpp"
@@ -74,6 +76,12 @@ class GraphActionTargetable
 
 		/// Get the target for showing and hiding text.
 		virtual TextVisibleActionTarget* getTextVisibleActionTarget();
+
+		/// Get the target for showing and hiding images.
+		virtual ImageVisibleActionTarget* getImageVisibleActionTarget();
+
+		/// Get the target for asking views to bring this into focus.
+		virtual FocusActionTarget* getFocusActionTarget();
 
 	protected:
 

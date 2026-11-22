@@ -613,7 +613,7 @@
 					"Nodes"
 				],
 				"summary": "Get a node",
-				"description": "Returns a node's full definition and its edges, each with the id `deleteEdge` takes.",
+				"description": "Returns a node's full definition and its edges, each with the id `deleteEdge` takes.\n\nThe definition is the node as it was when it joined the hive, with its edges as they are now, exactly as `getHiveDefinition` gives it. Anything the node's script has changed since, such as a transform it animates or text it sets, is not reflected: the definition is what the node would be rebuilt from, not its live state.",
 				"responses": {
 					"200": {
 						"description": "The node.",
@@ -1772,7 +1772,8 @@
 							"AGENT_NODE",
 							"TRIGGER_NODE",
 							"SCENE_TEXT_SCRIPT_NODE",
-							"BUILDER_SCRIPT_NODE"
+							"BUILDER_SCRIPT_NODE",
+							"SCENE_IMAGE_NODE"
 						]
 					}
 				}

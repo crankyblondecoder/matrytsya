@@ -6,6 +6,7 @@
 #include "../hiveNames.hpp"
 #include "../../rapidjson/stringbuffer.h"
 #include "../../rapidjson/writer.h"
+#include "../../util/base64.hpp"
 
 #include <cstddef>
 
@@ -186,24 +187,8 @@ namespace
 		writer.Bool(descriptor.serialiseEmittedActions);
 	}
 
-	void __writeTextFields(HiveJsonWriter& writer, const HiveNodeDescriptor& descriptor)
+	void __writeBackground(HiveJsonWriter& writer, const TextBackground& background)
 	{
-		__writeKey(writer, "text");
-		__writeString(writer, descriptor.text);
-
-		__writeKey(writer, "textPosition");
-		__writeDoubleArray(writer, descriptor.textPosition, 3);
-
-		__writeKey(writer, "textHeight");
-		writer.Double(descriptor.textHeight);
-
-		__writeKey(writer, "textColour");
-		__writeColour(writer, descriptor.textColour);
-
-		const TextBackground& background = descriptor.textBackground;
-
-		__writeKey(writer, "textBackground");
-
 		writer.StartObject();
 
 		__writeKey(writer, "fillColour");
@@ -222,6 +207,59 @@ namespace
 		__writeDoubleArray(writer, background.cornerRadii, TextBackground::CORNER_COUNT);
 
 		writer.EndObject();
+	}
+
+	void __writeImageFields(HiveJsonWriter& writer, const HiveNodeDescriptor& descriptor)
+	{
+		// A file or URL image is written as the reference it was given rather than its bytes, so that a stored hive
+		// goes on following the file or URL.
+		switch(descriptor.imageKind)
+		{
+			case ImageSource::EMBEDDED:
+				__writeKey(writer, "imageData");
+				__writeString(writer, base64::encode(descriptor.imageBytes));
+				break;
+
+			case ImageSource::FILE:
+				__writeKey(writer, "imageFile");
+				__writeString(writer, descriptor.imageReference);
+				break;
+
+			case ImageSource::URL:
+				__writeKey(writer, "imageUrl");
+				__writeString(writer, descriptor.imageReference);
+				break;
+		}
+
+		__writeKey(writer, "imagePosition");
+		__writeDoubleArray(writer, descriptor.imagePosition, 3);
+
+		__writeKey(writer, "imageHeight");
+		writer.Double(descriptor.imageHeight);
+
+		__writeKey(writer, "imageBackground");
+		__writeBackground(writer, descriptor.imageBackground);
+
+		__writeKey(writer, "imageVisible");
+		writer.Bool(descriptor.imageVisible);
+	}
+
+	void __writeTextFields(HiveJsonWriter& writer, const HiveNodeDescriptor& descriptor)
+	{
+		__writeKey(writer, "text");
+		__writeString(writer, descriptor.text);
+
+		__writeKey(writer, "textPosition");
+		__writeDoubleArray(writer, descriptor.textPosition, 3);
+
+		__writeKey(writer, "textHeight");
+		writer.Double(descriptor.textHeight);
+
+		__writeKey(writer, "textColour");
+		__writeColour(writer, descriptor.textColour);
+
+		__writeKey(writer, "textBackground");
+		__writeBackground(writer, descriptor.textBackground);
 
 		__writeKey(writer, "textVisible");
 		writer.Bool(descriptor.textVisible);
@@ -313,6 +351,10 @@ std::string JsonHiveWriter::nodeFragment(const HiveNodeDescriptor& descriptor)
 			__writeScriptSource(writer, descriptor);
 			__writeKey(writer, "emitTriggerOnPoke");
 			writer.Bool(descriptor.emitTriggerOnPoke);
+			break;
+
+		case HiveNodeDescriptor::SCENE_IMAGE:
+			__writeImageFields(writer, descriptor);
 			break;
 
 		case HiveNodeDescriptor::BUILDER_SCRIPT:

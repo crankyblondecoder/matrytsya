@@ -13,7 +13,7 @@ export module_libs = $(foreach module, $(modules), $(module).a)
 # System libraries every executable links against, after the module archives that need them. OpenSSL
 # provides the TLS that Mongoose uses to reach model providers over HTTPS. LMDB is the database hives are
 # persisted to.
-export system_libs = -lssl -lcrypto -llmdb
+export system_libs = -lssl -lcrypto -llmdb -lpng
 
 # Module make file names.
 module_makefiles = $(foreach module, $(modules), makefile_$(module))

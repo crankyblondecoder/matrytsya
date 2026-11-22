@@ -236,7 +236,7 @@ Available to `SceneGeometryScriptNode`, `SceneTransformScriptNode`, `SceneTextSc
 | `NodeType` | A global table of constants naming each concrete node type, for use as the `nodeType` argument to `trigger`. See [Triggering other nodes](#triggering-other-nodes). |
 | `trigger([nodeName], [nodeType])` | Emits a trigger action from this node, triggering nodes it reaches as it traverses the graph. See [Triggering other nodes](#triggering-other-nodes). |
 | `ToolType` | A global table of constants naming the value types a script defined tool's parameters and return value may be declared as: `STRING`, `NUMBER`, `INTEGER` and `BOOL`. Only of use in a `coreScript`, which is the only place tools can be declared. See [`getToolCallBindings(capability)`](#gettoolcallbindingscapability). |
-| `ActionType` | A global table of constants naming the action types a script can emit: `TRIGGER`, `ANIMATE` and `TEXT_VISIBLE`. See [Emitting actions](#emitting-actions). |
+| `ActionType` | A global table of constants naming the action types a script can emit: `TRIGGER`, `ANIMATE`, `TEXT_VISIBLE`, `IMAGE_VISIBLE` and `FOCUS`. See [Emitting actions](#emitting-actions). |
 | `emitAction(actionType, [params], [traversalKeys])` | Emits an action of the given type from this node, with its own parameters and the edge traversal keys it holds. See [Emitting actions](#emitting-actions). |
 
 ## Bindings on scene script nodes
@@ -336,6 +336,9 @@ Parameters each action type takes:
 | `TRIGGER` | `nodeType` | `NodeType` constant | No restriction | As `trigger()`'s `nodeType`. |
 | `ANIMATE` | `animating` | boolean | **Required** | The animating mode set on each node the action reaches that supports animation. |
 | `TEXT_VISIBLE` | `visible` | boolean | **Required** | Shows (`true`) or hides (`false`) the text of each `SceneTextScriptNode` the action reaches. |
+| `IMAGE_VISIBLE` | `visible` | boolean | **Required** | Shows (`true`) or hides (`false`) the image of each `SceneImageNode` the action reaches. |
+| `FOCUS` | `nodeName` | string | `""` (any name) | Asks every view of the scene to bring each `SceneGeometryNode`, `SceneGeometryScriptNode`, `SceneTextScriptNode` or `SceneImageNode` the action reaches into focus, or only those with this name. See [Focusing a view](#focusing-a-view). |
+| `FOCUS` | `viewportFraction` | number, greater than 0 and no greater than 1 | Right-click behaviour | Fits the node's bounds to this fraction of the view's height, as a surface's `focusViewportFraction` does for its initial focus. |
 
 **Traversal keys.** An edge whose `traversalKey` is non-zero can only be crossed by an action holding that
 exact key. An unkeyed edge is crossed whatever keys an action holds. Key `0` is rejected, since every unkeyed
@@ -354,12 +357,39 @@ emitAction(ActionType.ANIMATE, {animating = true}, {12})
 
 -- Hide the text of every text node reachable without crossing a keyed edge.
 emitAction(ActionType.TEXT_VISIBLE, {visible = false})
+
+-- Show every image reachable without crossing a keyed edge.
+emitAction(ActionType.IMAGE_VISIBLE, {visible = true})
+
+-- Have every view of the scene look at the node named "exhibit".
+emitAction(ActionType.FOCUS, {nodeName = "exhibit"})
+
+-- As above, but zoomed so that it fills half the view's height, the way an initial focus is.
+emitAction(ActionType.FOCUS, {nodeName = "exhibit", viewportFraction = 0.5})
 ```
 
 Validation happens before anything is emitted. A call that raises an error emits nothing, and the script stops
 at that line, the same as any other Lua error. As with `trigger()`, the action is never applied to the
 node that emitted it, and the call returns before the action has finished traversing. `emitAction()` is
 registered into both the core and the poke state.
+
+### Focusing a view
+
+A `FOCUS` action moves every open view of the scene to the node it reaches. Without a `viewportFraction`, it
+does this the same way right-clicking that node in the view would:
+
+- **Text or image:** the view centres on it and zooms in close enough to read the text or see the image.
+- **Geometry:** the view centres on the middle of the node's always-visible geometry. The zoom and viewing
+  angle stay as they were.
+
+With a `viewportFraction`, the view zooms the way a surface's initial focus does, whatever the node is. It
+centres on the node and moves in or out until the node's bounds span that fraction of the view's height. The
+viewing angle stays as it was.
+
+Any view that is open when the request arrives follows it. A view opened later starts where it otherwise would.
+The view moves when the scene is next collected, which is on its next strobe. A node that a view shows nothing
+of, such as hidden text, is not focused on. If one action reaches several nodes, the view goes to the last one
+the scene collects, so give a `nodeName` to pick a single node.
 
 ### Poke-only context globals
 
@@ -383,6 +413,11 @@ No `scriptSource`; this node type never runs Lua.
 ## `SceneRootNode`
 
 No `scriptSource`; this node type never runs Lua.
+
+## `SceneImageNode`
+
+No `scriptSource`; this node type never runs Lua. Its image can be shown or hidden from a script with
+`emitAction(ActionType.IMAGE_VISIBLE, …)`, and brought into focus with `emitAction(ActionType.FOCUS, …)`.
 
 ## `SceneGeometryNode`
 
@@ -546,6 +581,7 @@ no `createBuilderScriptNode`.
 | `createSceneTextScriptNode{...}` | `coreScript`, `pokeScript`, `text`, `textPosition`, `textHeight`, `textColour`, `textBackground` (the table [`setTextBackground()`](#scenetextscriptnode) takes), `textVisible`. |
 | `createAgentNode{...}` | `capability`, one of `"LOW"`, `"MEDIUM"` or `"HIGH"` and required; `prompts = {{nodeType, prompt, [nodeIdentifier], [terminateOnResponse]}, ...}`, required and not empty, where `nodeType` is a `NodeType` constant; `autoTriggerAgentAction`; `serialiseEmittedActions`. |
 | `createTriggerNode{...}` | `coreScript`, `pokeScript`, `emitTriggerOnPoke`. |
+| `createSceneImageNode{...}` | Exactly one of `imageData` (a base64 PNG), `imageFile` (path of a PNG file, within the image root if the server has one) and `imageUrl` (an `http` or `https` address, in any format a browser can display); `imagePosition`, `imageHeight`, `imageBackground` (the table [`setTextBackground()`](#scenetextscriptnode) takes), `imageVisible`. |
 
 `coreScript` and `pokeScript` default to an empty string here, unlike in a hive definition, where both are
 required. Every other field defaults as it does in a hive definition.
@@ -566,8 +602,8 @@ itself. `options` is an optional table of the same fields a hive definition's ed
 
 `ActionFlag` is a global table of constants named as a hive definition names them: `PING_GRAPH_ACTION`,
 `SERIALISABLE_GRAPH_ACTION`, `SCRIPT_GRAPH_ACTION`, `SCENE_GRAPH_ACTION`, `SCENE_STROBE_GRAPH_ACTION`,
-`ANIMATE_GRAPH_ACTION`, `AGENT_GRAPH_ACTION`, `TRIGGER_GRAPH_ACTION`, `AGENT_AFFECT_GRAPH_ACTION` and
-`TEXT_VISIBLE_GRAPH_ACTION`. `VertexVisibility` is registered alongside it, with the same constants a
+`ANIMATE_GRAPH_ACTION`, `AGENT_GRAPH_ACTION`, `TRIGGER_GRAPH_ACTION`, `AGENT_AFFECT_GRAPH_ACTION`,
+`TEXT_VISIBLE_GRAPH_ACTION`, `IMAGE_VISIBLE_GRAPH_ACTION` and `FOCUS_GRAPH_ACTION`. `VertexVisibility` is registered alongside it, with the same constants a
 `SceneGeometryScriptNode` has.
 
 ### Looking up the hive
@@ -605,7 +641,8 @@ Every create binding and `createEdge()` returns `true` on success. A failure tak
   should be. A `nodeType`, a `VertexVisibility` or an `ActionFlag` must be one of those constants.
 - **Anything the hive cannot take as it stands returns `false` and a reason**, instead of raising. This
   covers a name already in use, an edge endpoint that does not exist, a node with all 32 edge slots used, a
-  builder that is not in a hive, and a builder whose one build has been used up. These depend on the state of the hive rather than on the script, so a
+  builder that is not in a hive, a builder whose one build has been used up, and an image given to
+  `createSceneImageNode` that cannot be read or is not a PNG that can be displayed. These depend on the state of the hive rather than on the script, so a
   script can check for them and react.
 
 ```lua

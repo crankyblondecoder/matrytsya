@@ -25,6 +25,7 @@ own subject:
 | `SceneTransformNode` | Transform set in JSON | No | Scene, Strobe, Agent affect | — | No |
 | `SceneTransformScriptNode` | Transform a script reads and sets | Yes | Scene, Strobe, Script, Animate, Agent, Agent affect | `getAnimating`, `setAnimating`, plus script defined | Runs `pokeScript` |
 | `SceneTextScriptNode` | Text in a scene, which a script reads and sets | Yes | Scene, Strobe, Script, Animate, Agent | `getAnimating`, `setAnimating`, plus script defined | Runs `pokeScript` |
+| `SceneImageNode` | An image in a scene: embedded, a local file or a URL | No | Scene, Image visible | — | No |
 | `AgentNode` | Holds prompts and emits them as an agent action | No | Trigger | — | No |
 | `TriggerNode` | Emits trigger actions for a script, a model or a poke | Yes | Script, Agent | `emitTrigger`, plus script defined | Runs `pokeScript`, then emits a trigger |
 | `BuilderScriptNode` | Creates nodes and edges in its hive from Lua | Yes | Trigger, Script, Agent | `emitTrigger`, plus script defined | Runs `pokeScript` |
@@ -217,6 +218,50 @@ the same way geometry is. Once a line of it is too small to read, it is replaced
 signboard with the footprint of the text, thick enough to see edge on, which geometry in front of it can hide.
 Right-clicking the text or its marker brings it to the centre of the view, close enough to read.
 
+### `SceneImageNode`
+
+A single image in a scene, anchored in the frame of the transforms visited before it, so it moves, turns and
+scales with the geometry around it. It runs no script. On screen it behaves exactly as a `SceneTextScriptNode`'s
+text does.
+
+The image comes from exactly one of three places:
+
+| Field | Meaning |
+|---|---|
+| `imageData` | The image itself, as a base64 PNG kept in the hive definition. Because a hive stored in LMDB keeps each node as this same JSON, an embedded image goes into the database with the rest of the hive. |
+| `imageFile` | Path of a PNG file on the machine running the hive, read when the node is built. If the server was started with an image root (`-i`), the path is relative to that directory and must stay within it; otherwise it is relative to the working directory. See [Image files](matrytsya.md#image-files). |
+| `imageUrl` | An `http` or `https` address that each viewer loads for itself. |
+
+An embedded or file image must be a PNG, the format libpng reads. It is decoded in full when the node is
+built, so a file that is not a PNG, or one that is truncated or corrupt, fails the build instead of reaching a
+viewer. Such an image may be no more than 8192 pixels along a side, 16777216 pixels in all, and 16 MiB in size.
+A URL image is not limited by format: the server never fetches it, and the viewer's browser draws whatever
+the address serves, such as PNG, JPEG, GIF, WebP or SVG.
+
+| Field | Required | Meaning |
+|---|---|---|
+| `imageData`, `imageFile`, `imageUrl` | Exactly one | Where the image comes from; see above. |
+| `imagePosition` | No, default `[0, 0, 0]` | Point the image is centred on, in the frame of the transforms above it. |
+| `imageHeight` | No, default `1` | Height of the image, in the units of that frame. Its width follows from its aspect ratio. Must be greater than 0. |
+| `imageBackground` | No, default no box | Box drawn behind the image, the same object as `textBackground`. Lengths are in the same units as `imageHeight`. |
+| `imageVisible` | No, default `true` | Whether the image is shown. A hidden image is left out of the scene. |
+
+When a hive is saved, a file or URL image is saved as its path or address, not as its bytes, so it is read
+again from there on every load. An embedded image is saved as its bytes.
+
+- **Actions applied:** Scene, which adds the image to the scene under the current transform. Image visible,
+  which shows or hides it.
+- **Emits:** Nothing.
+- **Lua, model tools:** None. A `BuilderScriptNode` can create one with `createSceneImageNode{...}`.
+- **Poke:** None; it owns no geometry, so a scene surface never pokes it.
+
+In the WebGL scene view the image always faces the camera and is drawn over the geometry, sized by its
+distance the same way geometry is. Once it is too small to see, it is replaced by a marker in the scene with
+its footprint, filled with its average colour, which geometry in front of it can hide. A URL image's colour is
+not known, so its marker takes the box's fill, or grey. Right-clicking the image or its marker brings it to the
+centre of the view, filling most of it. An embedded or file image is served to the viewer from the scene
+surface's own `image` endpoint and fetched again only when it changes.
+
 ### `AgentNode`
 
 Holds a list of prompts and, when triggered, emits them as one agent action. That action carries a single
@@ -304,6 +349,7 @@ constants and the `nodeType` argument of `emitTrigger` all use the upper-case fo
 | `AgentNode` | `AGENT_NODE` |
 | `TriggerNode` | `TRIGGER_NODE` |
 | `BuilderScriptNode` | `BUILDER_SCRIPT_NODE` |
+| `SceneImageNode` | `SCENE_IMAGE_NODE` |
 
 `GRAPH_NODE` and `SCRIPT_NODE` are also listed in that enum, but no concrete type a hive can hold reports
 either of them.

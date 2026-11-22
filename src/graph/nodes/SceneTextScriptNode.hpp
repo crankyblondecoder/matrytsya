@@ -6,6 +6,7 @@
 
 #include "../actionTargets/SceneActionTarget.hpp"
 #include "../actionTargets/TextVisibleActionTarget.hpp"
+#include "../GraphFocusable.hpp"
 #include "AnimateScriptNode.hpp"
 #include "SceneText.hpp"
 
@@ -18,10 +19,10 @@ struct lua_State;
  * collected under. Its script can read and modify the text and how it is shown via the setText()/getText(),
  * setTextPosition()/getTextPosition(), setTextHeight()/getTextHeight(), setTextColour()/getTextColour(),
  * setTextBackground()/getTextBackground() and setTextVisible()/getTextVisible() Lua globals. Its text can also be shown or hidden by a text visible action
- * reaching it.
+ * reaching it, and a focus action reaching it asks the views of the scene to bring it into focus.
  */
 class SceneTextScriptNode : public AnimateScriptNode, public SceneActionTarget, public TextVisibleActionTarget,
-	public SceneText
+	public GraphFocusable, public SceneText
 {
     public:
 
@@ -42,6 +43,8 @@ class SceneTextScriptNode : public AnimateScriptNode, public SceneActionTarget, 
 		SceneActionTarget* getSceneActionTarget() override;
 
 		TextVisibleActionTarget* getTextVisibleActionTarget() override;
+
+		FocusActionTarget* getFocusActionTarget() override;
 
 		void setTextVisible(bool visible) override;
 

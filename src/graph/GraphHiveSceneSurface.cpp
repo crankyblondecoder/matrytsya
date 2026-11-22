@@ -39,6 +39,15 @@ namespace
 		return (uint64_t) now.tv_sec * 1000 + (uint64_t) now.tv_nsec / 1000000;
 	}
 
+	uint64_t monotonicNowUs()
+	{
+		struct timespec now;
+
+		clock_gettime(CLOCK_MONOTONIC, &now);
+
+		return (uint64_t) now.tv_sec * 1000000 + (uint64_t) now.tv_nsec / 1000;
+	}
+
 	// Determine if two transforms are equal.
 	bool transformsEqual(Transform& a, Transform& b)
 	{
@@ -47,6 +56,24 @@ namespace
 			a[1] == b[1] && a[5] == b[5] && a[9] == b[9] && a[13] == b[13] &&
 			a[2] == b[2] && a[6] == b[6] && a[10] == b[10] && a[14] == b[14] &&
 			a[3] == b[3] && a[7] == b[7] && a[11] == b[11] && a[15] == b[15];
+	}
+
+	// Determine if two lists of scene images are equal. A node's image version changes whenever anything about its
+	// image does, so only where it is put in the scene needs comparing alongside it.
+	bool imagesEqual(const std::vector<GraphHiveSceneSurface::Image>& a, const std::vector<GraphHiveSceneSurface::Image>& b)
+	{
+		if(a.size() != b.size()) return false;
+
+		for(std::size_t index = 0; index < a.size(); index++)
+		{
+			if(a[index].nodeId != b[index].nodeId || a[index].version != b[index].version ||
+				a[index].modelTransformIndex != b[index].modelTransformIndex)
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	// Determine if two lists of scene texts are equal.
@@ -115,12 +142,16 @@ void GraphHiveSceneSurface::activate()
 
 void GraphHiveSceneSurface::_populateStart()
 {
+	_populateStartUs = monotonicNowUs();
+
 	_chunks.clear();
 	_chunkUpdates.clear();
 	_unchangedChunkIndexes.clear();
 	_modelTransforms.clear();
 	_agentVisibleNodeIds.clear();
 	_texts.clear();
+	_images.clear();
+	_focusRequests.clear();
 
 	ModelTransform identity;
 
@@ -140,6 +171,25 @@ void GraphHiveSceneSurface::_populateEnd()
 
 	{ SYNC(_lock)
 
+		// Focus requests are passed on through the revision a viewer polls rather than through the scene, so
+		// they neither change the scene nor need it to have changed.
+		for(const FocusRequest& request : _focusRequests)
+		{
+			unsigned& seenCount = _seenFocusRequestCounts[request.nodeId];
+
+			// Should several nodes have been asked in the same populate, the last one in traversal order wins.
+			if(request.count != seenCount && _focusRequestsSeeded)
+			{
+				_focusSequence++;
+				_focusNodeId = request.nodeId;
+				_focusRequestViewportFraction = request.viewportFraction;
+			}
+
+			seenCount = request.count;
+		}
+
+		_focusRequestsSeeded = true;
+
 		unsigned numTransf = _modelTransforms.size();
 
 		// Note: It is assumed that _unchangedChunkIndexes would never contain a duplicate and if the sizes of this
@@ -150,7 +200,7 @@ void GraphHiveSceneSurface::_populateEnd()
 		sceneChanged = numTransf != _currentScene.modelTransforms.size() || _chunkUpdates.size() > 0 ||
 			_chunks.size() > 0 || _unchangedChunkIndexes.size() != _currentScene.chunks.size() ||
 			_agentVisibleNodeIds != _currentScene.agentVisibleNodeIds ||
-			!textsEqual(_texts, _currentScene.texts);
+			!textsEqual(_texts, _currentScene.texts) || !imagesEqual(_images, _currentScene.images);
 
 		if(!sceneChanged && numTransf)
 		{
@@ -195,6 +245,8 @@ void GraphHiveSceneSurface::_populateEnd()
 			_currentScene.modelTransforms = std::move(_modelTransforms);
 			_currentScene.agentVisibleNodeIds = std::move(_agentVisibleNodeIds);
 			_currentScene.texts = std::move(_texts);
+			_currentScene.images = std::move(_images);
+			_currentScene.populatedAtUs = _populateStartUs;
 		}
 
 		// Notify that the surface has changed.
@@ -323,6 +375,46 @@ void GraphHiveSceneSurface::addText(unsigned nodeId, const std::string& text, co
 	}
 }
 
+void GraphHiveSceneSurface::addImage(unsigned nodeId, unsigned version, const ImageSource& source,
+	const double position[3], double height, const TextBackground& background)
+{
+	Image newImage;
+
+	newImage.nodeId = nodeId;
+	newImage.version = version;
+	newImage.source = source;
+	newImage.height = height;
+	newImage.background = background;
+
+	for(int axis = 0; axis < 3; axis++) newImage.position[axis] = position[axis];
+
+	{ SYNC(_lock)
+
+		newImage.modelTransformIndex = _modelTransforms.size() - 1;
+
+		_images.push_back(std::move(newImage));
+	}
+}
+
+bool GraphHiveSceneSurface::getImagePng(unsigned nodeId, std::shared_ptr<const std::string>& png)
+{
+	{ SYNC(_lock)
+
+		for(const Image& image : _currentScene.images)
+		{
+			if(image.nodeId != nodeId) continue;
+
+			if(!image.source.png) return false;
+
+			png = image.source.png;
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void GraphHiveSceneSurface::setNodeAgentVisible(unsigned nodeId)
 {
 	{ SYNC(_lock)
@@ -338,6 +430,24 @@ void GraphHiveSceneSurface::setInitialFocusNode(unsigned nodeId, double focusVie
 		_currentScene.hasInitialFocusNode = true;
 		_currentScene.initialFocusNodeId = nodeId;
 		_currentScene.focusViewportFraction = focusViewportFraction;
+	}
+}
+
+void GraphHiveSceneSurface::addFocusRequest(unsigned nodeId, unsigned focusRequestCount, double viewportFraction)
+{
+	{ SYNC(_lock)
+
+		_focusRequests.push_back({nodeId, focusRequestCount, viewportFraction});
+	}
+}
+
+void GraphHiveSceneSurface::getFocusRequest(unsigned& sequence, unsigned& nodeId, double& viewportFraction)
+{
+	{ SYNC(_lock)
+
+		sequence = _focusSequence;
+		nodeId = _focusNodeId;
+		viewportFraction = _focusRequestViewportFraction;
 	}
 }
 

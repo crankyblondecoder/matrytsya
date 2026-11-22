@@ -55,9 +55,11 @@
 				"AGENT_GRAPH_ACTION",
 				"TRIGGER_GRAPH_ACTION",
 				"AGENT_AFFECT_GRAPH_ACTION",
-				"TEXT_VISIBLE_GRAPH_ACTION"
+				"TEXT_VISIBLE_GRAPH_ACTION",
+				"IMAGE_VISIBLE_GRAPH_ACTION",
+				"FOCUS_GRAPH_ACTION"
 			],
-			"description": "Used to describe the type of a particular graph action. Some actions carry more than one, and an edge naming any one of them admits that action. PING_GRAPH_ACTION: a ping action. SERIALISABLE_GRAPH_ACTION: an action that can be teleported to another hive, carried by ping and trigger actions, and the only flag a teleport node acts on. SCRIPT_GRAPH_ACTION: an action that runs a node's coreScript, carried by script actions and by the strobe action that drives them. SCENE_GRAPH_ACTION: the action a surface runs to collect geometry and transforms into itself. SCENE_STROBE_GRAPH_ACTION: the action a registered strobe emitter sends out at a fixed rate. ANIMATE_GRAPH_ACTION: the action that carries an animating mode out from the node that set it. AGENT_GRAPH_ACTION: the action an agent node emits to carry one conversation from node to node. TRIGGER_GRAPH_ACTION: the action emitted by a trigger node, by a script's trigger() call, or by a model's emitTrigger tool. It fires agent nodes and builder script nodes. AGENT_AFFECT_GRAPH_ACTION: the action a node sends out across its edges when an agentic request starts or stops directly affecting it, so that other nodes can react to it too. Sent only by a node whose emitAgentAffectAction is set; on scene geometry it arrives as that node's agent-visible flag being set. TEXT_VISIBLE_GRAPH_ACTION: the action a script sends out to show or hide the text of the text nodes it reaches."
+			"description": "Used to describe the type of a particular graph action. Some actions carry more than one, and an edge naming any one of them admits that action. PING_GRAPH_ACTION: a ping action. SERIALISABLE_GRAPH_ACTION: an action that can be teleported to another hive, carried by ping and trigger actions, and the only flag a teleport node acts on. SCRIPT_GRAPH_ACTION: an action that runs a node's coreScript, carried by script actions and by the strobe action that drives them. SCENE_GRAPH_ACTION: the action a surface runs to collect geometry and transforms into itself. SCENE_STROBE_GRAPH_ACTION: the action a registered strobe emitter sends out at a fixed rate. ANIMATE_GRAPH_ACTION: the action that carries an animating mode out from the node that set it. AGENT_GRAPH_ACTION: the action an agent node emits to carry one conversation from node to node. TRIGGER_GRAPH_ACTION: the action emitted by a trigger node, by a script's trigger() call, or by a model's emitTrigger tool. It fires agent nodes and builder script nodes. AGENT_AFFECT_GRAPH_ACTION: the action a node sends out across its edges when an agentic request starts or stops directly affecting it, so that other nodes can react to it too. Sent only by a node whose emitAgentAffectAction is set; on scene geometry it arrives as that node's agent-visible flag being set. TEXT_VISIBLE_GRAPH_ACTION: the action a script sends out to show or hide the text of the text nodes it reaches. IMAGE_VISIBLE_GRAPH_ACTION: the action a script sends out to show or hide the image of the image nodes it reaches. FOCUS_GRAPH_ACTION: the action a script sends out to ask the views of a scene to bring the geometry, text or image nodes it reaches into focus, as a viewer right-clicking them would."
 		},
 
 		"nodeType": {
@@ -74,7 +76,8 @@
 				"AGENT_NODE",
 				"TRIGGER_NODE",
 				"SCENE_TEXT_SCRIPT_NODE",
-				"BUILDER_SCRIPT_NODE"
+				"BUILDER_SCRIPT_NODE",
+				"SCENE_IMAGE_NODE"
 			],
 			"description": "Identifies a kind of node, so that something visiting a node can recognise what it has arrived at. GRAPH_NODE is reported by any node that does not identify a more specific kind of its own."
 		},
@@ -538,6 +541,55 @@
 			"unevaluatedProperties": false
 		},
 
+		"background": {
+				"type": "object",
+				"description": "A box drawn behind a text or an image, scaling along with it. Members left out keep their default; with no fill and no border, which is the default, no box is drawn.",
+				"properties": {
+					"fillColour": {
+						"type": "array",
+						"items": { "type": "integer", "minimum": 0, "maximum": 255 },
+						"minItems": 4,
+						"maxItems": 4,
+						"default": [0, 0, 0, 0],
+						"description": "Colour filling the box: red, green, blue and alpha, each from 0 to 255."
+					},
+					"borderColour": {
+						"type": "array",
+						"items": { "type": "integer", "minimum": 0, "maximum": 255 },
+						"minItems": 4,
+						"maxItems": 4,
+						"default": [0, 0, 0, 0],
+						"description": "Colour of the box's border: red, green, blue and alpha, each from 0 to 255."
+					},
+					"borderWidth": {
+						"type": "number",
+						"minimum": 0,
+						"default": 0,
+						"description": "Width of the box's border. 0 for no border."
+					},
+					"padding": {
+						"type": "number",
+						"minimum": 0,
+						"default": 0,
+						"description": "Space between what the box is behind and the inside of the border, on every side."
+					},
+					"cornerRadius": {
+						"oneOf": [
+							{ "type": "number", "minimum": 0 },
+							{
+								"type": "array",
+								"items": { "type": "number", "minimum": 0 },
+								"minItems": 4,
+								"maxItems": 4
+							}
+						],
+						"default": 0,
+						"description": "Radius of the box's corners: one radius for every corner, or one per corner in the order top left, top right, bottom right, bottom left. 0 for a square corner."
+					}
+				},
+				"additionalProperties": false
+			},
+
 		"sceneTextScriptNode": {
 			"description": "A scripted node that puts a single block of text into a scene, anchored in the frame of the transforms it is collected under, so it is moved, turned and scaled along with the geometry around it. A viewer shows the text facing the camera and sized by its distance the same way geometry is; once too small to read, a viewer may show a marker in its place instead. Its Lua script can read and change the text and how it is shown. Holds an animating mode, and offers a visiting model the tools to read and set it.",
 			"allOf": [
@@ -573,52 +625,8 @@
 							"description": "Colour of the text: red, green, blue and alpha, each from 0 to 255."
 						},
 						"textBackground": {
-							"type": "object",
-							"description": "Box drawn behind the text. Lengths are in the same units as textHeight, so the box scales with the text. Members left out keep their default; with no fill and no border, which is the default, no box is drawn.",
-							"properties": {
-								"fillColour": {
-									"type": "array",
-									"items": { "type": "integer", "minimum": 0, "maximum": 255 },
-									"minItems": 4,
-									"maxItems": 4,
-									"default": [0, 0, 0, 0],
-									"description": "Colour filling the box: red, green, blue and alpha, each from 0 to 255."
-								},
-								"borderColour": {
-									"type": "array",
-									"items": { "type": "integer", "minimum": 0, "maximum": 255 },
-									"minItems": 4,
-									"maxItems": 4,
-									"default": [0, 0, 0, 0],
-									"description": "Colour of the box's border: red, green, blue and alpha, each from 0 to 255."
-								},
-								"borderWidth": {
-									"type": "number",
-									"minimum": 0,
-									"default": 0,
-									"description": "Width of the box's border. 0 for no border."
-								},
-								"padding": {
-									"type": "number",
-									"minimum": 0,
-									"default": 0,
-									"description": "Space between the text and the inside of the border, on every side."
-								},
-								"cornerRadius": {
-									"oneOf": [
-										{ "type": "number", "minimum": 0 },
-										{
-											"type": "array",
-											"items": { "type": "number", "minimum": 0 },
-											"minItems": 4,
-											"maxItems": 4
-										}
-									],
-									"default": 0,
-									"description": "Radius of the box's corners: one radius for every corner, or one per corner in the order top left, top right, bottom right, bottom left. 0 for a square corner."
-								}
-							},
-							"additionalProperties": false
+							"$ref": "#/$defs/background",
+							"description": "Box drawn behind the text. Lengths are in the same units as textHeight, so the box scales with the text."
 						},
 						"textVisible": {
 							"type": "boolean",
@@ -626,6 +634,63 @@
 							"description": "Whether the text is shown. Hidden text is left out of the scene until a script or an action reaching this node shows it."
 						}
 					}
+				}
+			],
+			"unevaluatedProperties": false
+		},
+
+		"sceneImageNode": {
+			"description": "A node that puts a single image into a scene, anchored in the frame of the transforms it is collected under, so it is moved, turned and scaled along with the geometry around it. It runs no script. A viewer shows the image facing the camera and sized by its distance the same way geometry is; once too small to see, a viewer may show a marker in its place instead. The image comes from exactly one of imageData, imageFile and imageUrl. An action reaching this node can show or hide the image.",
+			"allOf": [
+				{ "$ref": "#/$defs/nodeBase" },
+				{
+					"properties": {
+						"type": { "const": "SceneImageNode" },
+						"imageData": {
+							"type": "string",
+							"contentEncoding": "base64",
+							"contentMediaType": "image/png",
+							"description": "The image itself, as a PNG encoded in standard base64. Whitespace in it is ignored. Kept in the hive definition, so the image goes wherever the definition does. Only PNG is accepted, and the PNG must decode in full and be no more than 8192 pixels along a side, 16777216 pixels in all and 16 MiB in size."
+						},
+						"imageFile": {
+							"type": "string",
+							"minLength": 1,
+							"description": "Path of a PNG file on the machine running the hive, read when the node is built. If the server confines image files to a root directory, the path is relative to that directory, and a path leading outside it, or a link out of it, is refused; otherwise it is relative to the server's working directory. Saving the hive keeps the path rather than the image, so the image is read from the file again on every load. The same limits as imageData apply."
+						},
+						"imageUrl": {
+							"type": "string",
+							"pattern": "^[Hh][Tt][Tt][Pp][Ss]?://.+",
+							"description": "Address of an image, http or https, that each viewer loads for itself. The image may be in any format the viewer's browser can display, such as PNG, JPEG, GIF, WebP or SVG. The server never fetches it, so its size and colour are only known once a viewer has loaded it."
+						},
+						"imagePosition": {
+							"type": "array",
+							"items": { "type": "number" },
+							"minItems": 3,
+							"maxItems": 3,
+							"default": [0, 0, 0],
+							"description": "Point the image is centred on: X, Y, Z, in the frame of the transforms this node is collected under."
+						},
+						"imageHeight": {
+							"type": "number",
+							"exclusiveMinimum": 0,
+							"default": 1,
+							"description": "Height of the image, in the units of the frame it is collected under. Its width follows from its aspect ratio."
+						},
+						"imageBackground": {
+							"$ref": "#/$defs/background",
+							"description": "Box drawn behind the image. Lengths are in the same units as imageHeight, so the box scales with the image."
+						},
+						"imageVisible": {
+							"type": "boolean",
+							"default": true,
+							"description": "Whether the image is shown. A hidden image is left out of the scene until an action reaching this node shows it."
+						}
+					},
+					"oneOf": [
+						{ "required": ["imageData"] },
+						{ "required": ["imageFile"] },
+						{ "required": ["imageUrl"] }
+					]
 				}
 			],
 			"unevaluatedProperties": false
@@ -685,7 +750,8 @@
 				{ "$ref": "#/$defs/sceneGeometryScriptNode" },
 				{ "$ref": "#/$defs/sceneTransformNode" },
 				{ "$ref": "#/$defs/sceneTransformScriptNode" },
-				{ "$ref": "#/$defs/sceneTextScriptNode" }
+				{ "$ref": "#/$defs/sceneTextScriptNode" },
+				{ "$ref": "#/$defs/sceneImageNode" }
 			]
 		},
 

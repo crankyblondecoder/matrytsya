@@ -50,6 +50,16 @@ class GraphHiveSceneSurfaceWebglMap : public GraphHiveSceneSurfaceHtmlMap
         // Disable copying.
         GraphHiveSceneSurfaceWebglMap(const GraphHiveSceneSurfaceWebglMap& copyFrom);
         GraphHiveSceneSurfaceWebglMap& operator= (const GraphHiveSceneSurfaceWebglMap& copyFrom);
+
+        /**
+         * Serve the PNG bytes of an embedded or file image in the bound surface's current scene.
+         * @param request The image request. Its nodeId query parameter names the node whose image is wanted; any
+         *        other parameter, such as the version the viewer adds so that a changed image is fetched afresh, is
+         *        ignored.
+         * @param response Response to populate with the image, or a 404 if the current scene has no image with
+         *        bytes for that node.
+         */
+        void __serveImage(HttpRequest& request, HttpResponse& response);
 };
 
 #endif

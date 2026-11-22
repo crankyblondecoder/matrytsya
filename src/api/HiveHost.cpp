@@ -323,6 +323,8 @@ void HiveHost::__serveSurfaces(HostedHive& hosted)
 
 		surfaceMap -> setChatEnabled(_settings.chatEnabled);
 
+		surfaceMap -> setIndexPath(_collectionMap.getListingPath());
+
 		// The map asks for MEDIUM by default, which a harness need not assign any model to.
 		surfaceMap -> setChatCapability(_settings.chatCapability);
 

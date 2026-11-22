@@ -41,6 +41,8 @@ class SceneGeometryScriptNode : public AnimateScriptNode, public SceneActionTarg
 
 		AgentAffectActionTarget* getAgentAffectActionTarget() override;
 
+		FocusActionTarget* getFocusActionTarget() override;
+
 		// Agent affect target API point.
 		void agentAffectingStart(bool direct) override;
 

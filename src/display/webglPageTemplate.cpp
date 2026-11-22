@@ -1,13 +1,18 @@
 #include "webglPageTemplate.hpp"
 
 // The WebGL viewer page. It fetches this map's data endpoint and renders the returned chunks as triangles,
-// applying each chunk's model transform on the client before upload so that only a single camera uniform is
-// needed to draw the whole scene. It polls the map's revision endpoint to detect a changed or replaced surface,
-// only re-fetching scene data when the revision actually changes. The data fetch itself is incremental: the
-// viewer tells the server which chunks it already holds vertex data for (by id and vertex version), the server
-// omits vertexes for any chunk that hasn't changed, and the viewer reuses its cached per-chunk geometry -
-// re-deriving world-space positions/normals only for chunks whose model transform actually changed - instead of
-// reprocessing the whole scene on every poll.
+// uploading each chunk's vertexes in its own local space and drawing each run of chunks that share a model
+// transform with that transform as a uniform, so a transform that moves costs a uniform and not a re-upload.
+// It polls the map's revision endpoint to detect a changed or replaced surface, only re-fetching scene data when
+// the revision actually changes. The data fetch itself is incremental: the viewer tells the server which chunks
+// it already holds vertex data for (by id and vertex version), the server omits vertexes for any chunk that
+// hasn't changed, and the viewer reuses its cached per-chunk geometry instead of reprocessing the whole scene on
+// every poll.
+// The viewer polls on its own interval, which need not match the hive's strobes, so the scenes it receives are
+// unevenly spaced and each shows a different amount of movement. Shown as they arrive, motion would judder. Each
+// scene instead carries the time the server sampled it, and the model transforms are played back a little
+// behind, blended between the two scenes either side of the moment being shown, so motion is as even on screen
+// as it was in the hive.
 // The chat window this page carries is not part of the viewer and is not written here: the page only says where
 // its style, markup and script go, and the map filling this template in puts them there (see chatWindowTemplate).
 const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
@@ -24,11 +29,18 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		background: #303030; border: 1px solid #4a4a4a; border-radius: 4px; font-family: sans-serif;
 		font-size: 13px; text-decoration: none; cursor: pointer; }
 	#structureLink:hover { background: #3a3a3a; }
+	#indexLink { position: absolute; left: 12px; bottom: 12px; padding: 6px 12px; color: #ddd;
+		background: #303030; border: 1px solid #4a4a4a; border-radius: 4px; font-family: sans-serif;
+		font-size: 13px; text-decoration: none; cursor: pointer; }
+	#indexLink:hover { background: #3a3a3a; }
 	#sceneTexts { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; overflow: hidden;
 		pointer-events: none; }
 	.sceneText { position: absolute; top: 0; left: 0; transform: translate(-50%, -50%); white-space: pre;
 		line-height: 1; font-family: sans-serif; text-align: center; pointer-events: none;
 		text-shadow: 0 0 0.15em #000, 0 0 0.3em #000; }
+	.sceneImage { position: absolute; top: 0; left: 0; transform: translate(-50%, -50%); line-height: 0;
+		pointer-events: none; }
+	.sceneImage img { display: block; height: 1em; width: auto; pointer-events: none; user-select: none; }
 %CHAT_STYLE%
 </style>
 </head>
@@ -38,6 +50,7 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 <div id="status">Loading...</div>
 <div id="viewers"></div>
 %STRUCTURE_MARKUP%
+%INDEX_MARKUP%
 %CHAT_MARKUP%
 <script>
 (function() {
@@ -241,6 +254,157 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		return [v[0] / len, v[1] / len, v[2] / len];
 	}
 
+	// -- Blending model transforms --
+
+	// A transform is blended by its parts, as blending the sixteen values directly would shrink anything turning
+	// part way between two orientations. Each is taken apart into a translation, a rotation as a quaternion and a
+	// scale along each axis; whatever those parts cannot express (shear, or a projective row) is left over as a
+	// residual, blended linearly, so that a blend at either end gives back exactly the transform there.
+	var IDENTITY_TRANSFORM = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+
+	// A column shorter than this cannot be normalised into a rotation, so a transform squashing an axis flat is
+	// blended value by value instead.
+	var MIN_TRANSFORM_SCALE = 1e-12;
+
+	function quaternionFromRotation(r00, r01, r02, r10, r11, r12, r20, r21, r22)
+	{
+		var trace = r00 + r11 + r22;
+		var q;
+
+		if(trace > 0)
+		{
+			var s = 0.5 / Math.sqrt(trace + 1);
+			q = [(r21 - r12) * s, (r02 - r20) * s, (r10 - r01) * s, 0.25 / s];
+		}
+		else if(r00 > r11 && r00 > r22)
+		{
+			var sx = 2 * Math.sqrt(1 + r00 - r11 - r22);
+			q = [0.25 * sx, (r01 + r10) / sx, (r02 + r20) / sx, (r21 - r12) / sx];
+		}
+		else if(r11 > r22)
+		{
+			var sy = 2 * Math.sqrt(1 + r11 - r00 - r22);
+			q = [(r01 + r10) / sy, 0.25 * sy, (r12 + r21) / sy, (r02 - r20) / sy];
+		}
+		else
+		{
+			var sz = 2 * Math.sqrt(1 + r22 - r00 - r11);
+			q = [(r02 + r20) / sz, (r12 + r21) / sz, 0.25 * sz, (r10 - r01) / sz];
+		}
+
+		var len = Math.sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]) || 1;
+
+		return [q[0] / len, q[1] / len, q[2] / len, q[3] / len];
+	}
+
+	// Rebuilds a column-major transform from a translation, a unit quaternion (x, y, z, w) and per-axis scale.
+	function composeTransform(t, q, s)
+	{
+		var x = q[0], y = q[1], z = q[2], w = q[3];
+
+		return [
+			(1 - 2 * (y * y + z * z)) * s[0], 2 * (x * y + z * w) * s[0], 2 * (x * z - y * w) * s[0], 0,
+			2 * (x * y - z * w) * s[1], (1 - 2 * (x * x + z * z)) * s[1], 2 * (y * z + x * w) * s[1], 0,
+			2 * (x * z + y * w) * s[2], 2 * (y * z - x * w) * s[2], (1 - 2 * (x * x + y * y)) * s[2], 0,
+			t[0], t[1], t[2], 1];
+	}
+
+	// Takes a transform apart ready for blending: { m, parts }, where parts is { t, q, s, residual }, or null when
+	// the transform cannot be taken apart and must be blended value by value.
+	function prepareTransform(m)
+	{
+		var s = [
+			Math.sqrt(m[0] * m[0] + m[1] * m[1] + m[2] * m[2]),
+			Math.sqrt(m[4] * m[4] + m[5] * m[5] + m[6] * m[6]),
+			Math.sqrt(m[8] * m[8] + m[9] * m[9] + m[10] * m[10])];
+
+		if(s[0] < MIN_TRANSFORM_SCALE || s[1] < MIN_TRANSFORM_SCALE || s[2] < MIN_TRANSFORM_SCALE)
+		{
+			return { m: m, parts: null };
+		}
+
+		// A mirroring transform has no rotation that matches it, so the mirror is put into the scale instead.
+		var det = m[0] * (m[5] * m[10] - m[9] * m[6]) - m[4] * (m[1] * m[10] - m[9] * m[2]) +
+			m[8] * (m[1] * m[6] - m[5] * m[2]);
+
+		if(det < 0) s[0] = -s[0];
+
+		var q = quaternionFromRotation(
+			m[0] / s[0], m[4] / s[1], m[8] / s[2],
+			m[1] / s[0], m[5] / s[1], m[9] / s[2],
+			m[2] / s[0], m[6] / s[1], m[10] / s[2]);
+
+		var t = [m[12], m[13], m[14]];
+		var rebuilt = composeTransform(t, q, s);
+		var residual = new Array(16);
+
+		for(var i = 0; i < 16; i++) residual[i] = m[i] - rebuilt[i];
+
+		return { m: m, parts: { t: t, q: q, s: s, residual: residual } };
+	}
+
+	// Blends between two prepared transforms, f running from 0 (all of a) to 1 (all of b).
+	function blendTransforms(a, b, f)
+	{
+		var i;
+
+		if(!a.parts || !b.parts)
+		{
+			var linear = new Array(16);
+
+			for(i = 0; i < 16; i++) linear[i] = a.m[i] + (b.m[i] - a.m[i]) * f;
+
+			return linear;
+		}
+
+		var pa = a.parts, pb = b.parts;
+
+		// The shorter way round: q and -q are the same orientation.
+		var qb = pb.q;
+		var cosAngle = pa.q[0] * qb[0] + pa.q[1] * qb[1] + pa.q[2] * qb[2] + pa.q[3] * qb[3];
+
+		if(cosAngle < 0)
+		{
+			qb = [-qb[0], -qb[1], -qb[2], -qb[3]];
+			cosAngle = -cosAngle;
+		}
+
+		var wa = 1 - f, wb = f;
+
+		// Nearly the same orientation, where slerp's division by the sine of the angle loses precision and a
+		// straight blend is indistinguishable from it.
+		if(cosAngle < 0.9995)
+		{
+			var angle = Math.acos(cosAngle);
+			var sinAngle = Math.sin(angle);
+
+			wa = Math.sin((1 - f) * angle) / sinAngle;
+			wb = Math.sin(f * angle) / sinAngle;
+		}
+
+		var q = [
+			pa.q[0] * wa + qb[0] * wb, pa.q[1] * wa + qb[1] * wb,
+			pa.q[2] * wa + qb[2] * wb, pa.q[3] * wa + qb[3] * wb];
+
+		var qLen = Math.sqrt(q[0] * q[0] + q[1] * q[1] + q[2] * q[2] + q[3] * q[3]) || 1;
+
+		q = [q[0] / qLen, q[1] / qLen, q[2] / qLen, q[3] / qLen];
+
+		var t = [], s = [];
+
+		for(i = 0; i < 3; i++)
+		{
+			t.push(pa.t[i] + (pb.t[i] - pa.t[i]) * f);
+			s.push(pa.s[i] + (pb.s[i] - pa.s[i]) * f);
+		}
+
+		var out = composeTransform(t, q, s);
+
+		for(i = 0; i < 16; i++) out[i] += pa.residual[i] * (1 - f) + pb.residual[i] * f;
+
+		return out;
+	}
+
 	// Standard Moller-Trumbore ray/triangle intersection. Returns the ray distance to the hit, or null if the
 	// ray misses the triangle or hits behind its origin.
 	function rayTriangleIntersect(origin, dir, v0, v1, v2)
@@ -374,36 +538,94 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	// per-frame projection, so the two always agree.
 	var CAMERA_FOVY = Math.PI / 4;
 
-	// Raw positions and their owning chunk ids from the most recently loaded scene, plus the view/projection
-	// matrix used to draw the most recent frame. Together these are enough to pick a chunk under a clicked pixel.
-	// Only ALWAYS-visible chunks go in here, so hover-revealed geometry never intercepts a pick.
-	var lastPositions = [];
-	var lastTriangleChunkIds = [];
+	// Near clip plane as a fraction of the camera's distance from its centre. Depth precision falls away with the
+	// square of distance over the near plane, so a fixed near plane leaves a zoomed out view unable to separate
+	// surfaces that sit close together, and they bleed through one another. Scaling it with the distance keeps the
+	// precision the same at every zoom, at the cost of clipping only what is almost touching the camera.
+	var CAMERA_NEAR_FRACTION = 0.05;
+
+	// Whether each chunk of the most recently loaded scene is pokeable, plus the view/projection matrix used to
+	// draw the most recent frame. Together with the scene's chunks these are enough to pick a chunk under a
+	// clicked pixel.
 	var lastChunkPokeable = {};
 	var lastViewProj = null;
 
-	// The most recently loaded scene, split per chunk with world-space geometry precomputed, so that only the
-	// currently visible chunks need be concatenated and uploaded whenever the hover state changes. Each entry is
-	// { id, nodeId, opaque, agent, positions, colors, normals }; opaque means VertexVisibility.ALWAYS and agent
-	// means VertexVisibility.AGENT.
+	// The most recently loaded scene, split per chunk, so that only the currently visible chunks need be
+	// concatenated and uploaded whenever the hover state changes. Each entry is
+	// { id, nodeId, opaque, agent, transformId, positions, colors, normals }, its positions and normals in the
+	// chunk's own local space, to be placed by the model transform with id transformId as it is at the moment
+	// shown. opaque means VertexVisibility.ALWAYS and agent means VertexVisibility.AGENT.
 	var sceneChunks = [];
+
+	// Runs of the uploaded vertexes that share a model transform, each { transformId, first, count }, so that
+	// each run is drawn with its transform as a uniform. The opaque pass's runs come first, then the
+	// translucent pass's, divided at opaqueDrawRunCount.
+	var drawRuns = [];
+	var opaqueDrawRunCount = 0;
 
 	// Maps a chunk id to the id of the node that owns it, so hovering one of a node's chunks can reveal that
 	// same node's HOVERED_OVER chunks.
 	var chunkNodeId = {};
 
 	// Per-chunk cache, keyed by nodeId + ':' + chunkId, surviving across loadScene() calls. Holds each chunk's
-	// last known vertexVersion plus its local (untransformed) positions/colors/normals and the world-space
-	// positions/normals last derived from them, so a load where the server omits a chunk's vertexes (because
-	// this cache already reported holding that version) can reuse the local data instead of asking again, and a
-	// load where only the chunk's model transform changed can re-derive world-space geometry from the cached
-	// local data without needing fresh vertexes at all. Rebuilt (not mutated) on every load so chunks no longer
-	// present in the scene are naturally dropped.
+	// last known vertexVersion plus its local (untransformed) positions/colors/normals, so a load where the server
+	// omits a chunk's vertexes (because this cache already reported holding that version) can reuse the local
+	// data instead of asking again. Rebuilt (not mutated) on every load so chunks no longer present in the scene
+	// are naturally dropped.
 	var chunkCache = {};
 
-	// The model transforms from the previous loadScene() call, so each load only needs to redo the per-vertex
-	// world-space transform for chunks whose model transform actually changed, rather than for the whole scene.
-	var lastModelTransforms = [];
+	// -- Playing motion back smoothly --
+
+	// The model transforms of recently loaded scenes, oldest first, each { time, byId }: time is when the server
+	// sampled the scene, in milliseconds on its own clock, and byId maps each model transform id to that
+	// transform prepared for blending. A model transform id is the transform node's id, which is stable from one
+	// scene to the next while an index into a scene's model transforms need not be. Only scenes still to be shown
+	// or being shown are kept.
+	var transformSamples = [];
+
+	// Most scenes kept, should the page stop drawing (a hidden tab draws nothing) while scenes keep arriving.
+	var MAX_TRANSFORM_SAMPLES = 64;
+
+	// Client time less server time, as small as it has been seen to be, i.e. what it is for a scene reaching
+	// the page the soonest after being sampled. Server times are carried onto the client's clock with it.
+	var clockOffset = null;
+	var clockOffsetAt = 0;
+
+	// How fast clockOffset is let creep up between scenes, in milliseconds per millisecond, so that it follows
+	// the two clocks drifting apart instead of keeping its least ever value.
+	var CLOCK_DRIFT_ALLOWANCE = 0.0005;
+
+	// Lateness of each recent scene, each { at, lateness }, over the last LATENESS_WINDOW_MS. A scene's lateness
+	// is how long after the scene before it was sampled it reached the page, as it is the scene being blended
+	// towards while the one before is shown, and must have arrived by the time the one before is reached.
+	// A poll only ever fetches the latest scene, skipping any sampled since the last poll but before it, so this
+	// runs up to about the poll interval plus the hive's sampling interval, plus the round trips themselves.
+	var recentLateness = [];
+	var LATENESS_WINDOW_MS = 3000;
+
+	// Scenes are shown this much later than the latest of them could have been, so that a later scene has
+	// nearly always already arrived for the moment shown to be blended towards.
+	var PLAYOUT_MARGIN_MS = 8;
+
+	// How far behind the server's clock scenes are shown, in milliseconds, and what that should be given the
+	// recent lateness. The one moves towards the other gradually, as a sudden change would move what is shown
+	// back or forward in time. Catching up with lateness that has grown is quicker than settling back from it.
+	var playoutDelay = null;
+	var playoutDelayTarget = 0;
+	var playoutDelayAt = 0;
+	var PLAYOUT_DELAY_RISE = 0.5;
+	var PLAYOUT_DELAY_FALL = 0.02;
+
+	// Time between the two most recent scenes, when that was short enough to be the hive moving rather than
+	// standing still. A hive that moves again after standing still sends nothing while still, so the scene before
+	// the gap is taken to have held until this long before the first one after it, rather than motion being
+	// spread across the whole of the gap.
+	var lastSampleInterval = 33;
+	var MAX_MOVING_SAMPLE_INTERVAL_MS = 250;
+
+	// Each model transform as it is in the frame most recently drawn, keyed by id. What is picked and focused on
+	// is placed by these, so it is where it was seen to be.
+	var shownTransforms = {};
 
 	// Id of the node currently under the pointer (via one of its pokeable chunks), or null. Drives which
 	// HOVERED_OVER chunks are shown.
@@ -430,13 +652,24 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	// How tall a line of text is made when it is right-clicked to be read.
 	var READABLE_TEXT_PX = 32;
 
+	// Fraction of the view's height an image is made to fill when it is right-clicked to be looked at.
+	var READABLE_IMAGE_FRACTION = 0.6;
+
+	// Fill of the marker of an image whose colour is not known, i.e. a URL image the viewer loads for itself
+	// and, coming from elsewhere, cannot read the pixels of.
+	var UNKNOWN_IMAGE_COLOUR = [128, 128, 128, 255];
+
 	// Rough width of a character as a fraction of the line height, used to give a marker the footprint of the
 	// text it stands in for. The text itself is laid out by the browser, so this only has to be about right.
 	var MARKER_CHAR_WIDTH = 0.6;
 
-	// The text from the most recent load, each entry being { nodeId, worldPos, worldHeight, el, shown, depth,
-	// marker, markerHalfWidth, markerHalfHeight, markerShape, markerShapeColors, markerPositions }. shown says the
-	// HTML text is currently on screen; marker says the text is too small and its marker is being drawn instead.
+	// The text and images from the most recent load, each entry being { kind, nodeId, transformId, anchor,
+	// anchorHeight, worldPos, worldHeight, el, shown, depth, marker, markerHalfWidth, markerHalfHeight, markerShape,
+	// markerShapeColors, markerPositions }. anchor and anchorHeight are where it is and how tall, local to the model
+	// transform with id transformId; worldPos and worldHeight are the same placed by that transform as last shown.
+	// kind is 'text' or 'image'; an image is drawn, picked and focused on exactly the way a text is, as a single
+	// line whose height is the image's. shown says the HTML element is currently on screen; marker says it is too
+	// small and its marker is being drawn instead.
 	// markerShape is the marker's triangles as x, y pairs in the plane of the screen, and markerPositions those
 	// triangles as last drawn, as they are turned to face the camera on every draw.
 	var sceneTexts = [];
@@ -444,6 +677,9 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	// The element showing each node's text, kept against the node id so that a load only touches what changed
 	// rather than rebuilding every element.
 	var sceneTextElements = {};
+
+	// The element showing each node's image, kept against the node id for the same reason.
+	var sceneImageElements = {};
 
 	// Number of vertices at the front of the uploaded buffers that make up the opaque pass; the remainder are
 	// the currently visible translucent (non-ALWAYS) chunks, drawn as a second blended pass.
@@ -564,9 +800,31 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	// matrix and returns { chunkId, point, distance } for the nearest chunk it hits (point is the world-space
 	// hit location, needed by the right-click recentre handler below, and distance is how far along the ray it
 	// is), or null if nothing was hit.
+	// The ray carried into the local space of a model transform, or null if the transform squashes space flat.
+	// Its direction is not renormalised, so a distance along it is the same distance along the world-space ray.
+	function localRay(ray, transform)
+	{
+		var inverse = invertMat4(transform);
+
+		if(!inverse) return null;
+
+		var origin = transformPoint(inverse, ray.origin[0], ray.origin[1], ray.origin[2]);
+		var dir = transformVec4(inverse, ray.dir[0], ray.dir[1], ray.dir[2], 0);
+
+		return { origin: [origin[0], origin[1], origin[2]], dir: [dir[0], dir[1], dir[2]] };
+	}
+
+	// Model transform with the given id as it is in the frame most recently drawn.
+	function shownTransform(transformId)
+	{
+		return shownTransforms[transformId] || IDENTITY_TRANSFORM;
+	}
+
+	// Only ALWAYS-visible chunks are considered, so hover-revealed geometry never intercepts a pick. Each chunk is
+	// tested where it was drawn, by carrying the ray into the chunk's local space rather than its vertexes out.
 	function pickChunkAt(clientX, clientY)
 	{
-		if(lastTriangleChunkIds.length === 0) return null;
+		if(sceneChunks.length === 0) return null;
 
 		var ray = rayAt(clientX, clientY);
 
@@ -578,20 +836,30 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		var closestT = Infinity;
 		var closestChunkId = null;
 
-		for(var triIndex = 0; triIndex < lastTriangleChunkIds.length; triIndex++)
+		// Chunks sharing a transform share its local ray, which costs a matrix inversion to work out.
+		var localRays = {};
+
+		for(var c = 0; c < sceneChunks.length; c++)
 		{
-			var base = triIndex * 9;
+			var chunk = sceneChunks[c];
 
-			var v0 = [lastPositions[base], lastPositions[base + 1], lastPositions[base + 2]];
-			var v1 = [lastPositions[base + 3], lastPositions[base + 4], lastPositions[base + 5]];
-			var v2 = [lastPositions[base + 6], lastPositions[base + 7], lastPositions[base + 8]];
+			if(!chunk.opaque) continue;
 
-			var hitT = rayTriangleIntersect(origin, dir, v0, v1, v2);
+			if(!(chunk.transformId in localRays))
+			{
+				localRays[chunk.transformId] = localRay(ray, shownTransform(chunk.transformId));
+			}
 
-			if(hitT !== null && hitT < closestT)
+			var chunkRay = localRays[chunk.transformId];
+
+			if(chunkRay === null) continue;
+
+			var hitT = nearestTriangleHit(chunkRay, chunk.positions);
+
+			if(hitT < closestT)
 			{
 				closestT = hitT;
-				closestChunkId = lastTriangleChunkIds[triIndex];
+				closestChunkId = chunk.id;
 			}
 		}
 
@@ -604,22 +872,117 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		};
 	}
 
-	// Brings a text to the centre of the view and close enough for a line of it to be READABLE_TEXT_PX high.
-	// The camera looks straight at its centre, so the text's depth once there is the camera distance itself.
+	// Brings a text to the centre of the view and close enough for a line of it to be READABLE_TEXT_PX high, or
+	// an image close enough to fill READABLE_IMAGE_FRACTION of the view's height. The camera looks straight at its
+	// centre, so its depth once there is the camera distance itself.
 	function focusText(sceneText)
 	{
 		var rect = canvas.getBoundingClientRect();
+		var tanHalfFovy = Math.tan(CAMERA_FOVY / 2);
 
 		centreAnimFrom = camera.centre.slice();
 		centreAnimTo = sceneText.worldPos.slice();
 
 		distanceAnimFrom = camera.distance;
-		distanceAnimTo = Math.max(0.01,
-			sceneText.worldHeight * rect.height / (2 * Math.tan(CAMERA_FOVY / 2) * READABLE_TEXT_PX));
+		distanceAnimTo = Math.max(0.01, sceneText.kind === 'image' ?
+			sceneText.worldHeight / (2 * tanHalfFovy * READABLE_IMAGE_FRACTION) :
+			sceneText.worldHeight * rect.height / (2 * tanHalfFovy * READABLE_TEXT_PX));
 
 		centreAnimStartTime = performance.now();
 
 		scheduleDraw();
+	}
+
+	// Camera distance at which a sphere of the given radius spans the given fraction of the viewport height. At
+	// distance d the frustum half-height is d*tan(fovy/2); the sphere's radius projects to that half-height when
+	// radius = fraction * d*tan(fovy/2), so solve for d.
+	function fitDistance(radius, fraction)
+	{
+		return Math.max(0.001, radius) / (fraction * Math.tan(CAMERA_FOVY / 2));
+	}
+
+	// Brings a node into focus, for when the hive rather than the viewer asks for it. With no viewportFraction
+	// it does so the way right-clicking the node would: a text or image is brought close enough to read or look
+	// at, while geometry is only recentred on. With no clicked point to centre geometry on, the middle of the
+	// node's always-visible chunks stands in for one. With a viewportFraction, whatever the node is, its bounds
+	// are fitted to that fraction of the view's height, as the initial focus does.
+	// Returns false if the current scene shows nothing of the node.
+	function focusNode(nodeId, viewportFraction)
+	{
+		var fit = typeof viewportFraction === 'number' && viewportFraction > 0 && viewportFraction <= 1;
+
+		for(var t = 0; t < sceneTexts.length; t++)
+		{
+			var sceneText = sceneTexts[t];
+
+			if(sceneText.nodeId !== nodeId) continue;
+
+			if(!fit)
+			{
+				focusText(sceneText);
+				return true;
+			}
+
+			// The marker's footprint is the extent the scene's bounds already take a text or image to have.
+			var reach = Math.sqrt(sceneText.markerHalfWidth * sceneText.markerHalfWidth +
+				sceneText.markerHalfHeight * sceneText.markerHalfHeight);
+
+			centreAnimFrom = camera.centre.slice();
+			centreAnimTo = sceneText.worldPos.slice();
+			distanceAnimFrom = camera.distance;
+			distanceAnimTo = fitDistance(reach, viewportFraction);
+			centreAnimStartTime = performance.now();
+
+			scheduleDraw();
+
+			return true;
+		}
+
+		var min = [Infinity, Infinity, Infinity];
+		var max = [-Infinity, -Infinity, -Infinity];
+		var found = false;
+
+		for(var c = 0; c < sceneChunks.length; c++)
+		{
+			var sceneChunk = sceneChunks[c];
+
+			if(sceneChunk.nodeId !== nodeId || !sceneChunk.opaque) continue;
+
+			var worldPositions = deriveWorldPositions(sceneChunk.positions, shownTransform(sceneChunk.transformId));
+
+			for(var p = 0; p < worldPositions.length; p += 3)
+			{
+				found = true;
+
+				for(var axis = 0; axis < 3; axis++)
+				{
+					min[axis] = Math.min(min[axis], worldPositions[p + axis]);
+					max[axis] = Math.max(max[axis], worldPositions[p + axis]);
+				}
+			}
+		}
+
+		if(!found) return false;
+
+		centreAnimFrom = camera.centre.slice();
+		centreAnimTo = [(min[0] + max[0]) / 2, (min[1] + max[1]) / 2, (min[2] + max[2]) / 2];
+		centreAnimStartTime = performance.now();
+
+		if(fit)
+		{
+			// The bounding-sphere radius, as the initial focus takes it.
+			distanceAnimFrom = camera.distance;
+			distanceAnimTo = fitDistance(Math.sqrt(Math.pow(max[0] - min[0], 2) + Math.pow(max[1] - min[1], 2) +
+				Math.pow(max[2] - min[2], 2)) / 2, viewportFraction);
+		}
+		else
+		{
+			distanceAnimTo = null;
+		}
+
+		scheduleDraw();
+
+		return true;
 	}
 
 	// Pokes the surface backing this map to say the chunk with the given id was interacted with. A chunk id is
@@ -875,20 +1238,26 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	// Lighting model chosen by the server: 'BLINN_PHONG' or 'LAMBERT'.
 	var SHADING_MODEL = '%SHADING_MODEL%';
 
+	// Both vertex shaders take positions and normals in a chunk's local space and place them with uModel. A
+	// normal is turned by uModel's upper 3x3 and renormalised (w of 0 leaves out the translation), as it was when
+	// geometry was placed before upload.
+
 	// Lambert: diffuse lighting worked out per vertex and interpolated across each triangle.
 	var lambertVertexShaderSrc =
 		'attribute vec3 aPosition;' +
 		'attribute vec4 aColor;' +
 		'attribute vec3 aNormal;' +
 		'uniform mat4 uViewProj;' +
+		'uniform mat4 uModel;' +
 		'uniform vec3 uLightDir;' +
 		'varying vec4 vColor;' +
 		'void main() {' +
 		'  vec3 lightDir = normalize(uLightDir);' +
-		'  float diffuse = max(dot(normalize(aNormal), lightDir), 0.0);' +
+		'  vec3 normal = normalize((uModel * vec4(aNormal, 0.0)).xyz);' +
+		'  float diffuse = max(dot(normal, lightDir), 0.0);' +
 		'  float lighting = 0.35 + 0.65 * diffuse;' +
 		'  vColor = vec4(aColor.rgb * lighting, aColor.a);' +
-		'  gl_Position = uViewProj * vec4(aPosition, 1.0);' +
+		'  gl_Position = uViewProj * uModel * vec4(aPosition, 1.0);' +
 		'}';
 
 	var lambertFragmentShaderSrc =
@@ -898,20 +1267,22 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 	// Blinn-Phong: the same ambient/diffuse split as Lambert plus a specular highlight, worked out per fragment
 	// since a highlight interpolated from the vertexes of coarse triangles smears or vanishes. Positions and
-	// normals arrive already in world space, so they are passed straight through.
+	// normals are placed in world space here and passed on, the normal renormalised per fragment.
 	var blinnPhongVertexShaderSrc =
 		'attribute vec3 aPosition;' +
 		'attribute vec4 aColor;' +
 		'attribute vec3 aNormal;' +
 		'uniform mat4 uViewProj;' +
+		'uniform mat4 uModel;' +
 		'varying vec4 vColor;' +
 		'varying vec3 vNormal;' +
 		'varying vec3 vWorldPos;' +
 		'void main() {' +
+		'  vec4 worldPos = uModel * vec4(aPosition, 1.0);' +
 		'  vColor = aColor;' +
-		'  vNormal = aNormal;' +
-		'  vWorldPos = aPosition;' +
-		'  gl_Position = uViewProj * vec4(aPosition, 1.0);' +
+		'  vNormal = (uModel * vec4(aNormal, 0.0)).xyz;' +
+		'  vWorldPos = worldPos.xyz;' +
+		'  gl_Position = uViewProj * worldPos;' +
 		'}';
 
 	var blinnPhongFragmentShaderSrc =
@@ -971,6 +1342,7 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	var aColor = gl.getAttribLocation(program, 'aColor');
 	var aNormal = gl.getAttribLocation(program, 'aNormal');
 	var uViewProj = gl.getUniformLocation(program, 'uViewProj');
+	var uModel = gl.getUniformLocation(program, 'uModel');
 	var uLightDir = gl.getUniformLocation(program, 'uLightDir');
 
 	// Only the Blinn-Phong program has this, so it is null under Lambert.
@@ -1080,12 +1452,35 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 		for(var line = 0; line < lines.length; line++) longestLine = Math.max(longestLine, lines[line].length);
 
+		// From afar the text inside a box with no fill reads as a smudge of the text's colour.
+		var fill = background.fillColour[3] > 0 ? background.fillColour : colour;
+
+		buildMarkerShape(sceneText, longestLine * MARKER_CHAR_WIDTH * sceneText.worldHeight / 2,
+			lines.length * sceneText.worldHeight / 2, height, background, fill);
+	}
+
+	// Works out the marker that stands in for an image once it is too small to see, the same way as for a text:
+	// a flat rounded rectangle with the footprint of the image and its background box, filled with the image's
+	// average colour. aspect is the image's width over its height.
+	function buildImageMarker(sceneImage, aspect, height, background, averageColour)
+	{
+		var fill = averageColour[3] > 0 ? averageColour :
+			(background.fillColour[3] > 0 ? background.fillColour : UNKNOWN_IMAGE_COLOUR);
+
+		buildMarkerShape(sceneImage, aspect * sceneImage.worldHeight / 2, sceneImage.worldHeight / 2, height,
+			background, fill);
+	}
+
+	// Builds a marker's shape around content of the given half extents in world units, adding the background
+	// box around it. height is the content's height in the units the box's lengths are given in.
+	function buildMarkerShape(sceneText, contentHalfWidth, contentHalfHeight, height, background, fill)
+	{
 		var scale = height > 0 ? sceneText.worldHeight / height : 0;
 		var border = background.borderWidth * scale;
 		var boxMargin = background.padding * scale + border;
 
-		var halfWidth = longestLine * MARKER_CHAR_WIDTH * sceneText.worldHeight / 2 + boxMargin;
-		var halfHeight = lines.length * sceneText.worldHeight / 2 + boxMargin;
+		var halfWidth = contentHalfWidth + boxMargin;
+		var halfHeight = contentHalfHeight + boxMargin;
 
 		sceneText.markerHalfWidth = halfWidth;
 		sceneText.markerHalfHeight = halfHeight;
@@ -1103,9 +1498,6 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 		var outer = roundedOutline(halfWidth, halfHeight, outerRadii);
 		var inner = roundedOutline(halfWidth - innerBorder, halfHeight - innerBorder, innerRadii);
-
-		// From afar the text inside a box with no fill reads as a smudge of the text's colour.
-		var fill = background.fillColour[3] > 0 ? background.fillColour : colour;
 
 		var shape = [];
 		var shapeColors = [];
@@ -1148,9 +1540,55 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		sceneText.markerPositions = [];
 	}
 
+	// Aspect ratio of an image: from the server for an embedded or file image, or from the browser once it has
+	// loaded a URL image, whose size only it knows. Square until then.
+	function sceneImageAspect(width, height, imgEl)
+	{
+		if(width > 0 && height > 0) return width / height;
+
+		if(imgEl.complete && imgEl.naturalWidth > 0 && imgEl.naturalHeight > 0)
+		{
+			return imgEl.naturalWidth / imgEl.naturalHeight;
+		}
+
+		return 1;
+	}
+
+	// Once the browser has an image, its marker can take the image's real footprint, which for a URL image was
+	// not known when the marker was first built.
+	function onSceneImageLoad(e)
+	{
+		var imageEl = e.target.parentNode;
+
+		e.target.style.visibility = '';
+
+		for(var index = 0; index < sceneTexts.length; index++)
+		{
+			var sceneImage = sceneTexts[index];
+
+			if(sceneImage.el !== imageEl) continue;
+
+			buildImageMarker(sceneImage, sceneImageAspect(0, 0, e.target), sceneImage.localHeight,
+				sceneImage.background, sceneImage.averageColour);
+		}
+
+		scheduleDraw();
+	}
+
 	// Puts each text where its anchor is on the screen at a size worked out from its depth, which is the same
 	// sizing perspective gives the geometry around it. Text too small to read is hidden and its marker drawn
 	// instead, laid out along the given world-space camera right and up axes so that it faces the camera.
+	// Places a text or image by a model transform, scaling its height by the transform's scale along local up so
+	// that it is scaled the same way as the geometry beside it.
+	function placeSceneText(sceneText, transform)
+	{
+		var worldPos = transformPoint(transform, sceneText.anchor[0], sceneText.anchor[1], sceneText.anchor[2]);
+		var up = transformVec4(transform, 0, 1, 0, 0);
+
+		sceneText.worldPos = [worldPos[0], worldPos[1], worldPos[2]];
+		sceneText.worldHeight = sceneText.anchorHeight * Math.sqrt(up[0] * up[0] + up[1] * up[1] + up[2] * up[2]);
+	}
+
 	function updateSceneTexts(viewProj, cameraRight, cameraUp, cameraBack)
 	{
 		var rect = canvas.getBoundingClientRect();
@@ -1163,6 +1601,9 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		for(var index = 0; index < sceneTexts.length; index++)
 		{
 			var sceneText = sceneTexts[index];
+
+			placeSceneText(sceneText, shownTransform(sceneText.transformId));
+
 			var wp = sceneText.worldPos;
 			var clip = transformVec4(viewProj, wp[0], wp[1], wp[2], 1);
 
@@ -1241,9 +1682,8 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	resize();
 
 	// Applies a model transform to every (x, y, z) position triple in a flat local-space array, returning a new
-	// flat world-space array. Kept separate from vertex parsing so a chunk's cached local data can be
-	// re-transformed (e.g. because only its model transform changed) without needing fresh vertexes from the
-	// server.
+	// flat world-space array. Drawing places vertexes on the GPU; this is for the few things that need to know
+	// where a chunk is, such as fitting the camera to it.
 	function deriveWorldPositions(localPositions, modelTransform)
 	{
 		var out = new Array(localPositions.length);
@@ -1260,21 +1700,119 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		return out;
 	}
 
-	// As deriveWorldPositions(), but for normals (direction vectors, re-normalised after transforming).
-	function deriveWorldNormals(localNormals, modelTransform)
+	// Records the model transforms of a scene just loaded, against the time the server sampled it.
+	function recordTransformSample(data)
 	{
-		var out = new Array(localNormals.length);
+		var now = performance.now();
 
-		for(var i = 0; i < localNormals.length; i += 3)
+		// A server that does not say when it sampled a scene leaves it to be shown as it arrives.
+		var time = typeof data.sceneTimeUs === 'number' ? data.sceneTimeUs / 1000 : now;
+		var offset = now - time;
+
+		if(clockOffset === null) clockOffset = offset;
+		else clockOffset = Math.min(clockOffset + (now - clockOffsetAt) * CLOCK_DRIFT_ALLOWANCE, offset);
+
+		clockOffsetAt = now;
+
+		// An id repeats wherever the same transform node is reached again, always with the same transform.
+		var byId = {};
+
+		for(var t = 0; t < data.modelTransforms.length; t++)
 		{
-			var worldNormal = transformNormal(modelTransform, localNormals[i], localNormals[i + 1], localNormals[i + 2]);
+			var modelTransform = data.modelTransforms[t];
 
-			out[i] = worldNormal[0];
-			out[i + 1] = worldNormal[1];
-			out[i + 2] = worldNormal[2];
+			if(!(modelTransform.id in byId)) byId[modelTransform.id] = prepareTransform(modelTransform.transform);
 		}
 
-		return out;
+		var last = transformSamples.length > 0 ? transformSamples[transformSamples.length - 1] : null;
+
+		// Something other than the transforms changed without the hive having been sampled again.
+		if(last && time <= last.time)
+		{
+			last.byId = byId;
+			return;
+		}
+
+		if(last)
+		{
+			var interval = time - last.time;
+
+			if(interval <= MAX_MOVING_SAMPLE_INTERVAL_MS) lastSampleInterval = interval;
+			else transformSamples.push({ time: time - lastSampleInterval, byId: last.byId });
+		}
+
+		var previousTime = transformSamples.length > 0 ? transformSamples[transformSamples.length - 1].time : time;
+
+		transformSamples.push({ time: time, byId: byId });
+
+		while(transformSamples.length > MAX_TRANSFORM_SAMPLES) transformSamples.shift();
+
+		recentLateness.push({ at: now, lateness: now - clockOffset - previousTime });
+
+		while(recentLateness.length > 0 && recentLateness[0].at < now - LATENESS_WINDOW_MS) recentLateness.shift();
+
+		var greatestLateness = 0;
+
+		for(var l = 0; l < recentLateness.length; l++)
+		{
+			greatestLateness = Math.max(greatestLateness, recentLateness[l].lateness);
+		}
+
+		playoutDelayTarget = greatestLateness + PLAYOUT_MARGIN_MS;
+
+		if(playoutDelay === null)
+		{
+			playoutDelay = playoutDelayTarget;
+			playoutDelayAt = now;
+		}
+	}
+
+	// Works out each model transform as it is to be shown in a frame drawn now, into shownTransforms. Returns
+	// whether what is shown has caught up with the latest scene, after which frames need only be drawn as
+	// something else asks for them.
+	function updateShownTransforms()
+	{
+		shownTransforms = {};
+
+		if(transformSamples.length === 0) return true;
+
+		var now = performance.now();
+		var elapsed = Math.max(0, now - playoutDelayAt);
+
+		playoutDelayAt = now;
+
+		if(playoutDelay < playoutDelayTarget)
+		{
+			playoutDelay = Math.min(playoutDelayTarget, playoutDelay + elapsed * PLAYOUT_DELAY_RISE);
+		}
+		else
+		{
+			playoutDelay = Math.max(playoutDelayTarget, playoutDelay - elapsed * PLAYOUT_DELAY_FALL);
+		}
+
+		var showTime = now - clockOffset - playoutDelay;
+
+		// The scenes either side of the moment shown. Those before the earlier of the two are done with.
+		while(transformSamples.length > 1 && transformSamples[1].time <= showTime) transformSamples.shift();
+
+		var earlier = transformSamples[0];
+		var later = transformSamples.length > 1 ? transformSamples[1] : null;
+		var latest = transformSamples[transformSamples.length - 1];
+
+		var f = (later && showTime > earlier.time) ? (showTime - earlier.time) / (later.time - earlier.time) : 0;
+
+		// Every transform the scene being drawn has, which is the latest one's. One new since the scenes being
+		// blended is shown as it now is, and one gone since is not needed by anything drawn.
+		for(var id in latest.byId)
+		{
+			var from = earlier.byId[id];
+			var to = later ? later.byId[id] : null;
+
+			if(from && to) shownTransforms[id] = f > 0 ? blendTransforms(from, to, f) : from.m;
+			else shownTransforms[id] = (from || latest.byId[id]).m;
+		}
+
+		return later === null && showTime >= earlier.time;
 	}
 
 	function loadScene(data)
@@ -1282,11 +1820,17 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		sceneChunks = [];
 		chunkNodeId = {};
 
-		// Picking and camera framing only ever consider the ALWAYS-visible geometry, so build their arrays
-		// straight from the opaque chunks as the scene is parsed.
-		var pickPositions = [];
-		var pickTriangleChunkIds = [];
 		var chunkPokeable = {};
+
+		recordTransformSample(data);
+
+		// What a load does next, such as a focus the hive asked for, places things as they are shown, which for
+		// a first load is not yet worked out by any frame.
+		updateShownTransforms();
+
+		// Framing is worked out only for a camera not yet fitted, as placing every vertex for it is the most
+		// costly part of a load.
+		var fitting = !cameraFitted;
 
 		var minX = Infinity, minY = Infinity, minZ = Infinity;
 		var maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
@@ -1307,25 +1851,6 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 			for(var a = 0; a < data.agentVisibleNodeIds.length; a++) agentVisibleNodes[data.agentVisibleNodeIds[a]] = true;
 		}
 
-		// A model transform is unchanged from the previous load only if the same index held the same 16
-		// values. Comparing per-transform here is cheap (there are usually far fewer transforms than vertices)
-		// and lets each chunk below skip re-deriving world-space geometry unless its own transform moved.
-		var transformChanged = [];
-
-		for(var t = 0; t < data.modelTransforms.length; t++)
-		{
-			var prevTransform = lastModelTransforms[t];
-			var transform = data.modelTransforms[t].transform;
-			var changed = !prevTransform;
-
-			for(var i = 0; !changed && i < 16; i++)
-			{
-				if(transform[i] !== prevTransform[i]) changed = true;
-			}
-
-			transformChanged.push(changed);
-		}
-
 		// Rebuilt fresh each load (rather than mutating chunkCache in place) so that a chunk no longer present
 		// in data.chunks is naturally dropped instead of lingering forever.
 		var newChunkCache = {};
@@ -1333,7 +1858,7 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		for(var c = 0; c < data.chunks.length; c++)
 		{
 			var chunk = data.chunks[c];
-			var modelTransform = data.modelTransforms[chunk.modelTransformIndex].transform;
+			var modelTransform = data.modelTransforms[chunk.modelTransformIndex];
 			var cacheKey = chunk.nodeId + ':' + chunk.id;
 			var cached = chunkCache[cacheKey];
 
@@ -1344,15 +1869,10 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 			chunkPokeable[chunk.id] = !!chunk.pokeable;
 			chunkNodeId[chunk.id] = chunk.nodeId;
 
-			var chunkFocus = !!focusChunkIds[chunk.id];
-
-			// Local (untransformed) vertex data plus this load's world-space positions/normals derived from it.
-			// Colors never need transforming, so they're identical whichever branch below fills them in.
-			var localPositions, colors, localNormals, worldPositions, worldNormals;
+			var localPositions, colors, localNormals;
 
 			if(chunk.vertexes !== null)
 			{
-				// Fresh vertex data from the server: parse into local arrays, then derive world-space geometry.
 				localPositions = [];
 				colors = [];
 				localNormals = [];
@@ -1366,54 +1886,33 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 						vertex.colour[3] / 255);
 					localNormals.push(vertex.normal[0], vertex.normal[1], vertex.normal[2]);
 				}
-
-				worldPositions = deriveWorldPositions(localPositions, modelTransform);
-				worldNormals = deriveWorldNormals(localNormals, modelTransform);
 			}
 			else
 			{
 				// The server omitted the vertexes because it was told this chunk's current vertex version is
-				// already cached here, so reuse the cached local data. World-space geometry only needs
-				// re-deriving if this chunk's model transform actually changed or it moved to a different
-				// transform slot; otherwise the previous load's world-space arrays are still correct.
+				// already cached here.
 				localPositions = cached.localPositions;
 				colors = cached.colors;
 				localNormals = cached.localNormals;
-
-				if(transformChanged[chunk.modelTransformIndex] || cached.modelTransformIndex !== chunk.modelTransformIndex)
-				{
-					worldPositions = deriveWorldPositions(localPositions, modelTransform);
-					worldNormals = deriveWorldNormals(localNormals, modelTransform);
-				}
-				else
-				{
-					worldPositions = cached.worldPositions;
-					worldNormals = cached.worldNormals;
-				}
 			}
 
 			newChunkCache[cacheKey] = {
 
 				vertexVersion: chunk.vertexVersion,
-				modelTransformIndex: chunk.modelTransformIndex,
 				localPositions: localPositions,
 				colors: colors,
-				localNormals: localNormals,
-				worldPositions: worldPositions,
-				worldNormals: worldNormals
+				localNormals: localNormals
 			};
 
-			// Only the always-on geometry contributes to picking and to the initial camera fit; hover-only
-			// chunks must not steal picks or enlarge the framing.
-			if(opaque)
+			// Only the always-on geometry contributes to the initial camera fit; hover-only chunks must not
+			// enlarge the framing. It is fitted to the scene as it now is rather than as it is being shown.
+			if(opaque && fitting)
 			{
+				var worldPositions = deriveWorldPositions(localPositions, modelTransform.transform);
+				var chunkFocus = !!focusChunkIds[chunk.id];
+
 				for(var p = 0; p < worldPositions.length; p += 3)
 				{
-					pickPositions.push(worldPositions[p], worldPositions[p + 1], worldPositions[p + 2]);
-
-					// Every third vertex completes another triangle belonging to this chunk.
-					if((p / 3) % 3 === 2) pickTriangleChunkIds.push(chunk.id);
-
 					minX = Math.min(minX, worldPositions[p]); maxX = Math.max(maxX, worldPositions[p]);
 					minY = Math.min(minY, worldPositions[p + 1]); maxY = Math.max(maxY, worldPositions[p + 1]);
 					minZ = Math.min(minZ, worldPositions[p + 2]); maxZ = Math.max(maxZ, worldPositions[p + 2]);
@@ -1430,14 +1929,11 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 			}
 
 			sceneChunks.push({ id: chunk.id, nodeId: chunk.nodeId, opaque: opaque, agent: agentChunk,
-				positions: worldPositions, colors: colors, normals: worldNormals });
+				transformId: modelTransform.id, positions: localPositions, colors: colors, normals: localNormals });
 		}
 
 		chunkCache = newChunkCache;
-		lastModelTransforms = data.modelTransforms.map(function(t) { return t.transform.slice(); });
 
-		lastPositions = pickPositions;
-		lastTriangleChunkIds = pickTriangleChunkIds;
 		lastChunkPokeable = chunkPokeable;
 
 		var texts = data.texts || [];
@@ -1448,7 +1944,7 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		for(var s = 0; s < texts.length; s++)
 		{
 			var text = texts[s];
-			var textTransform = data.modelTransforms[text.modelTransformIndex].transform;
+			var textTransform = data.modelTransforms[text.modelTransformIndex];
 
 			// Reused across loads where the node is still there, so only what changed is touched. Filled in
 			// with textContent alone: the text is whatever a script said, and must never be taken as markup.
@@ -1469,21 +1965,23 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 			newSceneTextElements[text.nodeId] = el;
 
-			var worldPos = transformPoint(textTransform, text.position[0], text.position[1], text.position[2]);
-
-			// The transform's scale along local up, so that text is scaled by a transform the same way the
-			// geometry beside it is.
-			var up = transformVec4(textTransform, 0, 1, 0, 0);
-
 			var sceneText = {
+				kind: 'text',
 				nodeId: text.nodeId,
-				worldPos: [worldPos[0], worldPos[1], worldPos[2]],
-				worldHeight: text.height * Math.sqrt(up[0] * up[0] + up[1] * up[1] + up[2] * up[2]),
+				transformId: textTransform.id,
+				anchor: [text.position[0], text.position[1], text.position[2]],
+				anchorHeight: text.height,
 				el: el,
 				shown: false,
 				depth: 0,
 				marker: false
 			};
+
+			// Placed as the scene now is, which sizes its marker and frames the camera. Every frame drawn then
+			// places it as it is being shown.
+			placeSceneText(sceneText, textTransform.transform);
+
+			var worldPos = sceneText.worldPos;
 
 			buildMarker(sceneText, text.text, text.height, text.colour, text.background);
 
@@ -1507,11 +2005,96 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 		sceneTextElements = newSceneTextElements;
 
+		var images = data.images || [];
+		var newSceneImageElements = {};
+		var imageBase = window.location.pathname.replace(/\/+$/, '') + '/image?nodeId=';
+
+		for(var m = 0; m < images.length; m++)
+		{
+			var image = images[m];
+			var imageTransform = data.modelTransforms[image.modelTransformIndex];
+
+			var imageEl = sceneImageElements[image.nodeId];
+
+			if(!imageEl)
+			{
+				imageEl = document.createElement('div');
+				imageEl.className = 'sceneImage';
+
+				var img = document.createElement('img');
+
+				img.alt = '';
+				img.draggable = false;
+
+				// A URL image is fetched from wherever it is by every viewer, which need not tell it what page it
+				// is being shown on.
+				img.referrerPolicy = 'no-referrer';
+				img.addEventListener('load', onSceneImageLoad);
+
+				// One that cannot be shown leaves only its box, rather than the browser's broken image icon.
+				img.addEventListener('error', function(e) { e.target.style.visibility = 'hidden'; });
+
+				imageEl.appendChild(img);
+				sceneTextLayer.appendChild(imageEl);
+			}
+
+			// An embedded or file image is fetched from this map under its version, so a changed image is fetched
+			// afresh while an unchanged one comes from the browser's cache. A URL image may be in any format the
+			// browser can show, and is taken as given.
+			var src = image.url !== null ? image.url : imageBase + image.nodeId + '&v=' + image.version;
+			var imgEl = imageEl.firstChild;
+
+			if(imgEl.getAttribute('src') !== src) imgEl.setAttribute('src', src);
+
+			applyTextBackground(imageEl, image.background, image.worldHeight);
+
+			newSceneImageElements[image.nodeId] = imageEl;
+
+			var sceneImage = {
+				kind: 'image',
+				nodeId: image.nodeId,
+				transformId: imageTransform.id,
+				anchor: [image.position[0], image.position[1], image.position[2]],
+				anchorHeight: image.worldHeight,
+				el: imageEl,
+				shown: false,
+				depth: 0,
+				marker: false,
+				localHeight: image.worldHeight,
+				background: image.background,
+				averageColour: image.averageColour
+			};
+
+			// Placed as the scene now is, as a text is above.
+			placeSceneText(sceneImage, imageTransform.transform);
+
+			var imageWorldPos = sceneImage.worldPos;
+
+			buildImageMarker(sceneImage, sceneImageAspect(image.width, image.height, imgEl), image.worldHeight,
+				image.background, image.averageColour);
+
+			var imageReach = Math.sqrt(sceneImage.markerHalfWidth * sceneImage.markerHalfWidth +
+				sceneImage.markerHalfHeight * sceneImage.markerHalfHeight);
+
+			minX = Math.min(minX, imageWorldPos[0] - imageReach); maxX = Math.max(maxX, imageWorldPos[0] + imageReach);
+			minY = Math.min(minY, imageWorldPos[1] - imageReach); maxY = Math.max(maxY, imageWorldPos[1] + imageReach);
+			minZ = Math.min(minZ, imageWorldPos[2] - imageReach); maxZ = Math.max(maxZ, imageWorldPos[2] + imageReach);
+
+			sceneTexts.push(sceneImage);
+		}
+
+		for(var oldImageNodeId in sceneImageElements)
+		{
+			if(!newSceneImageElements[oldImageNodeId]) sceneTextLayer.removeChild(sceneImageElements[oldImageNodeId]);
+		}
+
+		sceneImageElements = newSceneImageElements;
+
 		rebuildGeometry();
 
 		status.textContent = vertexCount + ' vertexes across ' + data.chunks.length +
 			' chunk(s). Drag to orbit, scroll to zoom, right-drag to pan, right-click a chunk to centre.' +
-			(sceneTexts.length > 0 ? ' Right-click text to read it.' : '') +
+			(sceneTexts.length > 0 ? ' Right-click text or an image to see it close up.' : '') +
 			(structureLink ? ' Ctrl-click a chunk to find its node in the structure.' : '');
 
 		if((vertexCount > 0 || sceneTexts.length > 0) && !cameraFitted)
@@ -1524,17 +2107,14 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 				camera.centre = [(focusMinX + focusMaxX) / 2, (focusMinY + focusMaxY) / 2,
 					(focusMinZ + focusMaxZ) / 2];
 
-				var focusRadius = Math.max(0.001, Math.sqrt(
+				var focusRadius = Math.sqrt(
 					Math.pow(focusMaxX - focusMinX, 2) + Math.pow(focusMaxY - focusMinY, 2) +
-					Math.pow(focusMaxZ - focusMinZ, 2)) / 2);
+					Math.pow(focusMaxZ - focusMinZ, 2)) / 2;
 
-				// Choose the distance so the focus node's bounding-sphere diameter spans focusViewportFraction of
-				// the viewport height. At distance d the frustum half-height is d*tan(fovy/2); the sphere's
-				// radius projects to that half-height when focusRadius = fraction * d*tan(fovy/2), so solve for d.
 				var focusFraction = (typeof data.focusViewportFraction === 'number' && data.focusViewportFraction > 0) ?
 					data.focusViewportFraction : 0.5;
 
-				camera.distance = focusRadius / (focusFraction * Math.tan(CAMERA_FOVY / 2));
+				camera.distance = fitDistance(focusRadius, focusFraction);
 			}
 			else
 			{
@@ -1550,26 +2130,39 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	// Concatenates the currently visible chunks into the GPU buffers: every opaque (ALWAYS) chunk first, then
 	// each translucent chunk that something currently reveals - an AGENT chunk whose node the server has
 	// marked as being worked on, or any other chunk whose owning node is hovered. opaqueVertexCount records
-	// the boundary so draw() can render the two as separate passes. Called on load and whenever the hover
-	// state changes.
+	// the boundary so draw() can render the two as separate passes, and drawRuns where along them the model
+	// transform changes. Called on load and whenever the hover state changes.
 	function rebuildGeometry()
 	{
 		var positions = [];
 		var colors = [];
 		var normals = [];
 
-		for(var c = 0; c < sceneChunks.length; c++)
-		{
-			var chunk = sceneChunks[c];
+		drawRuns = [];
 
-			if(!chunk.opaque) continue;
+		// Neighbouring chunks are usually placed by the same transform, as they are in traversal order, so
+		// running them together costs few draw calls without changing the order anything is drawn in.
+		function addChunk(chunk, passStart)
+		{
+			var first = positions.length / 3;
+			var count = chunk.positions.length / 3;
+			var lastRun = drawRuns.length > passStart ? drawRuns[drawRuns.length - 1] : null;
+
+			if(lastRun && lastRun.transformId === chunk.transformId) lastRun.count += count;
+			else drawRuns.push({ transformId: chunk.transformId, first: first, count: count });
 
 			positions.push.apply(positions, chunk.positions);
 			colors.push.apply(colors, chunk.colors);
 			normals.push.apply(normals, chunk.normals);
 		}
 
+		for(var c = 0; c < sceneChunks.length; c++)
+		{
+			if(sceneChunks[c].opaque) addChunk(sceneChunks[c], 0);
+		}
+
 		opaqueVertexCount = positions.length / 3;
+		opaqueDrawRunCount = drawRuns.length;
 
 		for(var t = 0; t < sceneChunks.length; t++)
 		{
@@ -1581,9 +2174,7 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 			// deliberately not shown on hover the way the remaining visibilities are.
 			if(transChunk.agent ? !agentVisibleNodes[transChunk.nodeId] : transChunk.nodeId !== hoveredNodeId) continue;
 
-			positions.push.apply(positions, transChunk.positions);
-			colors.push.apply(colors, transChunk.colors);
-			normals.push.apply(normals, transChunk.normals);
+			addChunk(transChunk, opaqueDrawRunCount);
 		}
 
 		vertexCount = positions.length / 3;
@@ -1600,13 +2191,25 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		scheduleDraw();
 	}
 
+	// Draws runs from drawRuns, from index start up to but not including end, each with its own model transform.
+	function drawRunsBetween(start, end)
+	{
+		for(var r = start; r < end; r++)
+		{
+			var run = drawRuns[r];
+
+			gl.uniformMatrix4fv(uModel, false, new Float32Array(shownTransform(run.transformId)));
+			gl.drawArrays(gl.TRIANGLES, run.first, run.count);
+		}
+	}
+
 	// True while a requestAnimationFrame(draw) call is outstanding, so scheduleDraw() can be called freely
 	// from every input handler and state change without ever stacking up more than one pending frame.
 	var rafPending = false;
 
-	// Requests a single redraw. draw() only reschedules itself while an animation (the recentre tween) is
-	// still in flight, so the render loop otherwise goes idle between input events instead of spinning at
-	// the display refresh rate while the scene is unchanged.
+	// Requests a single redraw. draw() only reschedules itself while an animation (the recentre tween, or motion
+	// still being played back) is in flight, so the render loop otherwise goes idle between input events instead
+	// of spinning at the display refresh rate while the scene is unchanged.
 	function scheduleDraw()
 	{
 		if(rafPending) return;
@@ -1618,6 +2221,8 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 	function draw()
 	{
 		rafPending = false;
+
+		var motionSettled = updateShownTransforms();
 
 		if(centreAnimTo !== null || distanceAnimTo !== null)
 		{
@@ -1659,7 +2264,8 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 				multiply(rotateY(camera.yaw),
 				translate(-camera.centre[0], -camera.centre[1], -camera.centre[2]))));
 
-			var proj = perspective(CAMERA_FOVY, canvas.width / canvas.height, 0.01, camera.distance * 100 + 100);
+			var proj = perspective(CAMERA_FOVY, canvas.width / canvas.height, camera.distance * CAMERA_NEAR_FRACTION,
+				camera.distance * 100 + 100);
 
 			var viewProj = multiply(proj, view);
 
@@ -1698,12 +2304,14 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 			if(opaqueVertexCount > 0)
 			{
 				bindAttributes(positionBuffer, colorBuffer, normalBuffer);
-				gl.drawArrays(gl.TRIANGLES, 0, opaqueVertexCount);
+				drawRunsBetween(0, opaqueDrawRunCount);
 			}
 
-			// Text markers are part of the opaque scene, so geometry in front of one hides it.
+			// Text markers are part of the opaque scene, so geometry in front of one hides it. They are built in
+			// world space already.
 			if(markerVertexCount > 0)
 			{
+				gl.uniformMatrix4fv(uModel, false, new Float32Array(IDENTITY_TRANSFORM));
 				bindAttributes(markerPositionBuffer, markerColorBuffer, markerNormalBuffer);
 				gl.drawArrays(gl.TRIANGLES, 0, markerVertexCount);
 			}
@@ -1719,16 +2327,17 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 				gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 				gl.depthMask(false);
 
-				gl.drawArrays(gl.TRIANGLES, opaqueVertexCount, vertexCount - opaqueVertexCount);
+				drawRunsBetween(opaqueDrawRunCount, drawRuns.length);
 
 				gl.depthMask(true);
 				gl.disable(gl.BLEND);
 			}
 		}
 
-		// Keep rendering every frame while the recentre tween is in flight; otherwise leave the loop idle
-		// until the next scheduleDraw() call from an input handler or state change.
-		if(centreAnimTo !== null || distanceAnimTo !== null) scheduleDraw();
+		// Keep rendering every frame while the recentre tween is in flight or motion is still being played
+		// back; otherwise leave the loop idle until the next scheduleDraw() call from an input handler or
+		// state change.
+		if(centreAnimTo !== null || distanceAnimTo !== null || !motionSettled) scheduleDraw();
 	}
 
 	var dataUrl = window.location.pathname.replace(/\/+$/, '') + '/data';
@@ -1744,6 +2353,39 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		encodeURIComponent(viewerId);
 	var lastRevision = null;
 	var pollTimer = null;
+
+	// Sequence of the last request from the hive to bring a node into focus. The first poll only records it, so
+	// that a page opened after a request was made starts where it otherwise would rather than at that node.
+	var lastFocusSequence = null;
+
+	// Node the hive asked to be brought into focus that is still to be focused on, or null, and the viewport
+	// fraction it asked for, 0 for right-click behaviour.
+	var pendingFocusNodeId = null;
+	var pendingFocusViewportFraction = 0;
+
+	function noteFocusRequest(focus)
+	{
+		if(!focus || typeof focus.sequence !== 'number' || typeof focus.nodeId !== 'number') return;
+
+		// Compared for a change rather than an increase, as a restarted server counts again from 0.
+		if(lastFocusSequence !== null && focus.sequence !== lastFocusSequence && focus.sequence !== 0)
+		{
+			pendingFocusNodeId = focus.nodeId;
+			pendingFocusViewportFraction = focus.viewportFraction;
+		}
+
+		lastFocusSequence = focus.sequence;
+	}
+
+	// A node asked for along with the scene change that adds it can be told of before that change is, so one
+	// not yet in the scene waits for the next load. Once a load has been and still not shown it, the node is
+	// not on show here, and the request is dropped rather than acted on whenever the node next turns up.
+	function applyPendingFocus(sceneLoaded)
+	{
+		if(pendingFocusNodeId === null) return;
+
+		if(focusNode(pendingFocusNodeId, pendingFocusViewportFraction) || sceneLoaded) pendingFocusNodeId = null;
+	}
 
 	// Without this a closed page would go on being counted until the server expires it a few polls later.
 	window.addEventListener('pagehide', function()
@@ -1779,7 +2421,14 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 			// Ahead of the unchanged revision check, as who is viewing changes independently of the scene.
 			showViewerCount(revisionData.viewerCount);
 
-			if(revisionData.revision === lastRevision) return null;
+			noteFocusRequest(revisionData.focus);
+
+			if(revisionData.revision === lastRevision)
+			{
+				applyPendingFocus(false);
+
+				return null;
+			}
 
 			console.log('Scene revision changed: ' + lastRevision + ' -> ' + revisionData.revision);
 
@@ -1809,6 +2458,8 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 			}).then(function(res) { return res.json(); }).then(function(data)
 			{
 				loadScene(data);
+
+				applyPendingFocus(true);
 			});
 		}).catch(function(err)
 		{

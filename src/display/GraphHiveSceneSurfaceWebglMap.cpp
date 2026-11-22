@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <iomanip>
+#include <limits.h>
+#include <memory>
 #include <sstream>
 #include <unordered_map>
 
@@ -54,6 +56,15 @@ namespace
 		result += "]";
 
 		return result;
+	}
+
+	std::string jsonBackground(const TextBackground& background)
+	{
+		return "{\"fillColour\":" + jsonByteVec(background.fillColour, 4) +
+			",\"borderColour\":" + jsonByteVec(background.borderColour, 4) +
+			",\"borderWidth\":" + jsonNumber(background.borderWidth) +
+			",\"padding\":" + jsonNumber(background.padding) +
+			",\"cornerRadii\":" + jsonVec(background.cornerRadii, TextBackground::CORNER_COUNT) + "}";
 	}
 
 	// Name that the viewer's JavaScript matches on to decide when a chunk is drawn; must stay in step with
@@ -138,6 +149,13 @@ void GraphHiveSceneSurfaceWebglMap::_renderPage(HttpResponse& response)
 
 void GraphHiveSceneSurfaceWebglMap::_serveMapData(HttpRequest& request, HttpResponse& response)
 {
+	if(request.getPath() == _getBasePath() + "/image")
+	{
+		__serveImage(request, response);
+
+		return;
+	}
+
 	std::unordered_map<uint64_t, unsigned> knownChunkVersions = parseKnownChunkVersions(request.getBody());
 
 	GraphHiveSceneSurface::Scene scene = _getSceneSurface().getScene();
@@ -175,7 +193,10 @@ void GraphHiveSceneSurfaceWebglMap::_serveMapData(HttpRequest& request, HttpResp
 
 	agentVisibleNodeIdsJson += "]";
 
-	std::string json = "{\"focusChunkIds\":" + focusChunkIdsJson +
+	// Microseconds as an integer, as jsonNumber() keeps too few digits to resolve a monotonic time to under a
+	// millisecond.
+	std::string json = "{\"sceneTimeUs\":" + std::to_string(scene.populatedAtUs) +
+		",\"focusChunkIds\":" + focusChunkIdsJson +
 		",\"focusViewportFraction\":" + jsonNumber(scene.focusViewportFraction) +
 		",\"agentVisibleNodeIds\":" + agentVisibleNodeIdsJson +
 		",\"modelTransforms\":[";
@@ -248,16 +269,67 @@ void GraphHiveSceneSurfaceWebglMap::_serveMapData(HttpRequest& request, HttpResp
 			",\"position\":" + jsonVec(text.position, 3) +
 			",\"height\":" + jsonNumber(text.height) +
 			",\"colour\":" + jsonByteVec(text.colour, 4) +
-			",\"background\":{\"fillColour\":" + jsonByteVec(text.background.fillColour, 4) +
-				",\"borderColour\":" + jsonByteVec(text.background.borderColour, 4) +
-				",\"borderWidth\":" + jsonNumber(text.background.borderWidth) +
-				",\"padding\":" + jsonNumber(text.background.padding) +
-				",\"cornerRadii\":" + jsonVec(text.background.cornerRadii, TextBackground::CORNER_COUNT) + "}" +
+			",\"background\":" + jsonBackground(text.background) +
 			",\"modelTransformIndex\":" + std::to_string(text.modelTransformIndex) + "}";
+	}
+
+	// Only where an image goes is sent here. An embedded or file image's bytes are fetched separately from this
+	// map's image endpoint, so that they are only sent when the viewer does not already have them; a URL image
+	// is fetched by the viewer from wherever its URL says.
+	json += "],\"images\":[";
+
+	for(std::size_t imageIndex = 0; imageIndex < scene.images.size(); imageIndex++)
+	{
+		if(imageIndex > 0) json += ",";
+
+		const GraphHiveSceneSurface::Image& image = scene.images[imageIndex];
+		const ImageSource& source = image.source;
+
+		json += "{\"nodeId\":" + std::to_string(image.nodeId) +
+			",\"version\":" + std::to_string(image.version) +
+			",\"url\":" + (source.kind == ImageSource::URL ? jsonString(source.reference) : std::string("null")) +
+			",\"width\":" + std::to_string(source.width) +
+			",\"height\":" + std::to_string(source.height) +
+			",\"averageColour\":" + jsonByteVec(source.averageColour, 4) +
+			",\"position\":" + jsonVec(image.position, 3) +
+			",\"worldHeight\":" + jsonNumber(image.height) +
+			",\"background\":" + jsonBackground(image.background) +
+			",\"modelTransformIndex\":" + std::to_string(image.modelTransformIndex) + "}";
 	}
 
 	json += "]}";
 
 	response.setContentType("application/json");
 	response.setBody(json);
+}
+
+void GraphHiveSceneSurfaceWebglMap::__serveImage(HttpRequest& request, HttpResponse& response)
+{
+	std::string nodeIdParam = request.getQueryParam("nodeId");
+	std::shared_ptr<const std::string> png;
+
+	bool found = false;
+
+	if(!nodeIdParam.empty() && nodeIdParam.size() <= 10 &&
+		nodeIdParam.find_first_not_of("0123456789") == std::string::npos)
+	{
+		unsigned long nodeId = std::stoul(nodeIdParam);
+
+		found = nodeId <= UINT_MAX && _getSceneSurface().getImagePng(static_cast<unsigned>(nodeId), png);
+	}
+
+	if(!found)
+	{
+		response.setStatus(404);
+		response.setContentType("text/plain");
+		response.setBody("No such image");
+
+		return;
+	}
+
+	// The viewer asks for an image again under a new version whenever it changes, so whatever is fetched under
+	// one version can be kept.
+	response.setContentType("image/png");
+	response.addHeader("Cache-Control", "private, max-age=31536000, immutable");
+	response.setBody(*png);
 }

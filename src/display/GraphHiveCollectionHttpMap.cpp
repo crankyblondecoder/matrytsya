@@ -12,6 +12,9 @@
 
 namespace
 {
+	/// Query that asks for the top page's listing rather than being sent on to the landing path.
+	const char* const _LIST_QUERY = "?list=1";
+
 	/// Title the top page carries, which is also the label of the link back to it from a hive's page.
 	const char* const _INDEX_TITLE = "Hives";
 
@@ -93,6 +96,11 @@ std::string GraphHiveCollectionHttpMap::getPath()
 	return _path;
 }
 
+std::string GraphHiveCollectionHttpMap::getListingPath()
+{
+	return _path + _LIST_QUERY;
+}
+
 void GraphHiveCollectionHttpMap::addSurfaceMap(std::string hiveName, GraphHiveSurfaceMap& surfaceMap)
 {
 	SurfaceEntry entry;
@@ -161,7 +169,7 @@ void GraphHiveCollectionHttpMap::handleRequest(HttpRequest& request, HttpRespons
 
 	if(requestPath == _path)
 	{
-		__serveHiveIndex(response);
+		__serveHiveIndex(request.getQueryParam("list") == "1", response);
 		return;
 	}
 
@@ -187,7 +195,7 @@ void GraphHiveCollectionHttpMap::handleRequest(HttpRequest& request, HttpRespons
 	response.setBody("Not Found");
 }
 
-void GraphHiveCollectionHttpMap::__serveHiveIndex(HttpResponse& response)
+void GraphHiveCollectionHttpMap::__serveHiveIndex(bool listRequested, HttpResponse& response)
 {
 	std::string landingPath;
 
@@ -196,7 +204,7 @@ void GraphHiveCollectionHttpMap::__serveHiveIndex(HttpResponse& response)
 		landingPath = _landingPath;
 	}
 
-	if(!landingPath.empty())
+	if(!landingPath.empty() && !listRequested)
 	{
 		// The response has no way to set a Location header, so the redirect is made by the page itself. The
 		// link is for a browser that does not follow it.
@@ -232,7 +240,7 @@ void GraphHiveCollectionHttpMap::__serveHivePage(const std::string& hiveName, Ht
 
 	if(links.empty()) links = "<li class=\"empty\">No surface maps are mounted for this hive.</li>\n";
 
-	std::string backLink = "<p class=\"back\"><a href=\"" + htmlEscape(_path) + "\">&larr; " + _INDEX_TITLE +
+	std::string backLink = "<p class=\"back\"><a href=\"" + htmlEscape(getListingPath()) + "\">&larr; " + _INDEX_TITLE +
 		"</a></p>";
 
 	renderPage(htmlEscape(hiveName), htmlEscape(hiveName), links, backLink, response);

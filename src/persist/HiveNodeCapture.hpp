@@ -53,6 +53,7 @@ class HiveNodeCapture : public GraphNodeVisitor
 		virtual void visit(AgentNode& node) override;
 		virtual void visit(TriggerNode& node) override;
 		virtual void visit(BuilderScriptNode& node) override;
+		virtual void visit(SceneImageNode& node) override;
 
 	private:
 

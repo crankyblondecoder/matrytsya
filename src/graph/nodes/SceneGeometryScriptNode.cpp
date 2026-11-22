@@ -18,6 +18,7 @@ SceneGeometryScriptNode::SceneGeometryScriptNode(const std::string& coreScript, 
 	_addActionFlag(SCENE_GRAPH_ACTION);
 	_addActionFlag(SCENE_STROBE_GRAPH_ACTION);
 	_addActionFlag(AGENT_AFFECT_GRAPH_ACTION);
+	_addActionFlag(FOCUS_GRAPH_ACTION);
 }
 
 GraphNodeType SceneGeometryScriptNode::getType()
@@ -39,6 +40,8 @@ void SceneGeometryScriptNode::_registerCoreGlobals(lua_State* luaState)
 
 void SceneGeometryScriptNode::populateSurface(Handle<GraphHiveSceneSurface> surface)
 {
+	_populateFocusRequest(surface, getId());
+
 	SceneGeometry::populateSurface(surface, getId(), getPokeEnabled());
 }
 
@@ -47,6 +50,11 @@ void SceneGeometryScriptNode::strobe()
 }
 
 SceneActionTarget* SceneGeometryScriptNode::getSceneActionTarget()
+{
+	return this;
+}
+
+FocusActionTarget* SceneGeometryScriptNode::getFocusActionTarget()
 {
 	return this;
 }
@@ -245,6 +253,6 @@ void SceneGeometryScriptNode::__registerVertexBindings(lua_State* luaState)
 unsigned SceneGeometryScriptNode::getVersion()
 {
 	// The scene version rather than the vertex version, so that a change to the agent visible flag alone is
-	// still enough to make a scene action repopulate the surface.
-	return SceneGeometry::getSceneVersion();
+	// still enough to make a scene action repopulate the surface. A focus request is likewise counted in.
+	return SceneGeometry::getSceneVersion() + getFocusRequestCount();
 }

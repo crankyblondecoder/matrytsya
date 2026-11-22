@@ -19,6 +19,7 @@ namespace
 		{"AgentNode", HiveNodeDescriptor::AGENT},
 		{"TriggerNode", HiveNodeDescriptor::TRIGGER},
 		{"SceneTextScriptNode", HiveNodeDescriptor::SCENE_TEXT_SCRIPT},
+		{"SceneImageNode", HiveNodeDescriptor::SCENE_IMAGE},
 		{"BuilderScriptNode", HiveNodeDescriptor::BUILDER_SCRIPT}
 	};
 
@@ -41,7 +42,9 @@ namespace
 		{"AGENT_GRAPH_ACTION", AGENT_GRAPH_ACTION},
 		{"TRIGGER_GRAPH_ACTION", TRIGGER_GRAPH_ACTION},
 		{"AGENT_AFFECT_GRAPH_ACTION", AGENT_AFFECT_GRAPH_ACTION},
-		{"TEXT_VISIBLE_GRAPH_ACTION", TEXT_VISIBLE_GRAPH_ACTION}
+		{"TEXT_VISIBLE_GRAPH_ACTION", TEXT_VISIBLE_GRAPH_ACTION},
+		{"IMAGE_VISIBLE_GRAPH_ACTION", IMAGE_VISIBLE_GRAPH_ACTION},
+		{"FOCUS_GRAPH_ACTION", FOCUS_GRAPH_ACTION}
 	};
 
 	const std::pair<const char*, SceneGeometry::VertexVisibility> _VERTEX_VISIBILITIES[] =

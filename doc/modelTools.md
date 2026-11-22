@@ -36,7 +36,7 @@ reach back to an earlier one.
 | `SceneTextScriptNode` | `getAnimating`, `setAnimating` |
 | `TriggerNode` | `emitTrigger` |
 | `BuilderScriptNode` | `emitTrigger` |
-| `PingNode`, `TeleportNode`, `SceneRootNode`, `SceneGeometryNode`, `SceneTransformNode`, `AgentNode` | None |
+| `PingNode`, `TeleportNode`, `SceneRootNode`, `SceneGeometryNode`, `SceneTransformNode`, `SceneImageNode`, `AgentNode` | None |
 
 A prompt may still match a node that offers no tools; the model is then simply asked to answer, with the
 conversation carried forward as usual.

@@ -42,6 +42,8 @@ class SceneGeometryNode : public GraphNode, public SceneActionTarget, public Str
 
 		AgentAffectActionTarget* getAgentAffectActionTarget() override;
 
+		FocusActionTarget* getFocusActionTarget() override;
+
 		// Agent affect target API point.
 		void agentAffectingStart(bool direct) override;
 

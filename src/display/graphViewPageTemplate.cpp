@@ -45,6 +45,10 @@ const char* const graphViewPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		font-size: 13px; text-decoration: none; cursor: pointer; }
 	#backLink:hover { background: #3a3a3a; }
 	#backLink[hidden] { display: none; }
+	#indexLink { position: absolute; left: 12px; bottom: 12px; padding: 6px 12px; color: #ddd;
+		background: #303030; border: 1px solid #4a4a4a; border-radius: 4px; font-family: sans-serif;
+		font-size: 13px; text-decoration: none; cursor: pointer; }
+	#indexLink:hover { background: #3a3a3a; }
 %CHAT_STYLE%
 </style>
 </head>
@@ -55,6 +59,7 @@ const char* const graphViewPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 <div id="tooltip" hidden><div id="tooltipTitle"></div><div id="tooltipBody"></div></div>
 <div id="callout" hidden><div id="calloutTitle"></div><div id="calloutBody"></div></div>
 <a id="backLink" hidden></a>
+%INDEX_MARKUP%
 %CHAT_MARKUP%
 <script>
 (function() {
@@ -328,7 +333,8 @@ const char* const graphViewPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 		AGENT_NODE: [0.94, 0.42, 0.38],
 		TRIGGER_NODE: [0.32, 0.84, 0.84],
 		SCENE_TEXT_SCRIPT_NODE: [0.93, 0.88, 0.45],
-		BUILDER_SCRIPT_NODE: [0.58, 0.44, 0.92]
+		BUILDER_SCRIPT_NODE: [0.58, 0.44, 0.92],
+		SCENE_IMAGE_NODE: [0.40, 0.80, 0.85]
 	};
 
 	/// What an edge that restricts nothing is drawn in. It lets every kind of action through rather than any

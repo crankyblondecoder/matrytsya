@@ -1,6 +1,7 @@
 #ifndef GRAPH_HIVE_SCENE_SURFACE_H
 #define GRAPH_HIVE_SCENE_SURFACE_H
 
+#include <memory>
 #include <stdint.h>
 #include <string>
 #include <unordered_map>
@@ -12,6 +13,7 @@
 #include "GraphHive.hpp"
 #include "GraphHiveSurface.hpp"
 #include "GraphPoke.hpp"
+#include "ImageSource.hpp"
 #include "TextBackground.hpp"
 #include "graphSceneElements.hpp"
 #include "nodes/SceneRootNode.hpp"
@@ -107,6 +109,34 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 			unsigned modelTransformIndex;
 		};
 
+		/**
+		 * Defines an image anchored in the scene.
+		 */
+		struct Image
+		{
+			/// Id of the node that this image is associated with.
+			unsigned nodeId;
+
+			/// Version of the node's image state when it was collected. Changes whenever anything about the image
+			/// does, so it is enough on its own to tell a viewer to fetch the image again.
+			unsigned version;
+
+			/// The image itself.
+			ImageSource source;
+
+			/// Anchor position, in the frame of the model transform: X, Y, Z.
+			double position[3];
+
+			/// Height of the image, in the units of the frame of the model transform.
+			double height;
+
+			/// Box drawn behind the image, in the same units as height.
+			TextBackground background;
+
+			/// The index of the model transform to use for this image.
+			unsigned modelTransformIndex;
+		};
+
 		struct ModelTransform
 		{
 			/// A numerical id that can be used to refer to this model transform.
@@ -127,6 +157,9 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 			/// Blocks of text in the scene, in the order they were collected.
 			std::vector<Text> texts;
 
+			/// Images in the scene, in the order they were collected.
+			std::vector<Image> images;
+
 			/// Ids of the nodes currently having an agentic action applied to them, i.e. the nodes whose
 			/// VertexVisibility::AGENT chunks should be shown. Only the nodes that are, so usually empty.
 			std::vector<unsigned> agentVisibleNodeIds;
@@ -139,6 +172,11 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 
 			/// Fraction of the viewport the focus node's bounds should span. Only meaningful if hasInitialFocusNode.
 			double focusViewportFraction = 0.5;
+
+			/// Monotonic time, in microseconds, at which the populate that built this scene started, i.e. the moment
+			/// the hive's state was sampled. Lets a viewer play successive scenes back at the spacing they were
+			/// sampled at, rather than at the spacing they happened to reach it.
+			uint64_t populatedAtUs = 0;
 		};
 
 		virtual void activate() override;
@@ -171,6 +209,28 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 			const std::byte colour[4], const TextBackground& background);
 
 		/**
+		 * Add an image to this scene surface.
+		 * @note The model transform that is ultimately applied to the image is the current model transform.
+		 * @param nodeId Id of the node the image is associated with.
+		 * @param version Version of the node's image state.
+		 * @param source The image itself.
+		 * @param position Anchor position, in the frame of the current model transform: X, Y, Z.
+		 * @param height Height of the image.
+		 * @param background Box drawn behind the image, in the same units as height.
+		 */
+		void addImage(unsigned nodeId, unsigned version, const ImageSource& source, const double position[3],
+			double height, const TextBackground& background);
+
+		/**
+		 * Get the PNG bytes of an image in the current scene.
+		 * @param nodeId Id of the node the image is associated with.
+		 * @param png Set to the image's PNG bytes, if it has any.
+		 * @returns False if the current scene has no image for that node, or the image is a URL image, which has
+		 *          no bytes here.
+		 */
+		bool getImagePng(unsigned nodeId, std::shared_ptr<const std::string>& png);
+
+		/**
 		 * Mark a node as currently having an agentic action applied to it, so that its
 		 * VertexVisibility::AGENT chunks are shown.
 		 * @note This is node level rather than chunk level state, so it carries no vertexes and leaves every
@@ -199,6 +259,28 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		 * @param focusViewportFraction Fraction of the viewport the node's bounds should span.
 		 */
 		void setInitialFocusNode(unsigned nodeId, double focusViewportFraction);
+
+		/**
+		 * Report how many times a node has been asked to be brought into focus, so that a request made since the
+		 * last populate can be passed on to this surface's viewers.
+		 * @note Part of the populate stream, like addVertexes(). A node only needs to report once it has been
+		 *       asked at least once. Requests made before this surface's first populate are taken as already
+		 *       seen, so a surface activated on an existing hive does not focus on what was asked for earlier.
+		 * @param nodeId Id of the node reporting.
+		 * @param focusRequestCount How many times the node has been asked to be brought into focus.
+		 * @param viewportFraction Viewport fraction the node's latest request asked for, 0 for right-click
+		 *        behaviour. See FocusActionTarget::requestFocus().
+		 */
+		void addFocusRequest(unsigned nodeId, unsigned focusRequestCount, double viewportFraction);
+
+		/**
+		 * Get the most recent request for this surface's viewers to bring a node into focus.
+		 * @param sequence Set to a number that changes whenever a new request is made, 0 if none ever has been.
+		 * @param nodeId Set to the id of the node to focus on. Only meaningful if sequence is not 0.
+		 * @param viewportFraction Set to the fraction of the view's height to fit the node's bounds to, or 0 to
+		 *        focus the way a right-click would. Only meaningful if sequence is not 0.
+		 */
+		void getFocusRequest(unsigned& sequence, unsigned& nodeId, double& viewportFraction);
 
 		/**
 		 * Get a copy of the surfaces current scene.
@@ -274,6 +356,48 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 
 		/// Blocks of text of the surface currently being built.
 		std::vector<Text> _texts;
+
+		/// Images of the surface currently being built.
+		std::vector<Image> _images;
+
+		/// Monotonic time, in microseconds, at which the surface currently being built started being populated.
+		uint64_t _populateStartUs = 0;
+
+		/**
+		 * A node's focus request state, as reported while the surface is being built.
+		 */
+		struct FocusRequest
+		{
+			/// Id of the node reporting.
+			unsigned nodeId;
+
+			/// How many times the node has been asked to be brought into focus.
+			unsigned count;
+
+			/// Viewport fraction the node's latest request asked for, 0 for right-click behaviour.
+			double viewportFraction;
+		};
+
+		/// Focus request state of each node that reported one in the surface currently being built, in
+		/// traversal order.
+		std::vector<FocusRequest> _focusRequests;
+
+		/// Last focus request count seen from each node, keyed by node id. Kept for nodes that drop out of the
+		/// scene, so that one coming back is not taken as having been asked again. Guarded by _lock.
+		std::unordered_map<unsigned, unsigned> _seenFocusRequestCounts;
+
+		/// Whether the first populate, which only records focus requests as seen, has happened. Guarded by _lock.
+		bool _focusRequestsSeeded = false;
+
+		/// Changes whenever a new focus request is passed on; 0 until the first is. Guarded by _lock.
+		unsigned _focusSequence = 0;
+
+		/// Id of the node most recently asked to be brought into focus. Guarded by _lock.
+		unsigned _focusNodeId = 0;
+
+		/// Viewport fraction the most recent focus request asked for, 0 for right-click behaviour. Guarded by
+		/// _lock.
+		double _focusRequestViewportFraction = 0;
 
 		/// The current scene that the surface can display. This is a kind of double buffering.
 		Scene _currentScene;

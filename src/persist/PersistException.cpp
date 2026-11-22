@@ -28,6 +28,7 @@ const char* PersistException::getErrorDescription(Error error)
 		case UNKNOWN_AGENT_CAPABILITY: return "a capability is not LOW, MEDIUM or HIGH";
 		case UNKNOWN_AGENT_PROMPT_NODE_TYPE: return "an agent node prompt names a node type that does not exist";
 		case UNKNOWN_VERTEX_VISIBILITY: return "a vertex group has an unknown visibility";
+		case INVALID_IMAGE: return "a scene image node's image could not be read or is not a PNG that can be displayed";
 
 		// -- HarnessBuilder errors --
 
@@ -93,6 +94,16 @@ const char* PersistException::getErrorDescription(Error error)
 			return "a scene text node's \"textBackground\" is not an object, or a colour, length or corner radius in it "
 				"is malformed or out of range";
 		case JSON_INVALID_TEXT_VISIBLE: return "a scene text node's \"textVisible\" is not a boolean";
+		case JSON_INVALID_IMAGE_SOURCE:
+			return "a scene image node does not have exactly one of \"imageData\", \"imageFile\" and \"imageUrl\", "
+				"or it is malformed: \"imageData\" must be base64, \"imageFile\" a path and \"imageUrl\" an http or "
+				"https address";
+		case JSON_INVALID_IMAGE_POSITION: return "a scene image node's \"imagePosition\" is not an array of 3 numbers";
+		case JSON_INVALID_IMAGE_HEIGHT: return "a scene image node's \"imageHeight\" is not a number greater than 0";
+		case JSON_INVALID_IMAGE_BACKGROUND:
+			return "a scene image node's \"imageBackground\" is not an object, or a colour, length or corner radius in "
+				"it is malformed or out of range";
+		case JSON_INVALID_IMAGE_VISIBLE: return "a scene image node's \"imageVisible\" is not a boolean";
 
 		// -- JsonHarnessLoader errors --
 

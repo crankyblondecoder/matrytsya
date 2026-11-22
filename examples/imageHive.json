@@ -1,0 +1,566 @@
+{
+	"name": "Image",
+	"nodes": [
+		{
+			"type": "SceneRootNode",
+			"name": "root",
+			"edges": [
+				{
+					"toNodeName": "world",
+					"actionFlags": [
+						"SCENE_GRAPH_ACTION",
+						"SCENE_STROBE_GRAPH_ACTION"
+					]
+				}
+			]
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "world",
+			"edges": [
+				{
+					"toNodeName": "spin",
+					"actionFlags": [
+						"SCENE_GRAPH_ACTION",
+						"SCENE_STROBE_GRAPH_ACTION"
+					]
+				},
+				{
+					"toNodeName": "buttonLabel",
+					"actionFlags": [
+						"SCENE_GRAPH_ACTION",
+						"SCENE_STROBE_GRAPH_ACTION"
+					]
+				}
+			],
+			"transform": [
+				1,
+				0,
+				0,
+				0,
+				0,
+				1,
+				0,
+				0,
+				0,
+				0,
+				1,
+				0,
+				0,
+				0,
+				0,
+				1
+			]
+		},
+		{
+			"type": "SceneTransformScriptNode",
+			"name": "spin",
+			"edges": [
+				{
+					"toNodeName": "giraffe"
+				}
+			],
+			"coreScript": "-- Turns everything after it about the Z axis, so the images ring round the centre like a wheel.\n-- One full turn takes 360 strobes. It only turns while animating, which the button below the ring switches on and off.\nlocal STEP = 2 * math.pi / 360\n\nfunction invoke()\n    if not (getStrobe() and getAnimating()) then return end\n\n    ANGLE = ((ANGLE or 0) + STEP) % (2 * math.pi)\n    local c, s = math.cos(ANGLE), math.sin(ANGLE)\n\n    -- Rotation about Z, in column major order.\n    local t = getTransform()\n    t[1] = c; t[2] = s; t[5] = -s; t[6] = c\n    setTransform(t)\nend\n",
+			"pokeScript": "",
+			"transform": [
+				1,
+				0,
+				0,
+				0,
+				0,
+				1,
+				0,
+				0,
+				0,
+				0,
+				1,
+				0,
+				0,
+				0,
+				0,
+				1
+			]
+		},
+		{
+			"type": "SceneImageNode",
+			"name": "giraffe",
+			"edges": [
+				{
+					"toNodeName": "saffir"
+				}
+			],
+			"imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/85/17%27_Dancing_Robo-Giraffe_%2850598250%29.jpg/960px-17%27_Dancing_Robo-Giraffe_%2850598250%29.jpg",
+			"imagePosition": [
+				0,
+				75,
+				0
+			],
+			"imageHeight": 20,
+			"imageBackground": {
+				"fillColour": [
+					20,
+					20,
+					20,
+					255
+				],
+				"borderColour": [
+					240,
+					190,
+					60,
+					255
+				],
+				"borderWidth": 1,
+				"padding": 2,
+				"cornerRadius": [
+					3,
+					3,
+					3,
+					3
+				]
+			}
+		},
+		{
+			"type": "SceneImageNode",
+			"name": "saffir",
+			"edges": [
+				{
+					"toNodeName": "anymal"
+				}
+			],
+			"imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/41/150605-N-PO203-329_%2818529371672%29.jpg/960px-150605-N-PO203-329_%2818529371672%29.jpg",
+			"imagePosition": [
+				53.03,
+				53.03,
+				0
+			],
+			"imageHeight": 20,
+			"imageBackground": {
+				"fillColour": [
+					20,
+					20,
+					20,
+					255
+				],
+				"borderColour": [
+					240,
+					190,
+					60,
+					255
+				],
+				"borderWidth": 1,
+				"padding": 2,
+				"cornerRadius": [
+					3,
+					3,
+					3,
+					3
+				]
+			}
+		},
+		{
+			"type": "SceneImageNode",
+			"name": "anymal",
+			"edges": [
+				{
+					"toNodeName": "snake"
+				}
+			],
+			"imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0a/Anymal-robot-inspection-power-grid.jpg/960px-Anymal-robot-inspection-power-grid.jpg",
+			"imagePosition": [
+				75,
+				0,
+				0
+			],
+			"imageHeight": 20,
+			"imageBackground": {
+				"fillColour": [
+					20,
+					20,
+					20,
+					255
+				],
+				"borderColour": [
+					240,
+					190,
+					60,
+					255
+				],
+				"borderWidth": 1,
+				"padding": 2,
+				"cornerRadius": [
+					3,
+					3,
+					3,
+					3
+				]
+			}
+		},
+		{
+			"type": "SceneImageNode",
+			"name": "snake",
+			"edges": [
+				{
+					"toNodeName": "bee"
+				}
+			],
+			"imageUrl": "https://upload.wikimedia.org/wikipedia/commons/3/35/A_snake_robot%2C_1992.jpg",
+			"imagePosition": [
+				53.03,
+				-53.03,
+				0
+			],
+			"imageHeight": 20,
+			"imageBackground": {
+				"fillColour": [
+					20,
+					20,
+					20,
+					255
+				],
+				"borderColour": [
+					240,
+					190,
+					60,
+					255
+				],
+				"borderWidth": 1,
+				"padding": 2,
+				"cornerRadius": [
+					3,
+					3,
+					3,
+					3
+				]
+			}
+		},
+		{
+			"type": "SceneImageNode",
+			"name": "bee",
+			"edges": [
+				{
+					"toNodeName": "aircon"
+				}
+			],
+			"imageUrl": "https://upload.wikimedia.org/wikipedia/commons/2/2f/Ape-robot.jpg",
+			"imagePosition": [
+				0,
+				-75,
+				0
+			],
+			"imageHeight": 20,
+			"imageBackground": {
+				"fillColour": [
+					20,
+					20,
+					20,
+					255
+				],
+				"borderColour": [
+					240,
+					190,
+					60,
+					255
+				],
+				"borderWidth": 1,
+				"padding": 2,
+				"cornerRadius": [
+					3,
+					3,
+					3,
+					3
+				]
+			}
+		},
+		{
+			"type": "SceneImageNode",
+			"name": "aircon",
+			"edges": [
+				{
+					"toNodeName": "computex"
+				}
+			],
+			"imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/38/Air_Conditioner_Robot.jpg/960px-Air_Conditioner_Robot.jpg",
+			"imagePosition": [
+				-53.03,
+				-53.03,
+				0
+			],
+			"imageHeight": 20,
+			"imageBackground": {
+				"fillColour": [
+					20,
+					20,
+					20,
+					255
+				],
+				"borderColour": [
+					240,
+					190,
+					60,
+					255
+				],
+				"borderWidth": 1,
+				"padding": 2,
+				"cornerRadius": [
+					3,
+					3,
+					3,
+					3
+				]
+			}
+		},
+		{
+			"type": "SceneImageNode",
+			"name": "computex",
+			"edges": [
+				{
+					"toNodeName": "frc1816"
+				}
+			],
+			"imageUrl": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/75/2008Computex_DMnP_AI_Robot.jpg/960px-2008Computex_DMnP_AI_Robot.jpg",
+			"imagePosition": [
+				-75,
+				0,
+				0
+			],
+			"imageHeight": 20,
+			"imageBackground": {
+				"fillColour": [
+					20,
+					20,
+					20,
+					255
+				],
+				"borderColour": [
+					240,
+					190,
+					60,
+					255
+				],
+				"borderWidth": 1,
+				"padding": 2,
+				"cornerRadius": [
+					3,
+					3,
+					3,
+					3
+				]
+			}
+		},
+		{
+			"type": "SceneImageNode",
+			"name": "frc1816",
+			"edges": [
+				{
+					"toNodeName": "world",
+					"actionFlags": [
+						"SCENE_GRAPH_ACTION",
+						"SCENE_STROBE_GRAPH_ACTION"
+					]
+				}
+			],
+			"imageUrl": "https://upload.wikimedia.org/wikipedia/commons/c/c0/1816Robot.jpg",
+			"imagePosition": [
+				-53.03,
+				53.03,
+				0
+			],
+			"imageHeight": 20,
+			"imageBackground": {
+				"fillColour": [
+					20,
+					20,
+					20,
+					255
+				],
+				"borderColour": [
+					240,
+					190,
+					60,
+					255
+				],
+				"borderWidth": 1,
+				"padding": 2,
+				"cornerRadius": [
+					3,
+					3,
+					3,
+					3
+				]
+			}
+		},
+		{
+			"type": "SceneTextScriptNode",
+			"name": "buttonLabel",
+			"edges": [
+				{
+					"toNodeName": "buttonPlace",
+					"actionFlags": [
+						"SCENE_GRAPH_ACTION",
+						"SCENE_STROBE_GRAPH_ACTION"
+					]
+				}
+			],
+			"coreScript": "",
+			"pokeScript": "",
+			"text": "SPIN",
+			"textPosition": [
+				110,
+				-62,
+				0
+			],
+			"textHeight": 3,
+			"textColour": [
+				235,
+				235,
+				235,
+				255
+			],
+			"textBackground": {
+				"fillColour": [
+					0,
+					0,
+					0,
+					0
+				],
+				"borderColour": [
+					0,
+					0,
+					0,
+					0
+				],
+				"borderWidth": 0,
+				"padding": 0,
+				"cornerRadius": [
+					0,
+					0,
+					0,
+					0
+				]
+			}
+		},
+		{
+			"type": "SceneTransformNode",
+			"name": "buttonPlace",
+			"edges": [
+				{
+					"toNodeName": "buttonBase"
+				},
+				{
+					"toNodeName": "buttonLift"
+				}
+			],
+			"transform": [
+				0.5,
+				0,
+				0,
+				0,
+				0,
+				0,
+				0.5,
+				0,
+				0,
+				-0.5,
+				0,
+				0,
+				110,
+				-75,
+				0,
+				1
+			]
+		},
+		{
+			"type": "SceneGeometryScriptNode",
+			"name": "buttonBase",
+			"edges": [
+				{
+					"toNodeName": "buttonPlace"
+				}
+			],
+			"coreScript": "-- The dark housing the cap sits in.\nlocal function faceNormal(a, b, c)\n\tlocal e1x, e1y, e1z = b[1] - a[1], b[2] - a[2], b[3] - a[3]\n\tlocal e2x, e2y, e2z = c[1] - a[1], c[2] - a[2], c[3] - a[3]\n\tlocal nx, ny, nz = e1y * e2z - e1z * e2y, e1z * e2x - e1x * e2z, e1x * e2y - e1y * e2x\n\tlocal len = math.sqrt(nx * nx + ny * ny + nz * nz)\n\tif len < 1e-8 then return {0, 1, 0} end\n\treturn {nx / len, ny / len, nz / len}\nend\n\nlocal function tri(a, b, c, colour, visibility)\n\tlocal n = faceNormal(a, b, c)\n\tlocal verts = {Vertex{posn = a, colour = colour, normal = n}, Vertex{posn = b, colour = colour, normal = n},\n\t\tVertex{posn = c, colour = colour, normal = n}}\n\tif visibility then addVertexes(verts, visibility) else addVertexes(verts) end\nend\n\nlocal function quad(a, b, c, d, colour, visibility)\n\ttri(a, b, c, colour, visibility)\n\ttri(a, c, d, colour, visibility)\nend\n\n-- A cylinder about the Y axis from y0 to y1, optionally capped at either end.\nlocal function cylinderY(y0, y1, radius, segments, colour, capTop, capBottom)\n\tlocal prevX, prevZ = radius, 0\n\tfor i = 1, segments do\n\t\tlocal angle = (i / segments) * 2 * math.pi\n\t\tlocal x, z = radius * math.cos(angle), radius * math.sin(angle)\n\t\tquad({prevX, y0, prevZ}, {prevX, y1, prevZ}, {x, y1, z}, {x, y0, z}, colour)\n\t\tif capTop then tri({0, y1, 0}, {x, y1, z}, {prevX, y1, prevZ}, colour) end\n\t\tif capBottom then tri({0, y0, 0}, {prevX, y0, prevZ}, {x, y0, z}, colour) end\n\t\tprevX, prevZ = x, z\n\tend\nend\n\nfunction init()\n\tcylinderY(-5, 0, 16, 28, {58, 62, 70, 255}, true, true)\nend\n",
+			"pokeScript": ""
+		},
+		{
+			"type": "SceneTransformScriptNode",
+			"name": "buttonLift",
+			"edges": [
+				{
+					"toNodeName": "buttonCap"
+				}
+			],
+			"coreScript": "-- Presses the cap in when a press animates this node, holds it there for a moment, then lets it spring back.\nlocal DEPRESSED = -3\nlocal EASE = 0.35\nlocal HOLD = 8\nlocal held = 0\n\nfunction invoke()\n\tif not getStrobe() then return end\n\n\tif getAnimating() then\n\t\theld = held + 1\n\t\tif held >= HOLD then\n\t\t\theld = 0\n\t\t\tsetAnimating(false)\n\t\tend\n\tend\n\n\tlocal t = getTransform()\n\tlocal target = getAnimating() and DEPRESSED or 0\n\tlocal y = t[14] + (target - t[14]) * EASE\n\tif math.abs(target - y) < 0.05 then y = target end\n\tif y ~= t[14] then\n\t\tt[14] = y\n\t\tsetTransform(t)\n\tend\nend\n",
+			"pokeScript": "",
+			"transform": [
+				1,
+				0,
+				0,
+				0,
+				0,
+				1,
+				0,
+				0,
+				0,
+				0,
+				1,
+				0,
+				0,
+				0,
+				0,
+				1
+			]
+		},
+		{
+			"type": "SceneGeometryScriptNode",
+			"name": "buttonCap",
+			"pokeEnabled": true,
+			"edges": [
+				{
+					"toNodeName": "buttonPlace",
+					"actionFlags": [
+						"ANIMATE_GRAPH_ACTION"
+					],
+					"traversalKey": 1
+				},
+				{
+					"toNodeName": "spin",
+					"actionFlags": [
+						"ANIMATE_GRAPH_ACTION"
+					],
+					"actionsCompleteAfterTraverse": true,
+					"traversalKey": 2
+				}
+			],
+			"coreScript": "-- The red cap, domed like the garden button's, with a pale ring shown while it is hovered over.\nlocal function faceNormal(a, b, c)\n\tlocal e1x, e1y, e1z = b[1] - a[1], b[2] - a[2], b[3] - a[3]\n\tlocal e2x, e2y, e2z = c[1] - a[1], c[2] - a[2], c[3] - a[3]\n\tlocal nx, ny, nz = e1y * e2z - e1z * e2y, e1z * e2x - e1x * e2z, e1x * e2y - e1y * e2x\n\tlocal len = math.sqrt(nx * nx + ny * ny + nz * nz)\n\tif len < 1e-8 then return {0, 1, 0} end\n\treturn {nx / len, ny / len, nz / len}\nend\n\nlocal function tri(a, b, c, colour, visibility)\n\tlocal n = faceNormal(a, b, c)\n\tlocal verts = {Vertex{posn = a, colour = colour, normal = n}, Vertex{posn = b, colour = colour, normal = n},\n\t\tVertex{posn = c, colour = colour, normal = n}}\n\tif visibility then addVertexes(verts, visibility) else addVertexes(verts) end\nend\n\nlocal function quad(a, b, c, d, colour, visibility)\n\ttri(a, b, c, colour, visibility)\n\ttri(a, c, d, colour, visibility)\nend\n\n-- A cylinder about the Y axis from y0 to y1, optionally capped at either end.\nlocal function cylinderY(y0, y1, radius, segments, colour, capTop, capBottom)\n\tlocal prevX, prevZ = radius, 0\n\tfor i = 1, segments do\n\t\tlocal angle = (i / segments) * 2 * math.pi\n\t\tlocal x, z = radius * math.cos(angle), radius * math.sin(angle)\n\t\tquad({prevX, y0, prevZ}, {prevX, y1, prevZ}, {x, y1, z}, {x, y0, z}, colour)\n\t\tif capTop then tri({0, y1, 0}, {x, y1, z}, {prevX, y1, prevZ}, colour) end\n\t\tif capBottom then tri({0, y0, 0}, {prevX, y0, prevZ}, {x, y0, z}, colour) end\n\t\tprevX, prevZ = x, z\n\tend\nend\n\n-- A dome rising from y by height, its base the given radius.\nlocal function domeY(y, radius, height, segments, rings, colour)\n\tlocal function ringRadius(level) return radius * math.cos((level / rings) * (math.pi / 2)) end\n\tlocal function ringHeight(level) return y + height * math.sin((level / rings) * (math.pi / 2)) end\n\tfor level = 0, rings - 1 do\n\t\tlocal r0, y0 = ringRadius(level), ringHeight(level)\n\t\tlocal r1, y1 = ringRadius(level + 1), ringHeight(level + 1)\n\t\tlocal prevX0, prevZ0, prevX1, prevZ1 = r0, 0, r1, 0\n\t\tfor i = 1, segments do\n\t\t\tlocal angle = (i / segments) * 2 * math.pi\n\t\t\tlocal ca, sa = math.cos(angle), math.sin(angle)\n\t\t\tlocal x0, z0, x1, z1 = r0 * ca, r0 * sa, r1 * ca, r1 * sa\n\t\t\tif level == rings - 1 then\n\t\t\t\ttri({prevX0, y0, prevZ0}, {0, y1, 0}, {x0, y0, z0}, colour)\n\t\t\telse\n\t\t\t\tquad({prevX0, y0, prevZ0}, {prevX1, y1, prevZ1}, {x1, y1, z1}, {x0, y0, z0}, colour)\n\t\t\tend\n\t\t\tprevX0, prevZ0, prevX1, prevZ1 = x0, z0, x1, z1\n\t\tend\n\tend\nend\n\n-- A flat ring about the Y axis at height y.\nlocal function ringY(y, inner, outer, segments, colour, visibility)\n\tlocal prevIX, prevIZ, prevOX, prevOZ = inner, 0, outer, 0\n\tfor i = 1, segments do\n\t\tlocal angle = (i / segments) * 2 * math.pi\n\t\tlocal ca, sa = math.cos(angle), math.sin(angle)\n\t\tlocal ix, iz, ox, oz = inner * ca, inner * sa, outer * ca, outer * sa\n\t\tquad({prevIX, y, prevIZ}, {ix, y, iz}, {ox, y, oz}, {prevOX, y, prevOZ}, colour, visibility)\n\t\tprevIX, prevIZ, prevOX, prevOZ = ix, iz, ox, oz\n\tend\nend\n\nfunction init()\n\tlocal red = {210, 40, 36, 255}\n\tcylinderY(0.5, 4.5, 10, 28, red, false, true)\n\tdomeY(4.5, 10, 3, 28, 4, red)\n\tringY(0.2, 16.5, 19.5, 28, {255, 210, 200, 140}, VertexVisibility.HOVERED_OVER)\nend\n",
+			"pokeScript": "-- Presses the cap in, and starts or stops the ring of images turning.\nif POKE_TYPE ~= \"HIT\" then return end\nspinning = not spinning\nemitAction(ActionType.ANIMATE, {animating = true}, {1})\nemitAction(ActionType.ANIMATE, {animating = spinning}, {2})\n"
+		}
+	],
+	"surfaces": [
+		{
+			"type": "GraphHiveSceneSurface",
+			"name": "scene",
+			"sceneRootNodeName": "root",
+			"default": true
+		},
+		{
+			"type": "GraphHiveGraphViewSurface",
+			"name": "structure",
+			"default": true
+		}
+	],
+	"strobeEmitters": [
+		{
+			"nodeName": "root",
+			"periodMs": 33
+		}
+	],
+	"strobeSurfaces": [
+		{
+			"surfaceName": "scene",
+			"periodMs": 33
+		},
+		{
+			"surfaceName": "structure",
+			"periodMs": 250
+		}
+	]
+}

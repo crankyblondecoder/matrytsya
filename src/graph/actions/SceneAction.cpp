@@ -26,7 +26,12 @@ bool SceneAction::_apply(GraphNode* target)
 
 		if(_getCurrentPassNum() == 1)
 		{
-			_version += sceneTarget -> getVersion();
+			// Each node's id is folded in with its version, rather than the versions simply being summed, so that
+			// replacing a node with one that happens to reach the same version (an edited node rebuilt from the same
+			// script, say) still changes the scene version and the surface is repopulated with the replacement.
+			unsigned nodeVersion = target -> getId() * 2654435761u + sceneTarget -> getVersion();
+
+			_version = (_version.load() * 16777619u) ^ nodeVersion;
 		}
 		else
 		{

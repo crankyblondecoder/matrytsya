@@ -11,6 +11,7 @@
 #include "../graph/nodes/PingNode.hpp"
 #include "../graph/nodes/SceneGeometryNode.hpp"
 #include "../graph/nodes/SceneGeometryScriptNode.hpp"
+#include "../graph/nodes/SceneImageNode.hpp"
 #include "../graph/nodes/SceneRootNode.hpp"
 #include "../graph/nodes/SceneTextScriptNode.hpp"
 #include "../graph/nodes/SceneTransformNode.hpp"
@@ -137,6 +138,25 @@ void HiveNodeCapture::visit(SceneTextScriptNode& node)
 	_descriptor.textVisible = node.getVisible();
 
 	__captureScripts(node);
+}
+
+void HiveNodeCapture::visit(SceneImageNode& node)
+{
+	_descriptor.type = HiveNodeDescriptor::SCENE_IMAGE;
+
+	ImageSource source = node.getSource();
+
+	_descriptor.imageKind = source.kind;
+	_descriptor.imageReference = source.reference;
+
+	// Only an embedded image's bytes are kept: a file or URL image is captured as its reference, so that it is
+	// read again from there when rebuilt.
+	if(source.kind == ImageSource::EMBEDDED && source.png) _descriptor.imageBytes = *source.png;
+
+	node.getPosition(_descriptor.imagePosition);
+	_descriptor.imageHeight = node.getHeight();
+	_descriptor.imageBackground = node.getBackground();
+	_descriptor.imageVisible = node.getVisible();
 }
 
 void HiveNodeCapture::visit(AgentNode& node)

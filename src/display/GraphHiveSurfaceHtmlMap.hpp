@@ -88,6 +88,14 @@ class GraphHiveSurfaceHtmlMap : public GraphHiveSurfaceHttpMap, private EventLis
         void setStructurePath(std::string path);
 
         /**
+         * Set the page that this map's page offers a link to for getting back to the listing of every hive.
+         * @note Like the structure page, where the listing is mounted is decided by whoever mounted it, so it has
+         *       to be told. Left unset, this map's page carries no such link at all.
+         * @param path Path the link is to point at, query included, e.g. "/?list=1". Empty to offer no link.
+         */
+        void setIndexPath(std::string path);
+
+        /**
          * Set the capability required of the model that answers chats made through this map's page.
          * @note Held here rather than asked of the browser, so that which model a page may reach is decided by
          *       whoever mounted the map and not by whoever loads it.
@@ -128,6 +136,8 @@ class GraphHiveSurfaceHtmlMap : public GraphHiveSurfaceHttpMap, private EventLis
          * @note %STRUCTURE_MARKUP% becomes the link to this hive's structure page set by setStructurePath(),
          *       or nothing at all when none has been set. A page is free to leave it out, and one that carries
          *       it need not do anything else to hide the link when there is no such page to point at.
+         * @note %INDEX_MARKUP% likewise becomes the link to the listing of every hive set by setIndexPath(), or
+         *       nothing at all when none has been set.
          * @param pageTemplate Template to render.
          * @param response Response to populate with the rendered page.
          */
@@ -323,6 +333,10 @@ class GraphHiveSurfaceHtmlMap : public GraphHiveSurfaceHttpMap, private EventLis
         /// Page this map's page links to for viewing the structure of the same hive. Empty when there is no
         /// such page, which is what leaves the link off rather than offering one that leads nowhere.
         std::string _structurePath;
+
+        /// Page this map's page links to for getting back to the listing of every hive. Empty when there is no
+        /// such page, which leaves the link off.
+        std::string _indexPath;
 
         /// Whether starting this map's chat thread has been attempted, which only happens once a first chat is
         /// made so that a page that is only ever looked at never costs a thread.

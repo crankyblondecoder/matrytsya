@@ -4,8 +4,10 @@
 #include "../hiveNames.hpp"
 #include "../../graph/GraphNodeLocation.hpp"
 #include "../../graph/graphSceneElements.hpp"
+#include "../../graph/pngImage.hpp"
 #include "../../rapidjson/document.h"
 #include "../../rapidjson/error/en.h"
+#include "../../util/base64.hpp"
 
 #include <algorithm>
 #include <utility>
@@ -460,9 +462,9 @@ namespace
 	}
 
 	// Members left out keep the transparent, borderless, square-cornered default.
-	void __parseTextBackground(const rapidjson::Value& backgroundValue, TextBackground& background)
+	void __parseTextBackground(const rapidjson::Value& backgroundValue, TextBackground& background,
+		PersistException::Error onError)
 	{
-		const PersistException::Error onError = PersistException::JSON_INVALID_TEXT_BACKGROUND;
 
 		if(!backgroundValue.IsObject()) throw PersistException(onError);
 
@@ -542,7 +544,8 @@ namespace
 
 		if(nodeValue.HasMember("textBackground"))
 		{
-			__parseTextBackground(nodeValue["textBackground"], descriptor.textBackground);
+			__parseTextBackground(nodeValue["textBackground"], descriptor.textBackground,
+				PersistException::JSON_INVALID_TEXT_BACKGROUND);
 		}
 
 		if(nodeValue.HasMember("textVisible"))
@@ -550,6 +553,82 @@ namespace
 			if(!nodeValue["textVisible"].IsBool()) throw PersistException(PersistException::JSON_INVALID_TEXT_VISIBLE);
 
 			descriptor.textVisible = nodeValue["textVisible"].GetBool();
+		}
+	}
+
+	void __parseImageFields(const rapidjson::Value& nodeValue, HiveNodeDescriptor& descriptor)
+	{
+		const PersistException::Error onSourceError = PersistException::JSON_INVALID_IMAGE_SOURCE;
+
+		int sourceCount = nodeValue.HasMember("imageData") + nodeValue.HasMember("imageFile") +
+			nodeValue.HasMember("imageUrl");
+
+		if(sourceCount != 1) throw PersistException(onSourceError);
+
+		if(nodeValue.HasMember("imageData"))
+		{
+			const rapidjson::Value& dataValue = nodeValue["imageData"];
+
+			if(!dataValue.IsString()) throw PersistException(onSourceError);
+
+			descriptor.imageKind = ImageSource::EMBEDDED;
+
+			if(!base64::decode(std::string(dataValue.GetString(), dataValue.GetStringLength()), descriptor.imageBytes))
+			{
+				throw PersistException(onSourceError);
+			}
+		}
+		else
+		{
+			const char* key = nodeValue.HasMember("imageFile") ? "imageFile" : "imageUrl";
+			const rapidjson::Value& referenceValue = nodeValue[key];
+
+			if(!referenceValue.IsString() || referenceValue.GetStringLength() == 0) throw PersistException(onSourceError);
+
+			descriptor.imageReference = std::string(referenceValue.GetString(), referenceValue.GetStringLength());
+
+			if(nodeValue.HasMember("imageFile"))
+			{
+				descriptor.imageKind = ImageSource::FILE;
+			}
+			else
+			{
+				// Only the scheme is checked: a URL image may be in any format the viewer can display.
+				if(!pngImage::isImageUrl(descriptor.imageReference)) throw PersistException(onSourceError);
+
+				descriptor.imageKind = ImageSource::URL;
+			}
+		}
+
+		if(nodeValue.HasMember("imagePosition"))
+		{
+			__readDoubleArray(nodeValue["imagePosition"], descriptor.imagePosition, 3,
+				PersistException::JSON_INVALID_IMAGE_POSITION);
+		}
+
+		if(nodeValue.HasMember("imageHeight"))
+		{
+			const rapidjson::Value& heightValue = nodeValue["imageHeight"];
+
+			if(!heightValue.IsNumber() || !(heightValue.GetDouble() > 0.0))
+			{
+				throw PersistException(PersistException::JSON_INVALID_IMAGE_HEIGHT);
+			}
+
+			descriptor.imageHeight = heightValue.GetDouble();
+		}
+
+		if(nodeValue.HasMember("imageBackground"))
+		{
+			__parseTextBackground(nodeValue["imageBackground"], descriptor.imageBackground,
+				PersistException::JSON_INVALID_IMAGE_BACKGROUND);
+		}
+
+		if(nodeValue.HasMember("imageVisible"))
+		{
+			if(!nodeValue["imageVisible"].IsBool()) throw PersistException(PersistException::JSON_INVALID_IMAGE_VISIBLE);
+
+			descriptor.imageVisible = nodeValue["imageVisible"].GetBool();
 		}
 	}
 
@@ -632,6 +711,11 @@ namespace
 		if(descriptor.type == HiveNodeDescriptor::SCENE_TEXT_SCRIPT)
 		{
 			__parseTextFields(nodeValue, descriptor);
+		}
+
+		if(descriptor.type == HiveNodeDescriptor::SCENE_IMAGE)
+		{
+			__parseImageFields(nodeValue, descriptor);
 		}
 
 		return descriptor;

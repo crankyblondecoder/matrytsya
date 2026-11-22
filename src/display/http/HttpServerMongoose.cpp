@@ -12,6 +12,33 @@ namespace
 	/// Largest request body passed on to a handler. Nothing served takes more than a hive definition, which is
 	/// far smaller, so anything bigger is refused rather than buffered and parsed.
 	const size_t _MAX_BODY_BYTES = 1024 * 1024;
+
+	/**
+	 * Get the reason phrase sent after a status code. Only the codes this program sends are named; any other is
+	 * sent with an empty phrase, which HTTP allows, as clients go by the code alone.
+	 * @param statusCode HTTP status code.
+	 */
+	const char* _reasonPhrase(unsigned statusCode)
+	{
+		switch(statusCode)
+		{
+			case 200: return "OK";
+			case 201: return "Created";
+			case 204: return "No Content";
+			case 400: return "Bad Request";
+			case 401: return "Unauthorized";
+			case 403: return "Forbidden";
+			case 404: return "Not Found";
+			case 405: return "Method Not Allowed";
+			case 409: return "Conflict";
+			case 413: return "Payload Too Large";
+			case 429: return "Too Many Requests";
+			case 500: return "Internal Server Error";
+			case 503: return "Service Unavailable";
+		}
+
+		return "";
+	}
 }
 
 HttpServerMongoose::HttpServerMongoose(std::string address, unsigned port) : HttpServerBase(address, port)
@@ -123,5 +150,14 @@ void HttpServerMongoose::__eventHandler(mg_connection* connection, int event, vo
 		headers += header.first + ": " + header.second + "\r\n";
 	}
 
-	mg_http_reply(connection, (int) response.getStatus(), headers.c_str(), "%s", response.getBody().c_str());
+	std::string responseBody = response.getBody();
+
+	// Sent as raw bytes rather than through mg_http_reply(), whose formatting stops at the first zero byte, so that
+	// a binary body such as an image is sent whole.
+	mg_printf(connection, "HTTP/1.1 %u %s\r\n%sContent-Length: %lu\r\n\r\n", response.getStatus(),
+		_reasonPhrase(response.getStatus()), headers.c_str(), (unsigned long) responseBody.size());
+	mg_send(connection, responseBody.data(), responseBody.size());
+
+	// As mg_http_reply() leaves it, to say this connection's response is complete.
+	connection -> is_resp = 0;
 }

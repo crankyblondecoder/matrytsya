@@ -47,7 +47,7 @@ class SceneAction : public GraphAction
 		/// Surface this action populates as it traverses the graph. Not owned by this.
 		Handle<GraphHiveSceneSurface> _surface;
 
-		/// When in scene version mode, running sum of the versions of all nodes visited by this action.
+		/// When in scene version mode, running hash of the ids and versions of all nodes visited by this action.
 		std::atomic<unsigned> _version{0};
 
 		/// Whether surface population was started.

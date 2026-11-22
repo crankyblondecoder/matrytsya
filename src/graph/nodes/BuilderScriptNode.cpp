@@ -5,6 +5,7 @@
 #include "SceneGeometry.hpp"
 #include "SceneGeometryNode.hpp"
 #include "SceneGeometryScriptNode.hpp"
+#include "SceneImageNode.hpp"
 #include "SceneRootNode.hpp"
 #include "SceneTextScriptNode.hpp"
 #include "SceneTransformNode.hpp"
@@ -23,6 +24,8 @@
 #include "../GraphNamed.hpp"
 #include "../GraphNodeLocation.hpp"
 #include "../GraphToolBindingsFactory.hpp"
+#include "../ImageException.hpp"
+#include "../pngImage.hpp"
 #include "../TextBackground.hpp"
 
 #include "../../agent/AgenticHarness.hpp"
@@ -30,6 +33,7 @@
 #include "../../lua/lua.hpp"
 #include "../../thread/thread.hpp"
 #include "../../thread/ThreadException.hpp"
+#include "../../util/base64.hpp"
 #include "../../log/log.hpp"
 
 #include <limits.h>
@@ -68,6 +72,8 @@ namespace
 	const char* const AGENT_FIELDS[] = {"name", "pokeEnabled", "capability", "prompts", "autoTriggerAgentAction",
 		"serialiseEmittedActions"};
 	const char* const TRIGGER_FIELDS[] = {"name", "pokeEnabled", "coreScript", "pokeScript", "emitTriggerOnPoke"};
+	const char* const SCENE_IMAGE_FIELDS[] = {"name", "pokeEnabled", "imageData", "imageFile", "imageUrl",
+		"imagePosition", "imageHeight", "imageBackground", "imageVisible"};
 
 	// -- Fields of the nested tables those take --
 
@@ -637,13 +643,14 @@ namespace
 	}
 
 	/**
-	 * Read the optional textBackground field, with the same shape setTextBackground() takes. Fields left out keep
-	 * the value already in background.
+	 * Read an optional background field, such as textBackground, with the same shape setTextBackground() takes.
+	 * Fields left out keep the value already in background.
 	 * @note Leaves the stack as it found it, if it succeeds.
 	 */
-	bool __readTextBackground(lua_State* luaState, int index, TextBackground& background, char* error)
+	bool __readTextBackground(lua_State* luaState, int index, const char* field, TextBackground& background,
+		char* error)
 	{
-		int type = __rawGetField(luaState, index, "textBackground"); // [..., textBackground]
+		int type = __rawGetField(luaState, index, field); // [..., background]
 
 		if(type == LUA_TNIL)
 		{
@@ -651,7 +658,7 @@ namespace
 			return true;
 		}
 
-		if(type != LUA_TTABLE) return __fail(error, "field 'textBackground' must be a table");
+		if(type != LUA_TTABLE) return __fail(error, "field '%s' must be a table", field);
 
 		int backgroundIndex = lua_gettop(luaState);
 
@@ -661,10 +668,10 @@ namespace
 			|| !__readNumberField(luaState, backgroundIndex, "borderWidth", background.borderWidth, error)
 			|| !__readNumberField(luaState, backgroundIndex, "padding", background.padding, error))
 		{
-			return __failWithin(error, "textBackground");
+			return __failWithin(error, field);
 		}
 
-		int radiusType = __rawGetField(luaState, backgroundIndex, "cornerRadius"); // [..., textBackground, radius]
+		int radiusType = __rawGetField(luaState, backgroundIndex, "cornerRadius"); // [..., background, radius]
 
 		if(radiusType == LUA_TNUMBER)
 		{
@@ -676,12 +683,12 @@ namespace
 		else if(radiusType != LUA_TNIL
 			&& !__readNumbers(luaState, lua_gettop(luaState), background.cornerRadii, TextBackground::CORNER_COUNT))
 		{
-			return __fail(error, "textBackground: field 'cornerRadius' must be a number or an array of 4 numbers");
+			return __fail(error, "%s: field 'cornerRadius' must be a number or an array of 4 numbers", field);
 		}
 
 		lua_pop(luaState, 2); // [...]
 
-		if(!background.isValid()) return __fail(error, "textBackground: lengths must be finite and not negative");
+		if(!background.isValid()) return __fail(error, "%s: lengths must be finite and not negative", field);
 
 		return true;
 	}
@@ -838,6 +845,30 @@ struct BuilderScriptNode::NodeSpec
 	/// Whether a scene text node's text is shown.
 	bool textVisible = true;
 
+	/// Where a scene image node's image comes from.
+	ImageSource::Kind imageKind = ImageSource::EMBEDDED;
+
+	/// PNG bytes of a scene image node's embedded image, decoded from its base64.
+	std::string imageBytes;
+
+	/// Path of a scene image node's file image or address of its URL image.
+	std::string imageReference;
+
+	/// A scene image node's image, once read from imageBytes or imageReference.
+	ImageSource imageSource;
+
+	/// Anchor position of a scene image node's image.
+	double imagePosition[3] = {0.0, 0.0, 0.0};
+
+	/// Height of a scene image node's image.
+	double imageHeight = 1.0;
+
+	/// Box drawn behind a scene image node's image.
+	TextBackground imageBackground;
+
+	/// Whether a scene image node's image is shown.
+	bool imageVisible = true;
+
 	/// Capability of the model servicing an agent node's prompts.
 	AgenticHarness::Capability capability = AgenticHarness::Capability::MEDIUM;
 
@@ -870,7 +901,8 @@ namespace
 			case 6: count = std::size(SCENE_TRANSFORM_SCRIPT_FIELDS); return SCENE_TRANSFORM_SCRIPT_FIELDS;
 			case 7: count = std::size(SCENE_TEXT_SCRIPT_FIELDS); return SCENE_TEXT_SCRIPT_FIELDS;
 			case 8: count = std::size(AGENT_FIELDS); return AGENT_FIELDS;
-			default: count = std::size(TRIGGER_FIELDS); return TRIGGER_FIELDS;
+			case 9: count = std::size(TRIGGER_FIELDS); return TRIGGER_FIELDS;
+			default: count = std::size(SCENE_IMAGE_FIELDS); return SCENE_IMAGE_FIELDS;
 		}
 	}
 }
@@ -1151,6 +1183,26 @@ BuilderScriptNode::BuildStatus BuilderScriptNode::__createNode(lua_State* luaSta
 			return BuildStatus::ARG_ERROR;
 		}
 
+		// Read before the build is claimed, so that an image that cannot be displayed does not use the build up. It
+		// is not an argument error, as a well formed call can still name a file that is missing or not a PNG.
+		if(type == CreatableNodeType::SCENE_IMAGE)
+		{
+			try
+			{
+				switch(spec.imageKind)
+				{
+					case ImageSource::EMBEDDED: spec.imageSource = pngImage::fromPng(spec.imageBytes); break;
+					case ImageSource::FILE: spec.imageSource = pngImage::fromFile(spec.imageReference); break;
+					case ImageSource::URL: spec.imageSource = pngImage::fromUrl(spec.imageReference); break;
+				}
+			}
+			catch(ImageException& exception)
+			{
+				__fail(error, "%s: %s", bindingName, exception.getMessage());
+				return BuildStatus::RUNTIME_ERROR;
+			}
+		}
+
 		// Claimed only once the arguments are known to be good, so a call that raises never uses the build up.
 		if(!__claimBuild(poke))
 		{
@@ -1294,7 +1346,7 @@ bool BuilderScriptNode::__readNodeSpec(lua_State* luaState, int index, Creatable
 				|| !__readNumbersField(luaState, index, "textPosition", false, spec.textPosition, 3, error)
 				|| !__readNumberField(luaState, index, "textHeight", spec.textHeight, error)
 				|| !__readColourField(luaState, index, "textColour", spec.textColour, error)
-				|| !__readTextBackground(luaState, index, spec.textBackground, error)
+				|| !__readTextBackground(luaState, index, "textBackground", spec.textBackground, error)
 				|| !__readBoolField(luaState, index, "textVisible", spec.textVisible, error))
 			{
 				return false;
@@ -1317,6 +1369,54 @@ bool BuilderScriptNode::__readNodeSpec(lua_State* luaState, int index, Creatable
 		case CreatableNodeType::TRIGGER:
 		{
 			return __readBoolField(luaState, index, "emitTriggerOnPoke", spec.emitTriggerOnPoke, error);
+		}
+
+		case CreatableNodeType::SCENE_IMAGE:
+		{
+			std::string imageData;
+			std::string imageFile;
+			std::string imageUrl;
+
+			if(!__readStringField(luaState, index, "imageData", false, imageData, error)
+				|| !__readStringField(luaState, index, "imageFile", false, imageFile, error)
+				|| !__readStringField(luaState, index, "imageUrl", false, imageUrl, error)
+				|| !__readNumbersField(luaState, index, "imagePosition", false, spec.imagePosition, 3, error)
+				|| !__readNumberField(luaState, index, "imageHeight", spec.imageHeight, error)
+				|| !__readTextBackground(luaState, index, "imageBackground", spec.imageBackground, error)
+				|| !__readBoolField(luaState, index, "imageVisible", spec.imageVisible, error))
+			{
+				return false;
+			}
+
+			if(!imageData.empty() + !imageFile.empty() + !imageUrl.empty() != 1)
+			{
+				return __fail(error, "exactly one of fields 'imageData', 'imageFile' and 'imageUrl' is required");
+			}
+
+			if(!imageData.empty())
+			{
+				spec.imageKind = ImageSource::EMBEDDED;
+
+				if(!base64::decode(imageData, spec.imageBytes)) return __fail(error, "field 'imageData' must be base64");
+			}
+			else if(!imageFile.empty())
+			{
+				spec.imageKind = ImageSource::FILE;
+				spec.imageReference = imageFile;
+			}
+			else
+			{
+				// Only the scheme is checked: a URL image may be in any format the viewer can display.
+				if(!pngImage::isImageUrl(imageUrl)) return __fail(error, "field 'imageUrl' must be an http or https URL");
+
+				spec.imageKind = ImageSource::URL;
+				spec.imageReference = imageUrl;
+			}
+
+			// Written so that a NaN fails it too.
+			if(!(spec.imageHeight > 0.0)) return __fail(error, "field 'imageHeight' must be greater than zero");
+
+			return true;
 		}
 	}
 
@@ -1427,6 +1527,27 @@ GraphNode* BuilderScriptNode::__constructNode(CreatableNodeType type, const Node
 		case CreatableNodeType::TRIGGER:
 		{
 			return new TriggerNode(spec.coreScript, spec.pokeScript, spec.emitTriggerOnPoke);
+		}
+
+		case CreatableNodeType::SCENE_IMAGE:
+		{
+			SceneImageNode* node = new SceneImageNode();
+
+			try
+			{
+				node -> setSource(spec.imageSource);
+				node -> setPosition(spec.imagePosition);
+				node -> setHeight(spec.imageHeight);
+				node -> setBackground(spec.imageBackground);
+				node -> setVisible(spec.imageVisible);
+			}
+			catch(...)
+			{
+				node -> decrRef();
+				throw;
+			}
+
+			return node;
 		}
 	}
 

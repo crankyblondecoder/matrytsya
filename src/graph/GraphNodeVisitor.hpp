@@ -7,6 +7,7 @@ class GraphNode;
 class PingNode;
 class SceneGeometryNode;
 class SceneGeometryScriptNode;
+class SceneImageNode;
 class SceneRootNode;
 class SceneTextScriptNode;
 class SceneTransformNode;
@@ -44,6 +45,7 @@ class GraphNodeVisitor
 		virtual void visit(AgentNode& node) = 0;
 		virtual void visit(TriggerNode& node) = 0;
 		virtual void visit(BuilderScriptNode& node) = 0;
+		virtual void visit(SceneImageNode& node) = 0;
 };
 
 #endif

@@ -127,7 +127,8 @@ class BuilderScriptNode : public ScriptNode, public AgentActionTarget, public Tr
 			SCENE_TRANSFORM_SCRIPT,
 			SCENE_TEXT_SCRIPT,
 			AGENT,
-			TRIGGER
+			TRIGGER,
+			SCENE_IMAGE
 		};
 
 		/**
@@ -289,7 +290,8 @@ class BuilderScriptNode : public ScriptNode, public AgentActionTarget, public Tr
 			CreatableNodeType::SCENE_TRANSFORM_SCRIPT,
 			CreatableNodeType::SCENE_TEXT_SCRIPT,
 			CreatableNodeType::AGENT,
-			CreatableNodeType::TRIGGER};
+			CreatableNodeType::TRIGGER,
+			CreatableNodeType::SCENE_IMAGE};
 
 		/// Name of the Lua global each CreatableNodeType's create binding is registered under.
 		static constexpr const char* CREATE_BINDING_NAMES[] = {
@@ -302,7 +304,8 @@ class BuilderScriptNode : public ScriptNode, public AgentActionTarget, public Tr
 			"createSceneTransformScriptNode",
 			"createSceneTextScriptNode",
 			"createAgentNode",
-			"createTriggerNode"};
+			"createTriggerNode",
+			"createSceneImageNode"};
 
 		/// Whether only the first session that builds may build.
 		const bool _buildOnce;

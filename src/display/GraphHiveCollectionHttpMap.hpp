@@ -48,6 +48,12 @@ class GraphHiveCollectionHttpMap : public RefCounted, public HttpRequestHandler
         std::string getPath();
 
         /**
+         * Get the address of the listing of every hive, which is the top page asked for in a way that is never
+         * sent on to the landing path. This is what a page wanting to offer the way back to every hive links to.
+         */
+        std::string getListingPath();
+
+        /**
          * Offer a surface map on the page of the hive it belongs to.
          * @note Only the surface's name and the path the map is mounted at are taken, so this neither owns nor
          *       keeps a reference to the map. A map that goes away while still registered leaves a link behind
@@ -60,7 +66,8 @@ class GraphHiveCollectionHttpMap : public RefCounted, public HttpRequestHandler
         /**
          * Send a browser arriving at the top page on to another page instead of showing the hive listing.
          * @param path Path to send it to. Empty to show the listing again, which is how it starts out.
-         * @note Only the top page is affected; a hive's page is still reachable at its own path.
+         * @note Only the top page is affected; a hive's page is still reachable at its own path, and the top
+         *       page still shows the listing when asked for with the query "list=1" (see getListingPath()).
          */
         void setLandingPath(std::string path);
 
@@ -111,9 +118,10 @@ class GraphHiveCollectionHttpMap : public RefCounted, public HttpRequestHandler
 
         /**
          * Serve the top page, listing the hives the collection currently holds.
+         * @param listRequested True to show the listing even when a landing path is set.
          * @param response Response to populate.
          */
-        void __serveHiveIndex(HttpResponse& response);
+        void __serveHiveIndex(bool listRequested, HttpResponse& response);
 
         /**
          * Serve a hive's page, listing the surface maps registered for it.

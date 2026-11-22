@@ -90,3 +90,13 @@ TextVisibleActionTarget* GraphActionTargetable::getTextVisibleActionTarget()
 {
 	return 0;
 }
+
+ImageVisibleActionTarget* GraphActionTargetable::getImageVisibleActionTarget()
+{
+	return 0;
+}
+
+FocusActionTarget* GraphActionTargetable::getFocusActionTarget()
+{
+	return 0;
+}

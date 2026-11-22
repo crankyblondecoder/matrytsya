@@ -27,3 +27,5 @@
 #include "./scene/SceneTest.hpp"
 #include "./scene/SceneViewerCountUnitTest.hpp"
 #include "./examples/GardenHiveUnitTest.hpp"
+#include "./graph/nodes/SceneImageNodeUnitTest.hpp"
+#include "./graph/actions/FocusActionUnitTest.hpp"

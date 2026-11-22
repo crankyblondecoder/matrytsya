@@ -17,6 +17,7 @@ SceneTextScriptNode::SceneTextScriptNode(const std::string& coreScript, const st
 	_addActionFlag(SCENE_GRAPH_ACTION);
 	_addActionFlag(SCENE_STROBE_GRAPH_ACTION);
 	_addActionFlag(TEXT_VISIBLE_GRAPH_ACTION);
+	_addActionFlag(FOCUS_GRAPH_ACTION);
 }
 
 GraphNodeType SceneTextScriptNode::getType()
@@ -38,6 +39,8 @@ void SceneTextScriptNode::_registerCoreGlobals(lua_State* luaState)
 
 void SceneTextScriptNode::populateSurface(Handle<GraphHiveSceneSurface> surface)
 {
+	_populateFocusRequest(surface, getId());
+
 	SceneText::populateSurface(surface, getId());
 }
 
@@ -46,6 +49,11 @@ void SceneTextScriptNode::strobe()
 }
 
 SceneActionTarget* SceneTextScriptNode::getSceneActionTarget()
+{
+	return this;
+}
+
+FocusActionTarget* SceneTextScriptNode::getFocusActionTarget()
 {
 	return this;
 }
@@ -62,7 +70,9 @@ void SceneTextScriptNode::setTextVisible(bool visible)
 
 unsigned SceneTextScriptNode::getVersion()
 {
-	return SceneText::getVersion();
+	// A focus request is counted in so that one is enough on its own to make a scene action repopulate the
+	// surface.
+	return SceneText::getVersion() + getFocusRequestCount();
 }
 
 int SceneTextScriptNode::__luaSetText(lua_State* luaState)

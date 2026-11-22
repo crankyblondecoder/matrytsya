@@ -1,4 +1,4 @@
-srcFiles =
+srcFiles = base64.cpp
 
 objFiles = $(srcFiles:.cpp=.o)
 

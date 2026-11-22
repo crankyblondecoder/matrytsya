@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "../graph/GraphNodeLocation.hpp"
+#include "../graph/ImageSource.hpp"
 #include "../graph/TextBackground.hpp"
 #include "../graph/graphSceneElements.hpp"
 
@@ -81,7 +82,8 @@ struct HiveNodeDescriptor
 		AGENT,
 		TRIGGER,
 		SCENE_TEXT_SCRIPT,
-		BUILDER_SCRIPT
+		BUILDER_SCRIPT,
+		SCENE_IMAGE
 	};
 
 	/// Concrete node type this descriptor describes.
@@ -159,6 +161,29 @@ struct HiveNodeDescriptor
 
 	/// Whether a SceneTextScriptNode's text is shown. Only meaningful when type == SCENE_TEXT_SCRIPT.
 	bool textVisible = true;
+
+	/// Where a SceneImageNode's image comes from. Only meaningful when type == SCENE_IMAGE.
+	ImageSource::Kind imageKind = ImageSource::EMBEDDED;
+
+	/// PNG bytes of a SceneImageNode's embedded image, as bytes rather than base64. Only meaningful when
+	/// type == SCENE_IMAGE and imageKind == EMBEDDED.
+	std::string imageBytes;
+
+	/// Path of a SceneImageNode's file image or address of its URL image. Only meaningful when type == SCENE_IMAGE
+	/// and imageKind is FILE or URL.
+	std::string imageReference;
+
+	/// Anchor position of a SceneImageNode's image: X, Y, Z. Only meaningful when type == SCENE_IMAGE.
+	double imagePosition[3] = {0.0, 0.0, 0.0};
+
+	/// Height of a SceneImageNode's image. Only meaningful when type == SCENE_IMAGE.
+	double imageHeight = 1.0;
+
+	/// Box drawn behind a SceneImageNode's image. Only meaningful when type == SCENE_IMAGE.
+	TextBackground imageBackground;
+
+	/// Whether a SceneImageNode's image is shown. Only meaningful when type == SCENE_IMAGE.
+	bool imageVisible = true;
 };
 
 #endif

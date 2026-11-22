@@ -41,7 +41,10 @@ enum class GraphNodeType
 	SCENE_TEXT_SCRIPT_NODE,
 
 	/// A BuilderScriptNode.
-	BUILDER_SCRIPT_NODE
+	BUILDER_SCRIPT_NODE,
+
+	/// A SceneImageNode.
+	SCENE_IMAGE_NODE
 };
 
 #endif

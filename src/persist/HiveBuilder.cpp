@@ -14,12 +14,15 @@
 #include "../graph/GraphException.hpp"
 #include "../graph/GraphNamed.hpp"
 #include "../graph/GraphNode.hpp"
+#include "../graph/ImageException.hpp"
+#include "../graph/pngImage.hpp"
 #include "../graph/actions/AgentAction.hpp"
 #include "../graph/nodes/AgentNode.hpp"
 #include "../graph/nodes/BuilderScriptNode.hpp"
 #include "../graph/nodes/PingNode.hpp"
 #include "../graph/nodes/SceneGeometryNode.hpp"
 #include "../graph/nodes/SceneGeometryScriptNode.hpp"
+#include "../graph/nodes/SceneImageNode.hpp"
 #include "../graph/nodes/SceneRootNode.hpp"
 #include "../graph/nodes/SceneTextScriptNode.hpp"
 #include "../graph/nodes/SceneTransformNode.hpp"
@@ -358,6 +361,22 @@ GraphNode* HiveBuilder::__createNode(const HiveNodeDescriptor& descriptor)
 			return new TriggerNode(descriptor.coreScript, descriptor.pokeScript, descriptor.emitTriggerOnPoke);
 		}
 
+		case HiveNodeDescriptor::SCENE_IMAGE:
+		{
+			// Read before the node is made, so that an image that cannot be displayed leaves nothing to clean up.
+			ImageSource source = __imageSource(descriptor);
+
+			SceneImageNode* node = new SceneImageNode();
+
+			node -> setSource(source);
+			node -> setPosition(descriptor.imagePosition);
+			node -> setHeight(descriptor.imageHeight);
+			node -> setBackground(descriptor.imageBackground);
+			node -> setVisible(descriptor.imageVisible);
+
+			return node;
+		}
+
 		case HiveNodeDescriptor::BUILDER_SCRIPT:
 		{
 			return new BuilderScriptNode(descriptor.coreScript, descriptor.pokeScript, descriptor.buildOnce,
@@ -369,6 +388,29 @@ GraphNode* HiveBuilder::__createNode(const HiveNodeDescriptor& descriptor)
 			throw PersistException(PersistException::UNKNOWN_NODE_TYPE);
 		}
 	}
+}
+
+ImageSource HiveBuilder::__imageSource(const HiveNodeDescriptor& descriptor)
+{
+	try
+	{
+		switch(descriptor.imageKind)
+		{
+			case ImageSource::EMBEDDED: return pngImage::fromPng(descriptor.imageBytes);
+			case ImageSource::FILE: return pngImage::fromFile(descriptor.imageReference);
+			case ImageSource::URL: return pngImage::fromUrl(descriptor.imageReference);
+		}
+	}
+	catch(ImageException& exception)
+	{
+		std::string detail = exception.getMessage();
+
+		if(descriptor.imageKind == ImageSource::FILE) detail += ": " + descriptor.imageReference;
+
+		throw PersistException(PersistException::INVALID_IMAGE, detail);
+	}
+
+	throw PersistException(PersistException::INVALID_IMAGE);
 }
 
 GraphHiveSurface* HiveBuilder::__createSurface(const HiveSurfaceDescriptor& descriptor, Handle<GraphNode> referencedNode,

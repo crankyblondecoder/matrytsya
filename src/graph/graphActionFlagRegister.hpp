@@ -26,9 +26,11 @@
 
 /// Supports showing and hiding text.
 #define TEXT_VISIBLE_GRAPH_ACTION 0x00000400
-//#define _GRAPH_ACTION 0x00000800
+/// Supports showing and hiding images.
+#define IMAGE_VISIBLE_GRAPH_ACTION 0x00000800
 
-//#define _GRAPH_ACTION 0x00001000
+/// Supports asking the views of a scene to bring a visual object into focus.
+#define FOCUS_GRAPH_ACTION 0x00001000
 //#define _GRAPH_ACTION 0x00002000
 //#define _GRAPH_ACTION 0x00004000
 //#define _GRAPH_ACTION 0x00008000

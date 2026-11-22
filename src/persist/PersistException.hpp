@@ -58,6 +58,9 @@ class PersistException : public Exception
 			UNKNOWN_AGENT_PROMPT_NODE_TYPE,
 			/// A vertex group's visibility was not one of the names in SceneGeometry::VertexVisibility.
 			UNKNOWN_VERTEX_VISIBILITY,
+			/// A SceneImageNode's embedded or file image could not be read, or was not a PNG that can be displayed.
+			/// The detail says why, and names the file for a file image.
+			INVALID_IMAGE,
 
 			// -- HarnessBuilder errors --
 
@@ -167,6 +170,19 @@ class PersistException : public Exception
 			JSON_INVALID_TEXT_BACKGROUND,
 			/// A SceneTextScriptNode's "textVisible" member was present but not a boolean.
 			JSON_INVALID_TEXT_VISIBLE,
+			/// A SceneImageNode did not have exactly one of "imageData", "imageFile" and "imageUrl", or the one it
+			/// had was not a string, "imageData" was not valid base64, "imageFile" was empty or "imageUrl" was not an
+			/// http or https address.
+			JSON_INVALID_IMAGE_SOURCE,
+			/// A SceneImageNode's "imagePosition" member was present but not a 3 element numeric array.
+			JSON_INVALID_IMAGE_POSITION,
+			/// A SceneImageNode's "imageHeight" member was present but not a number greater than 0.
+			JSON_INVALID_IMAGE_HEIGHT,
+			/// A SceneImageNode's "imageBackground" member was present but not an object, or a field in it was
+			/// malformed, a colour channel was outside 0-255, or a length was negative.
+			JSON_INVALID_IMAGE_BACKGROUND,
+			/// A SceneImageNode's "imageVisible" member was present but not a boolean.
+			JSON_INVALID_IMAGE_VISIBLE,
 
 			// -- JsonHarnessLoader errors --
 

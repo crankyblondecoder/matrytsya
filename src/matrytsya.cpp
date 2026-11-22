@@ -16,6 +16,7 @@
 #include "graph/GraphHiveCollection.hpp"
 #include "graph/GraphNode.hpp"
 #include "graph/GraphToolBindingsFactory.hpp"
+#include "graph/pngImage.hpp"
 #include "persist/HarnessBuilder.hpp"
 #include "persist/HiveLoader.hpp"
 #include "persist/PersistException.hpp"
@@ -121,6 +122,9 @@ namespace
 			_DEFAULT_SHADING_MODEL) << ").\n"
 			"  -t, --threads COUNT          Threads in each hive's thread pool (default " << _DEFAULT_NUM_THREADS
 			<< ").\n"
+			"  -i, --image-root DIR         Directory image files are read from. A scene image node's imageFile is\n"
+			"                               then relative to DIR, and only files in DIR or a directory below it\n"
+			"                               can be read. Without it, any file the program can read may be used.\n"
 			"  -k, --api-token-env VAR      Enable the hive control API at " << _API_PATH << "/v1/, accepting the\n"
 			"                               API token(s) held in environment variable VAR (comma separated, each\n"
 			"                               at least " << ApiAuthenticator::MIN_TOKEN_LENGTH << " characters). Unless the address is loopback,\n"
@@ -351,6 +355,7 @@ int main(int argc, char* argv[])
 	std::string apiTokenEnv;
 	std::string tlsCertPath;
 	std::string tlsKeyPath;
+	std::string imageRoot;
 
 	const struct option longOptions[] =
 	{
@@ -362,6 +367,7 @@ int main(int argc, char* argv[])
 		{"no-chat", no_argument, 0, 'n'},
 		{"shading", required_argument, 0, 's'},
 		{"threads", required_argument, 0, 't'},
+		{"image-root", required_argument, 0, 'i'},
 		{"api-token-env", required_argument, 0, 'k'},
 		{"tls-cert", required_argument, 0, _OPTION_TLS_CERT},
 		{"tls-key", required_argument, 0, _OPTION_TLS_KEY},
@@ -372,7 +378,7 @@ int main(int argc, char* argv[])
 
 	int option;
 
-	while((option = getopt_long(argc, argv, "d:p:a:H:c:ns:t:k:vh", longOptions, 0)) != -1)
+	while((option = getopt_long(argc, argv, "d:p:a:H:c:ns:t:i:k:vh", longOptions, 0)) != -1)
 	{
 		switch(option)
 		{
@@ -451,6 +457,19 @@ int main(int argc, char* argv[])
 
 				break;
 
+			case 'i':
+
+				// An empty root would lift the confinement this option exists to impose.
+				if(optarg[0] == '\0')
+				{
+					std::cerr << argv[0] << ": the image root must not be empty" << std::endl;
+					return 1;
+				}
+
+				imageRoot = optarg;
+
+				break;
+
 			case 'k':
 
 				apiTokenEnv = optarg;
@@ -491,6 +510,13 @@ int main(int argc, char* argv[])
 	if(tlsCertPath.empty() != tlsKeyPath.empty())
 	{
 		std::cerr << argv[0] << ": --tls-cert and --tls-key must be given together" << std::endl;
+		return 1;
+	}
+
+	// Set before any hive is loaded, as building a hive is what reads its image files.
+	if(!imageRoot.empty() && !pngImage::setFileRoot(imageRoot))
+	{
+		std::cerr << argv[0] << ": image root '" << imageRoot << "' is not a directory that can be read" << std::endl;
 		return 1;
 	}
 

@@ -16,6 +16,7 @@ SceneGeometryNode::SceneGeometryNode(bool emitAgentAffectAction)
 	_addActionFlag(SCENE_GRAPH_ACTION);
 	_addActionFlag(SCENE_STROBE_GRAPH_ACTION);
 	_addActionFlag(AGENT_AFFECT_GRAPH_ACTION);
+	_addActionFlag(FOCUS_GRAPH_ACTION);
 }
 
 GraphNodeType SceneGeometryNode::getType()
@@ -30,6 +31,8 @@ void SceneGeometryNode::accept(GraphNodeVisitor& visitor)
 
 void SceneGeometryNode::populateSurface(Handle<GraphHiveSceneSurface> surface)
 {
+	_populateFocusRequest(surface, getId());
+
 	SceneGeometry::populateSurface(surface, getId(), getPokeEnabled());
 }
 
@@ -43,6 +46,11 @@ void SceneGeometryNode::setStrobe(bool flag)
 }
 
 SceneActionTarget* SceneGeometryNode::getSceneActionTarget()
+{
+	return this;
+}
+
+FocusActionTarget* SceneGeometryNode::getFocusActionTarget()
 {
 	return this;
 }
@@ -95,6 +103,6 @@ void SceneGeometryNode::_emitAgentAffectAction(bool agentAffecting)
 unsigned SceneGeometryNode::getVersion()
 {
 	// The scene version rather than the vertex version, so that a change to the agent visible flag alone is
-	// still enough to make a scene action repopulate the surface.
-	return SceneGeometry::getSceneVersion();
+	// still enough to make a scene action repopulate the surface. A focus request is likewise counted in.
+	return SceneGeometry::getSceneVersion() + getFocusRequestCount();
 }

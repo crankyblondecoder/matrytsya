@@ -208,7 +208,12 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 			/// AnimateAction. Params: animating (boolean). Required.
 			ANIMATE = 2,
 			/// TextVisibleAction. Params: visible (boolean). Required.
-			TEXT_VISIBLE = 3
+			TEXT_VISIBLE = 3,
+			/// ImageVisibleAction. Params: visible (boolean). Required.
+			IMAGE_VISIBLE = 4,
+			/// FocusAction. Params: nodeName (string), viewportFraction (number greater than 0, no greater than 1).
+			/// Both optional.
+			FOCUS = 5
 		};
 
 		// A session is the only thing permitted to drive either of this node's states, so it is the only
@@ -480,8 +485,11 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		 *
 		 * actionType is an ActionType constant. params is an optional table of the fields the action type takes:
 		 * TRIGGER takes an optional nodeName string and an optional nodeType NodeType constant, with the same
-		 * meaning as trigger()'s arguments, ANIMATE takes a required animating boolean and TEXT_VISIBLE takes a
-		 * required visible boolean. traversalKeys is an
+		 * meaning as trigger()'s arguments, ANIMATE takes a required animating boolean, and TEXT_VISIBLE and
+		 * IMAGE_VISIBLE each take a required visible boolean, and FOCUS takes an optional nodeName string that
+		 * restricts which of the nodes it reaches are brought into focus and an optional viewportFraction number
+		 * that fits each node to that fraction of the view's height rather than focusing on it the way a
+		 * right-click would. traversalKeys is an
 		 * optional array of the edge traversal keys the action holds, each an integer from 1 to 4294967295; the
 		 * action can traverse an edge with a non-zero traversal key only if it holds that key.
 		 * @note The emitted action is never applied to this node itself.
@@ -563,6 +571,25 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		void __emitTextVisibleAction(bool visible, std::vector<unsigned> edgeTraversalKeys);
 
 		/**
+		 * Emit an ImageVisibleAction from this node.
+		 * @param visible Image visibility the action applies to each node it reaches.
+		 * @param edgeTraversalKeys Keys the action holds.
+		 * @note Must only be called once every Lua argument has been validated, as for __emitTriggerAction().
+		 */
+		void __emitImageVisibleAction(bool visible, std::vector<unsigned> edgeTraversalKeys);
+
+		/**
+		 * Emit a FocusAction from this node.
+		 * @param nodeName If non-empty, only nodes with this name are brought into focus.
+		 * @param viewportFraction 0 to focus the way a right-click would, otherwise the fraction of the view's
+		 *        height each node's bounds are fitted to.
+		 * @param edgeTraversalKeys Keys the action holds.
+		 * @note Must only be called once every Lua argument has been validated, as for __emitTriggerAction().
+		 */
+		void __emitFocusAction(const std::string& nodeName, double viewportFraction,
+			std::vector<unsigned> edgeTraversalKeys);
+
+		/**
 		 * Allocator shared by both persistent Lua states this node owns, capped independently per state via
 		 * userData.
 		 * @param userData Pointer to the size_t byte counter (either &_coreMemoryUsed or &_pokeMemoryUsed)
@@ -585,10 +612,13 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		static constexpr EmittableActionType EMITTABLE_ACTION_TYPES[] = {
 			EmittableActionType::TRIGGER,
 			EmittableActionType::ANIMATE,
-			EmittableActionType::TEXT_VISIBLE};
+			EmittableActionType::TEXT_VISIBLE,
+			EmittableActionType::IMAGE_VISIBLE,
+			EmittableActionType::FOCUS};
 
 		/// Name each EmittableActionType is exposed under in the ActionType constant table.
-		static constexpr const char* EMITTABLE_ACTION_TYPE_NAMES[] = {"TRIGGER", "ANIMATE", "TEXT_VISIBLE"};
+		static constexpr const char* EMITTABLE_ACTION_TYPE_NAMES[] = {"TRIGGER", "ANIMATE", "TEXT_VISIBLE",
+			"IMAGE_VISIBLE", "FOCUS"};
 
 		/// Main Lua source that is run each time this node is invoked.
 		std::string _coreScript;
