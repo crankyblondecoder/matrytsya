@@ -40,10 +40,14 @@ bool ScriptAction::_apply(GraphNode* target)
 
 					switch(sharedValue.type)
 					{
-						case SharedValue::Type::BOOL:   session -> setGlobal(name.c_str(), sharedValue.boolValue); break;
-						case SharedValue::Type::INT:    session -> setGlobal(name.c_str(), sharedValue.intValue); break;
-						case SharedValue::Type::DOUBLE: session -> setGlobal(name.c_str(), sharedValue.doubleValue); break;
-						case SharedValue::Type::STRING: session -> setGlobal(name.c_str(), sharedValue.stringValue.c_str()); break;
+						case SharedValue::Type::BOOL:
+							session -> setGlobal(name.c_str(), sharedValue.boolValue); break;
+						case SharedValue::Type::INT:
+							session -> setGlobal(name.c_str(), sharedValue.intValue); break;
+						case SharedValue::Type::DOUBLE:
+							session -> setGlobal(name.c_str(), sharedValue.doubleValue); break;
+						case SharedValue::Type::STRING:
+							session -> setGlobal(name.c_str(), sharedValue.stringValue.c_str()); break;
 					}
 				}
 

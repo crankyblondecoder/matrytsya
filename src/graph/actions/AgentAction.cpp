@@ -42,7 +42,8 @@ bool AgentAction::_apply(GraphNode* target)
 		if(agentTarget)
 		{
 			_context.getInstance() -> clearTemporaryToolBindings();
-			_context.getInstance() -> addTemporaryToolBindings(agentTarget -> getModelToolBindings(_capability, getId()));
+			_context.getInstance() -> addTemporaryToolBindings(
+				agentTarget -> getModelToolBindings(_capability, getId()));
 		}
 
 		// The request below block for as long as the model takes to answer, which is long enough for the

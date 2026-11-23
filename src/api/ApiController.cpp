@@ -256,7 +256,8 @@ namespace
 
 			writer.Key("actionFlags");
 			writer.StartArray();
-			for(std::string& flagName : hiveNames::actionFlagNames(edgeInstance -> getActionFlags())) writeString(writer, flagName);
+			for(std::string& flagName : hiveNames::actionFlagNames(edgeInstance -> getActionFlags()))
+				writeString(writer, flagName);
 			writer.EndArray();
 
 			writer.Key("traversalKey");
@@ -710,7 +711,8 @@ void ApiController::__updateNode(Params& params, HttpRequest& request, HttpRespo
 		std::string memberName(member -> name.GetString(), member -> name.GetStringLength());
 
 		if((memberName == "name" || memberName == "type") &&
-			!(member -> value.IsString() && merged.HasMember(memberName.c_str()) && merged[memberName.c_str()] == member -> value))
+			!(member -> value.IsString() && merged.HasMember(memberName.c_str())
+				&& merged[memberName.c_str()] == member -> value))
 		{
 			throw ApiException(ApiException::UNPROCESSABLE, "A node's \"" + memberName + "\" cannot be changed. "
 				"Delete the node and create a new one instead.");
@@ -820,7 +822,8 @@ void ApiController::__createEdge(Params& params, HttpRequest& request, HttpRespo
 		{
 			if(!flag.IsString())
 			{
-				throw ApiException(ApiException::UNPROCESSABLE, "\"actionFlags\" must be an array of action flag names.");
+				throw ApiException(ApiException::UNPROCESSABLE,
+					"\"actionFlags\" must be an array of action flag names.");
 			}
 
 			descriptor.actionFlagNames.push_back(std::string(flag.GetString(), flag.GetStringLength()));
@@ -1143,7 +1146,8 @@ Handle<HiveRecorder> ApiController::__findRecorder(const std::string& hiveName)
 {
 	Handle<HiveRecorder> recorder = _host.getRecorder(hiveName);
 
-	if(!recorder.isValid()) throw ApiException(ApiException::NOT_FOUND, "No hive named \"" + hiveName + "\" is running.");
+	if(!recorder.isValid())
+		throw ApiException(ApiException::NOT_FOUND, "No hive named \"" + hiveName + "\" is running.");
 
 	return recorder;
 }
@@ -1152,7 +1156,8 @@ Handle<GraphNode> ApiController::__findNode(Handle<GraphHive>& hive, const std::
 {
 	Handle<GraphNode> node = hive.getInstance() -> getNode(nodeName);
 
-	if(!node.isValid()) throw ApiException(ApiException::NOT_FOUND, "No node named \"" + nodeName + "\" is in this hive.");
+	if(!node.isValid())
+		throw ApiException(ApiException::NOT_FOUND, "No node named \"" + nodeName + "\" is in this hive.");
 
 	return node;
 }

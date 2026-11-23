@@ -11,7 +11,8 @@ bool Model::_logToConsole = false;
 
 Model::Model(Handle<ModelProvider> provider, std::string name, std::string description,
 	std::string inputTokenCost, std::string outputTokenCost, bool free) :
-	_provider{provider}, _name{name}, _description{description}, _inputTokenCost{inputTokenCost}, _outputTokenCost{outputTokenCost}, _free{free}
+	_provider{provider}, _name{name}, _description{description}, _inputTokenCost{inputTokenCost},
+	_outputTokenCost{outputTokenCost}, _free{free}
 {
 }
 

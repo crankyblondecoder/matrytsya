@@ -22,7 +22,8 @@ class SceneAction : public GraphAction
 		 *        invalid, in which case, only the scene version is calculated.
 		 * @param energy The energy that is assigned to the action.
 		 */
-		SceneAction(Handle<GraphNode> initNode, Handle<GraphHiveSceneSurface> surface, unsigned energy = _startingEnergy);
+		SceneAction(Handle<GraphNode> initNode, Handle<GraphHiveSceneSurface> surface,
+			unsigned energy = _startingEnergy);
 
 		/**
 		 * Get the unique version of the scene formed by the nodes visited by this action.

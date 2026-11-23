@@ -731,8 +731,10 @@ const char* const graphViewPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 				// of the quad collapses to nothing there and is left out. Which one it is differs by pole: the
 				// first and last corners meet at the top, the middle two at the bottom. Leaving out the wrong
 				// one of the pair puts a hole at each pole, which is a hole straight through the sphere.
-				if(lat < SPHERE_LAT_BANDS - 1) pushTriangle(points[0], points[1], points[2], normals[0], normals[1], normals[2], colour, pickId);
-				if(lat > 0) pushTriangle(points[0], points[2], points[3], normals[0], normals[2], normals[3], colour, pickId);
+				if(lat < SPHERE_LAT_BANDS - 1)
+					pushTriangle(points[0], points[1], points[2], normals[0], normals[1], normals[2], colour, pickId);
+				if(lat > 0)
+					pushTriangle(points[0], points[2], points[3], normals[0], normals[2], normals[3], colour, pickId);
 			}
 		}
 	}
@@ -848,9 +850,12 @@ const char* const graphViewPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 			var triangle = triangles[index];
 
 			pushTriangle(
-				[centre[0] + triangle.a[0] * radius, centre[1] + triangle.a[1] * radius, centre[2] + triangle.a[2] * radius],
-				[centre[0] + triangle.b[0] * radius, centre[1] + triangle.b[1] * radius, centre[2] + triangle.b[2] * radius],
-				[centre[0] + triangle.c[0] * radius, centre[1] + triangle.c[1] * radius, centre[2] + triangle.c[2] * radius],
+				[centre[0] + triangle.a[0] * radius, centre[1] + triangle.a[1] * radius,
+					centre[2] + triangle.a[2] * radius],
+				[centre[0] + triangle.b[0] * radius, centre[1] + triangle.b[1] * radius,
+					centre[2] + triangle.b[2] * radius],
+				[centre[0] + triangle.c[0] * radius, centre[1] + triangle.c[1] * radius,
+					centre[2] + triangle.c[2] * radius],
 				triangle.normal, triangle.normal, triangle.normal, colour, pickId);
 		}
 	}
@@ -1079,8 +1084,10 @@ const char* const graphViewPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 			var normal0 = directions[side];
 			var normal1 = directions[(side + 1) % TUBE_SIDES];
 
-			var head0 = [base[0] + normal0[0] * ARROW_RADIUS, base[1] + normal0[1] * ARROW_RADIUS, base[2] + normal0[2] * ARROW_RADIUS];
-			var head1 = [base[0] + normal1[0] * ARROW_RADIUS, base[1] + normal1[1] * ARROW_RADIUS, base[2] + normal1[2] * ARROW_RADIUS];
+			var head0 = [base[0] + normal0[0] * ARROW_RADIUS, base[1] + normal0[1] * ARROW_RADIUS,
+				base[2] + normal0[2] * ARROW_RADIUS];
+			var head1 = [base[0] + normal1[0] * ARROW_RADIUS, base[1] + normal1[1] * ARROW_RADIUS,
+				base[2] + normal1[2] * ARROW_RADIUS];
 
 			pushTriangle(head0, tip, head1, normal0, axis, normal1, colour, pickId);
 			pushTriangle(base, head1, head0, backwards, backwards, backwards, colour, pickId);
@@ -1919,8 +1926,10 @@ const char* const graphViewPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 			var scale = nodeScale(node);
 
 			if(CUBE_NODE_TYPES[node.type]) buildCube(posn, NODE_RADIUS * scale, colour, pickId);
-			else if(TETRAHEDRON_NODE_TYPES[node.type]) buildTetrahedron(posn, TETRAHEDRON_RADIUS * scale, colour, pickId);
-			else if(DODECAHEDRON_NODE_TYPES[node.type]) buildDodecahedron(posn, DODECAHEDRON_RADIUS * scale, colour, pickId);
+			else if(TETRAHEDRON_NODE_TYPES[node.type])
+				buildTetrahedron(posn, TETRAHEDRON_RADIUS * scale, colour, pickId);
+			else if(DODECAHEDRON_NODE_TYPES[node.type])
+				buildDodecahedron(posn, DODECAHEDRON_RADIUS * scale, colour, pickId);
 			else buildSphere(posn, NODE_RADIUS * scale, colour, pickId);
 		}
 

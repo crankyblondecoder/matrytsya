@@ -165,7 +165,8 @@ namespace
 		{
 			const png_byte* rgba = &pixels[pixel * 4];
 
-			for(int channel = 0; channel < 3; channel++) sums[channel] += static_cast<unsigned long long>(rgba[channel]) * rgba[3];
+			for(int channel = 0; channel < 3; channel++)
+				sums[channel] += static_cast<unsigned long long>(rgba[channel]) * rgba[3];
 
 			alphaSum += rgba[3];
 		}

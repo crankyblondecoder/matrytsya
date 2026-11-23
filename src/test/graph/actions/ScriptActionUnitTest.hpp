@@ -238,8 +238,8 @@ TEST(ScriptActionTest, ExplicitlySharedGlobalsAreVisibleToEveryNode)
 TEST(ScriptActionTest, ScriptNodesAccumulateCounter)
 {
 	// Non-cyclic graph of 5 nodes: a PingNode root (the action's initial node, never itself invoked) followed
-	// by a chain of 4 plain ScriptNode instances. Each one reads "counter" and adds an integer value to it, and the action
-	// re-shares the result between nodes via _shareGlobal()/_getGlobal(),
+	// by a chain of 4 plain ScriptNode instances. Each one reads "counter" and adds an integer value to it, and
+	// the action re-shares the result between nodes via _shareGlobal()/_getGlobal(),
 
 	GraphHive* hive = new GraphHive(2);
 

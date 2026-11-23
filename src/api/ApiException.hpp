@@ -41,7 +41,8 @@ class ApiException : public Exception
 
 		virtual ~ApiException(){}
 
-		ApiException(Error error, std::string detail = "") : Exception(Exception::API), _error{error}, _detail{detail} {}
+		ApiException(Error error, std::string detail = "") :
+			Exception(Exception::API), _error{error}, _detail{detail} {}
 
 		Error getError() {return _error;}
 

@@ -101,8 +101,8 @@ class HiveBuilder
 		 *        concrete type for this surface type.
 		 * @throw PersistException(UNKNOWN_SURFACE_TYPE) If the descriptor's type is not recognised.
 		 */
-		static GraphHiveSurface* __createSurface(const HiveSurfaceDescriptor& descriptor, Handle<GraphNode> referencedNode,
-			bool hasInitialFocusNode, unsigned initialFocusNodeId);
+		static GraphHiveSurface* __createSurface(const HiveSurfaceDescriptor& descriptor,
+			Handle<GraphNode> referencedNode, bool hasInitialFocusNode, unsigned initialFocusNodeId);
 
 		/**
 		 * Translate a capability name into its enum value.

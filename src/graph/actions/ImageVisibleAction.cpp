@@ -10,7 +10,8 @@ ImageVisibleAction::~ImageVisibleAction()
 {
 }
 
-ImageVisibleAction::ImageVisibleAction(Handle<GraphNode> initNode, bool visible, std::vector<unsigned> edgeTraversalKeys)
+ImageVisibleAction::ImageVisibleAction(Handle<GraphNode> initNode, bool visible,
+	std::vector<unsigned> edgeTraversalKeys)
 	: GraphAction(initNode, _startingEnergy, 1, false, std::move(edgeTraversalKeys)), _visible(visible)
 {
 	_addFlag(IMAGE_VISIBLE_GRAPH_ACTION, true);

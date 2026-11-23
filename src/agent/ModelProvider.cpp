@@ -285,7 +285,8 @@ void ModelProvider::__httpGetEventHandler(mg_connection* connection, int event, 
 
 		__startTlsIfRequired(connection, state -> url);
 
-		mg_printf(connection, "GET %s HTTP/1.1\r\nHost: %.*s\r\n%sConnection: close\r\n\r\n", mg_url_uri(state -> url.c_str()), (int) host.len, host.buf, state -> headers.c_str());
+		mg_printf(connection, "GET %s HTTP/1.1\r\nHost: %.*s\r\n%sConnection: close\r\n\r\n",
+			mg_url_uri(state -> url.c_str()), (int) host.len, host.buf, state -> headers.c_str());
 	}
 	else if(event == MG_EV_HTTP_MSG)
 	{
@@ -361,7 +362,10 @@ void ModelProvider::__httpPostEventHandler(mg_connection* connection, int event,
 
 		__startTlsIfRequired(connection, state -> url);
 
-		mg_printf(connection, "POST %s HTTP/1.1\r\nHost: %.*s\r\n%sContent-Type: application/json\r\nContent-Length: %d\r\nConnection: close\r\n\r\n", mg_url_uri(state -> url.c_str()), (int) host.len, host.buf, state -> headers.c_str(), (int) state -> requestBody.size());
+		mg_printf(connection,
+			"POST %s HTTP/1.1\r\nHost: %.*s\r\n%sContent-Type: application/json\r\nContent-Length: %d\r\nConnection: close\r\n\r\n",
+			mg_url_uri(state -> url.c_str()), (int) host.len, host.buf, state -> headers.c_str(),
+			(int) state -> requestBody.size());
 
 		mg_send(connection, state -> requestBody.data(), state -> requestBody.size());
 	}

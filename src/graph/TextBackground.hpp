@@ -62,7 +62,8 @@ struct TextBackground
 			}
 		}
 
-		for(int corner = 0; corner < CORNER_COUNT; corner++) if(cornerRadii[corner] != other.cornerRadii[corner]) return false;
+		for(int corner = 0; corner < CORNER_COUNT; corner++)
+			if(cornerRadii[corner] != other.cornerRadii[corner]) return false;
 
 		return true;
 	}

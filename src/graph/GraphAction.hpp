@@ -212,7 +212,8 @@ class GraphAction : public RefCounted, public EventEmitter<GraphActionListener>
 		/// Hive this action is traversing. Should always be set to the hive of the initial node.
 		Handle<GraphHive> _boundHive;
 
-		/// The number of passes this action should take. Each pass is a complete traversal starting at the initial node.
+		/// The number of passes this action should take.
+		/// Each pass is a complete traversal starting at the initial node.
 		unsigned _numPasses;
 
 		/// The current pass number being processed.

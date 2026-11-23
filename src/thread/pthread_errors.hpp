@@ -14,12 +14,15 @@
 
 // Mutex lock related.
 #define PTHREAD_MUTEX_LOCK_EINVAL "EINVAL The value specified by mutex does not refer to an initialized mutex object."
-#define PTHREAD_MUTEX_LOCK_EAGAIN "EAGAIN The mutex could not be acquired because the maximum number of recursive locks for mutex has been exceeded."
+#define PTHREAD_MUTEX_LOCK_EAGAIN \
+	"EAGAIN The mutex could not be acquired because the maximum number of recursive locks for mutex has been exceeded."
 #define PTHREAD_MUTEX_LOCK_EDEADLK "EDEADLK The current thread already owns the mutex."
 
 // Mutex unlock related.
-#define PTHREAD_MUTEX_UNLOCK_EINVAL "EINVAL The value specified by mutex does not refer  to  an  initialized mutex object."
-#define PTHREAD_MUTEX_UNLOCK_EAGAIN "EAGAIN The mutex could not be acquired because the maximum number of recursive locks for mutex has been exceeded."
+#define PTHREAD_MUTEX_UNLOCK_EINVAL \
+	"EINVAL The value specified by mutex does not refer  to  an  initialized mutex object."
+#define PTHREAD_MUTEX_UNLOCK_EAGAIN \
+	"EAGAIN The mutex could not be acquired because the maximum number of recursive locks for mutex has been exceeded."
 #define PTHREAD_MUTEX_UNLOCK_EPERM "EPERM The current thread does not own the mutex."
 
 #endif

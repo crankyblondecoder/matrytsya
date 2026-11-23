@@ -12,8 +12,8 @@
  * runs no script: its image is set through its C++ API, it can be shown or hidden by an image visible action
  * reaching it, and a focus action reaching it asks the views of the scene to bring it into focus.
  */
-class SceneImageNode : public GraphNode, public SceneActionTarget, public ImageVisibleActionTarget, public GraphFocusable,
-	public SceneImage
+class SceneImageNode : public GraphNode, public SceneActionTarget, public ImageVisibleActionTarget,
+	public GraphFocusable, public SceneImage
 {
 	public:
 

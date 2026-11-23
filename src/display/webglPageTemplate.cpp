@@ -1690,7 +1690,8 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 		for(var i = 0; i < localPositions.length; i += 3)
 		{
-			var worldPos = transformPoint(modelTransform, localPositions[i], localPositions[i + 1], localPositions[i + 2]);
+			var worldPos = transformPoint(modelTransform, localPositions[i], localPositions[i + 1],
+				localPositions[i + 2]);
 
 			out[i] = worldPos[0];
 			out[i + 1] = worldPos[1];
@@ -1848,7 +1849,8 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 
 		if(data.agentVisibleNodeIds)
 		{
-			for(var a = 0; a < data.agentVisibleNodeIds.length; a++) agentVisibleNodes[data.agentVisibleNodeIds[a]] = true;
+			for(var a = 0; a < data.agentVisibleNodeIds.length; a++)
+				agentVisibleNodes[data.agentVisibleNodeIds[a]] = true;
 		}
 
 		// Rebuilt fresh each load (rather than mutating chunkCache in place) so that a chunk no longer present
@@ -1921,9 +1923,12 @@ const char* const webglPageTemplate = R"HTMLPAGE(<!DOCTYPE html>
 					{
 						hasFocus = true;
 
-						focusMinX = Math.min(focusMinX, worldPositions[p]); focusMaxX = Math.max(focusMaxX, worldPositions[p]);
-						focusMinY = Math.min(focusMinY, worldPositions[p + 1]); focusMaxY = Math.max(focusMaxY, worldPositions[p + 1]);
-						focusMinZ = Math.min(focusMinZ, worldPositions[p + 2]); focusMaxZ = Math.max(focusMaxZ, worldPositions[p + 2]);
+						focusMinX = Math.min(focusMinX, worldPositions[p]);
+						focusMaxX = Math.max(focusMaxX, worldPositions[p]);
+						focusMinY = Math.min(focusMinY, worldPositions[p + 1]);
+						focusMaxY = Math.max(focusMaxY, worldPositions[p + 1]);
+						focusMinZ = Math.min(focusMinZ, worldPositions[p + 2]);
+						focusMaxZ = Math.max(focusMaxZ, worldPositions[p + 2]);
 					}
 				}
 			}

@@ -13,8 +13,8 @@ class GraphHiveSceneSurface;
 
 /**
  * Shared text store and population API for scene text nodes. Holds a single block of text along with where it
- * is anchored, how tall a line of it is, what colour it is and the box drawn behind it, so that any node that puts text into a scene
- * reuses a single implementation.
+ * is anchored, how tall a line of it is, what colour it is and the box drawn behind it, so that any node that
+ * puts text into a scene reuses a single implementation.
  * @note Actions are applied to a node simultaneously, so a script changing the text can run at the same time as
  *       a scene action reading it. Every access to the text state is therefore synchronised.
  */

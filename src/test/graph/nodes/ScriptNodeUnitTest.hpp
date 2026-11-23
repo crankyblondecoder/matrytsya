@@ -121,15 +121,24 @@ TEST(ScriptNodeTest, CoreStateHasNoOsFilesystemOrIntrospectionAccess)
 
 		bool value = false;
 
-		ASSERT_TRUE(session -> getGlobal("osIsNil", value)); EXPECT_TRUE(value) << "os library should not be available in the sandbox.";
-		ASSERT_TRUE(session -> getGlobal("ioIsNil", value)); EXPECT_TRUE(value) << "io library should not be available in the sandbox.";
-		ASSERT_TRUE(session -> getGlobal("dofileIsNil", value)); EXPECT_TRUE(value) << "dofile should not be available in the sandbox.";
-		ASSERT_TRUE(session -> getGlobal("loadfileIsNil", value)); EXPECT_TRUE(value) << "loadfile should not be available in the sandbox.";
-		ASSERT_TRUE(session -> getGlobal("printIsNil", value)); EXPECT_TRUE(value) << "print should not be available in the sandbox.";
-		ASSERT_TRUE(session -> getGlobal("requireIsNil", value)); EXPECT_TRUE(value) << "require should not be available in the sandbox.";
-		ASSERT_TRUE(session -> getGlobal("debugIsNil", value)); EXPECT_TRUE(value) << "debug library should not be available in the sandbox.";
-		ASSERT_TRUE(session -> getGlobal("bytecodeBlocked", value)); EXPECT_TRUE(value) << "Loading precompiled bytecode should be blocked.";
-		ASSERT_TRUE(session -> getGlobal("memoryLimited", value)); EXPECT_TRUE(value) << "Allocation past this state's memory budget should fail.";
+		ASSERT_TRUE(session -> getGlobal("osIsNil", value));
+		EXPECT_TRUE(value) << "os library should not be available in the sandbox.";
+		ASSERT_TRUE(session -> getGlobal("ioIsNil", value));
+		EXPECT_TRUE(value) << "io library should not be available in the sandbox.";
+		ASSERT_TRUE(session -> getGlobal("dofileIsNil", value));
+		EXPECT_TRUE(value) << "dofile should not be available in the sandbox.";
+		ASSERT_TRUE(session -> getGlobal("loadfileIsNil", value));
+		EXPECT_TRUE(value) << "loadfile should not be available in the sandbox.";
+		ASSERT_TRUE(session -> getGlobal("printIsNil", value));
+		EXPECT_TRUE(value) << "print should not be available in the sandbox.";
+		ASSERT_TRUE(session -> getGlobal("requireIsNil", value));
+		EXPECT_TRUE(value) << "require should not be available in the sandbox.";
+		ASSERT_TRUE(session -> getGlobal("debugIsNil", value));
+		EXPECT_TRUE(value) << "debug library should not be available in the sandbox.";
+		ASSERT_TRUE(session -> getGlobal("bytecodeBlocked", value));
+		EXPECT_TRUE(value) << "Loading precompiled bytecode should be blocked.";
+		ASSERT_TRUE(session -> getGlobal("memoryLimited", value));
+		EXPECT_TRUE(value) << "Allocation past this state's memory budget should fail.";
 
 		int computeResult = 0;
 		ASSERT_TRUE(session -> getGlobal("computeResult", computeResult));

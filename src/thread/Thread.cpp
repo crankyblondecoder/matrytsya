@@ -67,14 +67,14 @@ void ThreadBase::__threadEntry()
     // Invoke derived class thread entry.
     threadEntry();
 
-	// Use stop conditions mutex to guard against a race condition where signalling/forcing stop waits on a the condition after
-	// it has already been broadcast.
+	// Use stop conditions mutex to guard against a race condition where signalling/forcing stop waits on a the
+	// condition after it has already been broadcast.
 	_stopCond.lockMutex();
 
     _threadRunning = false;
 
-    // Wake up anything waiting on the thread to quit. Because the mutex those threads have to contend for is already locked
-	// by this thread they won't exit condition wait until they can aquire the mutex.
+	// Wake up anything waiting on the thread to quit. Because the mutex those threads have to contend for is
+	// already locked by this thread they won't exit condition wait until they can aquire the mutex.
     _stopCond.broadcast();
 
 	// This should allow the threads blocked on the stop condition to continue processing.
@@ -174,7 +174,8 @@ void Thread::nanoSleep(int seconds, long nanoSeconds)
 			case EINVAL:
 
 				throw ThreadException(ThreadException::THREAD_INCORRECT_PARAMETER, error,
-					"EINVAL The value in the tv_nsec field was not in the range 0 to 999999999 or tv_sec was negative.");
+					"EINVAL The value in the tv_nsec field was not in the range 0 to 999999999 or tv_sec was negative."
+				);
 				break;
 		}
 	}

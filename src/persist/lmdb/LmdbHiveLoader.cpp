@@ -18,7 +18,8 @@ namespace
 	{
 		auto it = records.find(key);
 
-		if(it == records.end()) throw PersistException(PersistException::LMDB_CORRUPT_RECORD, "'" + key + "' is missing");
+		if(it == records.end())
+			throw PersistException(PersistException::LMDB_CORRUPT_RECORD, "'" + key + "' is missing");
 
 		return it -> second;
 	}

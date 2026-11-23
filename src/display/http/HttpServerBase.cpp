@@ -117,7 +117,8 @@ void HttpServerBase::_routeRequest(HttpRequest& request, HttpResponse& response)
 
 		std::size_t bestLength = 0;
 
-		for(std::map<std::string, HttpRequestHandler*>::iterator iter = _handlers.begin(); iter != _handlers.end(); iter++)
+		for(std::map<std::string, HttpRequestHandler*>::iterator iter = _handlers.begin();
+			iter != _handlers.end(); iter++)
 		{
 			const std::string& registeredPath = iter -> first;
 

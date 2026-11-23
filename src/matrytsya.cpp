@@ -59,7 +59,7 @@ namespace
 	/// Address that listens on every interface, which is not itself somewhere a browser can be pointed.
 	const char* const _ANY_ADDRESS = "0.0.0.0";
 
-	const unsigned _DEFAULT_NUM_THREADS = 2;
+	const unsigned _DEFAULT_NUM_THREADS = 5;
 
 	const AgenticHarness::Capability _DEFAULT_CHAT_CAPABILITY = AgenticHarness::Capability::LOW;
 
@@ -127,7 +127,8 @@ namespace
 			"                               can be read. Without it, any file the program can read may be used.\n"
 			"  -k, --api-token-env VAR      Enable the hive control API at " << _API_PATH << "/v1/, accepting the\n"
 			"                               API token(s) held in environment variable VAR (comma separated, each\n"
-			"                               at least " << ApiAuthenticator::MIN_TOKEN_LENGTH << " characters). Unless the address is loopback,\n"
+			"                               at least " << ApiAuthenticator::MIN_TOKEN_LENGTH
+			<< " characters). Unless the address is loopback,\n"
 			"                               --tls-cert and --tls-key are required. With the API enabled, the\n"
 			"                               server may start with no hives.\n"
 			"      --tls-cert FILE          PEM certificate (chain) to serve HTTPS with. Needs --tls-key.\n"

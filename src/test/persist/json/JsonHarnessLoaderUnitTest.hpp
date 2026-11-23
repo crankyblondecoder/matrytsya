@@ -279,7 +279,8 @@ TEST(JsonHarnessLoaderTest, ToolBindingMissingTools_ThrowsJsonInvalidToolBinding
 	std::string json = R"({
 		"providers": [ { "type": "Ollama", "name": "p", "url": "http://localhost:11434" } ],
 		"modelAssignments": [
-			{ "roleCapability": { "role": "CHAT", "capability": "LOW" }, "model": { "providerName": "p", "modelName": "m" } }
+			{ "roleCapability": { "role": "CHAT", "capability": "LOW" },
+				"model": { "providerName": "p", "modelName": "m" } }
 		],
 		"toolBindings": [ { "roleCapabilities": [ { "role": "CHAT", "capability": "LOW" } ] } ]
 	})";
@@ -296,7 +297,8 @@ TEST(JsonHarnessLoaderTest, UnrecognisedToolSetName_DoesNotThrowAtLoaderLevel)
 	std::string json = R"({
 		"providers": [ { "type": "Ollama", "name": "p", "url": "http://localhost:11434" } ],
 		"modelAssignments": [
-			{ "roleCapability": { "role": "CHAT", "capability": "LOW" }, "model": { "providerName": "p", "modelName": "m" } }
+			{ "roleCapability": { "role": "CHAT", "capability": "LOW" },
+				"model": { "providerName": "p", "modelName": "m" } }
 		],
 		"toolBindings": [
 			{ "roleCapabilities": [ { "role": "CHAT", "capability": "LOW" } ], "tools": "NOT_A_TOOL_SET" }

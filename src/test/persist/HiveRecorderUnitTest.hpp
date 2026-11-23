@@ -28,7 +28,8 @@ namespace
 		"name": "RecorderHive",
 		"nodes": [
 			{ "type": "SceneRootNode", "name": "root", "edges": [ { "toNodeName": "a" } ] },
-			{ "type": "PingNode", "name": "a", "edges": [ { "toNodeName": "b", "actionFlags": ["PING_GRAPH_ACTION"] } ] },
+			{ "type": "PingNode", "name": "a",
+				"edges": [ { "toNodeName": "b", "actionFlags": ["PING_GRAPH_ACTION"] } ] },
 			{ "type": "PingNode", "name": "b", "pokeEnabled": true }
 		],
 		"surfaces": [ { "type": "GraphHiveGraphViewSurface", "name": "structure" } ],

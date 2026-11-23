@@ -22,8 +22,10 @@ namespace
 	const char* const _REMOVE_NODE_TEST_HIVE_JSON = R"({
 		"name": "RemoveNodeHive",
 		"nodes": [
-			{ "type": "PingNode", "name": "a", "edges": [ { "toNodeName": "b", "actionFlags": ["PING_GRAPH_ACTION"], "traversalKey": 4 } ] },
-			{ "type": "PingNode", "name": "b", "edges": [ { "toNodeName": "a" }, { "toNodeName": "b", "actionsCompleteAfterTraverse": true } ] },
+			{ "type": "PingNode", "name": "a",
+				"edges": [ { "toNodeName": "b", "actionFlags": ["PING_GRAPH_ACTION"], "traversalKey": 4 } ] },
+			{ "type": "PingNode", "name": "b",
+				"edges": [ { "toNodeName": "a" }, { "toNodeName": "b", "actionsCompleteAfterTraverse": true } ] },
 			{ "type": "PingNode", "name": "c", "edges": [ { "toNodeName": "b" } ] },
 			{ "type": "SceneRootNode", "name": "root", "edges": [ { "toNodeName": "a" } ] }
 		],

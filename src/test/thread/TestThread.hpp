@@ -108,7 +108,8 @@ class TestThread : public Thread
 
 		void waitOnCond(ThreadCondition* cond, ThreadCondition* signalCond)
 		{
-			// Immediately lock the conditions mutex which gives the calling test a mechanism to get the signal timing correct.
+			// Immediately lock the conditions mutex, which gives the calling test a mechanism to get the signal
+			// timing correct.
 			cond -> lockMutex();
 
 			condWaitError = false;

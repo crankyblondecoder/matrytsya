@@ -17,7 +17,8 @@ class AgentAffectingActionEmitter
 	protected:
 
 		/**
-		 * @param emitAgentAffectAction Whether this emits an agent affect action if an agent action directly affects it.
+		  * @param emitAgentAffectAction Whether this emits an agent affect action if an agent action
+		  *        directly affects it.
 		 */
         AgentAffectingActionEmitter(bool emitsAgentAffectAction);
 

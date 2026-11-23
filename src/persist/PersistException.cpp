@@ -37,7 +37,8 @@ const char* PersistException::getErrorDescription(Error error)
 		case DUPLICATE_PROVIDER_NAME: return "two or more model providers share the same name";
 		case INVALID_PROVIDER_URL: return "a model provider has an empty URL";
 		case PROVIDER_CONNECTION_FAILED: return "could not get the list of models from a model provider";
-		case MISSING_PROVIDER_API_KEY: return "the environment variable a model provider reads its API key from is not set";
+		case MISSING_PROVIDER_API_KEY:
+			return "the environment variable a model provider reads its API key from is not set";
 		case NO_MODEL_ASSIGNMENTS: return "the harness has no model assignments";
 		case MODEL_PROVIDER_NOT_FOUND: return "a model assignment names a model provider that does not exist";
 		case MODEL_NOT_FOUND: return "a model assignment names a model its provider does not serve";
@@ -91,8 +92,8 @@ const char* PersistException::getErrorDescription(Error error)
 		case JSON_INVALID_TEXT_COLOUR:
 			return "a scene text node's \"textColour\" is not an array of 4 integers, each from 0 to 255";
 		case JSON_INVALID_TEXT_BACKGROUND:
-			return "a scene text node's \"textBackground\" is not an object, or a colour, length or corner radius in it "
-				"is malformed or out of range";
+			return "a scene text node's \"textBackground\" is not an object, or a colour, length or corner radius "
+				"in it is malformed or out of range";
 		case JSON_INVALID_TEXT_VISIBLE: return "a scene text node's \"textVisible\" is not a boolean";
 		case JSON_INVALID_IMAGE_SOURCE:
 			return "a scene image node does not have exactly one of \"imageData\", \"imageFile\" and \"imageUrl\", "
@@ -109,7 +110,8 @@ const char* PersistException::getErrorDescription(Error error)
 
 		case JSON_INVALID_PROVIDERS: return "\"providers\" is missing or not an array";
 		case UNKNOWN_PROVIDER_TYPE: return "a provider's \"type\" is not a known provider type";
-		case JSON_INVALID_PROVIDER: return "a provider is missing its \"name\", or a member its type requires (\"url\" for Ollama, \"apiKeyEnv\" for OpenRouter), or one of them is not a string";
+		case JSON_INVALID_PROVIDER:
+			return "a provider is missing its \"name\", or a member its type requires (\"url\" for Ollama, \"apiKeyEnv\" for OpenRouter), or one of them is not a string";
 		case JSON_INVALID_MODEL_ASSIGNMENTS: return "\"modelAssignments\" is missing or not an array";
 		case JSON_INVALID_ROLE_CAPABILITY: return "a \"roleCapability\" is missing or malformed";
 		case JSON_INVALID_MODEL_REFERENCE: return "a model assignment's \"model\" is missing or malformed";
@@ -121,8 +123,10 @@ const char* PersistException::getErrorDescription(Error error)
 
 		case LMDB_OPEN_FAILED: return "the hive database could not be opened or created";
 		case LMDB_TXN_FAILED: return "reading from or writing to the hive database failed";
-		case LMDB_CORRUPT_RECORD: return "a hive stored in the database is missing a record or holds one that is malformed";
-		case LMDB_UNSUPPORTED_FORMAT: return "a hive stored in the database was written in a format this program does not read";
+		case LMDB_CORRUPT_RECORD:
+			return "a hive stored in the database is missing a record or holds one that is malformed";
+		case LMDB_UNSUPPORTED_FORMAT:
+			return "a hive stored in the database was written in a format this program does not read";
 		case HIVE_NOT_CAPTURABLE: return "a node in the running hive is of a kind that cannot be stored";
 	}
 

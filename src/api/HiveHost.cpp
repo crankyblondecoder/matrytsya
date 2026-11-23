@@ -209,7 +209,8 @@ std::vector<std::pair<std::string, std::string>> HiveHost::getSurfacePaths(std::
 	// Asked of the maps outside the lock, as each reaches into the surface it serves.
 	for(Handle<GraphHiveSurfaceHtmlMap>& surfaceMap : surfaceMaps)
 	{
-		paths.push_back(std::make_pair(surfaceMap.getInstance() -> getSurfaceName(), surfaceMap.getInstance() -> getPath()));
+		paths.push_back(std::make_pair(surfaceMap.getInstance() -> getSurfaceName(),
+			surfaceMap.getInstance() -> getPath()));
 	}
 
 	return paths;

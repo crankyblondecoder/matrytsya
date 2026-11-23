@@ -18,8 +18,9 @@ struct lua_State;
  * Scriptable graph node that puts a block of text into a scene, anchored in the frame of the transforms it is
  * collected under. Its script can read and modify the text and how it is shown via the setText()/getText(),
  * setTextPosition()/getTextPosition(), setTextHeight()/getTextHeight(), setTextColour()/getTextColour(),
- * setTextBackground()/getTextBackground() and setTextVisible()/getTextVisible() Lua globals. Its text can also be shown or hidden by a text visible action
- * reaching it, and a focus action reaching it asks the views of the scene to bring it into focus.
+ * setTextBackground()/getTextBackground() and setTextVisible()/getTextVisible() Lua globals. Its text can also
+ * be shown or hidden by a text visible action reaching it, and a focus action reaching it asks the views of the
+ * scene to bring it into focus.
  */
 class SceneTextScriptNode : public AnimateScriptNode, public SceneActionTarget, public TextVisibleActionTarget,
 	public GraphFocusable, public SceneText

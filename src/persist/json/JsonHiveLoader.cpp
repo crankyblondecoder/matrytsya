@@ -71,7 +71,8 @@ namespace
 			type == HiveNodeDescriptor::BUILDER_SCRIPT;
 	}
 
-	void __readDoubleArray(const rapidjson::Value& arrayValue, double* out, unsigned count, PersistException::Error onError)
+	void __readDoubleArray(const rapidjson::Value& arrayValue, double* out, unsigned count,
+		PersistException::Error onError)
 	{
 		if(!arrayValue.IsArray() || arrayValue.Size() != count) throw PersistException(onError);
 
@@ -117,7 +118,8 @@ namespace
 
 			if(edgeValue.HasMember("actionsCompleteAfterTraverse"))
 			{
-				if(!edgeValue["actionsCompleteAfterTraverse"].IsBool()) throw PersistException(PersistException::JSON_INVALID_EDGES);
+				if(!edgeValue["actionsCompleteAfterTraverse"].IsBool())
+					throw PersistException(PersistException::JSON_INVALID_EDGES);
 
 				edgeDescriptor.actionsCompleteAfterTraverse = edgeValue["actionsCompleteAfterTraverse"].GetBool();
 			}
@@ -150,7 +152,8 @@ namespace
 
 		if(locationValue.HasMember("hostname"))
 		{
-			if(!locationValue["hostname"].IsString()) throw PersistException(PersistException::JSON_INVALID_DESTINATION);
+			if(!locationValue["hostname"].IsString())
+				throw PersistException(PersistException::JSON_INVALID_DESTINATION);
 
 			location.setHostname(locationValue["hostname"].GetString());
 		}
@@ -234,7 +237,8 @@ namespace
 
 			if(vertexValue.HasMember("visibility"))
 			{
-				if(!vertexValue["visibility"].IsString()) throw PersistException(PersistException::JSON_INVALID_VERTEXES);
+				if(!vertexValue["visibility"].IsString())
+					throw PersistException(PersistException::JSON_INVALID_VERTEXES);
 
 				// Only checked for being a name here; whether it is a name that exists is HiveBuilder's concern.
 				visibilityName = vertexValue["visibility"].GetString();
@@ -289,7 +293,8 @@ namespace
 
 			for(auto& vertexValue : vertexGroupValue["vertexes"].GetArray())
 			{
-				groupDescriptor.vertexes.push_back(__parseVertex(vertexValue, PersistException::JSON_INVALID_VERTEX_GROUPS));
+				groupDescriptor.vertexes.push_back(
+					__parseVertex(vertexValue, PersistException::JSON_INVALID_VERTEX_GROUPS));
 			}
 
 			// A group holding nothing would only ever reach a surface as an empty chunk, so it is left out
@@ -468,7 +473,8 @@ namespace
 
 		if(!backgroundValue.IsObject()) throw PersistException(onError);
 
-		if(backgroundValue.HasMember("fillColour")) __readColour(backgroundValue["fillColour"], background.fillColour, onError);
+		if(backgroundValue.HasMember("fillColour"))
+			__readColour(backgroundValue["fillColour"], background.fillColour, onError);
 
 		if(backgroundValue.HasMember("borderColour"))
 		{
@@ -583,7 +589,8 @@ namespace
 			const char* key = nodeValue.HasMember("imageFile") ? "imageFile" : "imageUrl";
 			const rapidjson::Value& referenceValue = nodeValue[key];
 
-			if(!referenceValue.IsString() || referenceValue.GetStringLength() == 0) throw PersistException(onSourceError);
+			if(!referenceValue.IsString() || referenceValue.GetStringLength() == 0)
+				throw PersistException(onSourceError);
 
 			descriptor.imageReference = std::string(referenceValue.GetString(), referenceValue.GetStringLength());
 
@@ -626,7 +633,8 @@ namespace
 
 		if(nodeValue.HasMember("imageVisible"))
 		{
-			if(!nodeValue["imageVisible"].IsBool()) throw PersistException(PersistException::JSON_INVALID_IMAGE_VISIBLE);
+			if(!nodeValue["imageVisible"].IsBool())
+				throw PersistException(PersistException::JSON_INVALID_IMAGE_VISIBLE);
 
 			descriptor.imageVisible = nodeValue["imageVisible"].GetBool();
 		}
@@ -682,7 +690,8 @@ namespace
 
 			if(descriptor.hasTransform)
 			{
-				__readDoubleArray(nodeValue["transform"], descriptor.transform, 16, PersistException::JSON_INVALID_TRANSFORM);
+				__readDoubleArray(nodeValue["transform"], descriptor.transform, 16,
+					PersistException::JSON_INVALID_TRANSFORM);
 			}
 
 			__parseEmitAgentAffectAction(nodeValue, descriptor);
@@ -782,7 +791,8 @@ namespace
 
 		if(surfaceValue.HasMember("default"))
 		{
-			if(!surfaceValue["default"].IsBool()) throw PersistException(PersistException::JSON_INVALID_SURFACE_DEFAULT);
+			if(!surfaceValue["default"].IsBool())
+				throw PersistException(PersistException::JSON_INVALID_SURFACE_DEFAULT);
 
 			descriptor.isDefault = surfaceValue["default"].GetBool();
 		}

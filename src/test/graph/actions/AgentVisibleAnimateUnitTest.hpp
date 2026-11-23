@@ -34,9 +34,11 @@ namespace
 		Handle<GraphHive> hiveHandle(rig.hive);
 
 		rig.root = new SceneRootNode();
-		rig.body = new SceneGeometryScriptNode("if vertexCount() == 0 then addVertex(Vertex{posn = {1, 2, 3}}) end", "");
+		rig.body = new SceneGeometryScriptNode(
+			"if vertexCount() == 0 then addVertex(Vertex{posn = {1, 2, 3}}) end", "");
 		rig.spin = new SceneTransformScriptNode(
-			"if getStrobe() and getAnimating() then local t = getTransform() t[13] = t[13] + 1 setTransform(t) end", "");
+			"if getStrobe() and getAnimating() then local t = getTransform() t[13] = t[13] + 1 setTransform(t) end",
+			"");
 
 		rig.hive -> addNode(rig.root);
 		rig.hive -> addNode(rig.body);

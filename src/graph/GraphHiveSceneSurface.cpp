@@ -60,7 +60,8 @@ namespace
 
 	// Determine if two lists of scene images are equal. A node's image version changes whenever anything about its
 	// image does, so only where it is put in the scene needs comparing alongside it.
-	bool imagesEqual(const std::vector<GraphHiveSceneSurface::Image>& a, const std::vector<GraphHiveSceneSurface::Image>& b)
+	bool imagesEqual(const std::vector<GraphHiveSceneSurface::Image>& a,
+		const std::vector<GraphHiveSceneSurface::Image>& b)
 	{
 		if(a.size() != b.size()) return false;
 
@@ -77,7 +78,8 @@ namespace
 	}
 
 	// Determine if two lists of scene texts are equal.
-	bool textsEqual(const std::vector<GraphHiveSceneSurface::Text>& a, const std::vector<GraphHiveSceneSurface::Text>& b)
+	bool textsEqual(const std::vector<GraphHiveSceneSurface::Text>& a,
+		const std::vector<GraphHiveSceneSurface::Text>& b)
 	{
 		if(a.size() != b.size()) return false;
 
@@ -93,7 +95,8 @@ namespace
 			}
 
 			for(int axis = 0; axis < 3; axis++) if(textA.position[axis] != textB.position[axis]) return false;
-			for(int channel = 0; channel < 4; channel++) if(textA.colour[channel] != textB.colour[channel]) return false;
+			for(int channel = 0; channel < 4; channel++)
+				if(textA.colour[channel] != textB.colour[channel]) return false;
 		}
 
 		return true;
@@ -111,7 +114,8 @@ GraphHiveSceneSurface::~GraphHiveSceneSurface()
 
 void GraphHiveSceneSurface::strobe()
 {
-	if(_boundRootNode.isValid()) _boundRootNode.getInstance() -> populateSceneSurface(Handle<GraphHiveSceneSurface>(this));
+	if(_boundRootNode.isValid())
+		_boundRootNode.getInstance() -> populateSceneSurface(Handle<GraphHiveSceneSurface>(this));
 }
 
 void GraphHiveSceneSurface::poke(unsigned nodeId, GraphPoke poke)
@@ -137,7 +141,8 @@ void GraphHiveSceneSurface::poke(unsigned nodeId, GraphPoke poke)
 
 void GraphHiveSceneSurface::activate()
 {
-	if(_boundRootNode.isValid()) _boundRootNode.getInstance() -> populateSceneSurface(Handle<GraphHiveSceneSurface>(this));
+	if(_boundRootNode.isValid())
+		_boundRootNode.getInstance() -> populateSceneSurface(Handle<GraphHiveSceneSurface>(this));
 }
 
 void GraphHiveSceneSurface::_populateStart()
@@ -156,10 +161,14 @@ void GraphHiveSceneSurface::_populateStart()
 	ModelTransform identity;
 
 	identity.id = 0;
-	identity.transform[0] = 1.0; identity.transform[1] = 0.0; identity.transform[2] = 0.0; identity.transform[3] = 0.0;
-	identity.transform[4] = 0.0; identity.transform[5] = 1.0; identity.transform[6] = 0.0; identity.transform[7] = 0.0;
-	identity.transform[8] = 0.0; identity.transform[9] = 0.0; identity.transform[10] = 1.0; identity.transform[11] = 0.0;
-	identity.transform[12] = 0.0; identity.transform[13] = 0.0; identity.transform[14] = 0.0; identity.transform[15] = 1.0;
+	identity.transform[0] = 1.0; identity.transform[1] = 0.0;
+	identity.transform[2] = 0.0; identity.transform[3] = 0.0;
+	identity.transform[4] = 0.0; identity.transform[5] = 1.0;
+	identity.transform[6] = 0.0; identity.transform[7] = 0.0;
+	identity.transform[8] = 0.0; identity.transform[9] = 0.0;
+	identity.transform[10] = 1.0; identity.transform[11] = 0.0;
+	identity.transform[12] = 0.0; identity.transform[13] = 0.0;
+	identity.transform[14] = 0.0; identity.transform[15] = 1.0;
 
 	_modelTransforms.push_back(identity);
 }

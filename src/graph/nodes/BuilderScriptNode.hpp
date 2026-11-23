@@ -231,7 +231,8 @@ class BuilderScriptNode : public ScriptNode, public AgentActionTarget, public Tr
 		 * @param luaState Lua state the binding is running against; argument 1 is the fields table.
 		 * @param type Type of node to create.
 		 * @param poke Whether the binding is running in the poke state.
-		 * @param error Set to the reason for any status other than OK. Must be a buffer of the size every binding here reports into.
+		  * @param error Set to the reason for any status other than OK. Must be a buffer of the size every binding
+		  *        here reports into.
 		 * @returns The outcome.
 		 * @note Never raises a Lua error, and never lets a C++ exception escape, so every object it holds is
 		 *       destroyed before its caller reports the outcome.
@@ -242,7 +243,8 @@ class BuilderScriptNode : public ScriptNode, public AgentActionTarget, public Tr
 		 * Carry out createEdge(), validating every argument before anything is looked up.
 		 * @param luaState Lua state the binding is running against.
 		 * @param poke Whether the binding is running in the poke state.
-		 * @param error Set to the reason for any status other than OK. Must be a buffer of the size every binding here reports into.
+		  * @param error Set to the reason for any status other than OK. Must be a buffer of the size every binding
+		  *        here reports into.
 		 * @returns The outcome.
 		 * @note Never raises a Lua error, and never lets a C++ exception escape.
 		 */
@@ -263,7 +265,8 @@ class BuilderScriptNode : public ScriptNode, public AgentActionTarget, public Tr
 		 * @param index Absolute stack index of the fields table.
 		 * @param type Type of node the fields describe, which decides which fields it takes.
 		 * @param spec Filled in from the fields.
-		 * @param error Set to the reason if a field is malformed. Must be a buffer of the size every binding here reports into.
+		  * @param error Set to the reason if a field is malformed. Must be a buffer of the size every binding here
+		  *        reports into.
 		 * @returns True if every field was read.
 		 * @note Never raises a Lua error.
 		 */

@@ -67,6 +67,14 @@ Rules:
 
 Tabs for structural indentation throughout. Do not mix spaces as structural indentation.
 
+## Line Length
+
+No line in a C++ source file (`.cpp`, `.hpp`, `.h`, `.c`) may be wider than 120 characters, counting a tab as 4 columns. This applies to code, comments and the contents of multi-line raw string literals (e.g. embedded JSON or JavaScript) alike. Wrap long lines with continuation lines indented one extra tab.
+
+The only exception is a string literal that cannot fit within 120 characters without being split: never split a string literal (into adjacent literals or otherwise) just to meet the limit. Still wrap the code around it so that the literal starts its own line.
+
+Third-party sources vendored under `src/rapidjson/` and `src/mongoose/` are exempt.
+
 ## Arrow Operator
 
 Always put a space before and after `->`:

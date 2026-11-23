@@ -20,7 +20,8 @@ namespace
 	{
 		if(!meta.HasMember(key) || !meta[key].IsArray())
 		{
-			throw PersistException(PersistException::LMDB_CORRUPT_RECORD, std::string("meta is missing \"") + key + "\"");
+			throw PersistException(PersistException::LMDB_CORRUPT_RECORD,
+				std::string("meta is missing \"") + key + "\"");
 		}
 
 		names.clear();

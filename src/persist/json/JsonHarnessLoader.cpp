@@ -73,7 +73,8 @@ namespace
 
 	HarnessRoleCapabilityDescriptor __parseRoleCapability(const rapidjson::Value& parentValue)
 	{
-		if(!parentValue.HasMember("roleCapability")) throw PersistException(PersistException::JSON_INVALID_ROLE_CAPABILITY);
+		if(!parentValue.HasMember("roleCapability"))
+			throw PersistException(PersistException::JSON_INVALID_ROLE_CAPABILITY);
 
 		const rapidjson::Value& roleCapabilityValue = parentValue["roleCapability"];
 

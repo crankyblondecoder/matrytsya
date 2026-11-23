@@ -673,7 +673,8 @@ TEST(SceneImageNodeTest, MalformedJsonImageFieldsThrow)
 
 	const Case cases[] = {
 		{"", PersistException::JSON_INVALID_IMAGE_SOURCE},
-		{R"("imageFile": "a.png", "imageUrl": "https://example.org/a.png")", PersistException::JSON_INVALID_IMAGE_SOURCE},
+		{R"("imageFile": "a.png", "imageUrl": "https://example.org/a.png")",
+			PersistException::JSON_INVALID_IMAGE_SOURCE},
 		{R"("imageUrl": "ftp://example.org/a.png")", PersistException::JSON_INVALID_IMAGE_SOURCE},
 		{R"("imageUrl": 7)", PersistException::JSON_INVALID_IMAGE_SOURCE},
 		{R"("imageFile": "")", PersistException::JSON_INVALID_IMAGE_SOURCE},
@@ -681,7 +682,8 @@ TEST(SceneImageNodeTest, MalformedJsonImageFieldsThrow)
 		{R"("imageFile": "a.png", "imageHeight": 0)", PersistException::JSON_INVALID_IMAGE_HEIGHT},
 		{R"("imageFile": "a.png", "imagePosition": [1, 2])", PersistException::JSON_INVALID_IMAGE_POSITION},
 		{R"("imageFile": "a.png", "imageVisible": 1)", PersistException::JSON_INVALID_IMAGE_VISIBLE},
-		{R"("imageFile": "a.png", "imageBackground": { "padding": -1 })", PersistException::JSON_INVALID_IMAGE_BACKGROUND}
+		{R"("imageFile": "a.png", "imageBackground": { "padding": -1 })",
+			PersistException::JSON_INVALID_IMAGE_BACKGROUND}
 	};
 
 	for(const Case& testCase : cases)
@@ -1009,8 +1011,9 @@ TEST(SceneImageNodeTest, FileRootAdmitsFilesWithinIt)
 
 /**
  * With a root set, a path out of it is refused before anything is looked up, and a link out of it is refused as
- * if the file could not be read. An absolute path must name the root the way it was given or as it resolves: one
- * reaching it through some other link is outside it as far as the path alone says. A directory or a FIFO is not read at all, with or without a root.
+ * if the file could not be read. An absolute path must name the root the way it was given or as it resolves:
+ * one reaching it through some other link is outside it as far as the path alone says. A directory or a FIFO
+ * is not read at all, with or without a root.
  */
 TEST(SceneImageNodeTest, FileRootRefusesEverythingOutsideIt)
 {

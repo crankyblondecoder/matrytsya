@@ -24,7 +24,8 @@ class GraphPoke
 			/// Something entered into the hovered over state. Like a mouse pointer going over a piece of geometry.
 			HOVER_ENTER,
 
-			/// Something left being in the hovered over state. Like a mouse pointer leaving being over a piece of geometry.
+			/// Something left being in the hovered over state.
+			/// Like a mouse pointer leaving being over a piece of geometry.
 			HOVER_LEAVE
 		};
 
@@ -91,7 +92,8 @@ class GraphPoke
 		/// Data related to the poke. How this is interpreted is specific to the poke type.
 		PokeData _data;
 
-		/// Id of the scene chunk this poke was aimed at, or 0 if not associated with a chunk. Only unique within the owning node.
+		/// Id of the scene chunk this poke was aimed at, or 0 if not associated with a chunk.
+		/// Only unique within the owning node.
 		unsigned _chunkId;
 };
 

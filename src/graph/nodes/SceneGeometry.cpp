@@ -144,6 +144,7 @@ void SceneGeometry::populateSurface(Handle<GraphHiveSceneSurface> surface, unsig
 
 	for(const VertexGroup& vertGroup : groupsToPopulate)
 	{
-		surfacePtr -> addVertexes(vertGroup.vertexes, vertGroup.id, nodeId, vertexVersion, pokeable, vertGroup.visibility);
+		surfacePtr -> addVertexes(vertGroup.vertexes, vertGroup.id, nodeId, vertexVersion, pokeable,
+			vertGroup.visibility);
 	}
 }

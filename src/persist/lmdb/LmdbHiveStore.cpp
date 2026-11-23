@@ -296,7 +296,8 @@ void LmdbHiveStore::writeRecords(const std::string& hiveName, const std::map<std
 
 			if(rc != MDB_SUCCESS)
 			{
-				throw PersistException(PersistException::LMDB_TXN_FAILED, __describe("write '" + record.first + "'", rc));
+				throw PersistException(PersistException::LMDB_TXN_FAILED,
+					__describe("write '" + record.first + "'", rc));
 			}
 		}
 

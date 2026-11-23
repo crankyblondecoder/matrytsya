@@ -222,7 +222,8 @@ TEST(SceneTest, GeneratedSceneUsesIdentityTransformWhenNoneApplied)
 	std::vector<GraphHiveSceneSurface::ModelTransform> modelTransforms = scene.modelTransforms;
 
 	ASSERT_EQ(chunks.size(), 1u);
-	ASSERT_EQ(modelTransforms.size(), 1u) << "No transform node was traversed, so only the initial identity should exist.";
+	ASSERT_EQ(modelTransforms.size(), 1u)
+		<< "No transform node was traversed, so only the initial identity should exist.";
 
 	const Transform& transform = modelTransforms[chunks[0].modelTransformIndex].transform;
 
@@ -429,9 +430,11 @@ TEST(SceneTest, SurfaceNotRepopulatedWhenSceneUnchanged)
 
 	firstAction -> decrRef();
 
-	ASSERT_EQ(surface -> getPopulateStartCount(), 1u) << "The first action must populate the never-before-populated surface.";
+	ASSERT_EQ(surface -> getPopulateStartCount(), 1u)
+		<< "The first action must populate the never-before-populated surface.";
 	ASSERT_EQ(surface -> getScene().chunks.size(), 1u);
-	ASSERT_EQ(surface -> getPopulateVersion(), sceneVersion) << "The populate version should track the scene version just populated.";
+	ASSERT_EQ(surface -> getPopulateVersion(), sceneVersion)
+		<< "The populate version should track the scene version just populated.";
 
 	// Second action against the unchanged graph: the computed scene version matches the surface's populate
 	// version, so _processNextPass must not start another populate pass.

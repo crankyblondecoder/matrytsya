@@ -342,7 +342,8 @@ void GraphHive::waitOnInitialActionActive(unsigned timeOut)
 					unsigned effTimeout = timeOut / loopLimit;
 					if(effTimeout < 1) effTimeout = 1;
 
-					while(!_initialActionActive && _activeActionCount > -1 && loopLimit--) _activeActionCountCond.waitTimeout(effTimeout);
+					while(!_initialActionActive && _activeActionCount > -1 && loopLimit--)
+						_activeActionCountCond.waitTimeout(effTimeout);
 				}
 				else
 				{
@@ -498,8 +499,8 @@ Handle<ModelContext> GraphHive::processNodeAgenticRequest(AgenticHarness::Capabi
 	return __processAgenticRequest(AgenticHarness::Role::NODE, capability, prompt, context);
 }
 
-Handle<ModelContext> GraphHive::__processAgenticRequest(AgenticHarness::Role role, AgenticHarness::Capability capability,
-	std::string prompt, Handle<ModelContext> context)
+Handle<ModelContext> GraphHive::__processAgenticRequest(AgenticHarness::Role role,
+	AgenticHarness::Capability capability, std::string prompt, Handle<ModelContext> context)
 {
 	Handle<AgenticHarness> harness(0);
 
@@ -940,7 +941,8 @@ bool GraphHive::replaceNode(Handle<GraphNode> nodeHandle, GraphNode* replacement
 				removeInitRef = false;
 				replaced = true;
 
-				if(_strobeScheduler) _strobeScheduler -> removeEmitter(Handle<StrobeEmitterNode>(original -> asStrobeEmitter()));
+				if(_strobeScheduler)
+					_strobeScheduler -> removeEmitter(Handle<StrobeEmitterNode>(original -> asStrobeEmitter()));
 
 				for(Handle<GraphNode>& other : others) other.getInstance() -> removeEdgesTo(nodeHandle);
 

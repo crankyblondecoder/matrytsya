@@ -30,7 +30,9 @@ TEST(JsonHiveLoaderTest, FullValidHive_AllEightNodeTypesParsed)
 	std::string json = R"({
 		"name": "TestHive",
 		"nodes": [
-			{ "type": "PingNode", "name": "ping1", "edges": [ { "toNodeName": "ping2", "actionFlags": ["PING_GRAPH_ACTION"], "actionsCompleteAfterTraverse": true } ] },
+			{ "type": "PingNode", "name": "ping1", "edges": [
+				{ "toNodeName": "ping2", "actionFlags": ["PING_GRAPH_ACTION"], "actionsCompleteAfterTraverse": true }
+			] },
 			{ "type": "PingNode", "name": "ping2" },
 			{ "type": "TeleportNode", "name": "teleport1",
 				"destination": { "hiveName": "otherHive", "nodeName": "otherNode" } },

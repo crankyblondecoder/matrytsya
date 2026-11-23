@@ -83,7 +83,8 @@ void SceneTransformScriptNode::_emitAgentAffectAction(bool agentAffecting)
 
 int SceneTransformScriptNode::__luaGetTransform(lua_State* luaState)
 {
-	SceneTransformScriptNode* node = static_cast<SceneTransformScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
+	SceneTransformScriptNode* node =
+		static_cast<SceneTransformScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
 
 	Transform transform;
 
@@ -104,7 +105,8 @@ int SceneTransformScriptNode::__luaSetTransform(lua_State* luaState)
 {
 	luaL_checktype(luaState, 1, LUA_TTABLE);
 
-	SceneTransformScriptNode* node = static_cast<SceneTransformScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
+	SceneTransformScriptNode* node =
+		static_cast<SceneTransformScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
 
 	Transform transform;
 

@@ -194,7 +194,8 @@ void ThreadBase::nanoSleep(int seconds, long nanoSeconds)
 			case EINVAL:
 
 				throw ThreadException(ThreadException::THREAD_INCORRECT_PARAMETER, error,
-					"EINVAL The value in the tv_nsec field was not in the range 0 to 999999999 or tv_sec was negative.");
+					"EINVAL The value in the tv_nsec field was not in the range 0 to 999999999 or tv_sec was negative."
+				);
 				break;
 		}
 	}

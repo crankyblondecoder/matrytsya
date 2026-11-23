@@ -30,7 +30,8 @@ class SerialisableActionPayload : public RefCounted
 		 * @param serialisableActionType Type of action that payload is for.
 		 * @param sizeInBytes Size of payload in bytes, i.e. The sizeOf the data structure.
 		 */
-		SerialisableActionPayload(SerialisableAction::SerialisableActionType serialisableActionType, unsigned sizeInBytes);
+		SerialisableActionPayload(SerialisableAction::SerialisableActionType serialisableActionType,
+			unsigned sizeInBytes);
 
 		/**
 		 * Constructor for setting a payload so it can be de-serialised.

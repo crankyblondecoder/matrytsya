@@ -12,8 +12,8 @@ class GraphActionThreadPoolWorkUnit : public ThreadPoolWorkUnit
 		virtual ~GraphActionThreadPoolWorkUnit();
 
 		/**
-		 * @param graphAction Graph action to invoke once work unit obtains a thread. Expected to have been incrRef on action
-		 *        before entry.
+		  * @param graphAction Graph action to invoke once work unit obtains a thread. Expected to have been incrRef
+		  *        on action before entry.
 		 */
 		GraphActionThreadPoolWorkUnit(GraphAction* graphAction);
 

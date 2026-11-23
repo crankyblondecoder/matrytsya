@@ -348,7 +348,8 @@ class GraphHiveSceneSurface : public GraphHiveSurface
 		/// to the next scene as is.
 		std::vector<unsigned> _unchangedChunkIndexes;
 
-		/// The model transforms that apply to the surface chunks currently being built. The last transform in this list is the "current" one.
+		/// The model transforms that apply to the surface chunks currently being built. The last transform in this
+		/// list is the "current" one.
 		std::vector<ModelTransform> _modelTransforms;
 
 		/// Ids of the agent visible nodes of the surface currently being built.

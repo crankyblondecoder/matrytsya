@@ -347,9 +347,9 @@ class GraphHiveSurfaceHtmlMap : public GraphHiveSurfaceHttpMap, private EventLis
         /// destructor as though it were running.
         bool _chatThreadRunning = false;
 
-        /// Guards _revision, _pollIntervalMs, _shadingModel, _chatCapability, _chatEnabled, _chatThreadStarted and _chatThreadRunning, all of
-        /// which are written and read across the thread serving HTTP requests, the chat thread and the surface's
-        /// own threads.
+        /// Guards _revision, _pollIntervalMs, _shadingModel, _chatCapability, _chatEnabled, _chatThreadStarted and
+        /// _chatThreadRunning, all of which are written and read across the thread serving HTTP requests, the chat
+        /// thread and the surface's own threads.
         ThreadMutex _lock;
 
         /// The chat prompts accepted from browsers, oldest first, in every state. Guarded by _chatMessagesCond,

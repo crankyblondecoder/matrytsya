@@ -185,7 +185,8 @@ GraphHive* HiveBuilder::build(HiveLoader& loader, unsigned numThreads)
 				}
 			}
 
-			GraphHiveSurface* surface = __createSurface(descriptor, referencedNode, hasInitialFocusNode, initialFocusNodeId);
+			GraphHiveSurface* surface =
+				__createSurface(descriptor, referencedNode, hasInitialFocusNode, initialFocusNodeId);
 
 			surface -> setName(descriptor.name);
 			surface -> setDefault(descriptor.isDefault);
@@ -413,8 +414,8 @@ ImageSource HiveBuilder::__imageSource(const HiveNodeDescriptor& descriptor)
 	throw PersistException(PersistException::INVALID_IMAGE);
 }
 
-GraphHiveSurface* HiveBuilder::__createSurface(const HiveSurfaceDescriptor& descriptor, Handle<GraphNode> referencedNode,
-	bool hasInitialFocusNode, unsigned initialFocusNodeId)
+GraphHiveSurface* HiveBuilder::__createSurface(const HiveSurfaceDescriptor& descriptor,
+	Handle<GraphNode> referencedNode, bool hasInitialFocusNode, unsigned initialFocusNodeId)
 {
 	switch(descriptor.type)
 	{
@@ -429,7 +430,8 @@ GraphHiveSurface* HiveBuilder::__createSurface(const HiveSurfaceDescriptor& desc
 
 			GraphHiveSceneSurface* sceneSurface = new GraphHiveSceneSurface(Handle<SceneRootNode>(sceneRootNode));
 
-			if(hasInitialFocusNode) sceneSurface -> setInitialFocusNode(initialFocusNodeId, descriptor.focusViewportFraction);
+			if(hasInitialFocusNode)
+				sceneSurface -> setInitialFocusNode(initialFocusNodeId, descriptor.focusViewportFraction);
 
 			return sceneSurface;
 		}

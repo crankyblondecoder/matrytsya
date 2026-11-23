@@ -678,7 +678,8 @@ namespace
 			// A single radius rounds every corner alike.
 			double radius = lua_tonumber(luaState, -1);
 
-			for(int corner = 0; corner < TextBackground::CORNER_COUNT; corner++) background.cornerRadii[corner] = radius;
+			for(int corner = 0; corner < TextBackground::CORNER_COUNT; corner++)
+				background.cornerRadii[corner] = radius;
 		}
 		else if(radiusType != LUA_TNIL
 			&& !__readNumbers(luaState, lua_gettop(luaState), background.cornerRadii, TextBackground::CORNER_COUNT))
@@ -1281,8 +1282,9 @@ bool BuilderScriptNode::__readNodeSpec(lua_State* luaState, int index, Creatable
 		return __fail(error, "field 'name' must be 1 to %d characters", GRAPH_HIVE_NAME_MAX_LEN);
 	}
 
-	bool scripted = type == CreatableNodeType::SCENE_GEOMETRY_SCRIPT || type == CreatableNodeType::SCENE_TRANSFORM_SCRIPT
-		|| type == CreatableNodeType::SCENE_TEXT_SCRIPT || type == CreatableNodeType::TRIGGER;
+	bool scripted = type == CreatableNodeType::SCENE_GEOMETRY_SCRIPT
+		|| type == CreatableNodeType::SCENE_TRANSFORM_SCRIPT || type == CreatableNodeType::SCENE_TEXT_SCRIPT
+		|| type == CreatableNodeType::TRIGGER;
 
 	if(scripted && (!__readStringField(luaState, index, "coreScript", false, spec.coreScript, error)
 		|| !__readStringField(luaState, index, "pokeScript", false, spec.pokeScript, error)))
@@ -1397,7 +1399,8 @@ bool BuilderScriptNode::__readNodeSpec(lua_State* luaState, int index, Creatable
 			{
 				spec.imageKind = ImageSource::EMBEDDED;
 
-				if(!base64::decode(imageData, spec.imageBytes)) return __fail(error, "field 'imageData' must be base64");
+				if(!base64::decode(imageData, spec.imageBytes))
+					return __fail(error, "field 'imageData' must be base64");
 			}
 			else if(!imageFile.empty())
 			{
@@ -1407,7 +1410,8 @@ bool BuilderScriptNode::__readNodeSpec(lua_State* luaState, int index, Creatable
 			else
 			{
 				// Only the scheme is checked: a URL image may be in any format the viewer can display.
-				if(!pngImage::isImageUrl(imageUrl)) return __fail(error, "field 'imageUrl' must be an http or https URL");
+				if(!pngImage::isImageUrl(imageUrl))
+					return __fail(error, "field 'imageUrl' must be an http or https URL");
 
 				spec.imageKind = ImageSource::URL;
 				spec.imageReference = imageUrl;

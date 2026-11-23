@@ -141,7 +141,8 @@ int SceneGeometryScriptNode::__luaAddVertex(lua_State* luaState)
 {
 	Vertex vertex = __checkVertex(luaState, 1);
 	SceneGeometry::VertexVisibility visibility = __checkVisibility(luaState, 2);
-	SceneGeometryScriptNode* node = static_cast<SceneGeometryScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
+	SceneGeometryScriptNode* node =
+		static_cast<SceneGeometryScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
 
 	node -> addVertexes({vertex}, visibility);
 
@@ -153,7 +154,8 @@ int SceneGeometryScriptNode::__luaAddVertexes(lua_State* luaState)
 	luaL_checktype(luaState, 1, LUA_TTABLE);
 
 	SceneGeometry::VertexVisibility visibility = __checkVisibility(luaState, 2);
-	SceneGeometryScriptNode* node = static_cast<SceneGeometryScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
+	SceneGeometryScriptNode* node =
+		static_cast<SceneGeometryScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
 
 	lua_Integer count = luaL_len(luaState, 1);
 
@@ -174,7 +176,8 @@ int SceneGeometryScriptNode::__luaAddVertexes(lua_State* luaState)
 
 int SceneGeometryScriptNode::__luaVertexCount(lua_State* luaState)
 {
-	SceneGeometryScriptNode* node = static_cast<SceneGeometryScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
+	SceneGeometryScriptNode* node =
+		static_cast<SceneGeometryScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
 
 	lua_pushinteger(luaState, static_cast<lua_Integer>(node -> getVertexCount()));
 
@@ -183,7 +186,8 @@ int SceneGeometryScriptNode::__luaVertexCount(lua_State* luaState)
 
 int SceneGeometryScriptNode::__luaSetAgentVisible(lua_State* luaState)
 {
-	SceneGeometryScriptNode* node = static_cast<SceneGeometryScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
+	SceneGeometryScriptNode* node =
+		static_cast<SceneGeometryScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
 
 	node -> __setAgentVisible(lua_toboolean(luaState, 1));
 
@@ -192,7 +196,8 @@ int SceneGeometryScriptNode::__luaSetAgentVisible(lua_State* luaState)
 
 int SceneGeometryScriptNode::__luaGetAgentVisible(lua_State* luaState)
 {
-	SceneGeometryScriptNode* node = static_cast<SceneGeometryScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
+	SceneGeometryScriptNode* node =
+		static_cast<SceneGeometryScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
 
 	lua_pushboolean(luaState, node -> SceneGeometry::getAgentVisible());
 

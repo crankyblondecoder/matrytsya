@@ -132,7 +132,8 @@ namespace
 			{ "type": "SceneRootNode", "name": "root", "edges": [ { "toNodeName": "existing" } ] },
 			{ "type": "PingNode", "name": "existing", "pokeEnabled": true,
 				"edges": [ { "toNodeName": "root", "actionFlags": ["PING_GRAPH_ACTION"], "traversalKey": 3 } ] },
-			{ "type": "BuilderScriptNode", "name": "builder", "coreScript": "createPingNode{ name = 'fresh' } createEdge('fresh', 'existing', { actionFlags = { ActionFlag.TRIGGER_GRAPH_ACTION }, actionsCompleteAfterTraverse = true }) createEdge('existing', 'fresh') createSceneRootNode{ name = 'freshRoot', strobePeriodMs = 70 } createSceneTransformNode{ name = 'freshTransform', transform = {2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1} }", "pokeScript": "" }
+			{ "type": "BuilderScriptNode", "name": "builder", "pokeScript": "",
+				"coreScript": "createPingNode{ name = 'fresh' } createEdge('fresh', 'existing', { actionFlags = { ActionFlag.TRIGGER_GRAPH_ACTION }, actionsCompleteAfterTraverse = true }) createEdge('existing', 'fresh') createSceneRootNode{ name = 'freshRoot', strobePeriodMs = 70 } createSceneTransformNode{ name = 'freshTransform', transform = {2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1} }" }
 		],
 		"surfaces": [
 			{ "type": "GraphHiveSceneSurface", "name": "scene", "sceneRootNodeName": "root",
