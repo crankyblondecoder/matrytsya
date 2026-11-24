@@ -3,8 +3,9 @@
 #include "AgentException.hpp"
 #include "ModelContext.hpp"
 
-ModelRequest::ModelRequest(Handle<ModelContext> context, ModelPrompt prompt, double temperature) :
-	_context{context}, _prompt{prompt}, _temperature{temperature}
+ModelRequest::ModelRequest(Handle<ModelContext> context, ModelPrompt prompt, double temperature,
+	ModelRequestProgressListener* progressListener) :
+	_context{context}, _prompt{prompt}, _temperature{temperature}, _progressListener{progressListener}
 {
 	if(!_context.isValid() || _prompt.getPrompt().empty())
 	{
@@ -39,4 +40,9 @@ ModelPrompt ModelRequest::getPrompt()
 double ModelRequest::getTemperature()
 {
 	return _temperature;
+}
+
+ModelRequestProgressListener* ModelRequest::getProgressListener()
+{
+	return _progressListener;
 }

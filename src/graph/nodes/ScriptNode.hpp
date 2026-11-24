@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "../actionTargets/ScriptActionTarget.hpp"
+#include "../actionTargets/TextChangeActionTarget.hpp"
 #include "../GraphSerialisedActionNode.hpp"
 #include "../../agent/AgenticHarness.hpp"
 #include "../../agent/ModelToolCallParameterValue.hpp"
@@ -195,6 +196,24 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		 */
 		bool _isPokeState(lua_State* luaState);
 
+		/**
+		 * Call a global function the core script defines, on a core session of its own, so that a subclass can
+		 * hand a request to its script as a call rather than as a whole run.
+		 * @param name Name of the global function to call. Nothing is called if the script defines no function
+		 *        by that name.
+		 * @param pushArguments Pushes the arguments the function is called with onto the core state's stack and
+		 *        returns how many it pushed. Called with context, only once the function has been found.
+		 * @param context Passed through to pushArguments.
+		 * @returns True if the function was found and returned without raising.
+		 * @note The script is primed first, exactly as a run would prime it, so the call can be the first thing
+		 *       that ever reaches the script.
+		 * @note Never throws: if the core state cannot be claimed, or the function raises, the call is logged and
+		 *       false is returned, as the caller is typically an action being applied to this node.
+		 * @note Leaves the core state's stack as it found it.
+		 */
+		bool _callCoreHandler(const char* name, int (*pushArguments)(lua_State* luaState, void* context),
+			void* context);
+
     private:
 
 		/**
@@ -213,7 +232,10 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 			IMAGE_VISIBLE = 4,
 			/// FocusAction. Params: nodeName (string), viewportFraction (number greater than 0, no greater than 1).
 			/// Both optional.
-			FOCUS = 5
+			FOCUS = 5,
+			/// TextChangeAction. Params: text (string), required. operation ("REPLACE", "APPEND" or "PREPEND",
+			/// "REPLACE" if absent) and nodeName (string), optional.
+			TEXT_CHANGE = 6
 		};
 
 		// A session is the only thing permitted to drive either of this node's states, so it is the only
@@ -489,7 +511,10 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		 * IMAGE_VISIBLE each take a required visible boolean, and FOCUS takes an optional nodeName string that
 		 * restricts which of the nodes it reaches are brought into focus and an optional viewportFraction number
 		 * that fits each node to that fraction of the view's height rather than focusing on it the way a
-		 * right-click would. traversalKeys is an
+		 * right-click would. TEXT_CHANGE takes a required text string, an optional operation string ("REPLACE",
+		 * "APPEND" or "PREPEND", "REPLACE" if absent) saying how the text is combined with each reached node's
+		 * text, and an optional nodeName string that restricts which of the nodes it reaches are asked to change
+		 * their text. traversalKeys is an
 		 * optional array of the edge traversal keys the action holds, each an integer from 1 to 4294967295; the
 		 * action can traverse an edge with a non-zero traversal key only if it holds that key.
 		 * @note The emitted action is never applied to this node itself.
@@ -590,6 +615,18 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 			std::vector<unsigned> edgeTraversalKeys);
 
 		/**
+		 * Emit a TextChangeAction from this node.
+		 * @param operation How text is combined with each reached node's text.
+		 * @param text Text the action carries. Need not be null terminated.
+		 * @param textLength Length of text in bytes.
+		 * @param nodeName If non-empty, only nodes with this name are asked to change their text.
+		 * @param edgeTraversalKeys Keys the action holds.
+		 * @note Must only be called once every Lua argument has been validated, as for __emitTriggerAction().
+		 */
+		void __emitTextChangeAction(TextChangeOperation operation, const char* text, size_t textLength,
+			const char* nodeName, std::vector<unsigned> edgeTraversalKeys);
+
+		/**
 		 * Allocator shared by both persistent Lua states this node owns, capped independently per state via
 		 * userData.
 		 * @param userData Pointer to the size_t byte counter (either &_coreMemoryUsed or &_pokeMemoryUsed)
@@ -614,11 +651,12 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 			EmittableActionType::ANIMATE,
 			EmittableActionType::TEXT_VISIBLE,
 			EmittableActionType::IMAGE_VISIBLE,
-			EmittableActionType::FOCUS};
+			EmittableActionType::FOCUS,
+			EmittableActionType::TEXT_CHANGE};
 
 		/// Name each EmittableActionType is exposed under in the ActionType constant table.
 		static constexpr const char* EMITTABLE_ACTION_TYPE_NAMES[] = {"TRIGGER", "ANIMATE", "TEXT_VISIBLE",
-			"IMAGE_VISIBLE", "FOCUS"};
+			"IMAGE_VISIBLE", "FOCUS", "TEXT_CHANGE"};
 
 		/// Main Lua source that is run each time this node is invoked.
 		std::string _coreScript;

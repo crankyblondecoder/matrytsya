@@ -4,6 +4,7 @@
 #include "Model.hpp"
 #include "ModelContext.hpp"
 #include "ModelRequest.hpp"
+#include "ModelRequestProgressListener.hpp"
 #include "../thread/ThreadBase.hpp"
 
 #include "../mongoose/mongoose.h"
@@ -155,6 +156,24 @@ std::string ModelProvider::processRequest(Handle<Model> model, ModelRequest& req
 	context -> addChatExchange(request.getPrompt(), toolCallRounds, response);
 
 	return response;
+}
+
+void ModelProvider::_reportToolCallRound(ModelRequest& request, const ModelContext::ToolCallRound& round)
+{
+	ModelRequestProgressListener* listener = request.getProgressListener();
+
+	if(!listener) return;
+
+	std::string text = round.content;
+
+	for(const ModelContext::ToolCall& toolCall : round.toolCalls)
+	{
+		if(!text.empty()) text += "\n";
+
+		text += "Called tool " + toolCall.name + ".";
+	}
+
+	listener -> agentRequestProgressReport(text);
 }
 
 void ModelProvider::_checkConnection(std::string url)

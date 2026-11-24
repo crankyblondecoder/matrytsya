@@ -12,10 +12,12 @@
 #include "../../graph/nodes/BuilderScriptNode.hpp"
 #include "../../graph/nodes/PingNode.hpp"
 #include "../../graph/nodes/SceneRootNode.hpp"
+#include "../../graph/nodes/SceneTextScriptNode.hpp"
 #include "../../graph/nodes/ScriptSession.hpp"
 #include "../../graph/nodes/TriggerNode.hpp"
 #include "../../persist/HiveBuilder.hpp"
 #include "../../persist/HiveLoader.hpp"
+#include "../../persist/HiveNodeCapture.hpp"
 #include "../../persist/HiveNodeDescriptor.hpp"
 #include "../../persist/HiveSurfaceDescriptor.hpp"
 #include "../../persist/PersistException.hpp"
@@ -173,6 +175,60 @@ TEST(HiveBuilderTest, FullValidHive_BuildsAndWiresCorrectly)
 	action -> decrRef();
 
 	hive -> shutdown();
+}
+
+/**
+ * A scene text node is built in the text change mode its descriptor names, and captured back with it.
+ */
+TEST(HiveBuilderTest, SceneTextNodeTextChangeMode_IsBuiltAndCaptured)
+{
+	FakeHiveLoader loader;
+	loader.hiveName = "TestHive";
+
+	HiveNodeDescriptor text{};
+	text.type = HiveNodeDescriptor::SCENE_TEXT_SCRIPT;
+	text.name = "text";
+	text.textChangeModeName = "LOCKED";
+	loader.nodes.push_back(text);
+
+	GraphHive* hive = HiveBuilder::build(loader, 2);
+	Handle<GraphHive> hiveHandle(hive);
+
+	Handle<GraphNode> textHandle = hive -> getNode("text");
+	SceneTextScriptNode* textNode = dynamic_cast<SceneTextScriptNode*>(textHandle.getInstance());
+
+	ASSERT_NE(textNode, nullptr);
+	EXPECT_EQ(textNode -> getTextChangeMode(), SceneTextScriptNode::TextChangeMode::LOCKED);
+	EXPECT_EQ(HiveNodeCapture::capture(*textNode).textChangeModeName, "LOCKED");
+
+	hive -> shutdown();
+}
+
+/**
+ * A scene text node descriptor naming an unknown text change mode is rejected.
+ */
+TEST(HiveBuilderTest, SceneTextNodeUnknownTextChangeMode_Throws)
+{
+	FakeHiveLoader loader;
+	loader.hiveName = "TestHive";
+
+	HiveNodeDescriptor text{};
+	text.type = HiveNodeDescriptor::SCENE_TEXT_SCRIPT;
+	text.name = "text";
+	text.textChangeModeName = "UNLOCKED";
+	loader.nodes.push_back(text);
+
+	try
+	{
+		GraphHive* hive = HiveBuilder::build(loader, 2);
+		Handle<GraphHive> hiveHandle(hive);
+		hive -> shutdown();
+		FAIL() << "Expected PersistException";
+	}
+	catch(PersistException& exception)
+	{
+		EXPECT_EQ(exception.getError(), PersistException::JSON_INVALID_TEXT_CHANGE_MODE);
+	}
 }
 
 /**

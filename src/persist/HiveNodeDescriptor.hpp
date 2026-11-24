@@ -162,6 +162,10 @@ struct HiveNodeDescriptor
 	/// Whether a SceneTextScriptNode's text is shown. Only meaningful when type == SCENE_TEXT_SCRIPT.
 	bool textVisible = true;
 
+	/// Name of how a SceneTextScriptNode handles a text change action reaching it: "DIRECT", "SCRIPT" or
+	/// "LOCKED". Only meaningful when type == SCENE_TEXT_SCRIPT.
+	std::string textChangeModeName = "DIRECT";
+
 	/// Where a SceneImageNode's image comes from. Only meaningful when type == SCENE_IMAGE.
 	ImageSource::Kind imageKind = ImageSource::EMBEDDED;
 

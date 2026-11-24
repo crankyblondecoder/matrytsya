@@ -5,6 +5,7 @@
 #include "../util/Handle.hpp"
 
 class ModelContext;
+class ModelRequestProgressListener;
 
 /**
  * Describes a full request to be sent to an AI model, comprising the context the request is made within and
@@ -40,6 +41,8 @@ class ModelRequest
 		 *        MAX_TEMPERATURE, cut to MODEL_TEMPERATURE_DECIMAL_PLACES decimal places on its way to
 		 *        the provider. PROVIDER_DEFAULT_TEMPERATURE asks for no temperature at all, leaving the
 		 *        provider to answer at whatever it defaults to.
+		 * @param progressListener Listener to report the progress made on the request to while it is being
+		 *        serviced. Null when no one is interested. Must outlive the request.
 		 * @throw AgentException When no context was supplied, when the prompt has no text, or when the
 		 *        temperature is neither PROVIDER_DEFAULT_TEMPERATURE nor within the permitted range.
 		 * @note The context is shared with the caller rather than copied, so that the prompt and the
@@ -47,7 +50,7 @@ class ModelRequest
 		 *       handle keeps it alive for at least as long as the request.
 		 */
 		ModelRequest(Handle<ModelContext> context, ModelPrompt prompt,
-			double temperature = PROVIDER_DEFAULT_TEMPERATURE);
+			double temperature = PROVIDER_DEFAULT_TEMPERATURE, ModelRequestProgressListener* progressListener = 0);
 
 		/**
 		 * Get the context the request is made within.
@@ -67,6 +70,12 @@ class ModelRequest
 		 */
 		double getTemperature();
 
+		/**
+		 * Get the listener to report the progress made on the request to while it is being serviced.
+		 * @returns The listener, or null when no one is interested.
+		 */
+		ModelRequestProgressListener* getProgressListener();
+
 	protected:
 
 	private:
@@ -80,6 +89,9 @@ class ModelRequest
 		/// Sampling temperature the model is to answer at, or PROVIDER_DEFAULT_TEMPERATURE where none
 		/// was asked for.
 		double _temperature;
+
+		/// Listener to report the progress made on the request to. Null when no one is interested.
+		ModelRequestProgressListener* _progressListener;
 };
 
 #endif

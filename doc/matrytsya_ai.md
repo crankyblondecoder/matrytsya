@@ -49,6 +49,7 @@ cross, and whether it is applied at all at the node it arrives on.
 | Trigger | `TRIGGER_GRAPH_ACTION`, `SERIALISABLE_GRAPH_ACTION` | `trigger()` or `emitAction(ActionType.TRIGGER, …)` in Lua, the `emitTrigger` model tool, or poking a `TriggerNode` unless `emitTriggerOnPoke` is false | Fires the node if it is a trigger target; teleports itself if the node is a `TeleportNode`. Both obey the trigger's name and type restrictions. |
 | Ping | `PING_GRAPH_ACTION`, `SERIALISABLE_GRAPH_ACTION` | Internal | Pings the node. |
 | Text visible | `TEXT_VISIBLE_GRAPH_ACTION` (required) | `emitAction(ActionType.TEXT_VISIBLE, …)` in Lua | Shows or hides the node's text. Runs no script. |
+| Text change | `TEXT_CHANGE_GRAPH_ACTION` (required) | `emitAction(ActionType.TEXT_CHANGE, …)` in Lua | Replaces, appends to or prepends to the node's text, according to the node's `textChangeMode`: at once (`DIRECT`), through the core script's `onTextChange(request)` (`SCRIPT`), or not at all (`LOCKED`). Obeys an optional `nodeName`. |
 | Image visible | `IMAGE_VISIBLE_GRAPH_ACTION` (required) | `emitAction(ActionType.IMAGE_VISIBLE, …)` in Lua | Shows or hides the node's image. Runs no script. |
 | Focus | `FOCUS_GRAPH_ACTION` (required) | `emitAction(ActionType.FOCUS, …)` in Lua | Asks every open view of the scene to bring the node into focus, as right-clicking it would: centred and zoomed in for text or an image, recentred only for geometry. With a `viewportFraction`, the node is instead fitted to that fraction of the view's height, as an initial focus is. Obeys an optional `nodeName`. Runs no script. |
 | Agent affect | `AGENT_AFFECT_GRAPH_ACTION` (required) | A scripted scene node with `emitAgentAffectAction` set, as an agent action starts and stops being applied to it | Shows or hides the node's `AGENT` visibility vertexes. No visible effect on a transform. Never sent on again from a node it reaches. |
@@ -64,7 +65,7 @@ Flags each node type supports:
 | `SceneTransformNode` | `SCENE_GRAPH_ACTION`, `SCENE_STROBE_GRAPH_ACTION`, `AGENT_AFFECT_GRAPH_ACTION` |
 | `SceneGeometryScriptNode` | `SCENE_GRAPH_ACTION`, `SCENE_STROBE_GRAPH_ACTION`, `SCRIPT_GRAPH_ACTION`, `ANIMATE_GRAPH_ACTION`, `AGENT_GRAPH_ACTION`, `AGENT_AFFECT_GRAPH_ACTION`, `FOCUS_GRAPH_ACTION` |
 | `SceneTransformScriptNode` | `SCENE_GRAPH_ACTION`, `SCENE_STROBE_GRAPH_ACTION`, `SCRIPT_GRAPH_ACTION`, `ANIMATE_GRAPH_ACTION`, `AGENT_GRAPH_ACTION`, `AGENT_AFFECT_GRAPH_ACTION` |
-| `SceneTextScriptNode` | `SCENE_GRAPH_ACTION`, `SCENE_STROBE_GRAPH_ACTION`, `SCRIPT_GRAPH_ACTION`, `ANIMATE_GRAPH_ACTION`, `AGENT_GRAPH_ACTION`, `TEXT_VISIBLE_GRAPH_ACTION`, `FOCUS_GRAPH_ACTION` |
+| `SceneTextScriptNode` | `SCENE_GRAPH_ACTION`, `SCENE_STROBE_GRAPH_ACTION`, `SCRIPT_GRAPH_ACTION`, `ANIMATE_GRAPH_ACTION`, `AGENT_GRAPH_ACTION`, `TEXT_VISIBLE_GRAPH_ACTION`, `TEXT_CHANGE_GRAPH_ACTION`, `FOCUS_GRAPH_ACTION` |
 | `SceneImageNode` | `SCENE_GRAPH_ACTION`, `IMAGE_VISIBLE_GRAPH_ACTION`, `FOCUS_GRAPH_ACTION` |
 | `TriggerNode` | `SCRIPT_GRAPH_ACTION`, `AGENT_GRAPH_ACTION` |
 | `BuilderScriptNode` | `SCRIPT_GRAPH_ACTION`, `AGENT_GRAPH_ACTION`, `TRIGGER_GRAPH_ACTION` |

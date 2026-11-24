@@ -3,8 +3,21 @@
 #include "../GraphNodeVisitor.hpp"
 #include "../graphActionFlagRegister.hpp"
 #include "../GraphHiveSceneSurface.hpp"
+#include "../actions/TextChangeAction.hpp"
 
 #include "../../lua/lua.hpp"
+
+#include <iterator>
+#include <string.h>
+
+namespace
+{
+	const SceneTextScriptNode::TextChangeMode TEXT_CHANGE_MODES[] = {SceneTextScriptNode::TextChangeMode::DIRECT,
+		SceneTextScriptNode::TextChangeMode::SCRIPT, SceneTextScriptNode::TextChangeMode::LOCKED};
+
+	/// Name of each of TEXT_CHANGE_MODES, in the same order.
+	const char* const TEXT_CHANGE_MODE_NAMES[] = {"DIRECT", "SCRIPT", "LOCKED"};
+}
 
 SceneTextScriptNode::~SceneTextScriptNode()
 {
@@ -17,6 +30,7 @@ SceneTextScriptNode::SceneTextScriptNode(const std::string& coreScript, const st
 	_addActionFlag(SCENE_GRAPH_ACTION);
 	_addActionFlag(SCENE_STROBE_GRAPH_ACTION);
 	_addActionFlag(TEXT_VISIBLE_GRAPH_ACTION);
+	_addActionFlag(TEXT_CHANGE_GRAPH_ACTION);
 	_addActionFlag(FOCUS_GRAPH_ACTION);
 }
 
@@ -66,6 +80,112 @@ TextVisibleActionTarget* SceneTextScriptNode::getTextVisibleActionTarget()
 void SceneTextScriptNode::setTextVisible(bool visible)
 {
 	setVisible(visible);
+}
+
+TextChangeActionTarget* SceneTextScriptNode::getTextChangeActionTarget()
+{
+	return this;
+}
+
+void SceneTextScriptNode::requestTextChange(TextChangeOperation operation, const std::string& text)
+{
+	switch(getTextChangeMode())
+	{
+		case TextChangeMode::DIRECT:
+			editText(operation, text);
+			break;
+
+		case TextChangeMode::SCRIPT:
+		{
+			// The handler makes the change itself, so whether it ran is of no further interest here.
+			TextChangeRequest request{operation, text};
+			_callCoreHandler("onTextChange", __pushTextChangeRequest, &request);
+			break;
+		}
+
+		case TextChangeMode::LOCKED:
+			break;
+	}
+}
+
+void SceneTextScriptNode::setTextChangeMode(TextChangeMode mode)
+{
+	{ SYNC(_textChangeModeLock)
+
+		_textChangeMode = mode;
+	}
+}
+
+SceneTextScriptNode::TextChangeMode SceneTextScriptNode::getTextChangeMode()
+{
+	{ SYNC(_textChangeModeLock)
+
+		return _textChangeMode;
+	}
+}
+
+const char* SceneTextScriptNode::textChangeModeName(TextChangeMode mode)
+{
+	for(size_t i = 0; i < std::size(TEXT_CHANGE_MODES); i++)
+	{
+		if(TEXT_CHANGE_MODES[i] == mode) return TEXT_CHANGE_MODE_NAMES[i];
+	}
+
+	return TEXT_CHANGE_MODE_NAMES[0];
+}
+
+bool SceneTextScriptNode::textChangeModeFromName(const char* name, TextChangeMode& mode)
+{
+	for(size_t i = 0; i < std::size(TEXT_CHANGE_MODES); i++)
+	{
+		if(strcmp(TEXT_CHANGE_MODE_NAMES[i], name) != 0) continue;
+
+		mode = TEXT_CHANGE_MODES[i];
+		return true;
+	}
+
+	return false;
+}
+
+int SceneTextScriptNode::__pushTextChangeRequest(lua_State* luaState, void* context)
+{
+	TextChangeRequest* request = static_cast<TextChangeRequest*>(context);
+
+	lua_createtable(luaState, 0, 2); // [request]
+
+	lua_pushstring(luaState, TextChangeAction::operationName(request -> operation)); // [request, operation]
+	lua_setfield(luaState, -2, "operation"); // [request]
+
+	lua_pushlstring(luaState, request -> text.data(), request -> text.size()); // [request, text]
+	lua_setfield(luaState, -2, "text"); // [request]
+
+	return 1;
+}
+
+int SceneTextScriptNode::__luaSetTextChangeMode(lua_State* luaState)
+{
+	const char* name = luaL_checkstring(luaState, 1);
+	SceneTextScriptNode* node = static_cast<SceneTextScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
+
+	TextChangeMode mode;
+
+	if(!textChangeModeFromName(name, mode))
+	{
+		return luaL_error(luaState, "text change mode must be \"DIRECT\", \"SCRIPT\" or \"LOCKED\"");
+	}
+
+	node -> setTextChangeMode(mode);
+
+	return 0;
+}
+
+int SceneTextScriptNode::__luaGetTextChangeMode(lua_State* luaState)
+{
+	SceneTextScriptNode* node = static_cast<SceneTextScriptNode*>(lua_touserdata(luaState, lua_upvalueindex(1)));
+
+	lua_pushstring(luaState, textChangeModeName(node -> getTextChangeMode()));
+
+	return 1;
 }
 
 unsigned SceneTextScriptNode::getVersion()
@@ -379,7 +499,9 @@ void SceneTextScriptNode::__registerTextBindings(lua_State* luaState)
 		{"setTextBackground", __luaSetTextBackground},
 		{"getTextBackground", __luaGetTextBackground},
 		{"setTextVisible", __luaSetTextVisible},
-		{"getTextVisible", __luaGetTextVisible}
+		{"getTextVisible", __luaGetTextVisible},
+		{"setTextChangeMode", __luaSetTextChangeMode},
+		{"getTextChangeMode", __luaGetTextChangeMode}
 	};
 
 	for(const Binding& binding : bindings)

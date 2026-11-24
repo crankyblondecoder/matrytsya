@@ -133,8 +133,8 @@ A piece of scene geometry whose vertexes a script adds. It takes the same geomet
   and shows this node's `AGENT` vertexes for the length of the request. Agent affect, which shows or hides
   those same vertexes.
 - **Emits:** An animate action from `setAnimating()` when asked to, always from the `setAnimating` model
-  tool, and from `emitAction()`. A trigger action from `trigger()` or `emitAction()`. A text visible action
-  from `emitAction()`. An agent affect action while an agent action is applied here, if
+  tool, and from `emitAction()`. A trigger action from `trigger()` or `emitAction()`. A text visible or text
+  change action from `emitAction()`. An agent affect action while an agent action is applied here, if
   `emitAgentAffectAction` is set.
 - **Lua:** The bindings on every scripted node (`NodeType`, `trigger()`, `ToolType`, `ActionType`,
   `emitAction()`), the scene script node bindings (`getStrobe()`, `getAnimating()`, `setAnimating()`), and
@@ -199,17 +199,20 @@ turns and scales with the geometry around it.
 | `textColour` | No, default `[255, 255, 255, 255]` | Red, green, blue and alpha, each 0-255. |
 | `textBackground` | No, default no box | Box drawn behind the text: an object with `fillColour` and `borderColour` (each red, green, blue and alpha, 0-255, default `[0, 0, 0, 0]`), `borderWidth` and `padding` (default `0`), and `cornerRadius`, either one radius for every corner or `[topLeft, topRight, bottomRight, bottomLeft]` (default `0`). Lengths are in the same units as `textHeight` and may not be negative. Members left out keep their default. |
 | `textVisible` | No, default `true` | Whether the text is shown. Hidden text is left out of the scene. |
+| `textChangeMode` | No, default `"DIRECT"` | How a text change action reaching the node is handled. `"DIRECT"` makes the change at once. `"SCRIPT"` hands it to the `coreScript`'s `onTextChange(request)`, which makes whatever change it decides on itself. `"LOCKED"` ignores it. |
 
 - **Actions applied:** Scene, which adds the text to the scene under the current transform. Strobe, Script,
-  Animate and Agent, as on `SceneGeometryScriptNode`. Text visible, which shows or hides its text. It has no
-  agent visible geometry, so takes no agent affect action.
+  Animate and Agent, as on `SceneGeometryScriptNode`. Text visible, which shows or hides its text. Text
+  change, which changes its text according to `textChangeMode`. It has no agent visible geometry, so takes no
+  agent affect action.
 - **Emits:** An animate action from `setAnimating()` when asked to, always from the `setAnimating` model
-  tool, and from `emitAction()`. A trigger action from `trigger()` or `emitAction()`. A text visible action
-  from `emitAction()`.
+  tool, and from `emitAction()`. A trigger action from `trigger()` or `emitAction()`. A text visible or text
+  change action from `emitAction()`.
 - **Lua:** The bindings on every scripted node, the scene script node bindings, and its own `setText()`,
   `getText()`, `setTextPosition()`, `getTextPosition()`, `setTextHeight()`, `getTextHeight()`,
-  `setTextColour()`, `getTextColour()`, `setTextBackground()`, `getTextBackground()`, `setTextVisible()` and
-  `getTextVisible()`. See [LuaNodeAPI.md](LuaNodeAPI.md#scenetextscriptnode).
+  `setTextColour()`, `getTextColour()`, `setTextBackground()`, `getTextBackground()`, `setTextVisible()`,
+  `getTextVisible()`, `setTextChangeMode()` and `getTextChangeMode()`, and the `onTextChange(request)` handler
+  it may define. See [LuaNodeAPI.md](LuaNodeAPI.md#scenetextscriptnode).
 - **Model tools:** `getAnimating` and `setAnimating`, plus any the script declares.
 - **Poke:** Has a `pokeScript`, but owns no geometry, so a scene surface never pokes it.
 
@@ -295,7 +298,8 @@ in a scene.
   `emitTrigger` on offer. It supports neither strobe flag, so a strobe never runs its script, and an `init()`
   runs on the first script action to reach it, not at hive start.
 - **Emits:** A trigger action from `trigger()` or `emitAction()`, from the `emitTrigger` model tool, and on a
-  poke unless `emitTriggerOnPoke` is false. An animate action and a text visible action from `emitAction()`.
+  poke unless `emitTriggerOnPoke` is false. An animate action, a text visible action and a text change action
+  from `emitAction()`.
   None is ever applied back to this node.
 - **Lua:** Only the bindings on every scripted node: `NodeType`, `trigger()`, `ToolType`, `ActionType` and
   `emitAction()`. None of the scene script node bindings exist here. See

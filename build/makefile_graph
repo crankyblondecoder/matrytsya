@@ -2,7 +2,7 @@ srcFiles =  GraphAction.cpp GraphActionTargetable.cpp GraphActionThreadPoolWorkU
 GraphEdge.cpp GraphHive.cpp GraphHiveCollection.cpp GraphHiveGraphViewSurface.cpp GraphHiveSceneSurface.cpp \
 GraphHiveSurface.cpp GraphHiveStrobeScheduler.cpp GraphFocusable.cpp GraphNamed.cpp \
 GraphNode.cpp GraphNodeLocation.cpp GraphPoke.cpp GraphSerialisedActionNode.cpp pngImage.cpp \
-actions/ActionFactory.cpp actions/AgentAction.cpp actions/AgentAffectAction.cpp actions/AnimateAction.cpp actions/PingAction.cpp actions/SceneAction.cpp actions/StrobeAction.cpp actions/ScriptAction.cpp actions/SerialisableAction.cpp actions/TextVisibleAction.cpp actions/ImageVisibleAction.cpp actions/FocusAction.cpp \
+actions/ActionFactory.cpp actions/AgentAction.cpp actions/AgentAffectAction.cpp actions/AnimateAction.cpp actions/PingAction.cpp actions/SceneAction.cpp actions/StrobeAction.cpp actions/ScriptAction.cpp actions/SerialisableAction.cpp actions/TextVisibleAction.cpp actions/ImageVisibleAction.cpp actions/FocusAction.cpp actions/TextChangeAction.cpp \
 actions/SerialisableActionPayload.cpp actions/TriggerAction.cpp actions/VersionAction.cpp \
 nodes/AgentAffectingActionEmitter.cpp nodes/AgentNode.cpp nodes/BuilderScriptNode.cpp nodes/AnimateScriptNode.cpp nodes/PingNode.cpp nodes/SceneGeometry.cpp nodes/SceneGeometryNode.cpp nodes/SceneGeometryScriptNode.cpp nodes/SceneRootNode.cpp \
 nodes/SceneImage.cpp nodes/SceneImageNode.cpp nodes/SceneText.cpp nodes/SceneTextScriptNode.cpp \

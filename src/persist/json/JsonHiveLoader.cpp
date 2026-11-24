@@ -4,6 +4,7 @@
 #include "../hiveNames.hpp"
 #include "../../graph/GraphNodeLocation.hpp"
 #include "../../graph/graphSceneElements.hpp"
+#include "../../graph/nodes/SceneTextScriptNode.hpp"
 #include "../../graph/pngImage.hpp"
 #include "../../rapidjson/document.h"
 #include "../../rapidjson/error/en.h"
@@ -559,6 +560,19 @@ namespace
 			if(!nodeValue["textVisible"].IsBool()) throw PersistException(PersistException::JSON_INVALID_TEXT_VISIBLE);
 
 			descriptor.textVisible = nodeValue["textVisible"].GetBool();
+		}
+
+		if(nodeValue.HasMember("textChangeMode"))
+		{
+			const rapidjson::Value& modeValue = nodeValue["textChangeMode"];
+			SceneTextScriptNode::TextChangeMode mode;
+
+			if(!modeValue.IsString() || !SceneTextScriptNode::textChangeModeFromName(modeValue.GetString(), mode))
+			{
+				throw PersistException(PersistException::JSON_INVALID_TEXT_CHANGE_MODE);
+			}
+
+			descriptor.textChangeModeName = modeValue.GetString();
 		}
 	}
 

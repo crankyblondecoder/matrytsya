@@ -136,6 +136,7 @@ void HiveNodeCapture::visit(SceneTextScriptNode& node)
 	node.getColour(_descriptor.textColour);
 	_descriptor.textBackground = node.getBackground();
 	_descriptor.textVisible = node.getVisible();
+	_descriptor.textChangeModeName = SceneTextScriptNode::textChangeModeName(node.getTextChangeMode());
 
 	__captureScripts(node);
 }

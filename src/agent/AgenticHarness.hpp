@@ -11,6 +11,7 @@
 #include "../util/RefCounted.hpp"
 
 class Model;
+class ModelRequestProgressListener;
 class ModelToolBindings;
 
 /**
@@ -181,6 +182,8 @@ class AgenticHarness : public RefCounted
 		 * @param context Context of a previous interaction to continue, carrying the system prompts, tools
 		 *        and chat history it was built with. When not supplied, a new context is built from the
 		 *        system prompts and tools assigned to the role and capability.
+		 * @param progressListener Listener to report the progress made on the request to while it is being
+		 *        serviced. Null when no one is interested. Must outlive this call.
 		 * @returns The context the request was serviced within, with the prompt just processed, any tool
 		 *          calls made while working on it and the response given to it appended to its chat
 		 *          history. Pass it back in to continue the same conversation.
@@ -188,7 +191,8 @@ class AgenticHarness : public RefCounted
 		 *        the role with that capability.
 		 */
 		Handle<ModelContext> processRequest(std::string prompt, Role role, Capability capability,
-			Handle<ModelContext> context = Handle<ModelContext>(0));
+			Handle<ModelContext> context = Handle<ModelContext>(0),
+			ModelRequestProgressListener* progressListener = 0);
 
 	protected:
 

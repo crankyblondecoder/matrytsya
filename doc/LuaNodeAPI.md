@@ -236,7 +236,7 @@ Available to `SceneGeometryScriptNode`, `SceneTransformScriptNode`, `SceneTextSc
 | `NodeType` | A global table of constants naming each concrete node type, for use as the `nodeType` argument to `trigger`. See [Triggering other nodes](#triggering-other-nodes). |
 | `trigger([nodeName], [nodeType])` | Emits a trigger action from this node, triggering nodes it reaches as it traverses the graph. See [Triggering other nodes](#triggering-other-nodes). |
 | `ToolType` | A global table of constants naming the value types a script defined tool's parameters and return value may be declared as: `STRING`, `NUMBER`, `INTEGER` and `BOOL`. Only of use in a `coreScript`, which is the only place tools can be declared. See [`getToolCallBindings(capability)`](#gettoolcallbindingscapability). |
-| `ActionType` | A global table of constants naming the action types a script can emit: `TRIGGER`, `ANIMATE`, `TEXT_VISIBLE`, `IMAGE_VISIBLE` and `FOCUS`. See [Emitting actions](#emitting-actions). |
+| `ActionType` | A global table of constants naming the action types a script can emit: `TRIGGER`, `ANIMATE`, `TEXT_VISIBLE`, `IMAGE_VISIBLE`, `FOCUS` and `TEXT_CHANGE`. See [Emitting actions](#emitting-actions). |
 | `emitAction(actionType, [params], [traversalKeys])` | Emits an action of the given type from this node, with its own parameters and the edge traversal keys it holds. See [Emitting actions](#emitting-actions). |
 
 ## Bindings on scene script nodes
@@ -338,6 +338,9 @@ Parameters each action type takes:
 | `TEXT_VISIBLE` | `visible` | boolean | **Required** | Shows (`true`) or hides (`false`) the text of each `SceneTextScriptNode` the action reaches. |
 | `IMAGE_VISIBLE` | `visible` | boolean | **Required** | Shows (`true`) or hides (`false`) the image of each `SceneImageNode` the action reaches. |
 | `FOCUS` | `nodeName` | string | `""` (any name) | Asks every view of the scene to bring each `SceneGeometryNode`, `SceneGeometryScriptNode`, `SceneTextScriptNode` or `SceneImageNode` the action reaches into focus, or only those with this name. See [Focusing a view](#focusing-a-view). |
+| `TEXT_CHANGE` | `text` | string | **Required** | Text the change carries. Each `SceneTextScriptNode` the action reaches handles it according to its text change mode. See [Changing text from an action](#changing-text-from-an-action). |
+| `TEXT_CHANGE` | `operation` | `"REPLACE"`, `"APPEND"` or `"PREPEND"` | `"REPLACE"` | Whether `text` replaces the node's text, is added after it, or is added before it. |
+| `TEXT_CHANGE` | `nodeName` | string | `""` (any name) | Only nodes with this name are asked to change their text. |
 | `FOCUS` | `viewportFraction` | number, greater than 0 and no greater than 1 | Right-click behaviour | Fits the node's bounds to this fraction of the view's height, as a surface's `focusViewportFraction` does for its initial focus. |
 
 **Traversal keys.** An edge whose `traversalKey` is non-zero can only be crossed by an action holding that
@@ -357,6 +360,9 @@ emitAction(ActionType.ANIMATE, {animating = true}, {12})
 
 -- Hide the text of every text node reachable without crossing a keyed edge.
 emitAction(ActionType.TEXT_VISIBLE, {visible = false})
+
+-- Add a line to the text of the node named "log", crossing edges keyed 4 as well.
+emitAction(ActionType.TEXT_CHANGE, {text = "\nDoor opened", operation = "APPEND", nodeName = "log"}, {4})
 
 -- Show every image reachable without crossing a keyed edge.
 emitAction(ActionType.IMAGE_VISIBLE, {visible = true})
@@ -495,6 +501,8 @@ addition to the bindings [on every Lua-scripted node](#bindings-on-every-lua-scr
 | `getTextBackground()` | Returns the box drawn behind the text as a table with all five fields; `cornerRadius` is always the four element form. |
 | `setTextVisible(visible)` | Shows (`true`) or hides (`false`) the text. Hidden text is left out of the scene. Anything other than a boolean raises an error. |
 | `getTextVisible()` | Returns `true` if the text is shown, `false` if it is hidden. |
+| `setTextChangeMode(mode)` | Sets how a text change action reaching this node is handled: `"DIRECT"`, `"SCRIPT"` or `"LOCKED"`. Any other value raises an error. See [Changing text from an action](#changing-text-from-an-action). |
+| `getTextChangeMode()` | Returns `"DIRECT"`, `"SCRIPT"` or `"LOCKED"`. |
 
 Unlike vertexes, text is replaced rather than appended, and setting it to what it already is changes nothing,
 so a script may set it on every run without the scene being sent again.
@@ -507,6 +515,58 @@ function invoke()
 		count = count + 1
 		setText("Strobes: " .. count)
 	end
+end
+```
+
+### Changing text from an action
+
+A text change action, emitted by any script with
+[`emitAction(ActionType.TEXT_CHANGE, …)`](#emitting-actions), asks each text node it reaches to change its
+text. The action decides which nodes it reaches (its traversal keys and optional `nodeName`) and what it asks
+for (its `operation` and `text`). Each node decides what to do with the request, according to its text change
+mode. The mode is set by `textChangeMode` in the hive definition, or by `setTextChangeMode()`:
+
+| Mode | What happens |
+|---|---|
+| `"DIRECT"` | The default. The change is made at once, without running any script. |
+| `"SCRIPT"` | The change is handed to the core script's `onTextChange(request)`. The handler makes whatever change it decides on, itself, with `setText()`, and what it returns is ignored. If the script defines no `onTextChange`, or it raises an error, nothing changes. |
+| `"LOCKED"` | The change is ignored. |
+
+`request` is a table with two fields:
+
+| Field | Value |
+|---|---|
+| `operation` | `"REPLACE"`, `"APPEND"` or `"PREPEND"`. |
+| `text` | The text the action carries. |
+
+`onTextChange()` runs in the core state, with the same globals as a run of the core script, so it can read
+and change anything the script keeps there. The script is prepared exactly as for a run first, so `init()` is
+called if it has not been yet, and a script that defines neither `init()` nor `invoke()` is run in full before
+the handler is called. Like `getToolCallBindings()`, `onTextChange()` is not an entry point: defining it does not
+stop the chunk itself being re-run.
+
+A mode set from the script takes effect only once the script has run, so a node that must handle the very
+first change in `"SCRIPT"` mode should set `textChangeMode` in the hive definition instead.
+
+```lua
+function init()
+	setTextChangeMode("SCRIPT")
+end
+
+function invoke()
+end
+
+-- Only accept appends, and keep at most the last 5 lines.
+function onTextChange(request)
+	if request.operation ~= "APPEND" then return end
+
+	local lines = {}
+
+	for line in (getText() .. request.text):gmatch("[^\n]+") do
+		lines[#lines + 1] = line
+	end
+
+	setText(table.concat(lines, "\n", math.max(1, #lines - 4)))
 end
 ```
 
@@ -578,7 +638,7 @@ no `createBuilderScriptNode`.
 | `createSceneGeometryScriptNode{...}` | As `createSceneGeometryNode`, plus `coreScript` and `pokeScript`. |
 | `createSceneTransformNode{...}` | `emitAgentAffectAction`; `transform`, an array of 16 numbers. |
 | `createSceneTransformScriptNode{...}` | As `createSceneTransformNode`, plus `coreScript` and `pokeScript`. |
-| `createSceneTextScriptNode{...}` | `coreScript`, `pokeScript`, `text`, `textPosition`, `textHeight`, `textColour`, `textBackground` (the table [`setTextBackground()`](#scenetextscriptnode) takes), `textVisible`. |
+| `createSceneTextScriptNode{...}` | `coreScript`, `pokeScript`, `text`, `textPosition`, `textHeight`, `textColour`, `textBackground` (the table [`setTextBackground()`](#scenetextscriptnode) takes), `textVisible`, `textChangeMode` (`"DIRECT"`, `"SCRIPT"` or `"LOCKED"`, default `"DIRECT"`). |
 | `createAgentNode{...}` | `capability`, one of `"LOW"`, `"MEDIUM"` or `"HIGH"` and required; `prompts = {{nodeType, prompt, [nodeIdentifier], [terminateOnResponse]}, ...}`, required and not empty, where `nodeType` is a `NodeType` constant; `autoTriggerAgentAction`; `serialiseEmittedActions`. |
 | `createTriggerNode{...}` | `coreScript`, `pokeScript`, `emitTriggerOnPoke`. |
 | `createSceneImageNode{...}` | Exactly one of `imageData` (a base64 PNG), `imageFile` (path of a PNG file, within the image root if the server has one) and `imageUrl` (an `http` or `https` address, in any format a browser can display); `imagePosition`, `imageHeight`, `imageBackground` (the table [`setTextBackground()`](#scenetextscriptnode) takes), `imageVisible`. |
@@ -603,7 +663,8 @@ itself. `options` is an optional table of the same fields a hive definition's ed
 `ActionFlag` is a global table of constants named as a hive definition names them: `PING_GRAPH_ACTION`,
 `SERIALISABLE_GRAPH_ACTION`, `SCRIPT_GRAPH_ACTION`, `SCENE_GRAPH_ACTION`, `SCENE_STROBE_GRAPH_ACTION`,
 `ANIMATE_GRAPH_ACTION`, `AGENT_GRAPH_ACTION`, `TRIGGER_GRAPH_ACTION`, `AGENT_AFFECT_GRAPH_ACTION`,
-`TEXT_VISIBLE_GRAPH_ACTION`, `IMAGE_VISIBLE_GRAPH_ACTION` and `FOCUS_GRAPH_ACTION`. `VertexVisibility` is registered alongside it, with the same constants a
+`TEXT_VISIBLE_GRAPH_ACTION`, `IMAGE_VISIBLE_GRAPH_ACTION`, `FOCUS_GRAPH_ACTION` and `TEXT_CHANGE_GRAPH_ACTION`.
+`VertexVisibility` is registered alongside it, with the same constants a
 `SceneGeometryScriptNode` has.
 
 ### Looking up the hive

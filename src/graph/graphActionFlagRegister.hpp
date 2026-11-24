@@ -31,7 +31,8 @@
 
 /// Supports asking the views of a scene to bring a visual object into focus.
 #define FOCUS_GRAPH_ACTION 0x00001000
-//#define _GRAPH_ACTION 0x00002000
+/// Supports changing the text of a node.
+#define TEXT_CHANGE_GRAPH_ACTION 0x00002000
 //#define _GRAPH_ACTION 0x00004000
 //#define _GRAPH_ACTION 0x00008000
 

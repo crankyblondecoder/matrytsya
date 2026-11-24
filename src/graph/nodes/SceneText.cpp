@@ -24,6 +24,34 @@ void SceneText::setText(const std::string& text)
 	if(changed) _bumpVersion();
 }
 
+void SceneText::editText(TextChangeOperation operation, const std::string& text)
+{
+	bool changed = false;
+
+	{ SYNC(_lock)
+
+		switch(operation)
+		{
+			case TextChangeOperation::REPLACE:
+				changed = _text != text;
+				if(changed) _text = text;
+				break;
+
+			case TextChangeOperation::APPEND:
+				changed = !text.empty();
+				_text += text;
+				break;
+
+			case TextChangeOperation::PREPEND:
+				changed = !text.empty();
+				_text.insert(0, text);
+				break;
+		}
+	}
+
+	if(changed) _bumpVersion();
+}
+
 std::string SceneText::getText() const
 {
 	{ SYNC(_lock)

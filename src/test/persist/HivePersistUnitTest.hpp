@@ -233,6 +233,7 @@ TEST(JsonHiveWriterTest, RoundTripsEveryNodeType)
 	text.textBackground.cornerRadii[TextBackground::BOTTOM_LEFT] = 0.5;
 	text.textBackground.fillColour[0] = std::byte{200};
 	text.textVisible = false;
+	text.textChangeModeName = "LOCKED";
 	descriptors.push_back(text);
 
 	HiveNodeDescriptor agent{};
@@ -311,6 +312,7 @@ TEST(JsonHiveWriterTest, RoundTripsEveryNodeType)
 	EXPECT_EQ(readText.textColour[2], std::byte{7});
 	EXPECT_EQ(readText.textBackground, text.textBackground);
 	EXPECT_FALSE(readText.textVisible);
+	EXPECT_EQ(readText.textChangeModeName, "LOCKED");
 
 	HiveNodeDescriptor readAgent = JsonHiveLoader::parseNodeFragment(JsonHiveWriter::nodeFragment(agent));
 	EXPECT_EQ(readAgent.capabilityName, "HIGH");

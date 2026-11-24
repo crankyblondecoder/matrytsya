@@ -128,7 +128,8 @@ TEST(BuilderScriptNodeTest, CreatesEveryNodeTypeWithItsFields)
 				transform = {2, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1} },
 			createSceneTransformScriptNode{ name = "transformScript" },
 			createSceneTextScriptNode{ name = "text", text = "hello", textHeight = 2.5, textVisible = false,
-				textColour = {1, 2, 3, 4}, textBackground = { padding = 0.5, cornerRadius = 0.25 } },
+				textColour = {1, 2, 3, 4}, textBackground = { padding = 0.5, cornerRadius = 0.25 },
+				textChangeMode = "SCRIPT" },
 			createAgentNode{ name = "agent", capability = "HIGH", autoTriggerAgentAction = false,
 				prompts = { { nodeType = NodeType.TRIGGER_NODE, prompt = "go" } } },
 			createTriggerNode{ name = "trigger", emitTriggerOnPoke = false }
@@ -189,6 +190,7 @@ TEST(BuilderScriptNodeTest, CreatesEveryNodeTypeWithItsFields)
 	EXPECT_EQ(textNode -> getText(), "hello");
 	EXPECT_DOUBLE_EQ(textNode -> getHeight(), 2.5);
 	EXPECT_FALSE(textNode -> getVisible());
+	EXPECT_EQ(textNode -> getTextChangeMode(), SceneTextScriptNode::TextChangeMode::SCRIPT);
 	EXPECT_DOUBLE_EQ(textNode -> getBackground().padding, 0.5);
 	EXPECT_DOUBLE_EQ(textNode -> getBackground().cornerRadii[TextBackground::BOTTOM_LEFT], 0.25);
 
@@ -300,6 +302,7 @@ TEST(BuilderScriptNodeTest, MalformedArgumentsRaiseAndCreateNothing)
 		notTableRaised = raises(createPingNode, "a")
 		wrongTypeRaised = raises(createSceneTextScriptNode, { name = "b", textHeight = "tall" })
 		badHeightRaised = raises(createSceneTextScriptNode, { name = "b", textHeight = 0 })
+		badTextChangeModeRaised = raises(createSceneTextScriptNode, { name = "b", textChangeMode = "direct" })
 		badNodeTypeRaised = raises(createAgentNode, { name = "c", capability = "LOW",
 			prompts = { { nodeType = 9999, prompt = "x" } } })
 		badCapabilityRaised = raises(createAgentNode, { name = "c", capability = "ENORMOUS",
@@ -316,8 +319,8 @@ TEST(BuilderScriptNodeTest, MalformedArgumentsRaiseAndCreateNothing)
 	ASSERT_TRUE(_runBuilderCore(builder));
 
 	const char* raisedGlobals[] = {"unknownFieldRaised", "missingNameRaised", "notTableRaised", "wrongTypeRaised",
-		"badHeightRaised", "badNodeTypeRaised", "badCapabilityRaised", "badVertexRaised", "badFlagRaised",
-		"badKeyRaised", "badEdgeOptionRaised", "noBuilderBinding"};
+		"badHeightRaised", "badTextChangeModeRaised", "badNodeTypeRaised", "badCapabilityRaised", "badVertexRaised",
+		"badFlagRaised", "badKeyRaised", "badEdgeOptionRaised", "noBuilderBinding"};
 
 	for(const char* name : raisedGlobals) EXPECT_TRUE(_coreBool(builder, name)) << name;
 

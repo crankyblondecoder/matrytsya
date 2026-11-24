@@ -325,6 +325,14 @@ GraphNode* HiveBuilder::__createNode(const HiveNodeDescriptor& descriptor)
 
 		case HiveNodeDescriptor::SCENE_TEXT_SCRIPT:
 		{
+			SceneTextScriptNode::TextChangeMode textChangeMode;
+
+			// Checked before the node is made, so that a bad name leaves nothing to clean up.
+			if(!SceneTextScriptNode::textChangeModeFromName(descriptor.textChangeModeName.c_str(), textChangeMode))
+			{
+				throw PersistException(PersistException::JSON_INVALID_TEXT_CHANGE_MODE);
+			}
+
 			SceneTextScriptNode* node = new SceneTextScriptNode(descriptor.coreScript, descriptor.pokeScript);
 
 			node -> setText(descriptor.text);
@@ -333,6 +341,7 @@ GraphNode* HiveBuilder::__createNode(const HiveNodeDescriptor& descriptor)
 			node -> setColour(descriptor.textColour);
 			node -> setBackground(descriptor.textBackground);
 			node -> setVisible(descriptor.textVisible);
+			node -> setTextChangeMode(textChangeMode);
 
 			return node;
 		}

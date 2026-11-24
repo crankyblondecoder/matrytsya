@@ -119,7 +119,7 @@ Handle<ModelContext> AgenticHarness::createContext(Role role, Capability capabil
 }
 
 Handle<ModelContext> AgenticHarness::processRequest(std::string prompt, Role role, Capability capability,
-	Handle<ModelContext> context)
+	Handle<ModelContext> context, ModelRequestProgressListener* progressListener)
 {
 	// Refused before a model is looked up, so that an empty prompt is reported as the fault it is rather
 	// than as whatever the lookup fails to find on the way.
@@ -178,7 +178,7 @@ Handle<ModelContext> AgenticHarness::processRequest(std::string prompt, Role rol
 		+ getCapabilityName(capability) + " serviced by model " + candidateModel.getInstance() -> getName()
 		+ " at temperature " + std::to_string(temperature) + ".")
 
-	ModelRequest request(context, ModelPrompt(prompt), temperature);
+	ModelRequest request(context, ModelPrompt(prompt), temperature, progressListener);
 
 	candidateModel.getInstance() -> processRequest(request);
 

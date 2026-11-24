@@ -8,6 +8,7 @@
 #include "../actions/AnimateAction.hpp"
 #include "../actions/FocusAction.hpp"
 #include "../actions/ImageVisibleAction.hpp"
+#include "../actions/TextChangeAction.hpp"
 #include "../actions/TextVisibleAction.hpp"
 #include "../actions/TriggerAction.hpp"
 
@@ -36,6 +37,7 @@ namespace
 	const char* const TEXT_VISIBLE_PARAM_FIELDS[] = {"visible"};
 	const char* const IMAGE_VISIBLE_PARAM_FIELDS[] = {"visible"};
 	const char* const FOCUS_PARAM_FIELDS[] = {"nodeName", "viewportFraction"};
+	const char* const TEXT_CHANGE_PARAM_FIELDS[] = {"text", "operation", "nodeName"};
 
 	/**
 	 * Find the node type whose integer value is the one given.
@@ -507,6 +509,54 @@ bool ScriptNode::__callOptionalGlobal(lua_State* luaState, const char* name)
 	return false;
 }
 
+bool ScriptNode::_callCoreHandler(const char* name, int (*pushArguments)(lua_State* luaState, void* context),
+	void* context)
+{
+	bool called = false;
+
+	try
+	{
+		{ Handle<ScriptSession> sessionHandle = requestCoreSession();
+
+			if(__primeCoreScript())
+			{
+				if(lua_getglobal(_coreLuaState, name) != LUA_TFUNCTION) // [value]
+				{
+					lua_pop(_coreLuaState, 1); // [ ]
+				}
+				else
+				{
+					int argumentCount = pushArguments(_coreLuaState, context); // [function, arguments...]
+
+					if(lua_pcall(_coreLuaState, argumentCount, 0, 0) == LUA_OK) // [ ]
+					{
+						called = true;
+					}
+					else
+					{
+						// Nothing else reports this, so the script author's one sight of why is the log.
+						const char* message = lua_tostring(_coreLuaState, -1);
+
+						LOG(Logger::LogLevel::DEBUG, std::string("Script handler '") + name + "' raised: "
+							+ (message ? message : "unknown error"))
+
+						// The error object is popped so it cannot accumulate on a state that lives as long as
+						// this node.
+						lua_pop(_coreLuaState, 1); // [ ]
+					}
+				}
+			}
+		}
+	}
+	catch(ThreadException& ex)
+	{
+		LOG(Logger::LogLevel::DEBUG, std::string("Script handler '") + name
+			+ "' not called; could not obtain a session on the core state.")
+	}
+
+	return called;
+}
+
 void ScriptNode::_sessionEnding(bool)
 {
 }
@@ -937,6 +987,55 @@ int ScriptNode::__luaEmitAction(lua_State* luaState)
 
 			break;
 		}
+
+		case EmittableActionType::TEXT_CHANGE:
+		{
+			if(!hasParams) luaL_error(luaState, "emitAction: TEXT_CHANGE requires params.text");
+
+			__checkParamFields(luaState, 2, TEXT_CHANGE_PARAM_FIELDS, std::size(TEXT_CHANGE_PARAM_FIELDS));
+
+			// The pointers below stay valid for the rest of this call, as the params table, still on the stack,
+			// holds the strings they point into.
+			if(__rawGetField(luaState, 2, "text") != LUA_TSTRING) // [..., text]
+			{
+				luaL_error(luaState, "emitAction: TEXT_CHANGE requires params.text to be a string");
+			}
+
+			size_t textLength = 0;
+			const char* text = lua_tolstring(luaState, -1, &textLength);
+
+			lua_pop(luaState, 1); // [...]
+
+			TextChangeOperation operation = TextChangeOperation::REPLACE;
+
+			int operationType = __rawGetField(luaState, 2, "operation"); // [..., operation]
+
+			if(operationType != LUA_TNIL)
+			{
+				if(operationType != LUA_TSTRING
+					|| !TextChangeAction::operationFromName(lua_tostring(luaState, -1), operation))
+				{
+					luaL_error(luaState, "emitAction: params.operation must be \"REPLACE\", \"APPEND\" or "
+						"\"PREPEND\"");
+				}
+			}
+
+			lua_pop(luaState, 1); // [...]
+
+			// An empty name is what TextChangeAction takes as "any name".
+			const char* nodeName = "";
+
+			int nameType = __rawGetField(luaState, 2, "nodeName"); // [..., nodeName]
+
+			if(nameType == LUA_TSTRING) nodeName = lua_tostring(luaState, -1);
+			else if(nameType != LUA_TNIL) luaL_error(luaState, "emitAction: params.nodeName must be a string");
+
+			lua_pop(luaState, 1); // [...]
+
+			node -> __emitTextChangeAction(operation, text, textLength, nodeName, __readTraversalKeys(luaState, 3));
+
+			break;
+		}
 	}
 
 	return 0;
@@ -1110,6 +1209,20 @@ void ScriptNode::__emitFocusAction(const std::string& nodeName, double viewportF
 	// Action will self delete once complete.
 	FocusAction* action = new FocusAction(Handle<GraphNode>(this), nodeName, viewportFraction,
 		std::move(edgeTraversalKeys));
+
+	action -> incrRef();
+
+	_emitAction(action);
+
+	action -> decrRef();
+}
+
+void ScriptNode::__emitTextChangeAction(TextChangeOperation operation, const char* text, size_t textLength,
+	const char* nodeName, std::vector<unsigned> edgeTraversalKeys)
+{
+	// Action will self delete once complete.
+	TextChangeAction* action = new TextChangeAction(Handle<GraphNode>(this), operation,
+		std::string(text, textLength), nodeName, std::move(edgeTraversalKeys));
 
 	action -> incrRef();
 

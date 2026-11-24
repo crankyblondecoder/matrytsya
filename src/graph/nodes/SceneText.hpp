@@ -6,6 +6,7 @@
 
 #include "../GraphVersioned.hpp"
 #include "../TextBackground.hpp"
+#include "../actionTargets/TextChangeActionTarget.hpp"
 #include "../../util/Handle.hpp"
 #include "../../thread/thread.hpp"
 
@@ -34,6 +35,14 @@ class SceneText : public GraphVersioned
 		 * @returns The text to display.
 		 */
 		std::string getText() const;
+
+		/**
+		 * Change the text by combining it with the given text, as a single step that no other change to the text
+		 * can interleave with.
+		 * @param operation How text is combined with the current text.
+		 * @param text Text to combine with the current text.
+		 */
+		void editText(TextChangeOperation operation, const std::string& text);
 
 		/**
 		 * Set where the text is anchored, in the frame of the transform it is collected under.

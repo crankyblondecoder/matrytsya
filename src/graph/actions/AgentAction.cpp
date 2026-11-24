@@ -8,6 +8,7 @@
 #include "../GraphHive.hpp"
 #include "../GraphNode.hpp"
 #include "../../log/log.hpp"
+#include "../../thread/thread.hpp"
 
 #include <string>
 
@@ -53,11 +54,15 @@ bool AgentAction::_apply(GraphNode* target)
 
 		if(agentAffectTarget) agentAffectTarget -> agentAffectingStart(true);
 
+		// Only called while the request below is being serviced, so it need live no longer than that.
+		ProgressRelay relay(*this, agentAffectTarget);
+
 		LOG(Logger::LogLevel::DEBUG, "Processing node agentic request.")
 
 		try
 		{
-			_context = hive.getInstance() -> processNodeAgenticRequest(_capability, match -> prompt, _context);
+			_context = hive.getInstance() -> processNodeAgenticRequest(_capability, match -> prompt, _context,
+				&relay);
 		}
 		catch(...)
 		{
@@ -92,6 +97,34 @@ void AgentAction::_complete()
 Handle<ModelContext> AgentAction::getModelContext()
 {
 	return _context;
+}
+
+std::vector<std::string> AgentAction::getProgress()
+{
+	{ SYNC(_progressLock)
+
+		return _progress;
+	}
+}
+
+void AgentAction::__receiveProgress(std::string text, AgentAffectActionTarget* target)
+{
+	{ SYNC(_progressLock)
+
+		_progress.push_back(text);
+	}
+
+	if(target) target -> agentProgress(text);
+}
+
+AgentAction::ProgressRelay::ProgressRelay(AgentAction& action, AgentAffectActionTarget* target) :
+	_action{action}, _target{target}
+{
+}
+
+void AgentAction::ProgressRelay::agentRequestProgressReport(std::string text)
+{
+	_action.__receiveProgress(text, _target);
 }
 
 const AgentAction::NodePrompt* AgentAction::__findPrompt(GraphNode* target)

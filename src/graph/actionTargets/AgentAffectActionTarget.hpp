@@ -1,6 +1,8 @@
 #ifndef AGENT_AFFECT_ACTION_TARGET_H
 #define AGENT_AFFECT_ACTION_TARGET_H
 
+#include <string>
+
 #include "ActionTarget.hpp"
 
 /**
@@ -28,6 +30,15 @@ class AgentAffectActionTarget : virtual public ActionTarget
 		 * @param direct True if an agent action is directly affecting this target.
 		 */
 		virtual void agentAffectingEnd(bool direct) = 0;
+
+		/**
+		 * Called each time an agentic action directly applied to the node reports progress on the request it is
+		 * making for the node, while that request is still being serviced.
+		 * @param text Human readable description of the progress.
+		 * @note Only ever called between agentAffectingStart(true) and agentAffectingEnd(true), on the thread
+		 *       applying the action. Does nothing unless overridden, as most targets have nowhere to show it.
+		 */
+		virtual void agentProgress(std::string text) {}
 
 	protected:
 

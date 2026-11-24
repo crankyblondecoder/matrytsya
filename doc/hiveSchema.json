@@ -57,9 +57,10 @@
 				"AGENT_AFFECT_GRAPH_ACTION",
 				"TEXT_VISIBLE_GRAPH_ACTION",
 				"IMAGE_VISIBLE_GRAPH_ACTION",
-				"FOCUS_GRAPH_ACTION"
+				"FOCUS_GRAPH_ACTION",
+				"TEXT_CHANGE_GRAPH_ACTION"
 			],
-			"description": "Used to describe the type of a particular graph action. Some actions carry more than one, and an edge naming any one of them admits that action. PING_GRAPH_ACTION: a ping action. SERIALISABLE_GRAPH_ACTION: an action that can be teleported to another hive, carried by ping and trigger actions, and the only flag a teleport node acts on. SCRIPT_GRAPH_ACTION: an action that runs a node's coreScript, carried by script actions and by the strobe action that drives them. SCENE_GRAPH_ACTION: the action a surface runs to collect geometry and transforms into itself. SCENE_STROBE_GRAPH_ACTION: the action a registered strobe emitter sends out at a fixed rate. ANIMATE_GRAPH_ACTION: the action that carries an animating mode out from the node that set it. AGENT_GRAPH_ACTION: the action an agent node emits to carry one conversation from node to node. TRIGGER_GRAPH_ACTION: the action emitted by a trigger node, by a script's trigger() call, or by a model's emitTrigger tool. It fires agent nodes and builder script nodes. AGENT_AFFECT_GRAPH_ACTION: the action a node sends out across its edges when an agentic request starts or stops directly affecting it, so that other nodes can react to it too. Sent only by a node whose emitAgentAffectAction is set; on scene geometry it arrives as that node's agent-visible flag being set. TEXT_VISIBLE_GRAPH_ACTION: the action a script sends out to show or hide the text of the text nodes it reaches. IMAGE_VISIBLE_GRAPH_ACTION: the action a script sends out to show or hide the image of the image nodes it reaches. FOCUS_GRAPH_ACTION: the action a script sends out to ask the views of a scene to bring the geometry, text or image nodes it reaches into focus, as a viewer right-clicking them would."
+			"description": "Used to describe the type of a particular graph action. Some actions carry more than one, and an edge naming any one of them admits that action. PING_GRAPH_ACTION: a ping action. SERIALISABLE_GRAPH_ACTION: an action that can be teleported to another hive, carried by ping and trigger actions, and the only flag a teleport node acts on. SCRIPT_GRAPH_ACTION: an action that runs a node's coreScript, carried by script actions and by the strobe action that drives them. SCENE_GRAPH_ACTION: the action a surface runs to collect geometry and transforms into itself. SCENE_STROBE_GRAPH_ACTION: the action a registered strobe emitter sends out at a fixed rate. ANIMATE_GRAPH_ACTION: the action that carries an animating mode out from the node that set it. AGENT_GRAPH_ACTION: the action an agent node emits to carry one conversation from node to node. TRIGGER_GRAPH_ACTION: the action emitted by a trigger node, by a script's trigger() call, or by a model's emitTrigger tool. It fires agent nodes and builder script nodes. AGENT_AFFECT_GRAPH_ACTION: the action a node sends out across its edges when an agentic request starts or stops directly affecting it, so that other nodes can react to it too. Sent only by a node whose emitAgentAffectAction is set; on scene geometry it arrives as that node's agent-visible flag being set. TEXT_VISIBLE_GRAPH_ACTION: the action a script sends out to show or hide the text of the text nodes it reaches. IMAGE_VISIBLE_GRAPH_ACTION: the action a script sends out to show or hide the image of the image nodes it reaches. FOCUS_GRAPH_ACTION: the action a script sends out to ask the views of a scene to bring the geometry, text or image nodes it reaches into focus, as a viewer right-clicking them would. TEXT_CHANGE_GRAPH_ACTION: the action a script sends out to change the text of the text nodes it reaches, each of which handles it according to its textChangeMode."
 		},
 
 		"nodeType": {
@@ -591,7 +592,7 @@
 			},
 
 		"sceneTextScriptNode": {
-			"description": "A scripted node that puts a single block of text into a scene, anchored in the frame of the transforms it is collected under, so it is moved, turned and scaled along with the geometry around it. A viewer shows the text facing the camera and sized by its distance the same way geometry is; once too small to read, a viewer may show a marker in its place instead. Its Lua script can read and change the text and how it is shown. Holds an animating mode, and offers a visiting model the tools to read and set it.",
+			"description": "A scripted node that puts a single block of text into a scene, anchored in the frame of the transforms it is collected under, so it is moved, turned and scaled along with the geometry around it. A viewer shows the text facing the camera and sized by its distance the same way geometry is; once too small to read, a viewer may show a marker in its place instead. Its Lua script can read and change the text and how it is shown. An action reaching this node can change its text, handled according to textChangeMode. Holds an animating mode, and offers a visiting model the tools to read and set it.",
 			"allOf": [
 				{ "$ref": "#/$defs/scriptNodeBase" },
 				{
@@ -632,6 +633,11 @@
 							"type": "boolean",
 							"default": true,
 							"description": "Whether the text is shown. Hidden text is left out of the scene until a script or an action reaching this node shows it."
+						},
+						"textChangeMode": {
+							"enum": ["DIRECT", "SCRIPT", "LOCKED"],
+							"default": "DIRECT",
+							"description": "How a text change action reaching this node is handled. DIRECT: the change is made at once. SCRIPT: the change is handed to the coreScript's onTextChange(request) function, which makes whatever change it decides on itself; if the script defines no such function, or it raises an error, nothing changes. LOCKED: the change is ignored."
 						}
 					}
 				}

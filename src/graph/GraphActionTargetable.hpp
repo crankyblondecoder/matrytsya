@@ -11,6 +11,7 @@
 #include "actionTargets/StrobeActionTarget.hpp"
 #include "actionTargets/ScriptActionTarget.hpp"
 #include "actionTargets/SerialisableActionTarget.hpp"
+#include "actionTargets/TextChangeActionTarget.hpp"
 #include "actionTargets/TextVisibleActionTarget.hpp"
 #include "actionTargets/TriggerActionTarget.hpp"
 #include "actionTargets/VersionActionTarget.hpp"
@@ -82,6 +83,9 @@ class GraphActionTargetable
 
 		/// Get the target for asking views to bring this into focus.
 		virtual FocusActionTarget* getFocusActionTarget();
+
+		/// Get the target for changing text.
+		virtual TextChangeActionTarget* getTextChangeActionTarget();
 
 	protected:
 

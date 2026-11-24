@@ -68,7 +68,7 @@ namespace
 	const char* const SCENE_TRANSFORM_SCRIPT_FIELDS[] = {"name", "pokeEnabled", "coreScript", "pokeScript",
 		"emitAgentAffectAction", "transform"};
 	const char* const SCENE_TEXT_SCRIPT_FIELDS[] = {"name", "pokeEnabled", "coreScript", "pokeScript", "text",
-		"textPosition", "textHeight", "textColour", "textBackground", "textVisible"};
+		"textPosition", "textHeight", "textColour", "textBackground", "textVisible", "textChangeMode"};
 	const char* const AGENT_FIELDS[] = {"name", "pokeEnabled", "capability", "prompts", "autoTriggerAgentAction",
 		"serialiseEmittedActions"};
 	const char* const TRIGGER_FIELDS[] = {"name", "pokeEnabled", "coreScript", "pokeScript", "emitTriggerOnPoke"};
@@ -846,6 +846,9 @@ struct BuilderScriptNode::NodeSpec
 	/// Whether a scene text node's text is shown.
 	bool textVisible = true;
 
+	/// How a scene text node handles a text change action reaching it.
+	SceneTextScriptNode::TextChangeMode textChangeMode = SceneTextScriptNode::TextChangeMode::DIRECT;
+
 	/// Where a scene image node's image comes from.
 	ImageSource::Kind imageKind = ImageSource::EMBEDDED;
 
@@ -1354,6 +1357,15 @@ bool BuilderScriptNode::__readNodeSpec(lua_State* luaState, int index, Creatable
 				return false;
 			}
 
+			std::string textChangeModeName = "DIRECT";
+
+			if(!__readStringField(luaState, index, "textChangeMode", false, textChangeModeName, error)) return false;
+
+			if(!SceneTextScriptNode::textChangeModeFromName(textChangeModeName.c_str(), spec.textChangeMode))
+			{
+				return __fail(error, "field 'textChangeMode' must be \"DIRECT\", \"SCRIPT\" or \"LOCKED\"");
+			}
+
 			// Written so that a NaN fails it too.
 			if(!(spec.textHeight > 0.0)) return __fail(error, "field 'textHeight' must be greater than zero");
 
@@ -1512,6 +1524,7 @@ GraphNode* BuilderScriptNode::__constructNode(CreatableNodeType type, const Node
 				node -> setColour(spec.textColour);
 				node -> setBackground(spec.textBackground);
 				node -> setVisible(spec.textVisible);
+				node -> setTextChangeMode(spec.textChangeMode);
 			}
 			catch(...)
 			{

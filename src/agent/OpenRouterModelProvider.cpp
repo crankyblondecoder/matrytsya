@@ -499,7 +499,12 @@ std::string OpenRouterModelProvider::_processRequest(Handle<Model> model, ModelR
 		}
 
 		// A round in which not one call could be attributed to a tool has nothing left worth replaying.
-		if(!toolCallRound.toolCalls.empty()) toolCallRounds.push_back(toolCallRound);
+		if(!toolCallRound.toolCalls.empty())
+		{
+			toolCallRounds.push_back(toolCallRound);
+
+			_reportToolCallRound(request, toolCallRound);
+		}
 	}
 
 	throw AgentException(AgentException::TOOL_CALL_LIMIT_EXCEEDED);

@@ -95,6 +95,8 @@ const char* PersistException::getErrorDescription(Error error)
 			return "a scene text node's \"textBackground\" is not an object, or a colour, length or corner radius "
 				"in it is malformed or out of range";
 		case JSON_INVALID_TEXT_VISIBLE: return "a scene text node's \"textVisible\" is not a boolean";
+		case JSON_INVALID_TEXT_CHANGE_MODE:
+			return "a scene text node's \"textChangeMode\" is not \"DIRECT\", \"SCRIPT\" or \"LOCKED\"";
 		case JSON_INVALID_IMAGE_SOURCE:
 			return "a scene image node does not have exactly one of \"imageData\", \"imageFile\" and \"imageUrl\", "
 				"or it is malformed: \"imageData\" must be base64, \"imageFile\" a path and \"imageUrl\" an http or "

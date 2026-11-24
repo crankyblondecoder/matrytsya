@@ -170,6 +170,8 @@ class PersistException : public Exception
 			JSON_INVALID_TEXT_BACKGROUND,
 			/// A SceneTextScriptNode's "textVisible" member was present but not a boolean.
 			JSON_INVALID_TEXT_VISIBLE,
+			/// A SceneTextScriptNode's "textChangeMode" member was present but not "DIRECT", "SCRIPT" or "LOCKED".
+			JSON_INVALID_TEXT_CHANGE_MODE,
 			/// A SceneImageNode did not have exactly one of "imageData", "imageFile" and "imageUrl", or the one it
 			/// had was not a string, "imageData" was not valid base64, "imageFile" was empty or "imageUrl" was not an
 			/// http or https address.

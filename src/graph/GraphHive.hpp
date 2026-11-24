@@ -28,6 +28,7 @@ class GraphHiveGraphViewSurface;
 class GraphHiveSceneSurface;
 class GraphHiveSurface;
 class ModelContext;
+class ModelRequestProgressListener;
 
 /**
  * A "Hive" is a container for nodes.
@@ -338,13 +339,16 @@ class GraphHive : public RefCounted, public GraphNamed, public GraphVersioned, p
 		 * @param context Context of a previous interaction to continue. When not supplied, a new
 		 *        context is built from the system prompts and tools assigned to the role and
 		 *        capability.
+		 * @param progressListener Listener to report the progress made on the request to while it is
+		 *        being serviced. Null when no one is interested. Must outlive this call.
 		 * @returns The context the request was serviced within.
 		 * @throw GraphException When this hive has no agentic harness set.
 		 * @throw AgentException When no prompt text was supplied, or when no candidate model is
 		 *        assigned to the role with that capability.
 		 */
 		Handle<ModelContext> processAgenticRequest(AgenticHarness::Capability capability, std::string prompt,
-			Handle<ModelContext> context = Handle<ModelContext>(0));
+			Handle<ModelContext> context = Handle<ModelContext>(0),
+			ModelRequestProgressListener* progressListener = 0);
 
 		/**
 		 * Process an agentic request against this hive's agentic harness, on behalf of a specific node.
@@ -354,13 +358,16 @@ class GraphHive : public RefCounted, public GraphNamed, public GraphVersioned, p
 		 * @param context Context of a previous interaction to continue. When not supplied, a new
 		 *        context is built from the system prompts and tools assigned to the role and
 		 *        capability.
+		 * @param progressListener Listener to report the progress made on the request to while it is
+		 *        being serviced. Null when no one is interested. Must outlive this call.
 		 * @returns The context the request was serviced within.
 		 * @throw GraphException When this hive has no agentic harness set.
 		 * @throw AgentException When no prompt text was supplied, or when no candidate model is
 		 *        assigned to the role with that capability.
 		 */
 		Handle<ModelContext> processNodeAgenticRequest(AgenticHarness::Capability capability, std::string prompt,
-			Handle<ModelContext> context = Handle<ModelContext>(0));
+			Handle<ModelContext> context = Handle<ModelContext>(0),
+			ModelRequestProgressListener* progressListener = 0);
 
 		/**
 		 * Teleport a graph action.
@@ -430,11 +437,12 @@ class GraphHive : public RefCounted, public GraphNamed, public GraphVersioned, p
 		 * @param capability Capability required of the model.
 		 * @param prompt Text of the prompt to send to the model.
 		 * @param context Context of a previous interaction to continue.
+		 * @param progressListener Listener to report the progress made on the request to. May be null.
 		 * @returns The context the request was serviced within.
 		 * @throw GraphException When this hive has no agentic harness set.
 		 */
 		Handle<ModelContext> __processAgenticRequest(AgenticHarness::Role role, AgenticHarness::Capability capability,
-			std::string prompt, Handle<ModelContext> context);
+			std::string prompt, Handle<ModelContext> context, ModelRequestProgressListener* progressListener);
 
 		/// Thread pool that hive runs actions on.
 		ThreadPool* _threadPool = 0;

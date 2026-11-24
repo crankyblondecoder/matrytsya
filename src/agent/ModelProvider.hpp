@@ -134,6 +134,15 @@ class ModelProvider : public RefCounted
 		 */
 		virtual std::string _requestHeaders();
 
+		/**
+		 * Report a completed round of tool calls to the progress listener of the request it was made for.
+		 * @param request Request the round of tool calls was made while servicing.
+		 * @param round Round of tool calls to report.
+		 * @note Does nothing when the request has no progress listener. Worded here rather than by each
+		 *       provider so that progress reads the same whichever provider services the request.
+		 */
+		void _reportToolCallRound(ModelRequest& request, const ModelContext::ToolCallRound& round);
+
 	private:
 
 		// Disable copying.

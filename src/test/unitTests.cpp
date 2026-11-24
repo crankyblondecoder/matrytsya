@@ -29,3 +29,5 @@
 #include "./examples/GardenHiveUnitTest.hpp"
 #include "./graph/nodes/SceneImageNodeUnitTest.hpp"
 #include "./graph/actions/FocusActionUnitTest.hpp"
+#include "./graph/actions/AgentActionProgressUnitTest.hpp"
+#include "./graph/actions/TextChangeActionUnitTest.hpp"

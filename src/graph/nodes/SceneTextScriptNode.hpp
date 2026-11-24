@@ -5,10 +5,12 @@
 #include <string>
 
 #include "../actionTargets/SceneActionTarget.hpp"
+#include "../actionTargets/TextChangeActionTarget.hpp"
 #include "../actionTargets/TextVisibleActionTarget.hpp"
 #include "../GraphFocusable.hpp"
 #include "AnimateScriptNode.hpp"
 #include "SceneText.hpp"
+#include "../../thread/thread.hpp"
 
 class GraphHiveSceneSurface;
 
@@ -18,14 +20,44 @@ struct lua_State;
  * Scriptable graph node that puts a block of text into a scene, anchored in the frame of the transforms it is
  * collected under. Its script can read and modify the text and how it is shown via the setText()/getText(),
  * setTextPosition()/getTextPosition(), setTextHeight()/getTextHeight(), setTextColour()/getTextColour(),
- * setTextBackground()/getTextBackground() and setTextVisible()/getTextVisible() Lua globals. Its text can also
- * be shown or hidden by a text visible action reaching it, and a focus action reaching it asks the views of the
- * scene to bring it into focus.
+ * setTextBackground()/getTextBackground(), setTextVisible()/getTextVisible() and
+ * setTextChangeMode()/getTextChangeMode() Lua globals. Its text can also be shown or hidden by a text visible
+ * action reaching it, and a focus action reaching it asks the views of the scene to bring it into focus.
+ * @note A text change action reaching it is handled according to its text change mode. DIRECT applies the change
+ *       at once. SCRIPT calls the core script's onTextChange(request) global, if it defines one, with a table
+ *       holding the change's operation ("REPLACE", "APPEND" or "PREPEND") and text; the handler makes whatever
+ *       change it decides on itself, through setText(), and what it returns is ignored. LOCKED ignores it.
  */
 class SceneTextScriptNode : public AnimateScriptNode, public SceneActionTarget, public TextVisibleActionTarget,
-	public GraphFocusable, public SceneText
+	public TextChangeActionTarget, public GraphFocusable, public SceneText
 {
     public:
+
+		/// How a text change action reaching this node is handled.
+		enum class TextChangeMode
+		{
+			/// The change is applied at once.
+			DIRECT,
+			/// The change is handed to the core script's onTextChange(request) handler.
+			SCRIPT,
+			/// The change is ignored.
+			LOCKED
+		};
+
+		/**
+		 * Get the name a text change mode is known by to scripts and hive definitions.
+		 * @param mode Mode to name.
+		 * @returns "DIRECT", "SCRIPT" or "LOCKED".
+		 */
+		static const char* textChangeModeName(TextChangeMode mode);
+
+		/**
+		 * Find the text change mode a name stands for.
+		 * @param name "DIRECT", "SCRIPT" or "LOCKED".
+		 * @param mode Set to the mode, if the name is one of those.
+		 * @returns False, leaving mode unchanged, if the name is not one of those.
+		 */
+		static bool textChangeModeFromName(const char* name, TextChangeMode& mode);
 
 		/**
 		 * @param coreScript Lua source code that this node runs when invoked.
@@ -48,6 +80,21 @@ class SceneTextScriptNode : public AnimateScriptNode, public SceneActionTarget, 
 		FocusActionTarget* getFocusActionTarget() override;
 
 		void setTextVisible(bool visible) override;
+
+		TextChangeActionTarget* getTextChangeActionTarget() override;
+
+		void requestTextChange(TextChangeOperation operation, const std::string& text) override;
+
+		/**
+		 * Set how a text change action reaching this node is handled.
+		 * @param mode Mode to handle text changes in.
+		 */
+		void setTextChangeMode(TextChangeMode mode);
+
+		/**
+		 * @returns How a text change action reaching this node is handled.
+		 */
+		TextChangeMode getTextChangeMode();
 
 		unsigned getVersion() override;
 
@@ -196,11 +243,51 @@ class SceneTextScriptNode : public AnimateScriptNode, public SceneActionTarget, 
 		static int __luaGetTextVisible(lua_State* luaState);
 
 		/**
+		 * Lua-facing `setTextChangeMode(mode)`: sets how a text change action reaching the node bound as this
+		 * closure's upvalue is handled.
+		 * @param luaState Lua state the call is running against; argument 1 is "DIRECT", "SCRIPT" or "LOCKED" and
+		 *        upvalue 1 is a light userdata pointing at the target SceneTextScriptNode.
+		 * @returns Always 0.
+		 * @throw Raises a Lua error (does not return) if the argument is not one of those names.
+		 */
+		static int __luaSetTextChangeMode(lua_State* luaState);
+
+		/**
+		 * Lua-facing `getTextChangeMode()`: returns how a text change action reaching the node bound as this
+		 * closure's upvalue is handled, as "DIRECT", "SCRIPT" or "LOCKED".
+		 * @param luaState Lua state the call is running against; upvalue 1 is a light userdata pointing at the
+		 *        target SceneTextScriptNode.
+		 * @returns Always 1 (the mode name is left on the stack).
+		 */
+		static int __luaGetTextChangeMode(lua_State* luaState);
+
+		/**
+		 * Push the request table handed to onTextChange(): {operation = ..., text = ...}.
+		 * @param luaState Lua state to push onto.
+		 * @param context Points at the TextChangeRequest to push.
+		 * @returns Always 1, the number of values pushed.
+		 */
+		static int __pushTextChangeRequest(lua_State* luaState, void* context);
+
+		/// A text change waiting to be handed to the core script.
+		struct TextChangeRequest
+		{
+			TextChangeOperation operation;
+			const std::string& text;
+		};
+
+		/**
 		 * Register the text Lua globals against luaState, binding each function to this node instance via
 		 * upvalue.
 		 * @param luaState Lua state to register the globals against.
 		 */
 		void __registerTextBindings(lua_State* luaState);
+
+		/// Guards _textChangeMode, as text change actions can reach this node while a script is setting it.
+		ThreadMutex _textChangeModeLock;
+
+		/// How a text change action reaching this node is handled.
+		TextChangeMode _textChangeMode = TextChangeMode::DIRECT;
 };
 
 #endif

@@ -263,6 +263,9 @@ namespace
 
 		__writeKey(writer, "textVisible");
 		writer.Bool(descriptor.textVisible);
+
+		__writeKey(writer, "textChangeMode");
+		__writeString(writer, descriptor.textChangeModeName);
 	}
 
 	std::string __strobeFragment(const char* nameKey, const std::string& name, unsigned periodMs)

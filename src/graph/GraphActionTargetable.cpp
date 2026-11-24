@@ -100,3 +100,8 @@ FocusActionTarget* GraphActionTargetable::getFocusActionTarget()
 {
 	return 0;
 }
+
+TextChangeActionTarget* GraphActionTargetable::getTextChangeActionTarget()
+{
+	return 0;
+}

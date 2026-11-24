@@ -980,6 +980,50 @@ TEST(JsonHiveLoaderTest, SceneTextScriptNodeTextVisible_IsParsed)
 }
 
 /**
+ * A SceneTextScriptNode's "textChangeMode" is "DIRECT" if absent, and parsed if present.
+ */
+TEST(JsonHiveLoaderTest, SceneTextScriptNodeTextChangeMode_IsParsed)
+{
+	std::string json = R"({
+		"name": "Hive",
+		"nodes": [ { "type": "SceneTextScriptNode", "name": "label", "coreScript": "", "pokeScript": "" },
+			{ "type": "SceneTextScriptNode", "name": "scripted", "coreScript": "", "pokeScript": "",
+			"textChangeMode": "SCRIPT" } ]
+	})";
+
+	JsonHiveLoader loader(json);
+
+	EXPECT_EQ(loader.getNode(0).textChangeModeName, "DIRECT");
+	EXPECT_EQ(loader.getNode(1).textChangeModeName, "SCRIPT");
+}
+
+/**
+ * A SceneTextScriptNode's "textChangeMode" must be one of the mode names, spelt exactly.
+ */
+TEST(JsonHiveLoaderTest, SceneTextScriptNodeInvalidTextChangeMode_ThrowsJsonInvalidTextChangeMode)
+{
+	const char* const modes[] = {"\"direct\"", "\"UNLOCKED\"", "0", "true", "null"};
+
+	for(const char* mode : modes)
+	{
+		std::string json = std::string(R"({
+			"name": "Hive",
+			"nodes": [ { "type": "SceneTextScriptNode", "name": "label", "coreScript": "", "pokeScript": "",
+				"textChangeMode": )") + mode + " } ] }";
+
+		try
+		{
+			JsonHiveLoader loader(json);
+			FAIL() << "Expected PersistException for " << mode;
+		}
+		catch(PersistException& exception)
+		{
+			EXPECT_EQ(exception.getError(), PersistException::JSON_INVALID_TEXT_CHANGE_MODE) << mode;
+		}
+	}
+}
+
+/**
  * A SceneTextScriptNode's "textVisible" must be a boolean.
  */
 TEST(JsonHiveLoaderTest, SceneTextScriptNodeNonBooleanTextVisible_ThrowsJsonInvalidTextVisible)
