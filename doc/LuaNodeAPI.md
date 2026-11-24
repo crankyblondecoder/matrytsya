@@ -397,6 +397,41 @@ The view moves when the scene is next collected, which is on its next strobe. A 
 of, such as hidden text, is not focused on. If one action reaches several nodes, the view goes to the last one
 the scene collects, so give a `nodeName` to pick a single node.
 
+### Following an agent's conversation
+
+A `SceneGeometryScriptNode` or `SceneTransformScriptNode` core script can follow the conversation a model has
+while an agent node's request is made for that node. Define any of these handlers:
+
+| Handler | Called |
+|---|---|
+| `onAgentPrompt(prompt)` | Just before the request is made, with the prompt it is made with. |
+| `onAgentProgress(text)` | After each round of tool calls the model makes, with what the model said in that round and one `Called tool <name>.` line for each tool it called. |
+| `onAgentResponse(response)` | Once the model has answered, with its answer. Not called if the request fails. |
+| `onAgentEnd()` | Once the request has ended, whether it was answered or failed. |
+
+They are only called for a request made for this node itself, never for an agent affect action passed on from
+another node. A handler is only called if an earlier run of the script has already defined it. The script is
+never run just to deliver one of these calls. Handlers run in the core state, like
+[`onTextChange()`](#changing-text-from-an-action). What they return is ignored. If a handler raises an error,
+the error is logged and the request carries on.
+
+A handler can show the conversation in the scene by sending it to a text node with
+[`emitAction(ActionType.TEXT_CHANGE, …)`](#emitting-actions):
+
+```lua
+local lines = {}
+
+local function send(done)
+	emitAction(ActionType.TEXT_CHANGE, {text = table.concat(lines, "\n") .. (done and "\n[done]" or ""),
+		nodeName = "chat"}, {4100})
+end
+
+function onAgentPrompt(prompt) lines = {"me: " .. prompt} send(false) end
+function onAgentProgress(text) lines[#lines + 1] = "ai: " .. text send(false) end
+function onAgentResponse(response) lines[#lines + 1] = "ai: " .. response end
+function onAgentEnd() send(true) end
+```
+
 ### Poke-only context globals
 
 The following globals are set immediately before `pokeScript` runs, describing the poke that triggered it.

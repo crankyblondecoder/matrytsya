@@ -204,15 +204,27 @@ class ScriptNode : public GraphSerialisedActionNode, public ScriptActionTarget
 		 * @param pushArguments Pushes the arguments the function is called with onto the core state's stack and
 		 *        returns how many it pushed. Called with context, only once the function has been found.
 		 * @param context Passed through to pushArguments.
+		 * @param prime If true, the script is primed first, exactly as a run would prime it, so the call can be
+		 *        the first thing that ever reaches the script. If false, the function is only called if an
+		 *        earlier run already defined it, and the script is never run on the way.
 		 * @returns True if the function was found and returned without raising.
-		 * @note The script is primed first, exactly as a run would prime it, so the call can be the first thing
-		 *       that ever reaches the script.
 		 * @note Never throws: if the core state cannot be claimed, or the function raises, the call is logged and
 		 *       false is returned, as the caller is typically an action being applied to this node.
 		 * @note Leaves the core state's stack as it found it.
 		 */
 		bool _callCoreHandler(const char* name, int (*pushArguments)(lua_State* luaState, void* context),
-			void* context);
+			void* context, bool prime = true);
+
+		/**
+		 * Hand news of an agentic request made directly for this node to the core script's handler for it.
+		 * @param name Name of the handler: "onAgentPrompt", "onAgentProgress", "onAgentResponse" or "onAgentEnd".
+		 * @param text Text the handler is called with as its one argument, or null to call it with none.
+		 * @note Nothing is called unless an earlier run of the script defined the handler: the script is never
+		 *       primed for it, as news of a request is no reason to run a script that has not run yet, and a
+		 *       script that defines neither init() nor invoke() would otherwise be re-run in full for each piece
+		 *       of news. Never throws. See _callCoreHandler().
+		 */
+		void _callAgentHandler(const char* name, const std::string* text);
 
     private:
 

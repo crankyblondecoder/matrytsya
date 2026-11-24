@@ -74,6 +74,23 @@ void SceneGeometryScriptNode::agentAffectingEnd(bool direct)
 {
 	__setAgentVisible(false);
 	_agentAffectingEnd(direct);
+
+	if(direct) _callAgentHandler("onAgentEnd", 0);
+}
+
+void SceneGeometryScriptNode::agentPrompt(std::string prompt)
+{
+	_callAgentHandler("onAgentPrompt", &prompt);
+}
+
+void SceneGeometryScriptNode::agentProgress(std::string text)
+{
+	_callAgentHandler("onAgentProgress", &text);
+}
+
+void SceneGeometryScriptNode::agentResponse(std::string response)
+{
+	_callAgentHandler("onAgentResponse", &response);
 }
 
 void SceneGeometryScriptNode::__setAgentVisible(bool flag)

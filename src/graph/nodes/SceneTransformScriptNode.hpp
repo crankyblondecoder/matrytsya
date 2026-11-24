@@ -48,6 +48,12 @@ class SceneTransformScriptNode : public AnimateScriptNode, public SceneActionTar
 
 		void agentAffectingEnd(bool direct) override;
 
+		void agentPrompt(std::string prompt) override;
+
+		void agentProgress(std::string text) override;
+
+		void agentResponse(std::string response) override;
+
 		unsigned getVersion() override;
 
 	protected:

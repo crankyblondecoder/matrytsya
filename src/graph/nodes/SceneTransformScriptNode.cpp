@@ -65,6 +65,23 @@ void SceneTransformScriptNode::agentAffectingStart(bool direct)
 void SceneTransformScriptNode::agentAffectingEnd(bool direct)
 {
 	_agentAffectingEnd(direct);
+
+	if(direct) _callAgentHandler("onAgentEnd", 0);
+}
+
+void SceneTransformScriptNode::agentPrompt(std::string prompt)
+{
+	_callAgentHandler("onAgentPrompt", &prompt);
+}
+
+void SceneTransformScriptNode::agentProgress(std::string text)
+{
+	_callAgentHandler("onAgentProgress", &text);
+}
+
+void SceneTransformScriptNode::agentResponse(std::string response)
+{
+	_callAgentHandler("onAgentResponse", &response);
 }
 
 void SceneTransformScriptNode::_emitAgentAffectAction(bool agentAffecting)

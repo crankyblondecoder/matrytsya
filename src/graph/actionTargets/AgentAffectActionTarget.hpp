@@ -40,6 +40,23 @@ class AgentAffectActionTarget : virtual public ActionTarget
 		 */
 		virtual void agentProgress(std::string text) {}
 
+		/**
+		 * Called when an agentic action directly applied to the node is about to make its request for the node.
+		 * @param prompt Prompt the request is made with.
+		 * @note Only ever called just after agentAffectingStart(true), on the thread applying the action. Does
+		 *       nothing unless overridden.
+		 */
+		virtual void agentPrompt(std::string prompt) {}
+
+		/**
+		 * Called when the request an agentic action directly applied to the node made for the node has been
+		 * answered.
+		 * @param response Response the model gave.
+		 * @note Only ever called just before agentAffectingEnd(true), on the thread applying the action, and never
+		 *       for a request that failed. Does nothing unless overridden.
+		 */
+		virtual void agentResponse(std::string response) {}
+
 	protected:
 
     private:

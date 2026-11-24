@@ -17,6 +17,9 @@
 #include "../../../graph/GraphHive.hpp"
 #include "../../../graph/nodes/AgentNode.hpp"
 #include "../../../graph/nodes/SceneGeometryNode.hpp"
+#include "../../../graph/nodes/SceneGeometryScriptNode.hpp"
+#include "../../../graph/nodes/SceneTextScriptNode.hpp"
+#include "../../../graph/nodes/ScriptSession.hpp"
 #include "../../../util/Handle.hpp"
 
 namespace
@@ -120,8 +123,24 @@ namespace
 				reports.push_back(text);
 			}
 
+			virtual void agentPrompt(std::string prompt) override
+			{
+				prompts.push_back(prompt);
+			}
+
+			virtual void agentResponse(std::string response) override
+			{
+				responses.push_back(response);
+			}
+
 			/// Reports received, oldest first.
 			std::vector<std::string> reports;
+
+			/// Prompts received, oldest first.
+			std::vector<std::string> prompts;
+
+			/// Responses received, oldest first.
+			std::vector<std::string> responses;
 	};
 
 	/**
@@ -215,7 +234,63 @@ TEST(AgentActionProgressTest, AgentAction_KeepsProgressAndPassesItToNode)
 	EXPECT_EQ(geometryNode -> reports, progress) << "The node the request was made for should have been given "
 		"each report the action received.";
 
+	EXPECT_EQ(geometryNode -> prompts, std::vector<std::string>{"Do something."});
+	EXPECT_EQ(geometryNode -> responses, std::vector<std::string>{"Done."});
+
 	action -> decrRef();
+
+	hive -> shutdown();
+}
+
+TEST(AgentActionProgressTest, AgentAction_HandsConversationToScriptHandlers)
+{
+	GraphHive* hive = new GraphHive(2);
+	Handle<GraphHive> hiveHandle(hive);
+
+	hive -> setAgenticHarness(_buildProgressTestHarness());
+
+	AgentAction::NodePrompt prompt;
+
+	prompt.nodeType = GraphNodeType::SCENE_GEOMETRY_SCRIPT_NODE;
+	prompt.prompt = "Do something.";
+	prompt.terminateOnResponse = true;
+
+	// The handlers only hand the conversation on once the request has ended, so the text node is changed once.
+	SceneGeometryScriptNode* geometryNode = new SceneGeometryScriptNode(
+		"local log = ''\n"
+		"function init() end\n"
+		"function onAgentPrompt(p) log = 'P:' .. p end\n"
+		"function onAgentProgress(t) log = log .. '|' .. t end\n"
+		"function onAgentResponse(r) log = log .. '|R:' .. r end\n"
+		"function onAgentEnd() emitAction(ActionType.TEXT_CHANGE, {text = log .. '|E'}, {7}) end\n", "");
+
+	AgentNode* agentNode = new AgentNode(AgenticHarness::Capability::HIGH, {prompt}, false);
+	SceneTextScriptNode* textNode = new SceneTextScriptNode("", "");
+
+	hive -> addNode(agentNode);
+	hive -> addNode(geometryNode);
+	hive -> addNode(textNode);
+
+	Handle<GraphNode> geometryHandle(geometryNode);
+	Handle<GraphNode> textHandle(textNode);
+
+	agentNode -> createEdge(geometryHandle, {AGENT_GRAPH_ACTION});
+	geometryNode -> createEdge(textHandle, {TEXT_CHANGE_GRAPH_ACTION}, 7);
+
+	// Handlers are only called once a run of the script has defined them.
+	{ Handle<ScriptSession> sessionHandle = geometryNode -> requestCoreSession();
+
+		ASSERT_TRUE(sessionHandle.getInstance() -> run());
+	}
+
+	AgentAction* action = agentNode -> emitAgentAction(true);
+
+	action -> decrRef();
+
+	hive -> waitOnNoActionsActive(0);
+
+	EXPECT_EQ(textNode -> getText(), "P:Do something.|" + FIRST_ROUND_PROGRESS + "|" + SECOND_ROUND_PROGRESS
+		+ "|R:Done.|E");
 
 	hive -> shutdown();
 }

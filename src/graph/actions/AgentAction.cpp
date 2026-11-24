@@ -52,7 +52,11 @@ bool AgentAction::_apply(GraphNode* target)
 		// worked on is revealed for exactly that window.
 		AgentAffectActionTarget* agentAffectTarget = target -> getAgentAffectActionTarget();
 
-		if(agentAffectTarget) agentAffectTarget -> agentAffectingStart(true);
+		if(agentAffectTarget)
+		{
+			agentAffectTarget -> agentAffectingStart(true);
+			agentAffectTarget -> agentPrompt(match -> prompt);
+		}
 
 		// Only called while the request below is being serviced, so it need live no longer than that.
 		ProgressRelay relay(*this, agentAffectTarget);
@@ -73,7 +77,11 @@ bool AgentAction::_apply(GraphNode* target)
 			throw;
 		}
 
-		if(agentAffectTarget) agentAffectTarget -> agentAffectingEnd(true);
+		if(agentAffectTarget)
+		{
+			agentAffectTarget -> agentResponse(_context.getInstance() -> getLastResponse());
+			agentAffectTarget -> agentAffectingEnd(true);
+		}
 
 		// Bindings only apply to the node the request was made for, so they must not linger for whatever
 		// comes next in this context.

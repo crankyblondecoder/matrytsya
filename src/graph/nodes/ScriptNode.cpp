@@ -62,6 +62,23 @@ namespace
 	}
 
 	/**
+	 * Push the one argument an agent handler is called with: the text it was given, or nothing at all.
+	 * @param luaState Lua state to push onto.
+	 * @param context Points at the std::string to push, or is null to push nothing.
+	 * @returns The number of values pushed.
+	 */
+	int __pushAgentHandlerArgument(lua_State* luaState, void* context)
+	{
+		if(!context) return 0;
+
+		const std::string* text = static_cast<const std::string*>(context);
+
+		lua_pushlstring(luaState, text -> data(), text -> size()); // [text]
+
+		return 1;
+	}
+
+	/**
 	 * Push the raw value of a named field of a table, bypassing any metamethod so that the read cannot raise.
 	 * @param luaState Lua state to read from.
 	 * @param index Absolute stack index of the table.
@@ -510,7 +527,7 @@ bool ScriptNode::__callOptionalGlobal(lua_State* luaState, const char* name)
 }
 
 bool ScriptNode::_callCoreHandler(const char* name, int (*pushArguments)(lua_State* luaState, void* context),
-	void* context)
+	void* context, bool prime)
 {
 	bool called = false;
 
@@ -518,7 +535,7 @@ bool ScriptNode::_callCoreHandler(const char* name, int (*pushArguments)(lua_Sta
 	{
 		{ Handle<ScriptSession> sessionHandle = requestCoreSession();
 
-			if(__primeCoreScript())
+			if(!prime || __primeCoreScript())
 			{
 				if(lua_getglobal(_coreLuaState, name) != LUA_TFUNCTION) // [value]
 				{
@@ -555,6 +572,12 @@ bool ScriptNode::_callCoreHandler(const char* name, int (*pushArguments)(lua_Sta
 	}
 
 	return called;
+}
+
+void ScriptNode::_callAgentHandler(const char* name, const std::string* text)
+{
+	// The argument is only read while the handler is being called, so a const pointer is safe to pass through.
+	_callCoreHandler(name, __pushAgentHandlerArgument, const_cast<std::string*>(text), false);
 }
 
 void ScriptNode::_sessionEnding(bool)
